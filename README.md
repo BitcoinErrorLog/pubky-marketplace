@@ -2,6 +2,8 @@
 
 Umbrella repository for the Pubky App marketplace project: the integration environment lives here, and this README maps every repository, branch, and document that makes up the feature. Everything is hosted under the `BitcoinErrorLog` GitHub org for now.
 
+**Start with [SUMMARY.md](SUMMARY.md)** — the full feature summary with UI screenshots from the visual-regression suites and links to every repo and document.
+
 ## Repository map
 
 | Piece | Where | What it is |
