@@ -162,10 +162,15 @@ note "setup complete: $(cat "$OUT_DIR/setup-complete.json")"
 
 # --- 6. reader identity + receiver marker ---------------------------------------
 step "6. reader identity + Paykit receiver marker (Bitkit protocol role)"
+# Fresh reader per run: an invoice is bound to its reader, so a fresh reader
+# receives exactly one Payment Request. Reusing a reader would surface older
+# (already paid) requests from previous runs.
+$DC exec -T creator-demo rm -rf /workspace/.local/paykit-reader
+$DC exec -T paykit-reader rm -f /reader-state/state.bin
 READER_ID_JSON="$($DC exec -T creator-demo node /overlay-js/create-reader.mjs)"
 READER_SECRET="$(jq -r '.secret' <<<"$READER_ID_JSON")"
 PREPARE_OUT="$(printf '{"version":1,"operation":"prepare","reader_secret":"%s"}' "$READER_SECRET" \
-  | $DC exec -T paykit-reader paykit-reader-demo)"
+  | $DC exec -e PAYKIT_READER_SERVER_PUBKY="$CREATOR" -T paykit-reader paykit-reader-demo)"
 echo "$PREPARE_OUT" >"$OUT_DIR/reader-prepare.json"
 READER_PUBKY="$(jq -r '.reader_pubky' <<<"$PREPARE_OUT")"
 jq -e '.status == "prepared"' <<<"$PREPARE_OUT" >/dev/null || fail "reader prepare failed: $PREPARE_OUT"
@@ -174,9 +179,6 @@ note "reader=$READER_PUBKY (receiver marker published)"
 # --- 7. creator publishes guarded content + paykit-payment lock -----------------
 step "7. guarded content + paykit-payment content lock"
 LOCK_SERVER_PUBKY="$($DC exec -T locks-server cat /paykit-shared/lock_server_public_key | tr -d '\r\n')"
-http_post_json /creator/lock-service-config \
-  "$(jq -nc --arg k "$LOCK_SERVER_PUBKY" '{default_lock_server: $k}')" \
-  >/dev/null 2>&1 || true
 CONFIG_RESULT="$(curl -sS -o "$OUT_DIR/lock-service-config.json" -w '%{http_code}' -H 'content-type: application/json' \
   -H "authorization: Bearer $SESSION_TOKEN" \
   -X POST --data "$(jq -nc --arg k "$LOCK_SERVER_PUBKY" '{default_lock_server: $k}')" \
@@ -279,10 +281,13 @@ case "$INVOICE_ADDRESS" in bcrt1*) ;; *) fail "unexpected invoice address: $RECE
 [ "$INVOICE_AMOUNT_SATS" = "$AMOUNT_SATS" ] || fail "amount mismatch: requested $AMOUNT_SATS, payment request says $INVOICE_AMOUNT_SATS"
 note "payment request received: address=$INVOICE_ADDRESS amount=${INVOICE_AMOUNT_SATS} sats"
 
-DESCRIPTOR="$($BCLI getdescriptorinfo "wpkh($TPUB/0/0)" | jq -r '.descriptor')"
-DERIVED_ADDRESS="$($BCLI deriveaddresses "$DESCRIPTOR" | jq -r '.[0]')"
-[ "$DERIVED_ADDRESS" = "$INVOICE_ADDRESS" ] || fail "BIP84 derivation mismatch: paykit=$INVOICE_ADDRESS local(m/84h/1h/0h/0/0)=$DERIVED_ADDRESS"
-note "address independently re-derived from tpub child 0/0: match"
+# Each invoice allocates the next external-chain child; scan a window so the
+# check stays valid on repeated runs against the same Creator.
+DESCRIPTOR="$($BCLI getdescriptorinfo "wpkh($TPUB/0/*)" | jq -r '.descriptor')"
+DERIVED_CHILD="$($BCLI deriveaddresses "$DESCRIPTOR" '[0,50]' \
+  | jq -r --arg a "$INVOICE_ADDRESS" 'index($a) // "none"')"
+[ "$DERIVED_CHILD" != "none" ] || fail "invoice address $INVOICE_ADDRESS is not derived from the claimed tpub (children 0..50 of m/84h/1h/0h/0)"
+note "address independently re-derived from tpub: external child index $DERIVED_CHILD"
 
 # --- 12. pay from the regtest node -------------------------------------------------
 step "12. pay the invoice address from the regtest node (Bitkit wallet-execution role)"
