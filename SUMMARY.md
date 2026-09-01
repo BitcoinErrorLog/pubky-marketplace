@@ -27,6 +27,7 @@ In this repo:
 - [`docs/spec-feedback/paykit-team-brief.md`](docs/spec-feedback/paykit-team-brief.md) — technical brief for `pubky/paykit-rs` and `pubky/paykit-server` maintainers (fork inventory, wallet-interop defects, upstream-or-fork decisions)
 - [`docs/spec-feedback/bitkit-team-brief.md`](docs/spec-feedback/bitkit-team-brief.md) — technical brief for Bitkit and Pubky Ring maintainers (wallet-leg surface, issuer filters, Hypercolor handoff, identity-only Ring approvals)
 - [`docs/spec-feedback/locks-team-brief.md`](docs/spec-feedback/locks-team-brief.md) — technical brief for `pubky/locks` maintainers (clean pin, fiat-verifier seam, verifier-type misnomer, guarded-404 evidence, 500-vs-403 mapping)
+- [`docs/spec-feedback/nexus-team-brief.md`](docs/spec-feedback/nexus-team-brief.md) — technical brief for `pubky/pubky-nexus` and `pubky/pubky-app-specs` maintainers (fork inventory, indexer boundary, open-world specs, attestation typs, R1–R9 filing)
 
 All other entries are on the `marketplace/pr25-ux` branch of `pubky-app` unless noted:
 
