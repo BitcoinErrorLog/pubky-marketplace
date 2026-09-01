@@ -22,6 +22,8 @@ Umbrella repository for the Pubky App marketplace project: the integration envir
 ## Key documents
 
 - [`docs/spec-feedback/paykit-team-brief.md`](docs/spec-feedback/paykit-team-brief.md) — technical brief for `pubky/paykit-rs` and `pubky/paykit-server` maintainers: fork inventory, wallet-interop defects, what is theirs vs what we built around them.
+- [`docs/spec-feedback/bitkit-team-brief.md`](docs/spec-feedback/bitkit-team-brief.md) — technical brief for Bitkit and Pubky Ring maintainers: wallet-leg surface, issuer filters, Hypercolor handoff, identity-only Ring approvals.
+- [`docs/spec-feedback/locks-team-brief.md`](docs/spec-feedback/locks-team-brief.md) — technical brief for `pubky/locks` maintainers: clean pin (no fork), fiat-verifier seam, verifier-type misnomer, guarded-404 evidence, 500-vs-403 on homeserver write denial.
 
 ### On the `pubky-app` marketplace branches
 
