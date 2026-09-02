@@ -7,8 +7,8 @@ cd "$(dirname "$0")/.."
 # Pinned revisions (see README.md for provenance):
 LOCKS_RUNTIME_REV=ba49a777a94db318ec6ebd427315080a5b904645   # pubky/locks, runtime stack
 LOCKS_DEP_REV=df5ea1b6d8dcdec3a9b5a915c3f57bca69d75c8a       # pubky/locks, paykit-server's locks-core dependency pin
-PAYKIT_RS_REV=52a852995bfc457b78d32f5a45f6741766a89bba       # pubky/paykit-rs, paykit-server's dependency pin
-PAYKIT_SERVER_REV=f38c7915e6b9b104e040773e78438f8aa984c46c   # pubky/paykit-server, audited revision
+PAYKIT_RS_REV=6b241878a9bba5cecea919c0298c3f90624be6ff       # pubky/paykit-rs, paykit-server's dependency pin
+PAYKIT_SERVER_REV=867fc883125c7b89a7b712c2551619cccdfdc0f7   # pubky/paykit-server, merge commit for PR #2
 
 fetch() {
   local url="$1" dir="$2" rev="$3"

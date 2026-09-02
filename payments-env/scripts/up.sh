@@ -19,7 +19,7 @@ fi
 
 ./scripts/fetch-sources.sh
 
-if ! docker image inspect paykit-server:local-f38c7915 >/dev/null 2>&1; then
+if ! docker image inspect paykit-server:local-867fc883 >/dev/null 2>&1; then
   ./scripts/build-paykit-image.sh
 fi
 

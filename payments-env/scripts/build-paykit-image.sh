@@ -6,7 +6,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-IMAGE_TAG="paykit-server:local-f38c7915"
+IMAGE_TAG="paykit-server:local-867fc883"
 
 for dir in sources/paykit-server sources/paykit-rs sources/locks-paykit-dep; do
   if [ ! -d "$dir" ]; then

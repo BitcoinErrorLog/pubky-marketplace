@@ -41,8 +41,8 @@ them by service name through compose DNS.
 | Component | Source | Revision |
 | --- | --- | --- |
 | Lock Server / Locks stack | `pubky/locks` | `ba49a777a94db318ec6ebd427315080a5b904645` |
-| Paykit Server | `pubky/paykit-server` | `f38c7915e6b9b104e040773e78438f8aa984c46c` (verified to exist upstream; "Initial public release") |
-| paykit-rs (build dep of Paykit Server) | `pubky/paykit-rs` | `52a852995bfc457b78d32f5a45f6741766a89bba` (the exact rev pinned in paykit-server's Cargo manifests) |
+| Paykit Server | `pubky/paykit-server` | `867fc883125c7b89a7b712c2551619cccdfdc0f7` (immutable merge commit for [pubky/paykit-server#2](https://github.com/pubky/paykit-server/pull/2)) |
+| paykit-rs (build dep of Paykit Server) | `pubky/paykit-rs` | `6b241878a9bba5cecea919c0298c3f90624be6ff` (the exact rev pinned in paykit-server's Cargo manifests) |
 | locks-core (build dep of Paykit Server) | `pubky/locks` | `df5ea1b6d8dcdec3a9b5a915c3f57bca69d75c8a` (the exact rev pinned in paykit-server's Cargo manifests; an ancestor of `ba49a777`) |
 | Pubky Core (testnet image) | `pubky/pubky-core` | `f68014c111af0458e6a321e2d87a12479bfb3218` (pinned inside locks' `docker/pubky-testnet.Dockerfile`) |
 
@@ -61,7 +61,7 @@ images by digest.
 | `node:22-bookworm-slim` | `sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436` |
 | `bitcoin/bitcoin:29.1` | `sha256:de62c536feb629bed65395f63afd02e3a7a777a3ec82fbed773d50336a739319` |
 | `cculianu/fulcrum:v2.0.0` | `sha256:cb1c006d0cff104696f4791d0f1516699b2c163120165461385e4de206271943` |
-| `paykit-server:local-f38c7915` | built locally from pinned source; image ID at verification time `sha256:d13618e6c59597fca81a6b6d0d970358256998e5ec40a7d3605e7c413baccea5` |
+| `paykit-server:local-867fc883` | built locally from pinned source; image ID at verification time `sha256:2e5c2e8391a4a9f60dfaed3326fce0b772f01e81b4a51b69cbf08c0b02bd89e8` |
 
 The two images built from the locks tree (`pubky-testnet`, `locks-server`) use
 the upstream Dockerfiles at the pinned locks revision (`rust:1.89.0`,
@@ -139,7 +139,7 @@ assertions (each step aborts the run on mismatch; artifacts land in
    Request is actionable.
 7. Creator publishing through authenticated Locks routes: guarded bytes
    upload, then a `paykit-payment` content lock (`recipient_pubky` = creator,
-   `amount` in sats, `asset` `BTC`).
+   `amount` in sats, `asset` `BTC`; Paykit normalizes the delivered wire asset).
 8. Trust boundary (negative checks): `POST /invoices` unsigned -> `401
    invalid_signature`; garbage-signed -> `401`; unsigned
    `POST /transactions/status` -> `401`.
@@ -150,9 +150,12 @@ assertions (each step aborts the run on mismatch; artifacts land in
 10. Paykit signed status (signed with the Lock Server's own Ed25519 key,
     extracted from its volume, over the canonical JCS body): `undetected`.
 11. Payment Request receipt: `paykit-reader-demo receive` links with the
-    Creator peer over Paykit private messages and returns the invoice's
-    unique BIP84 address and amount. The address is independently re-derived
-    from the tpub via `bitcoin-cli deriveaddresses` (external chain scan).
+    Creator peer over Paykit private messages and requires lowercase `btc`,
+    exactly `btc-regtest-p2wpkh`, and a strict JSON endpoint payload with a
+    non-empty string `value`. Uppercase `BTC`, a mainnet identifier, or a bare
+    address payload fails verification. The returned unique BIP84 address is
+    independently re-derived from the tpub via `bitcoin-cli deriveaddresses`
+    (external chain scan).
 12. Payment from the regtest node (`sendtoaddress`): signed status becomes
     `detected` (`confirmations 0`, `amount_matched true`); Locks lifecycle
     still `pending` because `minimum_confirmations = 1`.
@@ -162,7 +165,7 @@ assertions (each step aborts the run on mismatch; artifacts land in
     returns byte-identical uploaded content.
 15. Five more blocks: reported confirmations cap at exactly `6` (finality).
 
-### Observed results (run of 2026-08-20, artifacts `.verify-out/`)
+### Observed results (run of 2026-09-02, artifacts `.verify-out/20260902-030740/`)
 
 ```json
 "paykit_status_progression": {
@@ -174,10 +177,10 @@ assertions (each step aborts the run on mismatch; artifacts land in
 "locks_lifecycle": {"status":"completed", "failure_message":null}
 ```
 
-Unsigned and garbage-signed Paykit business calls were refused with
-`401 {"error":{"code":"invalid_signature"}}` in the same runs. The flow passed
-three times end to end (the second run intentionally exposed and fixed a
-reader-reuse pitfall; the first and third runs passed all fifteen steps).
+The same run received a canonical `btc` / `btc-regtest-p2wpkh` request whose
+JSON endpoint `value` was a regtest BIP84 address, and refused unsigned and
+garbage-signed Paykit business calls with
+`401 {"error":{"code":"invalid_signature"}}`. All fifteen steps passed.
 
 ## What still requires Bitkit, and why
 

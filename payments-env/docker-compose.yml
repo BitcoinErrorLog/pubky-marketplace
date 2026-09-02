@@ -131,7 +131,7 @@ services:
       retries: 60
 
   paykit-server:
-    image: paykit-server:local-f38c7915
+    image: paykit-server:local-867fc883
     depends_on:
       paykit-postgres:
         condition: service_healthy
@@ -163,7 +163,7 @@ services:
   # Paykit receiver marker, links with the Creator peer, and receives the
   # private Payment Request that carries the invoice address.
   paykit-reader:
-    image: paykit-server:local-f38c7915
+    image: paykit-server:local-867fc883
     depends_on:
       paykit-server:
         condition: service_started

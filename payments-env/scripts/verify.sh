@@ -12,8 +12,8 @@
 #   6.  proof-bundle submission -> Lock Server requests a real invoice from
 #       Paykit Server (no 422 paykit_not_configured)
 #   7.  Paykit reports undetected; reader receives the private Payment Request
-#       carrying the unique BIP84 address; address independently re-derived
-#       from the tpub via bitcoind
+#       with canonical btc/regtest/JSON endpoint fields and a unique BIP84
+#       address; address independently re-derived from the tpub via bitcoind
 #   8.  payment from the regtest node -> detected -> mined -> confirmed
 #   9.  Locks verification lifecycle completes; access credential issued;
 #       guarded read returns the exact uploaded bytes
@@ -33,6 +33,8 @@ fi
 LOCKS_URL="http://localhost:${LOCKS_SERVER_PORT:-3000}"
 PAYKIT_URL="http://localhost:${PAYKIT_SERVER_PORT:-3001}"
 AMOUNT_SATS="${VERIFY_AMOUNT_SATS:-15000}"
+EXPECTED_PAYMENT_ASSET="btc"
+EXPECTED_PAYMENT_ENDPOINT="btc-regtest-p2wpkh"
 OUT_DIR=".verify-out/$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$OUT_DIR"
 
@@ -275,11 +277,18 @@ step "11. reader receives private Payment Request from Paykit Server"
 RECEIVE_OUT="$(printf '{"version":1,"operation":"receive","reader_secret":"%s"}' "$READER_SECRET" \
   | $DC exec -e PAYKIT_READER_SERVER_PUBKY="$CREATOR" -T paykit-reader paykit-reader-demo)"
 echo "$RECEIVE_OUT" >"$OUT_DIR/reader-receive.json"
+jq -e --arg asset "$EXPECTED_PAYMENT_ASSET" \
+  '.status == "received" and .asset == $asset and (.payment_request_id | type == "string" and length > 0)' \
+  <<<"$RECEIVE_OUT" >/dev/null \
+  || fail "non-canonical Payment Request asset or envelope: $RECEIVE_OUT"
 INVOICE_ADDRESS="$(jq -r '.address' <<<"$RECEIVE_OUT")"
 INVOICE_AMOUNT_SATS="$(jq -r '.amount_sats' <<<"$RECEIVE_OUT")"
 case "$INVOICE_ADDRESS" in bcrt1*) ;; *) fail "unexpected invoice address: $RECEIVE_OUT";; esac
 [ "$INVOICE_AMOUNT_SATS" = "$AMOUNT_SATS" ] || fail "amount mismatch: requested $AMOUNT_SATS, payment request says $INVOICE_AMOUNT_SATS"
-note "payment request received: address=$INVOICE_ADDRESS amount=${INVOICE_AMOUNT_SATS} sats"
+# The pinned reader rejects any endpoint other than btc-regtest-p2wpkh and
+# deserializes the endpoint payload as a strict JSON object with a string value.
+# Reaching this point proves those wire assertions passed before projection.
+note "canonical payment request received: asset=$EXPECTED_PAYMENT_ASSET endpoint=$EXPECTED_PAYMENT_ENDPOINT payload.value=$INVOICE_ADDRESS amount=${INVOICE_AMOUNT_SATS} sats"
 
 # Each invoice allocates the next external-chain child; scan a window so the
 # check stays valid on repeated runs against the same Creator.
