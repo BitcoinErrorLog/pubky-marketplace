@@ -75,7 +75,7 @@ Authority/payment vars: `LOCKS_SERVER_URL` (Lock Server base), `LOCKS_BUNDLE_ENC
 
 `locks-server`: `LOCKS_KEYPAIR_SEED`, `LOCKS_PUBLIC_KEY`, `LOCKS_PUBLIC_DOMAIN`, `PUBKY_LOCK_DATABASE_URL`, `PUBKY_LOCK_CREATOR_AUTH_ENCRYPTION_KEY`, `LOCKS_ALLOWED_RETURN_ORIGINS`, `LOCKS_PAYKIT_SERVER_URL`, `LOCKS_PAYKIT_MIN_CONFIRMATIONS`, `LOCKS_PKDNS_PUBLIC_IP`.
 
-`paykit-server`: `PAYKIT_TRUSTED_LOCKS_PUBLIC_KEY`, `PAYKIT_DATABASE_URL`, `PAYKIT_MASTER_KEY`, `PAYKIT_SETUP_ALLOWED_ORIGINS`, `PAYKIT_ELECTRUM_ENDPOINT`, `MARKETPLACE_TRUSTED_PUBLIC_KEY`, `PAYKIT_AUTH_RELAY`.
+`paykit-server`: `PAYKIT_TRUSTED_LOCKS_PUBLIC_KEY`, `PAYKIT_DATABASE_URL`, `PAYKIT_MASTER_KEY`, `PAYKIT_SETUP_ALLOWED_ORIGINS`, `PAYKIT_ELECTRUM_ENDPOINT`, `MARKETPLACE_TRUSTED_PUBLIC_KEYS` (list; legacy single `MARKETPLACE_TRUSTED_PUBLIC_KEY` still accepted, not both), `PAYKIT_AUTH_RELAY`.
 
 `fiat-verifier`: `FIAT_TRUSTED_LOCKS_PUBLIC_KEY`, `FIAT_DATABASE_URL`, `FIAT_PAYKIT_SERVER_URL`, `FIAT_LISTEN_ADDR`, `PORT`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_WEBHOOK_ID`, `PAYPAL_API_BASE`, `FIAT_DEFAULT_PROCESSOR`, `FIAT_LIVE_MODE`, `FIAT_SETTLEMENT_DELAY_SECONDS`, `FIAT_SYNTHESIZED_CONFIRMATIONS`, `FIAT_ALLOWED_ASSETS`, `FIAT_CHECKOUT_SUCCESS_URL`, `FIAT_CHECKOUT_CANCEL_URL`, `FIAT_POLL_INTERVAL_SECONDS`, `FIAT_CHECKOUT_RATE_PER_SECOND`, `FIAT_CHECKOUT_RATE_BURST`, `STRIPE_API_BASE`.
 
@@ -161,7 +161,7 @@ The primary evidence ledger is `mp-ux/docs/ecommerce/status.md`. Current honest 
 
 - Production launch uses testnet money rails; mainnet money is a later gated decision.
 - Rails are reused over public domains because Railway private networking does not cross projects.
-- `PAYKIT_REQUEST_SIGNING_KEY` is shared with staging for now because paykit-server trusts one marketplace key; backlog is a trusted-key list and rotation.
+- `PAYKIT_REQUEST_SIGNING_KEY` is per stack since 2026-09-06: paykit-server (fork `marketplace-rails` @ 9687ff0, rails `master` @ a8cbd5f) trusts a list via `MARKETPLACE_TRUSTED_PUBLIC_KEYS` (comma-separated `pubky…` keys, exactly one of the single/list env forms; entrypoint validates 57-char pubky-prefixed z-base-32 and fails closed). Production marketplace-service signs with its own seed; staging keeps the original. Proven by signed `POST /transactions/status` probes: both keys → 400 invalid_request (trusted), random key → 401 invalid_signature. Derive a public key from a seed with `pubky-payment-rails/paykit-server/tools/derive-marketplace-pubkey --stdin` (see that README for the no-shell-history pattern). Rotation order: add new key to the list → redeploy paykit-server (`railway redeploy`, variable changes alone do not restart it) → switch the service seed → redeploy → remove the old key.
 - Production marketplace-service uses a fresh attestor identity, public pubky `szhtpayftdz3mpkoyyk3zesuad11ufuudqqrc73s35w1tfju7gxy`; the secret stays only in Railway variables/offline operator records.
 - Production attestor cross-check: `szhtpayftdz3mpkoyyk3zesuad11ufuudqqrc73s35w1tfju7gxy` is pinned in `/Users/johncarvalho/work/mp-ux/src/config/commerce.ts` alongside staging `ws343aqzmcahagojhmhkbri8odqz9iqg61woxbkh9fd3bxhqomdy`.
 - There is no moderator role in the target product; `MODERATOR_PUBKYS` was removed with operator authority in migration 0018.
