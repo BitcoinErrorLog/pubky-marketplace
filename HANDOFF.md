@@ -8,8 +8,8 @@ Pubky Marketplace is a P2P marketplace on Pubky: sellers publish catalog records
 
 | Repo | Remote | Deployed branch / line | HEAD as of writing |
 | --- | --- | --- | --- |
-| `pubky-marketplace-umbrella` | `https://github.com/BitcoinErrorLog/pubky-marketplace.git` | `master` docs handoff line | `0259d994967961cb0b972eba2f11a567d7376dd7` |
-| `mp-ux` / Shop client | `https://github.com/BitcoinErrorLog/pubky-app.git` | staging: `marketplace/pr25-ux`; production deploy source recorded as worktree `mp-prod-deploy` at `8a7532699dcee0995b27e5c6af57aeaf1c0f59b2` | current `marketplace/pr25-ux`: `31dcaee795420e8fae571d02747c89ab40bf15c8` |
+| `pubky-marketplace-umbrella` | `https://github.com/BitcoinErrorLog/pubky-marketplace.git` | `master` docs handoff line | `d2ed06d` |
+| `mp-ux` / Shop client | `https://github.com/BitcoinErrorLog/pubky-app.git` | staging: worktree `/Users/johncarvalho/work/mp-ux`, branch `marketplace/pr25-ux`, Vercel project `pubky-marketplace-staging`; production: worktree `/Users/johncarvalho/work/mp-prod-deploy`, branch `marketplace/prod-deploy`, Vercel project `pubky-marketplace-production`, kept fast-forwarded to `pr25-ux` | current `marketplace/pr25-ux`: `f036a76d` |
 | `marketplace-service` | `https://github.com/BitcoinErrorLog/pubky-marketplace-service.git` | `main` for the transaction service | `0fd9b45737a8dd2bb35afff4156526ea616ca41e` |
 | `pubky-nexus` | `https://github.com/BitcoinErrorLog/pubky-nexus` | `feat/marketplace-indexing` for staging and production marketplace Nexus | current checkout: `e380c88b3f37afa2502fb86813107f8e1398f45b`; `docs/production-cutover.md` records `6fc2dbe3ac8cb81d137cd2fa7dd46b066b5a1adf`; the plan records production deploy `32b51f5` |
 | `pubky-payment-rails` | `https://github.com/BitcoinErrorLog/pubky-payment-rails.git` | `master`, Railway project `pubky-marketplace-staging` | `a4d70c893c0e89597a31a6c7b65536a7fed9633a` |
@@ -21,7 +21,8 @@ Pubky Marketplace is a P2P marketplace on Pubky: sellers publish catalog records
 | Stack | Web client | Transaction / index services | Payment rails | Homeserver |
 | --- | --- | --- | --- | --- |
 | Staging | Vercel project `pubky-marketplace-staging`, currently `https://shop.pubky.app`, deployed from `mp-ux` `marketplace/pr25-ux` | Railway project `pubky-marketplace-nexus`, service `nexusd`, public API `https://nexusd-production-7108.up.railway.app`, watching staging; marketplace-service staging: Railway project `pubky-marketplace-staging`, service `marketplace-service`, `https://marketplace-service-production.up.railway.app` (verified via Railway CLI 2026-09-05) | Railway project `pubky-marketplace-staging`: `locks-server`, `fiat-verifier`, `paykit-server`, `bitcoind` regtest, `fulcrum`, plus Postgres services | `ufibwbmed6jeq9k4p583go95wofakh9fwpp4k734trq79pd9u1uy` / `https://homeserver.staging.pubky.app` |
-| Production | Vercel project `pubky-marketplace-production`, stable alias `https://pubky-marketplace-production.vercel.app`; `https://shop.pubky.app` moves here after cutover approval | Railway project `pubky-marketplace-production`: `nexusd` at `https://nexusd-production-95a0.up.railway.app`, `marketplace-service` at `https://marketplace-service-production-ce23.up.railway.app`, plus `neo4j`, `Redis`, and Postgres | Reuses the staging rails project over public domains (`locks-server-production.up.railway.app`, `paykit-server-production.up.railway.app`, `fiat-verifier-production.up.railway.app`); Railway private networking does not cross projects | `8um71us3fyw6h8wbcxb5ar3rwusy1a6u49956ikzojg3gcwd1dty` / `https://homeserver.pubky.app` |
+| Production | Vercel project `pubky-marketplace-production`, stable alias `https://pubky-marketplace-production.vercel.app`, deployment `EAqqVuQq1BkstYJwwciMS3C981tv`; `https://shop.pubky.app` moves here after cutover approval | Railway project `pubky-marketplace-production`: `nexusd` at `https://nexusd-production-95a0.up.railway.app`, `marketplace-service` at `https://marketplace-service-production-ce23.up.railway.app`, plus `neo4j`, `Redis`, and Postgres | Reuses the staging rails project over public domains (`locks-server-production.up.railway.app`, `paykit-server-production.up.railway.app`, `fiat-verifier-production.up.railway.app`); Railway private networking does not cross projects | `8um71us3fyw6h8wbcxb5ar3rwusy1a6u49956ikzojg3gcwd1dty` / `https://homeserver.pubky.app` |
+| Same-site bridge rehearsal | Vercel project `pubky-app-bridge-rehearsal`, branch `feat/session-bridge` at `98c68942`, domain `https://bridge.pubky.app`; Shop rehearsal Vercel project `shop-bridge-rehearsal`, worktree `/Users/johncarvalho/work/mp-bridge-rehearsal`, branch `marketplace/bridge-rehearsal` at `f036a76d`, domain `https://shop-rehearsal.pubky.app` | Not a transaction-service change; rehearsal tests session bridge handoff between pubky.app and Shop | Uses Shop rehearsal env `NEXT_PUBLIC_VIBE_SESSION_BRIDGE_ORIGIN=https://bridge.pubky.app` and `PUBKY_RUNTIME_DEFAULT_URL`; pubky.app rehearsal env allows `https://shop-rehearsal.pubky.app` | Domains are attached but pending `_vercel.pubky.app` TXT verification records of the form `vc-domain-verify=<host>,<token>` because the `pubky.app` apex is owned by another Vercel team |
 
 ## Env And Secrets
 
@@ -74,6 +75,11 @@ Do not run these from an agent unless the owner has explicitly approved that dep
 
 Railway production project id is `75faa4fe-466c-4277-977f-1d8e4e31df8c` (`pubky-marketplace-production`, verified 2026-09-05 via the Railway CLI). Staging project ids: resolve with read-only Railway project inspection before running any command.
 
+Production kill switch and rollback details live in
+`/Users/johncarvalho/work/mp-ux/docs/ecommerce/runbook-production.md`. The client kill switch is
+`PUBKY_RUNTIME_COMMERCE_ADAPTER_MODE=unavailable` on Vercel project `pubky-marketplace-production`; restoring current
+transaction mode means setting it back to `locks-paykit` and redeploying.
+
 ## Live Proofs
 
 | Command / script | What it proves |
@@ -114,7 +120,17 @@ Railway production project id is `75faa4fe-466c-4277-977f-1d8e4e31df8c` (`pubky-
 
 The primary evidence ledger is `mp-ux/docs/ecommerce/status.md`. Current honest gaps to carry forward:
 
+### 2026-09-06 Evidence Rows
+
+| Evidence | Status | Where |
+| --- | --- | --- |
+| Buyer UX fixes | Shipped at `f036a76d` on `marketplace/pr25-ux`: Orders entry for signed-in users, approval card removed from passive listing view, approval requested only after Add to cart / Place a bid / Make offer requires it, and copy standardized to `Approve purchases in Pubky Ring` / `Approve in Pubky Ring`. | `mp-ux` |
+| Review and VRT | Opus gating review was FIX-FIRST, then round 2 merged; 33 VRT baselines regenerated; dead `message` prop removed from `MarketplaceSessionRequiredCard`. | `mp-ux` |
+| Vercel deploys | Production deployed to `pubky-marketplace-production` alias `pubky-marketplace-production.vercel.app`, deployment `EAqqVuQq1BkstYJwwciMS3C981tv`; staging deployed to `pubky-marketplace-staging` alias `shop.pubky.app`, deployment `3tPXUhr9Zb5voJqjYRuuGfyz6fZP`. | Vercel team scope `synonymdev` |
+| Same-site bridge rehearsal | Rehearsal projects and domains are attached, with `bridge.pubky.app` and `shop-rehearsal.pubky.app` pending `_vercel.pubky.app` TXT verification. | Vercel projects `pubky-app-bridge-rehearsal` and `shop-bridge-rehearsal` |
+
 - Bridged entry awaits upstream `pubky-app` session bridge PR #2484 merge/deploy.
+- Same-site bridge rehearsal domains still need `_vercel.pubky.app` TXT verification before the rehearsal is publicly live.
 - Production Nexus full replay is in progress; streams can be empty/incomplete until replay reaches the relevant production events.
 - Pubky Ring empty-capabilities display is unverified and blocks the bridged-session step-up UX claim.
 - Shippo live API proof is still open; only service/client tests through a local Shippo double are verified.
