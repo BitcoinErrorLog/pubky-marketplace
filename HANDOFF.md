@@ -141,6 +141,16 @@ Health checks: `marketplace-service` answers `200` on `/health`; `/` returns `40
 
 The primary evidence ledger is `mp-ux/docs/ecommerce/status.md`. Current honest gaps to carry forward:
 
+### 2026-09-07 Evidence Rows
+
+| Evidence | Status | Where |
+| --- | --- | --- |
+| Wave 6 backlog batch | Merged and deployed at `9483446f` on `marketplace/pr25-ux`. SSR catalog seeds shop names; catalog URL is a libs-only constant; messaging VRT on firefox is deterministic; Duplicate asks before replacing an unsaved draft and seeds before deleting; SSR shop fetch capped at 6 concurrent. | `mp-ux` |
+| Graduation dossier | Added at `2e022af5` (`docs/vibes/graduation-dossier.md`). | `mp-ux` |
+| Teammate PR triage | `BitcoinErrorLog/pubky-app` #20 (tax removal, icota) closed as superseded by Wave 2b; guard test cherry-picked as `c003e374` under his authorship. #22 (local pickup with post-payment reveal, icota) has changes requested and is absorbed into Wave 7. See `docs/contributions/PR-triage.md`. | `BitcoinErrorLog/pubky-app` |
+| Wave 7 kickoff | "Local pickup with scheduling"; design in progress at `docs/ecommerce/local-pickup-design.md` on `marketplace/w7-design`. Owner decisions: buyer may cancel if pickup terms change after payment; seller may delete details; one meeting point per order; pickup off without the encryption key; either party confirms handover, no automatic delivery; no pickup details on sandbox deployments; returns re-choose pickup or shipping with optional seller label. Address-sharing policy: a physical address is shared only when its owner chooses to, for a reason shown to them, with the one person who needs it; buyer→seller only the delivery address for shipped items once the order exists; seller→buyer nothing by default except a deliberately published pickup point revealed only to the paying buyer. | `mp-ux` / `marketplace/w7-design` |
+| marketplace-service | `c697e5f` deployed to both stacks (delivery auto-complete worker, return flow surfacing); migration 0019 verified. | `marketplace-service` |
+
 ### 2026-09-06 Evidence Rows
 
 | Evidence | Status | Where |
@@ -151,7 +161,7 @@ The primary evidence ledger is `mp-ux/docs/ecommerce/status.md`. Current honest 
 | Wave 6 review evidence | Two Opus surface reviews of 65 VRT baselines plus 68 live screenshots; capability inventory; five review claims dismissed after verification. | `mp-ux` |
 | Vercel deploys | Wave 6 client deployed 2026-09-06 17:52 to `pubky-marketplace-production.vercel.app`, `shop.pubky.app`, and `shop-rehearsal.pubky.app`; all three `locks-paykit`. Earlier production deployment `EAqqVuQq1BkstYJwwciMS3C981tv` / staging `3tPXUhr9Zb5voJqjYRuuGfyz6fZP` remain the prior recorded IDs unless a later deploy superseded them. | Vercel team scope `synonymdev` |
 | Same-site bridge rehearsal | Rehearsal projects and domains are attached, with `bridge.pubky.app` and `shop-rehearsal.pubky.app` pending `_vercel.pubky.app` TXT verification. | Vercel projects `pubky-app-bridge-rehearsal` and `shop-bridge-rehearsal` |
-| Sprint 3 | In progress, not shipped: sectioned listing studio, delivery auto-complete timer plus return/refund surfacing in the service, guest-indexable catalog, multi-seller cart grouping. | `mp-ux` |
+| Sprint 3 | Client items still open: sectioned listing studio, guest-indexable catalog (SSR now seeds shop names at `9483446f` but is not the full item), multi-seller cart grouping. Service delivery auto-complete timer plus return/refund surfacing shipped in marketplace-service `c697e5f` (see 2026-09-07). | `mp-ux` / `marketplace-service` |
 
 - Bridged entry awaits upstream `pubky-app` session bridge PR #2484 merge/deploy.
 - Same-site bridge rehearsal domains still need `_vercel.pubky.app` TXT verification before the rehearsal is publicly live.
