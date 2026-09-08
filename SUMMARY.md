@@ -29,6 +29,7 @@ In this repo:
 - [`docs/spec-feedback/locks-team-brief.md`](docs/spec-feedback/locks-team-brief.md) — technical brief for `pubky/locks` maintainers (clean pin, fiat-verifier seam, verifier-type misnomer, guarded-404 evidence, 500-vs-403 mapping)
 - [`docs/spec-feedback/nexus-team-brief.md`](docs/spec-feedback/nexus-team-brief.md) — technical brief for `pubky/pubky-nexus` and `pubky/pubky-app-specs` maintainers (fork inventory, indexer boundary, open-world specs, attestation typs, R1–R9 filing)
 - [`docs/spec-feedback/pubky-core-team-brief.md`](docs/spec-feedback/pubky-core-team-brief.md) — technical brief for the pubky SDK / homeserver / Homegate / pkarr maintainers (vendored wasm and pkarr patches vs 0.11, `/priv` durability, write-allowlist mechanism, signup-token friction)
+- [`docs/spec-feedback/ring-consent-upstream-proposal.md`](docs/spec-feedback/ring-consent-upstream-proposal.md) — upstream ask for `pubky/pubky-ring` (with a Bitkit appendix): reject empty/malformed capability strings at the signer, one capability-rendering spec for all three sheets, per-app grant memory vs global Auto Auth, audience-bound approval weighed against Shop's dual-present interim.
 
 All other entries are on the `marketplace/pr25-ux` branch of `pubky-app` unless noted:
 

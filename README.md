@@ -26,6 +26,7 @@ Umbrella repository for the Pubky App marketplace project: the integration envir
 - [`docs/spec-feedback/locks-team-brief.md`](docs/spec-feedback/locks-team-brief.md) — technical brief for `pubky/locks` maintainers: clean pin (no fork), fiat-verifier seam, verifier-type misnomer, guarded-404 evidence, 500-vs-403 on homeserver write denial.
 - [`docs/spec-feedback/nexus-team-brief.md`](docs/spec-feedback/nexus-team-brief.md) — technical brief for `pubky/pubky-nexus` and `pubky/pubky-app-specs` maintainers: fork inventory, indexer-boundary question, open-world specs split, JOSE attestation typs, R1–R9 filing status.
 - [`docs/spec-feedback/pubky-core-team-brief.md`](docs/spec-feedback/pubky-core-team-brief.md) — technical brief for the pubky SDK / homeserver / Homegate / pkarr maintainers: eight vendored wasm and pkarr patches vs 0.11, `/priv` durability verdict, Homegate write-allowlist mechanism, signup-token friction.
+- [`docs/spec-feedback/ring-consent-upstream-proposal.md`](docs/spec-feedback/ring-consent-upstream-proposal.md) — upstream ask for `pubky/pubky-ring` (with a Bitkit appendix): reject empty/malformed capability strings at the signer, one capability-rendering spec for all three sheets, per-app grant memory vs global Auto Auth, audience-bound approval weighed against Shop's dual-present interim.
 
 ### On the `pubky-app` marketplace branches
 
