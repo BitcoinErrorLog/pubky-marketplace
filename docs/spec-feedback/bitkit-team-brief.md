@@ -318,12 +318,59 @@ for any permissions, but it still worked"). The client now pre-explains
 this on its connect dialog; the explanation belongs in the signer, where
 the trust decision happens. Leaving the list empty pushes app developers
 toward requesting scopes they do not need just to look legitimate.
+See also [the `paykit-connect` finding below](#ring-paykit-connect-is-fork-only-the-bitkit-sender-targets-a-handler-upstream-ring-does-not-ship).
 
 Draft write-up (not filed; Ring is outside `BitcoinErrorLog`):
 <https://github.com/BitcoinErrorLog/pubky-app/blob/marketplace/pr25-ux/docs/spec-feedback/pubky-ring-identity-only-approvals.md>.
 Suggested signer copy is in that doc. Scope-to-description mapping for
 non-empty capability sets has no owner today; that is also spec-feedback
 R7 on social/v1. Question in §10 ask 10.
+
+### Ring `paykit-connect` is fork-only; the Bitkit sender targets a handler upstream Ring does not ship
+
+The 2026-09-08 read-only audit checked upstream `pubky/pubky-ring` `main`
+at commit `8154dfa` (2026-09-04). That tree has no `paykit-connect`
+handler: there is no `paykitConnectAction`, and no `paykit` string
+anywhere under `src/`. The handler exists only in the
+`BitcoinErrorLog` fork of Ring.
+
+Even in the fork, callbacks are restricted to
+`ALLOWED_PAYKIT_CALLBACK_SCHEMES` = `bitkit`, `paykit`, `atomicity`,
+`hypercolor`; `https` callbacks are rejected by design. Therefore
+Hypercolor's production callback
+`https://hypercolor.app/ring-callback` cannot complete the ceremony on
+the fork either, and cannot start it on stock Ring.
+
+The fork's `parsePaykitConnectParams` (Ring
+`src/utils/inputParser.ts` ~lines 256-272) does not read a `caps=`
+parameter. A sender advertising `caps=/pub/paykit/:rw,...` is not
+requesting scoped access. Ring signs in with the root secret and returns
+a UKD-style payload (delegated app/inbox/Noise keys plus a session
+secret). An app that shows a user a "capabilities" list for this
+ceremony is showing something Ring ignores.
+
+Bitkit Android and iOS both act as `paykit-connect` senders: when no
+local seed exists, they hand off to Ring for the delegated-key ceremony.
+That handoff therefore only works against the fork today. The owner's
+stated principle for every Pubky app is that standard production Ring
+must work; a forked signer is a development convenience, never a
+requirement placed on users.
+
+Questions for the Bitkit team:
+
+- Is `paykit-connect` intended to land upstream in Ring? If so, are the
+  `https` exclusion and the ignored `caps=` parameter intentional?
+- If not, should Bitkit's Ring handoff be re-based on the
+  upstream-supported `pubkyauth://` ceremony (AuthToken via relay →
+  homeserver session)? The Shop single-approval work has shown that this
+  can carry every scope an app needs in one prompt.
+- In the empty-capability case, Ring and both Bitkit sheets render a
+  blank permission list and the flow remains approvable. Should a
+  non-empty capability string instead be required at the signer?
+
+The Hypercolor audit that produced this finding is summarised in the
+marketplace master plan, Wave 8 §8.i. The single-approval design is at
+Shop `docs/ecommerce/single-approval.md`.
 
 ---
 
