@@ -88,6 +88,9 @@ services:
       dockerfile: docker/pubky-testnet.Dockerfile
       args:
         PUBKY_CORE_REV: f68014c111af0458e6a321e2d87a12479bfb3218
+    depends_on:
+      postgres:
+        condition: service_healthy
     ports:
       - "${LOCKS_DHT_PORT:-6881}:6881/udp"
       - "${LOCKS_DHT_PORT:-6881}:6881/tcp"
