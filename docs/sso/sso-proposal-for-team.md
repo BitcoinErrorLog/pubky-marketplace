@@ -99,7 +99,7 @@ Upstream [pubky/paykit-rs](https://github.com/pubky/paykit-rs) is on pubky 0.12 
 
 | Signer | What it shows the user | Weakness |
 |---|---|---|
-| Ring | `x-source`, a name the requesting app declares. It doesn't display the grant's `client_id` | An optional auto-auth setting approves **every** request with no screen |
+| Ring | `x-source`, a name the requesting app declares. It doesn't display the grant's `client_id` | Any page can claim any name. (Ring's auto-auth setting is developer-only and off by default; it just mustn't be reachable in release builds) |
 | Passport | The callback host the app declares | Approves any app; doesn't check which origin opened it |
 
 **What the homeserver checks:** the grant's `client_id` is self-declared. The homeserver's grant module says "the security boundary is capability scoping, not `client_id`".
@@ -207,7 +207,7 @@ The original auth spec ([`docs/AUTH.md`](https://github.com/pubky/pubky-core/blo
 |---|---|
 | **Cookie bridge** ([#2484](https://github.com/pubky/pubky-app/pull/2484)), or lending `*.pubky.app` hostnames | <ul><li>Keeps the ambient, shared cookie: every site rides one scope set, and the last sign-in wins.</li><li>Off-domain apps break on Safari.</li><li>It is deprecated.</li><li>Script injected on any participating site can act with the shared session.</li></ul> |
 | **Ring bundle:** one approval issues grants to several apps at sign-in | <ul><li>Only covers apps that are present and coordinated at sign-in. Each app must host a companion frame for every other app, and third-party frames are partitioned.</li><li>A new app, a new scope or a lost session goes back to the signer.</li><li>It is consent to several apps at once, not single sign-on.</li><li>Its only advantage is no homeserver change.</li></ul> |
-| **Ring auto-approve**, or remembered consent in Ring | <ul><li>Ring can't tell which website showed a QR, and `client_id` is self-declared.</li><li>A phishing page claiming `shop.pubky.app` would get a silent grant. Ring's existing auto-auth setting already does this for every request.</li></ul> |
+| **Ring auto-approve**, or remembered consent in Ring | <ul><li>Ring can't tell which website showed a QR, and `client_id` is self-declared.</li><li>A phishing page claiming `shop.pubky.app` would get a silent grant.</li><li>Ring's existing auto-auth is a developer setting, not this.</li></ul> |
 | **A user session at the homeserver** that issues per-app grants | <ul><li>The homeserver is cross-origin to every app, so that session is a cookie again, or partitioned storage.</li><li>It doesn't carry to mirrors.</li><li>It makes the storage provider an identity provider.</li><li>A variant where the homeserver *records* a child at the agent's request is an acceptable way to implement this proposal (question Q1).</li></ul> |
 | **pubky.app as the broker** | <ul><li>The site that renders user content, the most exposed to injected script, would hold the power to issue grants.</li><li>A dedicated Passport origin is a small static app with no user content.</li></ul> |
 | **The user's key in the browser for everyone** (Passport's Google mode) | <ul><li>Needs no protocol change.</li><li>But it abandons the cold-key model for Ring users.</li></ul> |
@@ -266,6 +266,39 @@ According to #2614, the homeserver team has already confirmed the limitation and
 2. **#2614 moves Locks' creator-originals path** from `/priv/app.locks/content/` to `/priv/locks.app/`. The Shop's beta scope union follows whichever path ships.
 
 **Before the agent exists,** #2614 works as is, with Ring signing pubky.app's grant directly. When the agent ships, only where the grant comes from changes (A2).
+
+### 2.8 Ring's side of the agent grant
+
+**What Ring approves.**
+
+- One grant request from Passport, delivered the usual way (QR or deep link, relay, client public key).
+- The client id is `passport.pubky.app` and the client key is the agent's non-extractable key.
+- The listed scopes carry a `d` (may delegate) action, for example `/pub/pubky.app/:rwd,/pub/paykit/v0/marketplace/:rwd`.
+- Ring signs one grant JWS with the user's key, exactly as it does today. Only the scopes and the screen differ.
+
+**What the screen shows.**
+
+- A distinct title: "Let this browser sign you in to apps".
+- The agent's origin (`passport.pubky.app`), marked unverified when it came from a QR.
+- The scopes it may pass on, in plain words. These are the ceiling: no app it signs in can get more.
+- The maximum lifetime: the agent grant's own expiry, which also caps every app grant it issues.
+- A note that every app it signs in can be revoked as one group.
+- Developer auto-auth never applies.
+
+**Revocation.**
+
+- The agent grant appears in Ring's grant list ([#369](https://github.com/pubky/pubky-ring/pull/369)) as one entry, for example "Passport · Chrome on macOS", with the apps it signed in nested under it.
+- Revoking the entry revokes the agent grant. The homeserver then revokes every child grant, and those apps are signed out on their next request.
+- Each child can also be revoked on its own.
+
+**What changes for Ring.**
+
+- **Signing:** nothing new. It is the same grant format, with `d` in the capability string. Today `d` parses as an unknown action, so Ring needs only to display it.
+- **Verification:** none. Ring never verifies child grants; the homeserver does (H1).
+- **Possible format change:** if core adds a separate child-lifetime cap or a parent field to the grant list (Q1, Q6), Ring reads and displays it.
+- **Grouping:** needs H1's parent link in the list response.
+
+The exact format depends on core's answer to Q1.
 
 ---
 
@@ -338,9 +371,9 @@ None of them depends on Ring's grant auth being released. The Ring stopgap is a 
 
 | # | Change | Size | Depends on |
 |---|---|---|---|
-| R0 | **Release grant auth**, already merged in [#360](https://github.com/pubky/pubky-ring/pull/360). Every Ring user's move off cookies depends on it (F1 for Ring users, A1), and so do R1 and R2 | S | — |
-| R1 | Ring consent: <ul><li>show `client_id`, marked "unverified" for QR requests;</li><li>a distinct agent-grant screen showing the ceiling and expiry;</li><li>auto-auth never applies to it. Recommended: remove blanket auto-auth.</li></ul> | M | K1 |
-| R2 | Ring sessions screen: list grants through `GrantManager` on Ring's root session, grouped by browser; revoke one, a browser, or all | M | H1, Q7 |
+| R0 | **Release grant auth**, already merged in [#360](https://github.com/pubky/pubky-ring/pull/360). Every Ring user's move off cookies depends on it (F1 for Ring users, A1), and so do R1 and R2. **In progress:** the release process has started | S | — |
+| R1 | Ring consent: <ul><li>show `client_id`, marked "unverified" for QR requests, and the scopes in plain words. **Agreed** by the Ring team;</li><li>a distinct agent-grant screen showing the ceiling and expiry (§2.8);</li><li>the developer-only auto-auth never applies to it and can't ship reachable in release builds.</li></ul> | M | K1 for the agent screen |
+| R2 | Ring sessions screen: list grants with per-grant revoke. **Exists** as draft [pubky-ring#369](https://github.com/pubky/pubky-ring/pull/369) ("Authorized Apps"), waiting on [pubky-core-ffi#37](https://github.com/pubky/pubky-core-ffi/pull/37), [react-native-pubky#42](https://github.com/pubky/react-native-pubky/pull/42), [#43](https://github.com/pubky/react-native-pubky/pull/43) and the next react-native-pubky release. After H1: group by browser, and revoke a whole browser | S after #369 | #369's dependencies; H1 for grouping |
 | B1 | Bitkit: R1's consent changes, on [bitkit-android](https://github.com/synonymdev/bitkit-android) and [bitkit-ios](https://github.com/synonymdev/bitkit-ios) | S–M | K1 |
 
 **Paykit** ([pubky/paykit-rs](https://github.com/pubky/paykit-rs))
@@ -391,7 +424,7 @@ The beta opens about **15 Oct**. After that, each phase starts when its dependen
 | **A1 ([#2614](https://github.com/pubky/pubky-app/pull/2614)) with H5, H6 and R0** | pubky.app on grants: no cookie overwriting from pubky.app's side, and its sign-out signs out pubky.app only. It needs only the two small homeserver fixes and the Ring release, not H1 |
 | **F1 without the agent** | The Shop uses grant sessions for every signer, one approval per app per browser. No more scope overwriting, and sign-out stops being shared. **For Ring users this needs R0** (the Ring grant-auth release) as well as Y2 |
 | **P1 for Passport-key users** | Passport already holds their key, so it can sign per-app grants directly, with full SSO and origin-verified client ids, and no protocol change |
-| **R1** | Showing `client_id` and removing blanket auto-auth reduces phishing now |
+| **R1 and R2** | Showing `client_id` and scopes (agreed) reduces phishing now. The grant list in #369 gives users per-app revoke |
 | **F3 with an app-scoped service capability** | Removes the `AuthToken` dual post |
 
 **What waits for H1:** silent sign-in for **Ring** users across apps. Without it, they approve once per app per browser, once R0 ships. Until R0, Ring users stay on cookie sign-in.
@@ -413,8 +446,8 @@ The beta opens about **15 Oct**. After that, each phase starts when its dependen
    - Which revocation check should services use: an introspection endpoint, a re-check interval, or a public status lookup?
 5. **`client_id` (gates K3, R1).** Will core define `client_id` as the verified web origin (or verified app-link domain) and add a field marking it verified? What should a signer display when it isn't verified?
 6. **Lifetimes.** Is the SDK's 2-year default grant lifetime intended? Should the homeserver enforce a shorter maximum for agent grants, and if so, how long?
-7. **Grant management (gates R2).** Does react-native-pubky expose `GrantManager` (list and revoke) to Ring today? Is a revoke-all endpoint planned?
-8. **Ring auto-auth (gates R1).** Should Ring's blanket auto-approve setting stay? If yes, which request types may it apply to?
+7. **Grant management (gates R2).** Ring's grant list ([#369](https://github.com/pubky/pubky-ring/pull/369)) waits on [pubky-core-ffi#37](https://github.com/pubky/pubky-core-ffi/pull/37) and react-native-pubky [#42](https://github.com/pubky/react-native-pubky/pull/42) and [#43](https://github.com/pubky/react-native-pubky/pull/43). When will those release? Is a revoke-all endpoint planned?
+8. **Ring auto-auth.** *Answered by the Ring team:* it is a developer setting, off by default. Remaining ask: keep it unreachable in release builds, and never apply it to agent grants.
 9. **Passport as the agent (gates P1, P2).** Will the Passport team own the account-agent role, including a mode that holds an agent grant instead of the user's root key?
 10. **Paykit (gates Y1–Y3, F2).**
     - Will Paykit accept a storage interface in place of `&PubkySession`, and ship a WASM package of `paykit-sdk`?
@@ -440,11 +473,19 @@ No Passport change is needed for the beta stopgap (Passport sign-in on the Shop)
 
 **Ring:**
 
-- **By the beta:** answer Q8, and tell us which release will ship grant auth (R0, merged in [#360](https://github.com/pubky/pubky-ring/pull/360)) and roughly when.
-- **When K1's request format is fixed:** R1.
-- **When H1 lands:** R2.
+**Status of the Ring answers (1 Oct):**
 
-Recommended now, independent of everything else: show `client_id` and drop blanket auto-auth.
+- R0 grant-auth release: in progress.
+- R1 origin and scopes on the approval screen: agreed.
+- R2 grant list and revoke: exists as [#369](https://github.com/pubky/pubky-ring/pull/369).
+- Q8 auto-auth: developer-only.
+- Agent grant: Ring asked for detail, which is in §2.8.
+
+**Remaining asks:**
+
+- **Now:** ship R0. Add the client id and plain-word scopes to the approval screen (R1). Land [#369](https://github.com/pubky/pubky-ring/pull/369) when its FFI and react-native-pubky dependencies release. Keep auto-auth out of reach in release builds.
+- **When K1's request format is fixed:** the agent-grant screen (§2.8).
+- **When H1 lands:** group #369's list by browser, and add revoke-browser.
 
 **Bitkit:**
 
