@@ -150,7 +150,7 @@ Project context:
 5. Work through the launch-blocking list in launch plan §5 with QA, including the cross-site sign-in matrix.
 6. Start on SSO prerequisites with the upstream teams, using the [team proposal](../sso/sso-proposal-for-team.md):
    - **Core:** several bearers per grant and no cookie fallback (SSO-H5, H6) first.
-   - **Ring:** the grant-auth release date (SSO-R0).
+   - **Ring:** the grant-auth release is in progress (SSO-R0), the client id and scopes on the approval screen are agreed, and the grant list is [#369](https://github.com/pubky/pubky-ring/pull/369).
    - **pubky.app:** review [#2614](https://github.com/pubky/pubky-app/pull/2614).
    - **Paykit:** the storage interface and WASM package (SSO-Y1, Y2).
 

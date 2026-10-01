@@ -182,11 +182,11 @@ Item IDs prefixed **SSO-** are the change list in [sso-proposal-for-team.md §3.
 |---|---|---|---|---|
 | SSO-H5 | **Several bearers per grant.** `replace_for_grant` keeps up to a small bound (suggest 8) instead of deleting the previous bearer. Gates #2614 and the Shop | Pubky core | S | No |
 | SSO-H6 | **No cookie fallback.** A request carrying `Authorization` ignores cookies; the SDK omits browser credentials for grant sessions | Pubky core | S | No |
-| SSO-R0 | Ring release with grant auth ([#360](https://github.com/pubky/pubky-ring/pull/360) merged; [#375](https://github.com/pubky/pubky-ring/issues/375) Android library) | Ring team | S | No |
+| SSO-R0 | Ring release with grant auth ([#360](https://github.com/pubky/pubky-ring/pull/360) merged; [#375](https://github.com/pubky/pubky-ring/issues/375) Android library). **In progress:** release process started | Ring team | S | No |
 | SSO-A1 | pubky.app on grants: [#2614](https://github.com/pubky/pubky-app/pull/2614), client id set to the origin host | pubky-app maintainers (vlada) | M | No |
 | SSO-H1, K1, K3, K4 | Delegable grants: `d` action, child-grant verification, cascade revocation, SDK signer and delegate APIs, agent protocol spec, SDK gaps | Pubky core | L + M + S + S | No |
 | SSO-P1, P2 | Passport as the account agent, plus a Ring-linked mode | Passport team | L + M | No |
-| SSO-R1, R2, B1 | Ring and Bitkit: show the client id, a distinct agent-grant screen, no blanket auto-approve, a session list with revoke | Ring and Bitkit teams | M each | No |
+| SSO-R1, R2, B1 | <ul><li>Ring and Bitkit: show the client id and plain-word scopes. **Agreed** by Ring.</li><li>A distinct agent-grant screen.</li><li>A session list with per-grant revoke, which **exists** as Ring draft [#369](https://github.com/pubky/pubky-ring/pull/369), pending FFI and react-native-pubky releases.</li></ul> | Ring and Bitkit teams | M; S for R2 after #369 | No |
 | SSO-Y1, Y2 | Paykit storage interface and WASM package on the host app's session | Paykit team | M–L + M | No |
 | SSO-F1 | Shop: one sign-in through the agent; remove the cookie path, the bridge, the `AuthToken` dual post and the scope union, after a dead-code check | us | M (Sol + Kimi) | No |
 | SSO-F2 | Shop messaging on SSO-Y2, scoped to `marketplace/` | us | M (Sol + Kimi) | No |
@@ -205,7 +205,7 @@ Item IDs prefixed **SSO-** are the change list in [sso-proposal-for-team.md §3.
 |---|---|
 | **Ring bundle.** One signer approval issues a grant to each first-party app, with a companion frame on each site and an SDK bundle request. This was earlier the recommendation here | <ul><li>Covers only apps present and coordinated at sign-in. Each app hosts a frame for every other app, and third-party frames are partitioned.</li><li>A new app, a new scope or a lost session goes back to the signer.</li><li>It is consent to several apps at once, not SSO.</li><li>Its only advantage, no homeserver change, doesn't outweigh that.</li></ul> |
 | **Cookie bridge** ([#2484](https://github.com/pubky/pubky-app/pull/2484), Shop ADR 0029) | <ul><li>Keeps the ambient shared cookie: every site rides one scope set, and the last sign-in wins.</li><li>Off-domain apps break on Safari.</li><li>It is deprecated. Its variables are unset in both live builds.</li></ul> |
-| **Ring auto-approve**, or remembered consent in Ring | <ul><li>A grant's client id is self-declared, and Ring can't tell which website showed a QR, so a phishing page could claim `shop.pubky.app`.</li><li>Ring's existing auto-auth setting (`getAutoAuthFromStore`) already approves every request without a screen.</li></ul> |
+| **Ring auto-approve**, or remembered consent in Ring | <ul><li>A grant's client id is self-declared, and Ring can't tell which website showed a QR, so a phishing page could claim `shop.pubky.app`.</li><li>Ring's existing auto-auth (`getAutoAuthFromStore`) is a developer setting, off by default. It only needs to stay unreachable in release builds.</li></ul> |
 | **A user session at the homeserver** that issues per-app grants | <ul><li>It is cross-origin to every app, so it is a cookie again, or partitioned storage.</li><li>It doesn't carry to mirrors.</li><li>It makes the storage provider an identity provider.</li></ul> |
 | **pubky.app as the broker** | The site that renders user content, the most exposed to injected script, would hold minting power. The agent is a small static origin instead |
 | **One tab owns the bearer**, shared through a BroadcastChannel or a SharedWorker | <ul><li>Background tabs freeze, and SharedWorker is missing on Chrome for Android.</li><li>Every app and library would need election code.</li><li>No security gain.</li></ul> SSO-H5 fixes it once in the homeserver. Detail: [pubky-sso-design.md §4](../sso/pubky-sso-design.md) |
@@ -251,12 +251,12 @@ pubky.app, homeserver, SDK, Paykit and signer changes belong to their teams. We 
 | # | Repo | Change | Status |
 |---|---|---|---|
 | SSO-H5, H6 | homeserver | Several bearers per grant; no cookie fallback | Ask core first; gates #2614 |
-| SSO-R0 | Ring | Release grant auth | Ask Ring for the release |
+| SSO-R0 | Ring | Release grant auth | In progress (Ring, 1 Oct) |
 | SSO-A1 | pubky.app | [#2614](https://github.com/pubky/pubky-app/pull/2614) | In review; we offer to review |
 | SSO-H1, K1, K3, K4 | homeserver, SDK | Delegable grants, agent protocol, SDK gaps | Ask core (proposal §4, Q1) |
 | SSO-Y1, Y2 | Paykit | Storage interface and WASM package | Ask Paykit (D2a) |
 | SSO-P1, P2 | Passport | Account agent; Ring-linked mode | Ask Passport |
-| SSO-R1, R2, B1 | Ring, Bitkit | Consent and session screens | Ask Ring and Bitkit |
+| SSO-R1, R2, B1 | Ring, Bitkit | Consent and session screens | Ring: origin and scopes agreed; grant list in [#369](https://github.com/pubky/pubky-ring/pull/369); agent screen explained in [proposal §2.8](../sso/sso-proposal-for-team.md#28-rings-side-of-the-agent-grant). Ask Bitkit |
 | SSO-F1, F2, F3 | Shop, service, Lock Server fork | Agent sign-in, messaging on Y2, service accepts the Shop's grant | us, after the above |
 | SSO-A2 | pubky.app | Grant from the agent | After P1 |
 

@@ -57,7 +57,9 @@ Identity is the user's key. Authorization is a grant: a statement signed by that
   - The latest release, [v1.19](https://github.com/pubky/pubky-ring/releases/tag/v1.19) (4 Sep), doesn't list grant auth, and Ring's developer confirms it is not yet released.
   - Released Ring signs in with cookie auth only.
   - Its consent title shows `x-source`, which the app declares; `client_id` is not displayed at all (`screens/ConfirmAuth.tsx`).
-  - Its auto-auth setting approves **every** request with no screen (`utils/actions/authAction.ts`).
+  - Its auto-auth setting approves every request with no screen (`utils/actions/authAction.ts`).
+    - It is a developer setting: off by default, in a hidden settings section opened by double-tapping the header.
+    - It is not compiled out of release builds, so the only ask is that it can't ship reachable or enabled.
   - It holds its own root session per pubky but has no screen to list or revoke grants.
 - **Passport** keeps the user's root key in browser storage on `passport.pubky.app`.
   - It reads the request from the URL fragment and shows the callback host, which the app declares.
@@ -168,7 +170,7 @@ Identity is the user's key. Authorization is a grant: a statement signed by that
 - **A QR scanned on another device can't be bound to an origin.** Anyone can relay a genuine QR in real time.
   - Contain it: QRs are used only for the once-per-browser agent grant, on a distinct screen showing the ceiling and expiry.
   - Ring marks the client id "unverified".
-  - Auto-approval never applies. Ring's blanket auto-auth setting should go.
+  - Auto-approval never applies to agent grants. Ring's developer-only auto-auth must stay unreachable in release builds.
 - **Script injected on the agent origin:**
   - The agent is a small static app with a strict CSP and no user content.
   - The damage is capped by the ceiling and revocable as one unit.
@@ -246,7 +248,7 @@ It works before the agent exists: Ring signs pubky.app's grant directly, one app
   - a new app, a new scope or a lost session goes back to the signer.
 
   It is consent to several apps at once, not single sign-on. Needing no homeserver change is its only advantage.
-- **The signer remembers consent or auto-approves.** The signer can't verify a requester through a QR, so this turns claiming a name into getting a silent grant. Ring's auto-auth already does this for every request.
+- **The signer remembers consent or auto-approves.** The signer can't verify a requester through a QR, so this turns claiming a name into getting a silent grant. Ring's auto-auth is a developer setting, off by default, not a product feature.
 - **The signer is pushed each request and auto-signs.** The phone must be online for every new session, and it needs push infrastructure. It makes the cold key a remote signing service. It still needs a browser-side party to attest the origin, which is the agent anyway.
 - **A user session at the homeserver issues grants.** This means a cookie or partitioned storage again. It doesn't carry to mirrors. It makes the storage provider an identity provider.
   - A *mediated* variant is acceptable: the agent presents its own grant session and the homeserver records the child.
@@ -276,9 +278,9 @@ Sizes describe technical scope, not time:
 | K3 | pubky-core docs | The agent request protocol: message types, versioning, origin rules, errors | Pubky core with the Passport team | S |
 | P1 | pubky-passport | **The account agent.** <ul><li>A `postMessage` API, with the client id set from the verified origin.</li><li>Consent remembered per origin and scope set; a first-party allow-list.</li><li>Child-grant issuance and the step-up ceiling.</li><li>A page listing the apps signed in on this browser, with revoke one or all.</li></ul> | Passport team | L |
 | P2 | pubky-passport | Ring-linked mode: hold an agent grant from Ring instead of a root key | Passport team | M |
-| R0 | pubky-ring | Release grant auth, already merged in [#360](https://github.com/pubky/pubky-ring/pull/360). It is a prerequisite for every Ring item below and for any Ring user signing in with grants | Ring team | S |
-| R1 | pubky-ring | <ul><li>Show the client id, marked "unverified" for QR requests.</li><li>A distinct screen for agent grants, showing the ceiling and expiry.</li><li>Auto-auth never applies to them. Recommended: remove blanket auto-auth.</li></ul> | Ring team | M |
-| R2 | pubky-ring | Sessions screen: list grants through `GrantManager` on Ring's root session, grouped by parent; revoke one, a browser, or all | Ring team | M |
+| R0 | pubky-ring | Release grant auth, already merged in [#360](https://github.com/pubky/pubky-ring/pull/360). It is a prerequisite for every Ring item below and for any Ring user signing in with grants. **In progress:** the release process has started | Ring team | S |
+| R1 | pubky-ring | <ul><li>Show the client id, marked "unverified" for QR requests, and the scopes in plain words. **Agreed** by the Ring team.</li><li>A distinct screen for agent grants, showing the ceiling and expiry (after H1).</li><li>The developer-only auto-auth never applies to them and can't ship reachable in release builds.</li></ul> | Ring team | M |
+| R2 | pubky-ring | Sessions screen listing grants with per-grant revoke. **It exists** as draft [pubky-ring#369](https://github.com/pubky/pubky-ring/pull/369) ("Authorized Apps"), waiting on [pubky-core-ffi#37](https://github.com/pubky/pubky-core-ffi/pull/37), [react-native-pubky#42](https://github.com/pubky/react-native-pubky/pull/42), [#43](https://github.com/pubky/react-native-pubky/pull/43) and the next react-native-pubky release. After H1: group by parent, and revoke a whole browser | Ring team | S after #369 |
 | B1 | Bitkit | R1's consent changes | Bitkit team | S–M |
 | Y1 | pubky/paykit-rs | **A storage interface in `paykit-lib`.** Operations take a trait (own-folder put, get, delete and list, plus public reads) instead of `&PubkySession`. A `PubkySession` adapter keeps the current Rust and FFI API | Paykit team | M–L |
 | Y2 | pubky/paykit-rs | A WASM package of `paykit-sdk` on Y1. Its JS adapter is backed by the host app's `Session.storage` and host-provided durable state | Paykit team | M |
@@ -319,7 +321,7 @@ The code can't answer these. Each gates the item named.
 4. **Services as relying parties (H3, F3).** Is it endorsed for a service to accept a grant with a PoP addressed to itself? What is the convention for a capability that names a service? How should a service learn of revocation: an introspection endpoint, a short re-check interval, or a public status lookup?
 5. **What `client_id` means.** Will core define it as the verified web origin, or a verified app-link domain, and add a field marking it as verified? What should signers display when it isn't?
 6. **Lifetimes.** Is the 2-year default intended? Should agent grants have a shorter maximum enforced by the homeserver?
-7. **Grant management.** Does react-native-pubky expose `GrantManager` to Ring today? Is a revoke-all endpoint planned?
-8. **Ring auto-auth.** Is the blanket auto-approve setting meant to stay?
+7. **Grant management.** Ring's grant list ([#369](https://github.com/pubky/pubky-ring/pull/369)) waits on [pubky-core-ffi#37](https://github.com/pubky/pubky-core-ffi/pull/37) and react-native-pubky [#42](https://github.com/pubky/react-native-pubky/pull/42) and [#43](https://github.com/pubky/react-native-pubky/pull/43). When will those release? Is a revoke-all endpoint planned?
+8. **Ring auto-auth.** Answered by the Ring team: it is a developer setting. Remaining ask: keep it unreachable in release builds.
 9. **Passport as the agent (P1, P2).** Will the Passport team own the agent role and a mode that holds no root key?
 10. **Paykit (Y1–Y3).** Will Paykit accept the storage interface and ship a WASM package? Should first-party apps share one messaging inbox (one receiver and Noise key) or keep one per app? Recommendation: one app owns Messages, and the others link to it.
