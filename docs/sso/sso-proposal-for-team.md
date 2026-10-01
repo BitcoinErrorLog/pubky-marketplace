@@ -46,7 +46,7 @@ A cookie session is set by the homeserver on its own host (`homeserver.pubky.app
 
 **Where things stand:**
 
-- pubky.app `main` still signs Ring users in with cookies (`signinCookie`, `startCookieAuthFlow`). Its grant migration is tracked in [pubky/pubky-app#2614](https://github.com/pubky/pubky-app/pull/2614).
+- pubky.app `main` still signs Ring users in with cookies (`signinCookie`, `startCookieAuthFlow`). Its grant migration is draft PR [pubky/pubky-app#2614](https://github.com/pubky/pubky-app/pull/2614), by vlada; §2.7 covers how it fits.
 - The Shop signs Ring users in with cookies too. It uses grants only for Bitkit (and, in the beta, Passport).
 - **Released Ring supports cookie auth only.**
   - Ring's grant auth is merged ([pubky/pubky-ring#360](https://github.com/pubky/pubky-ring/pull/360), 3 Sep).
@@ -199,7 +199,7 @@ The original auth spec ([`docs/AUTH.md`](https://github.com/pubky/pubky-core/blo
 | First-party apps (`*.pubky.app`) | Same-site with `passport.pubky.app`, so the hidden frame can read Passport's storage. Sign-in is silent |
 | Third-party apps | Browsers partition storage in embedded frames, so these use a popup, which needs one click |
 | Safari | Deletes site storage after 7 days of Safari use with no user interaction. That costs at most one re-approval; visits to any `*.pubky.app` site count |
-| Several tabs of one app | Share one grant, and the homeserver allows one live bearer per grant, so the SDK must coordinate refresh across tabs (question Q3) |
+| Several tabs of one app | Share one grant. This needs the homeserver fix in §2.6 |
 
 ### 2.5 Why this beats the alternatives
 
@@ -215,6 +215,58 @@ The original auth spec ([`docs/AUTH.md`](https://github.com/pubky/pubky-core/blo
 
 **The agent's power is bounded and revocable as one unit.** It is still a smaller hot credential than what exists today: the cookie, which every site rides, and Passport's root key in browser storage.
 
+### 2.6 Prerequisite: several tabs on one grant
+
+**Credit:** vlada, in #pubky-core on 21 Sep, while planning pubky.app's grant migration.
+
+**The problem.** The homeserver keeps one bearer per grant. In both v0.11.0 and v0.14.0 `main`, `replace_for_grant` deletes every session for the grant before inserting the new one. `MAX_SESSIONS_PER_GRANT` exists only in comments and tests. So:
+
+1. Tab A restores the grant and gets bearer A.
+2. Tab B restores the same grant and gets bearer B. Bearer A is deleted.
+3. Tab A's next write gets a 401, although the grant is still valid.
+4. If tab A restores again, it kills bearer B, and the two tabs keep invalidating each other.
+
+Every grant-only web app hits this. That includes pubky.app under [#2614](https://github.com/pubky/pubky-app/pull/2614), the Shop, and every app the agent signs in.
+
+**Recommended fix (H5): the homeserver keeps several live bearers per grant.**
+
+- Up to `MAX_SESSIONS_PER_GRANT`, a small bound such as 8. Beyond it, the oldest is evicted, in the same atomic statement.
+- Revoking the grant still deletes all of them.
+- Each tab mints its own bearer with a PoP from the shared non-extractable key.
+
+According to #2614, the homeserver team has already confirmed the limitation and offered this fix.
+
+**Why not one tab owning the bearer and sharing it** through a BroadcastChannel or a SharedWorker:
+
+- **Browsers freeze or discard background tabs,** on mobile especially. A frozen or closed leader stalls every other tab, and the takeover mints a new bearer anyway.
+- **SharedWorker isn't available in Chrome on Android.**
+- **Every app, and every library that borrows the session, would need the same election and handoff code.** The homeserver fix is one change that every client gets for free.
+- **There is no security gain.** Every tab has the same origin and key, so copying one bearer to all of them protects nothing.
+
+**Second prerequisite (H6), from #2614: no cookie fallback.**
+
+- While legacy cookies exist, a request whose bearer is missing, expired or revoked must not be authorized by the cookie the browser attaches. That includes another app's cookie, such as the Shop's Ring cookie.
+- The homeserver should ignore cookies on any request that carries `Authorization`. The SDK should send grant-session requests without browser credentials.
+
+### 2.7 How pubky.app's migration fits (#2614)
+
+**[#2614](https://github.com/pubky/pubky-app/pull/2614) is pubky.app's half of moving off cookies, and this proposal builds on it.**
+
+| #2614 does | Fit with this proposal |
+|---|---|
+| New Ring, file, phrase and sign-up logins get grants. Valid cookie sessions keep restoring. There is no new cookie login and no fallback to cookies | Same model: one grant per app, cookies only phased out |
+| Ordinary login requests `/pub/pubky.app/:rw`. Locks asks for `/priv/social/:rw,/priv/locks.app/:r` through a step-up | Same as the agent's per-app grant and ceiling step-up |
+| Client id from runtime config (`PUBKY_RUNTIME_AUTH_CLIENT_ID`); a restore with another client id is refused | **Set it to the origin host** (`pubky.app`, `staging.pubky.app`). The agent will set client ids from the verified origin, and any other value would force a re-authorization at the switch |
+| Secrets in `browserSessionStore`; Web Locks and generation checks across tabs; no restore-on-401 loop | Compatible. These coordinate app state; H5 removes the bearer conflict |
+| Release gates: several bearers per grant, no cookie fallback, shipped Ring grant builds ([pubky-ring#375](https://github.com/pubky/pubky-ring/issues/375)) | These are exactly H5, H6 and R0 |
+
+**Two points differ from the target design:**
+
+1. **Recovery-phrase and file logins produce a root grant inside pubky.app.** Under this design the key belongs in a signer, which can be Passport, so long term those logins move to Passport (A2).
+2. **#2614 moves Locks' creator-originals path** from `/priv/app.locks/content/` to `/priv/locks.app/`. The Shop's beta scope union follows whichever path ships.
+
+**Before the agent exists,** #2614 works as is, with Ring signing pubky.app's grant directly. When the agent ships, only where the grant comes from changes (A2).
+
 ---
 
 ## 3. The plan
@@ -224,9 +276,10 @@ The original auth spec ([`docs/AUTH.md`](https://github.com/pubky/pubky-core/blo
 | Phase | What ships | Depends on |
 |---|---|---|
 | **0. Beta stopgaps** (being built now) | Ring sign-in requests both sites' scopes; Passport sign-in on the Shop; honest sign-out copy. See §3.2 | Nothing upstream |
-| **1. Foundations** | <ul><li>Delegable grants in the homeserver and SDK (H1, K1).</li><li>The agent protocol spec (K3).</li><li>The Paykit storage interface and WASM package (Y1, Y2).</li><li>The tab-coordination fix (K2).</li></ul> | Answers to Q1–Q5 |
+| **1a. Grants per app** | <ul><li>Several bearers per grant and no cookie fallback (H5, H6).</li><li>Ring grant-auth release (R0).</li><li>pubky.app's [#2614](https://github.com/pubky/pubky-app/pull/2614) ships (A1), with one Ring approval per app per browser and no scope overwriting.</li></ul> | Q3; R0 |
+| **1b. Foundations** | <ul><li>Delegable grants in the homeserver and SDK (H1, K1).</li><li>The agent protocol spec (K3).</li><li>SDK gaps (K4).</li><li>The Paykit storage interface and WASM package (Y1, Y2).</li></ul> | Answers to Q1, Q2, Q4, Q5 |
 | **2. Signers and agent** | <ul><li>Passport as account agent, with a Ring-linked mode (P1, P2).</li><li>Ring and Bitkit consent and session screens (R1, R2, B1).</li></ul> | H1, K1, K3; R0 for the Ring items |
-| **3. Apps and services** | <ul><li>pubky.app (A1) and the Shop (F1) sign in through the agent with grants only.</li><li>Shop messaging on the new Paykit package (F2).</li><li>The marketplace service and Lock Server accept the app's grant (F3).</li></ul> | Phase 2; Y2 for F2; H3 for F3 |
+| **3. Apps and services** | <ul><li>pubky.app (A2) and the Shop (F1) sign in through the agent with grants only.</li><li>Shop messaging on the new Paykit package (F2).</li><li>The marketplace service and Lock Server accept the app's grant (F3).</li></ul> | Phase 2; Y2 for F2; H3 for F3 |
 | **4. Cleanup** | <ul><li>The homeserver removes cookie auth (H4).</li><li>The fork's `paykit-wasm` is retired (F4).</li></ul> | All clients moved |
 
 ### 3.2 During the beta
@@ -269,7 +322,9 @@ None of them depends on Ring's grant auth being released. The Ring stopgap is a 
 | H3 | Grant status for services: an introspection endpoint, or a documented re-check rule | S–M | Q4 |
 | H4 | Remove cookie auth once clients have moved | S | Phase 3 |
 | K1 | SDK for Rust, JS and the FFI (react-native-pubky): <ul><li>signer side approves an agent-grant request and shows its ceiling;</li><li>delegate side signs child grants with a non-extractable key;</li><li>a helper to verify a grant plus a PoP addressed to a service.</li></ul> | M | H1 |
-| K2 | Bearer refresh coordinated across tabs (for example a Web Lock), or a homeserver limit above one bearer per grant | S–M | Q3 |
+| **H5** | **Several bearers per grant (§2.6).** `replace_for_grant` keeps up to `MAX_SESSIONS_PER_GRANT` sessions (suggest 8), evicting the oldest atomically; revocation still deletes all | S | Q3 |
+| **H6** | **No cookie fallback (§2.6).** A request carrying `Authorization` ignores cookies; the SDK sends grant-session requests without browser credentials | S | Q3 |
+| K4 | SDK gaps #2614 works around: delete one abandoned delegated proof key by attempt; a structured "missing record" error; `list()` reports IndexedDB errors | S | — |
 | K3 | Agent request protocol spec: message types, versioning, origin rules, errors. Written with the Passport team | S | Q5 |
 
 **Passport** ([pubky/pubky-passport](https://github.com/pubky/pubky-passport))
@@ -300,7 +355,8 @@ None of them depends on Ring's grant auth being released. The Ring stopgap is a 
 
 | # | Change | Size | Depends on |
 |---|---|---|---|
-| A1 | <ul><li>Sign in through the agent with grant sessions only, replacing `signinCookie` and `startCookieAuthFlow`; builds on [#2614](https://github.com/pubky/pubky-app/pull/2614).</li><li>Sign-out revokes pubky.app's own grant.</li><li>Lock Server sign-in moves to the grant.</li></ul> | M | P1 |
+| A1 | **[#2614](https://github.com/pubky/pubky-app/pull/2614) (vlada, draft):** <ul><li>New logins get per-app grants signed directly by Ring.</li><li>Legacy cookies keep restoring.</li><li>Sign-out revokes pubky.app's own grant.</li><li>Locks step-up.</li><li>Client id set to the origin host.</li></ul> | M (in review) | H5, H6, R0 |
+| A2 | Get the grant from the agent instead of directly from Ring. Lock Server sign-in moves to the grant. Recovery-phrase and file logins move to Passport | S–M | P1, A1 |
 
 **Shop and our services** (BitcoinErrorLog): we own these
 
@@ -317,19 +373,22 @@ The beta opens about **15 Oct**. After that, each phase starts when its dependen
 
 | When | Work |
 |---|---|
-| **Now to the beta** | <ul><li>Phase 0 ships.</li><li>The core team answers Q1–Q5; Paykit answers Q10.</li><li>Design reviews start for H1, K3 and Y1.</li></ul> |
-| **From the answers** | <ul><li>Two tracks in parallel: H1, K1, K2 and K3 (core); Y1 then Y2 (Paykit).</li><li>Ring releases grant auth (R0), which doesn't wait on anything here.</li><li>Ring starts R1 as soon as K1's request format is fixed.</li></ul> |
+| **Now to the beta** | <ul><li>Phase 0 ships.</li><li>The core team answers Q1–Q5, with Q3 first because it gates #2614; Paykit answers Q10.</li><li>Core ships H5 and H6; Ring ships R0. Together they unblock #2614.</li><li>Design reviews start for H1, K3 and Y1.</li></ul> |
+| **From the answers** | <ul><li>Two tracks in parallel: H1, K1, K3 and K4 (core); Y1 then Y2 (Paykit).</li><li>A1 (#2614) ships once H5, H6 and R0 are deployed.</li><li>Ring releases grant auth (R0), which doesn't wait on anything here.</li><li>Ring starts R1 as soon as K1's request format is fixed.</li></ul> |
 | **When H1 and K1 are released** | <ul><li>P1 and P2 (Passport), R2 (Ring), B1 (Bitkit).</li><li>F3 (us), once H3 is settled.</li></ul> |
-| **When P1 is live on staging** | <ul><li>A1 (pubky.app) and F1 (us).</li><li>F2 (us), once Y2 is published.</li><li>A cross-app QA matrix: each signer on each app; sign-out at each level; third-party popup; new browser; Safari.</li></ul> |
+| **When P1 is live on staging** | <ul><li>A2 (pubky.app) and F1 (us).</li><li>F2 (us), once Y2 is published.</li><li>A cross-app QA matrix: each signer on each app; sign-out at each level; third-party popup; new browser; Safari.</li></ul> |
 | **When both apps and the services run without cookies** | H4 (core) and F4 (us) |
 
-**The critical path** is H1 → K1 → P1 → F1 and A1. Paykit (Y1, Y2) runs alongside it and gates messaging for Passport and Bitkit users.
+**The critical path to grant-only apps** is H5, H6 and R0, then A1 (#2614).
+
+**The critical path to SSO** is H1 → K1 → P1 → F1 and A2. Paykit (Y1, Y2) runs alongside it and gates messaging for Passport and Bitkit users.
 
 ### 3.5 What works even if the core change is delayed
 
 | Available without H1 | Effect |
 |---|---|
 | **Y1, Y2 and F2** | All users get messaging, and Paykit scopes narrow to each app's folder. That ends the cross-app marker exposure and lets the Shop drop cookies for Ring |
+| **A1 ([#2614](https://github.com/pubky/pubky-app/pull/2614)) with H5, H6 and R0** | pubky.app on grants: no cookie overwriting from pubky.app's side, and its sign-out signs out pubky.app only. It needs only the two small homeserver fixes and the Ring release, not H1 |
 | **F1 without the agent** | The Shop uses grant sessions for every signer, one approval per app per browser. No more scope overwriting, and sign-out stops being shared. **For Ring users this needs R0** (the Ring grant-auth release) as well as Y2 |
 | **P1 for Passport-key users** | Passport already holds their key, so it can sign per-app grants directly, with full SSO and origin-verified client ids, and no protocol change |
 | **R1** | Showing `client_id` and removing blanket auto-auth reduces phishing now |
@@ -345,7 +404,9 @@ The beta opens about **15 Oct**. After that, each phase starts when its dependen
    - If yes, which form: (a) child grants that carry the parent and can be verified offline by services and mirrors, or (b) children the homeserver records at the agent's request?
    - How should a parent's revocation reach mirrors?
 2. **Cookie removal (gates H4).** In which homeserver version will cookie auth (`POST /session`) be removed?
-3. **One bearer per grant (gates K2).** Is `MAX_SESSIONS_PER_GRANT = 1` deliberate for browsers with several tabs? If yes, will the SDK coordinate tabs or retry after eviction? If no, what limit will the homeserver allow?
+3. **Several bearers per grant (gates H5, H6 and #2614).** This question was first raised by vlada in #pubky-core on 21 Sep.
+   - In which homeserver version will `replace_for_grant` keep several bearers per grant, and what bound will it use (we suggest 8, evicting the oldest)?
+   - Will the same release make a request that carries `Authorization` ignore cookies?
 4. **Services as relying parties (gates H3, F3).**
    - May a service authenticate a user by accepting the app's grant plus a PoP whose audience is the service?
    - What is the naming convention for a capability that names a service?
@@ -366,7 +427,8 @@ The beta opens about **15 Oct**. After that, each phase starts when its dependen
 **Pubky core:**
 
 - **By the beta (about 15 Oct):** answers to Q1–Q7.
-- **Then:** own H1, K1, K2 and K3 (with Passport), H3, and H2 if wanted. H1 and K1 are the critical path.
+- **First:** H5 and H6, which unblock pubky.app's [#2614](https://github.com/pubky/pubky-app/pull/2614) now. Please answer Q3 first.
+- **Then:** own H1, K1, K3 (with Passport) and K4, then H3, and H2 if wanted. H1 and K1 are the critical path to SSO.
 - **Last:** H4, once clients have moved.
 
 **Passport:**
@@ -396,8 +458,12 @@ Recommended now, independent of everything else: show `client_id` and drop blank
 
 **pubky.app:**
 
-- **Now:** continue the grant migration ([#2614](https://github.com/pubky/pubky-app/pull/2614)). During the beta, keep cookie scopes unchanged; the Shop's stopgap depends on the final 1.12.0 scope string ([#2719](https://github.com/pubky/pubky-app/pull/2719)).
-- **When P1 is on staging:** A1.
+- **Now, A1 = [#2614](https://github.com/pubky/pubky-app/pull/2614):**
+  - Set `PUBKY_RUNTIME_AUTH_CLIENT_ID` to the origin host.
+  - Keep its release gates; they are H5, H6 and R0.
+  - Tell us the final Locks paths. The Shop's beta scope union uses the 1.12.0 cookie string ([#2719](https://github.com/pubky/pubky-app/pull/2719)) and will follow `/priv/locks.app/` if that ships.
+  - We're glad to review #2614.
+- **When P1 is on staging:** A2. Get the grant from the agent, and move recovery-phrase and file logins to Passport.
 
 **Us (Shop):**
 

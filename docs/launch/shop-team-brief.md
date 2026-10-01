@@ -122,14 +122,22 @@ Project context:
   - **Permissions overwrite.** The two sites' cookie sign-ins overwrite each other's permissions. The stopgap: Ring sign-in requests both sites' scopes (D5, decided).
   - **Messaging needs a Ring cookie session.** The vendored `paykit-wasm` supports only cookie sessions, so Bitkit and Passport users get no messaging, and Ring can't move to grants yet.
   - **Released Ring signs in with cookies only.** Ring's grant auth is merged ([pubky-ring#360](https://github.com/pubky/pubky-ring/pull/360)) but isn't in the latest release, [v1.19](https://github.com/pubky/pubky-ring/releases/tag/v1.19). Every Ring sign-in on the Shop is therefore a cookie sign-in. The beta stopgaps don't depend on Ring grants.
-  - **No single sign-on with pubky.app.** The design is one signer approval that issues a grant to each first-party app (launch plan §3). It needs no homeserver change, but it needs:
-
-    - grant support in our messaging library, `paykit-wasm` in [BitcoinErrorLog/paykit-rs-official](https://github.com/BitcoinErrorLog/paykit-rs-official), or an upstream Paykit WASM package;
-    - an SDK bundle request;
-    - Ring, Bitkit and Passport support;
-    - a companion frame on each site.
-
-    That puts it outside the beta.
+  - **No single sign-on with pubky.app.**
+    - The target design is **delegated grants through a Passport agent**: [pubky-sso-design.md](../sso/pubky-sso-design.md), team version [sso-proposal-for-team.md](../sso/sso-proposal-for-team.md), summary in launch plan §3.
+      - The signer approves once per browser.
+      - Passport issues each app its own grant, labelled with the verified origin.
+    - It needs:
+      - **Two small homeserver fixes first:**
+        - several bearers per grant, because two tabs on one grant currently invalidate each other's bearer (vlada's finding);
+        - no cookie fallback for bearer requests.
+      - **Ring's grant-auth release.**
+      - **pubky.app's migration, [#2614](https://github.com/pubky/pubky-app/pull/2614).**
+      - **Delegable grants** in the homeserver and SDK.
+      - **Passport as the agent.**
+      - **Ring and Bitkit** consent and session screens.
+      - **Messaging on the app's own grant session:** a Paykit storage interface and WASM package, replacing our `paykit-wasm` in [BitcoinErrorLog/paykit-rs-official](https://github.com/BitcoinErrorLog/paykit-rs-official).
+    - That puts it outside the beta.
+    - The Ring bundle (one approval issuing grants to several apps through companion frames) was considered and rejected; see launch plan §3.
   - **Leftover production test listings:** being deleted (D6).
   - **Address search 503** ([#61](https://github.com/BitcoinErrorLog/pubky-marketplace/issues/61)): the fix is in progress.
 
@@ -140,7 +148,13 @@ Project context:
 3. Pick up today's work in review: the F1 link-out (merged behind a flag that is off) and the F4 Passport Kimi audit and fixes. The Passport proof needs a Google test account from John.
 4. Build the D5 scope stopgap: Ring cookie sign-in requests both sites' scopes, with a separate constant so Bitkit's exact-set checks are unaffected. It needs Sol + Kimi.
 5. Work through the launch-blocking list in launch plan §5 with QA, including the cross-site sign-in matrix.
-6. Start on SSO prerequisites with the upstream teams: grant sessions in the messaging library (G1), and the SDK grant-bundle request (S1) with the Pubky core, Ring, Bitkit and Passport teams. F3 (Ring on grants) and F6 (the Shop's `/auth-companion`) wait on them. F3 also waits on a Ring release that ships grant auth; ask the Ring team for the date.
+6. Start on SSO prerequisites with the upstream teams, using the [team proposal](../sso/sso-proposal-for-team.md):
+   - **Core:** several bearers per grant and no cookie fallback (SSO-H5, H6) first.
+   - **Ring:** the grant-auth release date (SSO-R0).
+   - **pubky.app:** review [#2614](https://github.com/pubky/pubky-app/pull/2614).
+   - **Paykit:** the storage interface and WASM package (SSO-Y1, Y2).
+
+   Moving the Shop's Ring users to grants (SSO-F1) waits on those, plus our messaging port (SSO-F2).
 
 ## Who to ask
 
@@ -152,11 +166,13 @@ Project context:
 | Testing, issue reports, payment canaries | Pav ([thisispav](https://github.com/thisispav)) |
 | Bitkit testing | Piotr ([piotr-iohk](https://github.com/piotr-iohk)) |
 | Visual design and design PRs | Aldert ([aldertnl](https://github.com/aldertnl)) |
-| pubky.app changes (menu links, session bridge, grants) | pubky-app maintainers: [secondl1ght](https://github.com/secondl1ght), [infin1t3](https://github.com/infin1t3), [talosmachina](https://github.com/talosmachina) |
+| pubky.app changes (menu links, grants) | pubky-app maintainers: [secondl1ght](https://github.com/secondl1ght), [infin1t3](https://github.com/infin1t3), [talosmachina](https://github.com/talosmachina) |
 | Nexus upstream | Chris (pubky-nexus maintainer) |
 | Homeserver behavior (429s, locks) | tomos (homeserver team) |
-| SDK grant-bundle request | Pubky core SDK maintainers ([pubky/pubky-homeserver](https://github.com/pubky/pubky-homeserver) `pubky-sdk`) |
-| Ring bundle approval | [pubky/pubky-ring](https://github.com/pubky/pubky-ring) maintainers |
+| Delegable grants, several bearers per grant, SDK | Pubky core ([pubky/pubky-core](https://github.com/pubky/pubky-core)); Marcos for the homeserver multi-bearer fix |
+| pubky.app grant migration ([#2614](https://github.com/pubky/pubky-app/pull/2614)) | vlada |
+| Ring grant-auth release and consent screens | Philipp ([pubky/pubky-ring](https://github.com/pubky/pubky-ring)) |
+| Passport as the account agent | [pubky-passport](https://github.com/pubky/pubky-passport) maintainers |
 | Paykit server and SDK | dzdidi; Ben for the Paykit architecture |
 | Locks | Denys |
 | Ring and Bitkit sign-in, keychain sharing | Jay; [ovitrif](https://github.com/ovitrif) for Bitkit and Paykit issues |

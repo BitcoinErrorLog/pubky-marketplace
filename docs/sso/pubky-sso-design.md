@@ -14,7 +14,11 @@ Identity is the user's key. Authorization is a grant: a statement signed by that
 - The app exchanges it, with a proof-of-possession (PoP) signed by the `cnf` key, for an opaque one-hour bearer (`homeserver/.../auth/grant/mod.rs`).
 - The homeserver stores the grant and checks it is not revoked on **every** request. Private event streams close when their grant is revoked (`auth/revocation/`).
 - The SDK's default grant lifetime is **2 years** (`sdk/.../grant/constants.rs`).
-- A grant can have **only one live bearer**: each new exchange evicts the previous one (`MAX_SESSIONS_PER_GRANT = 1`, `grant/persistence/grant_session.rs`).
+- A grant can have **only one live bearer**.
+  - `replace_for_grant` deletes every session for the grant, then inserts the new one, in one SQL statement (`grant/persistence/grant_session.rs`, the same in v0.11.0 and v0.14.0 `main`).
+  - `MAX_SESSIONS_PER_GRANT` appears only in comments and tests; no such limit exists in the code.
+  - Consequence: two tabs that restore the same grant through `browserSessionStore.restore()` invalidate each other's bearer, and retrying a restore after a 401 makes them alternate.
+  - vlada found and reported this in #pubky-core on 21 Sep, while planning pubky.app's grant migration. [pubky/pubky-app#2614](https://github.com/pubky/pubky-app/pull/2614) records that the homeserver team confirmed the limitation and offered a fix.
 - Listing or revoking a user's grants **requires a root capability**. An app can only revoke its own grant (`DELETE /auth/grant/session`, `grant/routes.rs`).
 - `client_id` is self-declared: "the security boundary is capability scoping, not `client_id`".
 - A grant has no audience, so it can be exchanged at any mirror.
@@ -32,6 +36,15 @@ Identity is the user's key. Authorization is a grant: a statement signed by that
 - **pubky.app (`main`)** still signs in with cookies: `signinCookie`, `startCookieAuthFlow`, commented "grant-auth migration is tracked separately" (`core/services/homeserver/homeserver.ts`).
   - Its capabilities are `/pub/pubky.app/:rw,/priv/social/:rw,/priv/app.locks/content/:r`.
   - Locks has its own iframe sign-in to the Lock Server.
+- **pubky.app's grant migration is draft PR [#2614](https://github.com/pubky/pubky-app/pull/2614)** (vlada, open against `dev`, updated 28 Sep).
+  - New Ring, encrypted-file, recovery-phrase and sign-up logins get SDK grants. Valid existing cookie sessions keep restoring. There is no new cookie login and no fallback to cookies.
+  - Ordinary Ring login requests only `/pub/pubky.app/:rw`. Locks asks for `/priv/social/:rw,/priv/locks.app/:r` when it needs them, through a step-up that replaces the grant on the same account.
+  - The client id comes from runtime config (`PUBKY_RUNTIME_AUTH_CLIENT_ID`, for example `staging.pubky.app`). A restore is refused if the stored grant's client id differs.
+  - Grant secrets stay in the SDK's `browserSessionStore`; app storage holds only public references. Account changes are serialized across tabs with Web Locks and generation checks. There is no restore-on-401 loop.
+  - It stays in draft until three gates pass:
+    1. The deployed homeserver allows several bearers per grant.
+    2. A failed bearer can't fall back to an ambient cookie. SDK 0.11 sends browser credentials, so another app's broad cookie could still authorize the request.
+    3. Ring Android and iOS builds that ship grant auth exist. Ring [#375](https://github.com/pubky/pubky-ring/issues/375): v1.19 on Android shipped a pre-0.10 native library that rejects grant deep links.
 - **The Shop:**
   - Ring users get a cookie with `/pub/pubky.app/:rw,/pub/paykit/:rw,/priv/pubky.app/:rw`.
   - Bitkit users get a grant session (`client_id` `shop.pubky.app`, non-extractable key).
@@ -168,12 +181,66 @@ Identity is the user's key. Authorization is a grant: a statement signed by that
 - **Safari's tracking protection** deletes script-written storage, including IndexedDB keys, for a site with no user interaction for 7 days of Safari use. The agent's and the apps' keys can vanish, which costs one re-approval. Visits to any `*.pubky.app` site count as interaction with `pubky.app`.
 - **Mobile browsers** work the same way, with a same-device deep link to Ring that returns to the agent.
 - **Native apps** call the signer directly.
-- **Multiple tabs** of one app share one grant. Under one-bearer-per-grant they evict each other's bearer, so the SDK must coordinate across tabs (see §7).
+- **Multiple tabs** of one app share one grant. That needs the multi-tab fix below.
+
+### Prerequisite: several tabs on one grant
+
+**The problem (vlada, #pubky-core, 21 Sep).**
+
+1. Tab A restores the grant and gets bearer A.
+2. Tab B restores the same grant and gets bearer B. The homeserver deletes bearer A.
+3. Tab A's next authenticated write gets a 401, although the grant is still valid.
+4. If tab A restores again, it kills bearer B, and the two tabs keep invalidating each other.
+
+This is the first thing any grant-only web app hits. pubky.app's #2614 and the Shop both depend on it, and so does every app the agent signs in.
+
+**Recommended fix: the homeserver allows several live bearers per grant (H5).**
+
+- `replace_for_grant` keeps up to `MAX_SESSIONS_PER_GRANT` sessions per grant, a small bound such as 8. Beyond the bound it evicts the oldest, in the same single atomic statement.
+- Revoking a grant still deletes all of its sessions.
+- Each tab mints and refreshes its own bearer with a PoP from the shared non-extractable key. The SDK's existing per-session refresh lock already serializes refreshes inside one tab.
+
+**Why this rather than one tab owning the bearer and sharing it** (leader election with a BroadcastChannel, or a SharedWorker):
+
+- **Browsers freeze or discard background tabs,** on mobile especially. A leader tab that is frozen or closed stalls every other tab until someone else takes over, and the takeover mints a new bearer anyway.
+- **A SharedWorker isn't available in Chrome on Android.**
+- **Every app, and every library that borrows the session, would have to implement the same election and handoff.** The homeserver fix is one change, in one place, that every client gets for free.
+- **Sharing gains no security.** Every tab has the same origin and the same key, so copying one bearer to all of them protects nothing that per-tab bearers expose.
+- **Revocation is unchanged:** it is still per grant, and immediate.
+- **The homeserver team has already agreed.** According to #2614, the homeserver team confirmed the limitation and offered this fix.
+
+**A second prerequisite from #2614: a bearer request must never fall back to a cookie (H6).**
+
+- While legacy cookies exist (any app's, including the Shop's Ring cookie), a request whose bearer is missing, expired or revoked must not be authorized by the cookie the browser attaches.
+- The homeserver should ignore cookies on any request that carries `Authorization`. The SDK should send grant-session requests without browser credentials.
+
+### Alignment with pubky.app's migration (#2614)
+
+**[#2614](https://github.com/pubky/pubky-app/pull/2614) is pubky.app's half of moving off cookies, and it fits this design:**
+
+- one grant per app;
+- no new cookies;
+- secrets kept in the SDK store;
+- per-app client id;
+- step-up for extra scopes;
+- release gates that are exactly H5, H6 and R0.
+
+It works before the agent exists: Ring signs pubky.app's grant directly, one approval per browser. When the agent ships (P1), only how the grant is obtained changes, from a direct Ring request to an agent request (A2).
+
+**Points to settle with vlada:**
+
+1. **The client id must equal the origin host** (`pubky.app`, `staging.pubky.app`). The agent will set the client id from the verified origin. #2614 refuses to restore a grant whose client id differs from the configured one, so a different configured value would force every user to re-authorize at the switch.
+2. **Locks paths.** #2614 uses `/priv/locks.app/` for creator originals, where `main` uses `/priv/app.locks/content/`. The Shop's scope-union stopgap must follow the final path.
+3. **Recovery-phrase and file logins** produce a root grant inside pubky.app. Under this design the key belongs in a signer, which can be Passport, so long term those logins should move to Passport and pubky.app should hold only its scoped grant.
+4. **SDK gaps** #2614 works around, which are asks for core (K4):
+   - SDK 0.11 can't delete one abandoned delegated proof key by attempt;
+   - "missing record" has no structured error;
+   - `list()` hides IndexedDB errors.
 
 ## 5. Why the alternatives are worse
 
 - **Keep cookies, or lend `*.pubky.app` hostnames.** The credential is ambient. Every site shares one capability set, and the last sign-in clobbers it. Off-domain sites break on Safari. Cookie auth is deprecated.
-- **A bundle of grants approved once at sign-in** (the prior launch-plan design). It covers only the apps present and coordinated at sign-in:
+- **A Ring bundle: a bundle of grants approved once at sign-in.** Rejected. It covers only the apps present and coordinated at sign-in:
   - each app must host a companion frame for every other app;
   - third-party companions are partitioned;
   - a new app, a new scope or a lost session goes back to the signer.
@@ -202,8 +269,10 @@ Sizes describe technical scope, not time:
 | H2 | pubky-core homeserver | Revoke-all for root sessions ("sign out everywhere"). Optional, since list-then-revoke works | Pubky core | S |
 | H3 | pubky-core homeserver | Grant status for services: an introspection endpoint, or a documented re-check rule | Pubky core | S–M |
 | H4 | pubky-core homeserver | Remove cookie auth once clients have moved | Pubky core | S |
+| **H5** | pubky-core homeserver | **Several bearers per grant (prerequisite; vlada, 21 Sep).** `replace_for_grant` keeps up to `MAX_SESSIONS_PER_GRANT` sessions (suggest 8), evicting the oldest atomically; revocation still deletes all. Gates #2614 and every grant-only web app | Pubky core | S |
+| **H6** | pubky-core homeserver and SDK | **No cookie fallback (prerequisite, from #2614).** A request carrying `Authorization` ignores cookies; the SDK sends grant-session requests without browser credentials | Pubky core | S |
 | K1 | pubky-core SDK (Rust, JS, FFI, react-native-pubky) | <ul><li>Signer side: approve an agent-grant request and display its ceiling.</li><li>Delegate side: sign a child grant from a stored agent grant with a non-extractable key.</li><li>A helper to verify a grant plus a PoP with a custom audience, for services.</li></ul> | Pubky core | M |
-| K2 | pubky-core SDK (JS) | Coordinate bearer refresh across tabs (for example a Web Lock), or a homeserver limit above one (Q3) | Pubky core | S–M |
+| K4 | pubky-core SDK (JS) | Gaps #2614 works around: delete one abandoned delegated proof key by attempt; a structured "missing record" error; `list()` reports IndexedDB errors | Pubky core | S |
 | K3 | pubky-core docs | The agent request protocol: message types, versioning, origin rules, errors | Pubky core with the Passport team | S |
 | P1 | pubky-passport | **The account agent.** <ul><li>A `postMessage` API, with the client id set from the verified origin.</li><li>Consent remembered per origin and scope set; a first-party allow-list.</li><li>Child-grant issuance and the step-up ceiling.</li><li>A page listing the apps signed in on this browser, with revoke one or all.</li></ul> | Passport team | L |
 | P2 | pubky-passport | Ring-linked mode: hold an agent grant from Ring instead of a root key | Passport team | M |
@@ -214,7 +283,8 @@ Sizes describe technical scope, not time:
 | Y1 | pubky/paykit-rs | **A storage interface in `paykit-lib`.** Operations take a trait (own-folder put, get, delete and list, plus public reads) instead of `&PubkySession`. A `PubkySession` adapter keeps the current Rust and FFI API | Paykit team | M–L |
 | Y2 | pubky/paykit-rs | A WASM package of `paykit-sdk` on Y1. Its JS adapter is backed by the host app's `Session.storage` and host-provided durable state | Paykit team | M |
 | Y3 | pubky/paykit-rs | Optional: receiver marker signed by the app key, with the grant attached | Paykit team | M |
-| A1 | pubky/pubky-app | Sign in through the agent with grant sessions, replacing the cookie calls. Sign-out revokes its own grant. Lock Server sign-in moves to the grant | pubky-app maintainers | M |
+| A1 | pubky/pubky-app | **[#2614](https://github.com/pubky/pubky-app/pull/2614) (vlada):** <ul><li>New logins get per-app grants signed directly by Ring.</li><li>Legacy cookies keep restoring until they expire.</li><li>Sign-out revokes pubky.app's own grant.</li><li>Locks step-up.</li><li>Client id set to the origin host.</li></ul> Release gates: H5, H6, R0 | pubky-app maintainers | M (in review) |
+| A2 | pubky/pubky-app | Get the grant from the agent instead of directly from Ring. Lock Server sign-in moves to the grant. Recovery-phrase and file logins move to Passport | pubky-app maintainers | S–M |
 | F1 | BitcoinErrorLog/pubky-app (Shop) | One sign-in path through the agent for every signer. Delete the cookie path, the session bridge (`src/libs/vibe-session/*`), the `AuthToken` dual post, the scope union and the Bitkit-only branch, after a workspace-wide dead-code check | us | M |
 | F2 | BitcoinErrorLog/pubky-app (Shop) | Messaging on Y2 with folder-scoped capabilities (`marketplace/wallet`, so no path migration). Retire the vendored `paykit-wasm` | us | M |
 | F3 | BitcoinErrorLog marketplace service and Lock Server fork | Accept the Shop's grant plus a PoP addressed to the service, requiring the service's capability. Remove the `AuthToken` route | us | M |
@@ -222,12 +292,13 @@ Sizes describe technical scope, not time:
 
 **Order.**
 
-- **Start in parallel:**
+- **First, because they unblock work already written:** H5, H6 and R0 gate [#2614](https://github.com/pubky/pubky-app/pull/2614) (A1).
+- **In parallel:**
   - H1, K1 and K3, which are the root;
   - Y1–Y2, which messaging needs before anyone leaves cookies;
-  - R0, the Ring grant-auth release, which every Ring user's move off cookies needs.
+  - K4.
 - **Then:** P1–P2, R1–R2 and B1.
-- **Then:** A1, F1–F3.
+- **Then:** A2, F1–F3.
 - **Last:** H4.
 
 **Without H1,** everything else still holds except silent sign-in for Ring users: they approve once per app per browser, once R0 ships. Until R0, Ring users stay on cookies. Passport-key users get full SSO from P1 alone, because Passport already holds their key.
@@ -242,7 +313,9 @@ The code can't answer these. Each gates the item named.
 
    How does a parent's revocation reach mirrors?
 2. **Cookie removal (H4).** In which version does `POST /session` go?
-3. **One bearer per grant (K2).** Is `MAX_SESSIONS_PER_GRANT = 1` deliberate for browsers with many tabs? Will the SDK coordinate tabs, retry after eviction, or should the limit rise?
+3. **Several bearers per grant (H5, H6).** This question was first raised by vlada in #pubky-core on 21 Sep.
+   - In which homeserver version will `replace_for_grant` keep several bearers per grant, and what bound will it use (we suggest 8, evicting the oldest)?
+   - Will the same release make a request that carries `Authorization` ignore cookies?
 4. **Services as relying parties (H3, F3).** Is it endorsed for a service to accept a grant with a PoP addressed to itself? What is the convention for a capability that names a service? How should a service learn of revocation: an introspection endpoint, a short re-check interval, or a public status lookup?
 5. **What `client_id` means.** Will core define it as the verified web origin, or a verified app-link domain, and add a field marking it as verified? What should signers display when it isn't?
 6. **Lifetimes.** Is the 2-year default intended? Should agent grants have a shorter maximum enforced by the homeserver?

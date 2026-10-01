@@ -40,11 +40,16 @@ Scope: [shop.pubky.app](https://shop.pubky.app), built from the fork [BitcoinErr
 ## 1. Recommendation in one page
 
 1. **Two sites, linked both ways.** pubky.app adds **Marketplace** and **Messaging** to its top menu. The Shop sends feed, profile, post, collection and settings links to pubky.app, and keeps marketplace, messages, sign-in and sign-out.
-2. **Single sign-on (SSO) is required, and it is built on grants, not cookies.** The homeserver deprecates cookie sessions and schedules them for removal, and grants are bound to one app's key. The design: **one signer approval issues a grant to each first-party app** (§3).
-   - Ring, Bitkit and Passport sign every grant with the user's key.
-   - This needs no homeserver change. It does need an SDK bundle format, signer updates and a companion frame on each site.
+2. **Single sign-on (SSO) is required, and it is built on grants, not cookies.** The homeserver deprecates cookie sessions and schedules them for removal, and grants are bound to one app's key.
+   - **The target design: delegated grants through a Passport agent** ([pubky-sso-design.md](../sso/pubky-sso-design.md); team version [sso-proposal-for-team.md](../sso/sso-proposal-for-team.md); summary in §3).
+     - The signer approves once per browser, giving Passport a grant it can delegate from.
+     - Passport issues each app its own grant, labelled with the verified origin.
+   - It needs a homeserver change (delegable grants) plus two small homeserver prerequisites:
+     - several bearers per grant, vlada's multi-tab finding;
+     - no cookie fallback for bearer requests.
+   - pubky.app's half is [#2614](https://github.com/pubky/pubky-app/pull/2614).
    - **It has a hard prerequisite that is not in the beta path.** The Shop's messaging library (`paykit-wasm`) works only with cookie sessions, so the Shop can't move Ring users to grants yet.
-   - Until that library gains grant-session support, there is no full SSO for Ring users.
+   - Until messaging runs on the app's grant session (SSO-Y1, Y2 and F2), there is no full SSO for Ring users.
    - Ring's grant sign-in is also merged but not yet released ([pubky-ring#360](https://github.com/pubky/pubky-ring/pull/360); not in v1.19), so Ring users can't be moved to grants until Ring ships it.
    - The beta stopgaps don't depend on it:
      - D5 is a Ring cookie sign-in;
@@ -111,8 +116,15 @@ Scope: [shop.pubky.app](https://shop.pubky.app), built from the fork [BitcoinErr
   - In the browser that key is a non-extractable WebCrypto key in that origin's store.
   - **A grant is signed by the user's own key, which lives in the signer (Ring, Bitkit or Passport).** The homeserver verifies it on its own and stores it idempotently ([grant module docs](https://github.com/pubky/pubky-homeserver/blob/main/pubky-homeserver/src/client_server/auth/grant/mod.rs): "Ring … signs only at Grant creation").
   - A grant request (`signin_grant`) carries one client id, one client public key, the scopes and a relay channel ([`signin_grant.rs`](https://github.com/pubky/pubky-homeserver/blob/main/pubky-sdk/src/actors/auth/deep_links/signin_grant.rs)).
-  - So **a signer can issue grants to several apps in one approval with no homeserver change**. What's missing is a request format that carries several apps' requests, and signer support for it.
-- **pubky.app is moving to grants** ([#2614](https://github.com/pubky/pubky-app/pull/2614)).
+  - **Every grant needs a signer approval**, so without delegation each app costs one approval per browser. The homeserver has no delegation today; the target design adds it (below).
+  - **A grant can have only one live bearer.**
+    - `replace_for_grant` deletes the grant's previous session in v0.11.0 and `main` alike, so two tabs on one grant invalidate each other's bearer.
+    - vlada reported this in #pubky-core on 21 Sep. It is a named prerequisite, SSO-H5 below.
+- **pubky.app's grant migration is draft PR [#2614](https://github.com/pubky/pubky-app/pull/2614)** (vlada).
+  - New logins get per-app grants; legacy cookies keep restoring.
+  - Ordinary login asks only for `/pub/pubky.app/:rw`. Locks steps up to `/priv/social/:rw,/priv/locks.app/:r`.
+  - It is gated on three things: several bearers per grant, no cookie fallback, and shipped Ring grant builds.
+  - It is the pubky.app half of the target design (SSO-A1).
 - **Ring's grant sign-in is merged but not released.**
   - It merged to `main` on 3 Sep in [pubky-ring#360](https://github.com/pubky/pubky-ring/pull/360).
   - The latest release, [v1.19](https://github.com/pubky/pubky-ring/releases/tag/v1.19) (4 Sep), doesn't list it. Ring's developer confirms grant auth is "still to be released, not in v1.19".
@@ -127,73 +139,76 @@ Scope: [shop.pubky.app](https://shop.pubky.app), built from the fork [BitcoinErr
     - every Ring user would lose messaging;
     - Ring's single approval (one AuthToken to both the homeserver and the service, per [single-approval.md](https://github.com/BitcoinErrorLog/pubky-app/blob/release/shop-v0.6.8/docs/ecommerce/single-approval.md)) would become two;
     - the messaging fallback would set a narrow `/pub/paykit/:rw` cookie, which brings the overwrite back.
-- **The Shop needs a second grant.** Its transaction service needs its own grant, approved at the first purchase for grant sessions.
+- **The transaction service authenticates separately today.**
+  - Ring cookie sessions post the same `AuthToken` to the homeserver and the service.
+  - Grant sessions (Bitkit, Passport) approve a second grant for the service at the first purchase.
+  - The target design removes both: the service accepts the Shop's own grant (SSO-F3).
 
-### The SSO design: one signer approval issues a grant to each first-party app (recommended)
+### Target SSO design: delegated grants through a Passport agent
 
-This is the "update Ring" route, done properly: Ring signs, but **Ring alone isn't enough**.
+The target design is [pubky-sso-design.md](../sso/pubky-sso-design.md). The team-facing version, with the change list, phases and questions, is [sso-proposal-for-team.md](../sso/sso-proposal-for-team.md). In short:
 
-1. **Sign-in starts on either site.** The page opens a hidden **companion frame** from the sibling site, for example `shop.pubky.app/auth-companion` inside pubky.app. The two sites are same-site, so the frame's storage is the sibling's own unpartitioned storage.
-2. **Each app makes its own request.** The companion creates the Shop's own non-extractable PoP key in the Shop's `BrowserSessionStore`. It starts the Shop's grant flow (client id `shop.pubky.app`, the Shop's scopes) and fetches the transaction service's grant request.
-3. **Only request URLs cross over.** The companion returns just those authorization URLs (public keys and relay channels) to the parent page, by exact-origin `postMessage`.
-4. **One QR or deep link.** The parent shows one QR or deep link carrying a **bundle** of all the requests: pubky.app's, the Shop's and the service's.
-5. **One screen in the signer.** Ring, Bitkit or Passport shows one screen listing each app and its scopes. It signs one grant per request with the user's key and posts each to its own relay channel.
-6. **Each app collects its own grant.** The companion saves the Shop session in the Shop's own store, so the Shop is already signed in when the user opens it, and the first purchase needs no approval. The same works with the Shop as the first stop.
-7. **Revocation and sign-out.** Each grant is user-signed and revocable on its own. "Sign out of Shop" revokes the Shop's grants. "Sign out everywhere" has each companion revoke its app's grant.
+1. **Grants are the only session type.** Each app holds its own grant, bound to its own non-extractable key. Nothing is ambient.
+2. **The signer approves once per browser** (Ring, Bitkit, or Passport's own key). It gives an **agent grant** to Pubky Passport (`passport.pubky.app`), a browser account agent.
+   - The agent grant's capabilities carry a `d` (delegate) action: the ceiling of what the agent may grant onward.
+   - The ceiling grows by signer step-up when an app needs more.
+3. **The agent issues each app's grant.**
+   - `client_id` is set from the origin the browser reports, and any mismatch is refused.
+   - Scopes stay within the ceiling, and there is one level only.
+   - First-party `*.pubky.app` apps get theirs silently through a same-site frame. Third-party apps get a one-click popup.
+4. **The homeserver verifies child grants against their parent.** Revoking the agent's grant signs out every app in that browser. Ring's root session can revoke everything.
+5. **Messaging runs on the app's own grant session** through a Paykit storage interface. Each app's scope is its own folder only (`/pub/paykit/v0/marketplace/` for the Shop).
+6. **Services accept the app's own grant,** with a PoP addressed to them. That ends the `AuthToken` dual post and the second service grant.
+7. **Two homeserver prerequisites** must land before any app is grant-only:
+   - several bearers per grant (SSO-H5, vlada's multi-tab finding);
+   - no cookie fallback for bearer requests (SSO-H6, from #2614).
 
-**Why this is safe.**
+**What users get:**
 
-- No credential crosses origins.
-- The parent page sees the Shop's relay secret, but a grant read from that channel is useless without the Shop's PoP key.
-- The user's key stays in the signer (the cold-key model).
-- The homeserver changes nothing.
+- one approval per browser;
+- pubky.app and the Shop signed in together;
+- no scope overwriting;
+- sign-out per app, per browser or everywhere;
+- messaging for every signer;
+- apps can only get grants under their own origin.
 
-**Limits.**
+**Without the delegation change (SSO-H1)**, everything else still works with one approval per app per browser. Passport-key users get full SSO from the Passport agent alone.
 
-- It covers the apps present at sign-in. A Shop session lost later (cleared storage, a new browser) needs one more approval.
-- **Ring can't safely auto-approve "trusted first-party apps" on its own.** A grant's client id is self-declared ("the security boundary is capability scoping, not `client_id`", per the homeserver grant docs). Ring also can't tell which website showed a QR, so a malicious site could claim `shop.pubky.app`.
-- Ring's existing auto-auth setting (`getAutoAuthFromStore` in `src/utils/actions/authAction.ts`) already approves *every* request without a screen. It isn't a per-app trust list.
-- So remembered auto-approval is not a safe SSO mechanism. The explicit one-screen bundle is.
+### What SSO depends on
 
-**Can any of it work without the hidden frame or delegation?**
-
-- **One approval per app:** always works; this is the beta today.
-- **Sequential requests:** pubky.app shows the Shop's request right after its own. Two scans or taps, no new protocol.
-- **One approval for both** needs the sibling's public key in the request. That means a frame (or a page visit) on the sibling origin, because the key must be created and kept there.
-- No path gives one approval for both apps without some first-party coordination. The companion frame is the least of it: only public data moves.
-
-### What SSO depends on (Ring-led design)
+Item IDs prefixed **SSO-** are the change list in [sso-proposal-for-team.md §3.3](../sso/sso-proposal-for-team.md#33-change-list-per-repo). Sizes there describe technical scope, not days.
 
 | # | Piece | Owner | Size | In the beta path? |
 |---|---|---|---|---|
-| G1 | **Grant sessions in the messaging library.** The library must use the Shop's own grant session, whose PoP key is non-extractable in the SDK's store, so it has to borrow the app's session. Two ways: (a) **ours**: port `paykit-wasm` in our fork to pubky 0.11/0.12 grant sessions, borrowing the app's session (needs a JS SDK accessor upstream or the pubky-noise storage callback); or (b) **upstream**: Paykit ships a supported WASM package on its grant-based `paykit-sdk` that borrows the app's session (convergence ask 3, dzdidi). Either way the Shop's SDK (0.11.0) and Paykit's pubky (0.12) must line up (see the internal paykit-wasm grant-session analysis and messaging plan) | us (a) or Paykit team (b) | L | **No** |
-| F3 | Ring sign-in on grants. Possible only after G1, without losing messaging or doubling approvals, **and after a Ring release that ships grant auth** (merged in [pubky-ring#360](https://github.com/pubky/pubky-ring/pull/360), not in v1.19) | Shop | M after G1 and the Ring release (Sol + Kimi) | **No, blocked on G1 and the Ring release** |
-| S1 | **SDK grant-bundle request:** build and parse a deep link that carries several `signin_grant`/`signup_grant` requests, plus a signer call that approves the bundle with one key unlock. Rust SDK, JS binding, and the FFI Ring uses | Pubky core (pubky/pubky-homeserver `pubky-sdk`, pubky-core-ffi, react-native-pubky) | M (design review) | No |
-| R1 | **Ring:** parse a bundle, one confirmation screen listing each app and its scopes, approve all; reject bundles that mix pubkys or homeservers | Ring team ([pubky/pubky-ring](https://github.com/pubky/pubky-ring)) | M | No |
-| R2 | **Bitkit:** the same bundle support | Bitkit team | M | No |
-| R3 | **Passport:** the same, in its `/authorize` page | Passport team ([pubky/pubky-passport](https://github.com/pubky/pubky-passport)) | S–M | No |
-| P2 | **pubky.app:** sign-in builds the bundle with the Shop's companion frame; hosts its own `/auth-companion` for the reverse direction; on grants first ([#2614](https://github.com/pubky/pubky-app/pull/2614)) | pubky-app maintainers | M | No |
-| F6 | **Shop:** an `/auth-companion` route (key, grant flow, service request, session save, exact-origin `postMessage`, revoke on "sign out everywhere"); a bundle on Shop sign-in; retire the cookie consumer (`src/libs/vibe-session/*`) after a workspace-wide dead-code check | us | M (Sol + Kimi) | No |
-| — | Homeserver | — | **None** | — |
+| SSO-H5 | **Several bearers per grant.** `replace_for_grant` keeps up to a small bound (suggest 8) instead of deleting the previous bearer. Gates #2614 and the Shop | Pubky core | S | No |
+| SSO-H6 | **No cookie fallback.** A request carrying `Authorization` ignores cookies; the SDK omits browser credentials for grant sessions | Pubky core | S | No |
+| SSO-R0 | Ring release with grant auth ([#360](https://github.com/pubky/pubky-ring/pull/360) merged; [#375](https://github.com/pubky/pubky-ring/issues/375) Android library) | Ring team | S | No |
+| SSO-A1 | pubky.app on grants: [#2614](https://github.com/pubky/pubky-app/pull/2614), client id set to the origin host | pubky-app maintainers (vlada) | M | No |
+| SSO-H1, K1, K3, K4 | Delegable grants: `d` action, child-grant verification, cascade revocation, SDK signer and delegate APIs, agent protocol spec, SDK gaps | Pubky core | L + M + S + S | No |
+| SSO-P1, P2 | Passport as the account agent, plus a Ring-linked mode | Passport team | L + M | No |
+| SSO-R1, R2, B1 | Ring and Bitkit: show the client id, a distinct agent-grant screen, no blanket auto-approve, a session list with revoke | Ring and Bitkit teams | M each | No |
+| SSO-Y1, Y2 | Paykit storage interface and WASM package on the host app's session | Paykit team | M–L + M | No |
+| SSO-F1 | Shop: one sign-in through the agent; remove the cookie path, the bridge, the `AuthToken` dual post and the scope union, after a dead-code check | us | M (Sol + Kimi) | No |
+| SSO-F2 | Shop messaging on SSO-Y2, scoped to `marketplace/` | us | M (Sol + Kimi) | No |
+| SSO-F3 | Marketplace service and Lock Server fork accept the Shop's grant | us | M (Sol + Kimi) | No |
+| SSO-A2 | pubky.app gets its grant from the agent | pubky-app maintainers | S–M | No |
 
-Full SSO for Ring users needs G1, F3, S1, R1, P2 and F6, plus a Ring release that ships grant auth (merged in [pubky-ring#360](https://github.com/pubky/pubky-ring/pull/360), not in v1.19). R1 builds on that release. Bitkit and Passport users need S1, R2 or R3, P2 and F6, and they get messaging only with G1.
+**Ring users on grants** (formerly F3 here) means SSO-F1 for Ring users. It needs SSO-R0, SSO-H5, SSO-H6 and, so they keep messaging, SSO-Y2 and SSO-F2.
 
-**If a signer team can't ship the bundle (S1 plus R1–R3):** fall back to sequential requests, with two scans or taps and no new protocol.
+**Full SSO** needs, in addition: SSO-H1, K1, K3, P1 (and P2 for Ring), R1, R2 or B1, A2 and F1.
 
-### Compared with delegated grants (the previous design)
+**Messaging library choice (D2a).** We ask Paykit for SSO-Y1 and Y2 on its grant-based `paykit-sdk`. If they can't commit, we port our fork's `paykit-wasm` to the same storage-interface shape ourselves (see the internal paykit-wasm grant-session analysis and messaging plan).
 
-| | Ring-led bundle (recommended) | Delegated grants via a pubky.app broker |
-|---|---|---|
-| Homeserver change | None | L, a protocol change (child grants, subset checks, cascade revocation) |
-| Who holds minting power | Only the signer (cold user key) | A web app's grant can mint grants for other apps: a hot key with new power, and an XSS on pubky.app mints Shop grants |
-| Signer change | M (Ring, Bitkit), S–M (Passport), plus the SDK bundle (M) | S each (display a delegation scope) |
-| Web plumbing | A companion frame at sign-in (public data only) | A broker frame at any time (grant issuance) |
-| Session lost later | One more approval | Silent re-issue while pubky.app is signed in |
-| Revocation | Per grant | Per grant, plus cascade from the parent |
-| Fits the homeserver's model | Yes ("Ring signs only at Grant creation") | Extends it; the homeserver lists no delegation today |
-| Messaging (G1) | Still needed | Still needed |
+### Rejected alternatives
 
-Delegation's only real advantage is silent re-issue after a lost session. It costs a protocol change and puts minting power in a browser app. Recommendation: the Ring-led bundle. Keep delegation as a later option if silent re-issue proves necessary.
+| Alternative | Why rejected |
+|---|---|
+| **Ring bundle.** One signer approval issues a grant to each first-party app, with a companion frame on each site and an SDK bundle request. This was earlier the recommendation here | <ul><li>Covers only apps present and coordinated at sign-in. Each app hosts a frame for every other app, and third-party frames are partitioned.</li><li>A new app, a new scope or a lost session goes back to the signer.</li><li>It is consent to several apps at once, not SSO.</li><li>Its only advantage, no homeserver change, doesn't outweigh that.</li></ul> |
+| **Cookie bridge** ([#2484](https://github.com/pubky/pubky-app/pull/2484), Shop ADR 0029) | <ul><li>Keeps the ambient shared cookie: every site rides one scope set, and the last sign-in wins.</li><li>Off-domain apps break on Safari.</li><li>It is deprecated. Its variables are unset in both live builds.</li></ul> |
+| **Ring auto-approve**, or remembered consent in Ring | <ul><li>A grant's client id is self-declared, and Ring can't tell which website showed a QR, so a phishing page could claim `shop.pubky.app`.</li><li>Ring's existing auto-auth setting (`getAutoAuthFromStore`) already approves every request without a screen.</li></ul> |
+| **A user session at the homeserver** that issues per-app grants | <ul><li>It is cross-origin to every app, so it is a cookie again, or partitioned storage.</li><li>It doesn't carry to mirrors.</li><li>It makes the storage provider an identity provider.</li></ul> |
+| **pubky.app as the broker** | The site that renders user content, the most exposed to injected script, would hold minting power. The agent is a small static origin instead |
+| **One tab owns the bearer**, shared through a BroadcastChannel or a SharedWorker | <ul><li>Background tabs freeze, and SharedWorker is missing on Chrome for Android.</li><li>Every app and library would need election code.</li><li>No security gain.</li></ul> SSO-H5 fixes it once in the homeserver. Detail: [pubky-sso-design.md §4](../sso/pubky-sso-design.md) |
 
 ### For the beta (what ships instead)
 
@@ -202,11 +217,15 @@ Delegation's only real advantage is silent re-issue after a lost session. It cos
   - **Scope of the change:** Bitkit grants keep the current constant. The exact-set checks (`capabilitiesMatchFullGrant`, the step-up comparison) need a separate constant, so Bitkit sessions are unaffected.
   - **Effect:** a Shop sign-in no longer strips pubky.app's Locks access. A later pubky.app cookie sign-in still narrows the Shop, because pubky.app doesn't request the Shop's scopes. The Shop's existing degrade paths (`needs_reauth`, the messaging enable prompt) handle that, and QA checks it.
   - **Size and review:** 4–6 h, Sol + Kimi. The accepted widening is that the Shop holds `/priv/social`.
+  - **How it interacts with [#2614](https://github.com/pubky/pubky-app/pull/2614):**
+    - Once #2614 ships, new pubky.app logins are grants. They no longer read the cookie, so the union matters only for pubky.app users still on legacy cookies.
+    - #2614 moves Locks' creator-originals path to `/priv/locks.app/`. Change the Locks entry in the union to whatever path pubky.app actually ships.
+    - Until SSO-H6 lands, the Shop's broad cookie could authorize a pubky.app grant request whose bearer failed. #2614 lists that as a release gate, and QA should include it.
 - **F4 Passport,** being coded today.
   - [Passport](https://github.com/pubky/pubky-passport) approves grant requests from any app, with no allowlist. It creates the identity for new Google users during authorization ([integration guide](https://github.com/pubky/pubky-passport/blob/main/docs/integration.md)).
   - SDK 0.11.0 already has `startGrantAuthFlow` and `tryPollOnce`. The Shop adds the button, the callback page and a `Cross-Origin-Opener-Policy: same-origin-allow-popups` header.
   - No Passport change is needed.
-  - **Limit: no messaging** until G1. The refusal copy must say so without naming Ring as the only way.
+  - **Limit: no messaging** until SSO-Y2 and SSO-F2. The refusal copy must say so without naming Ring as the only way.
 - **F5 sign-out copy,** being coded today. Ring cookie sessions: Shop sign-out ends the shared cookie, so pubky.app is signed out in that browser too. Bitkit and Passport grant sessions: only the Shop is signed out.
 - **Dead bridge (formerly F2): done.** Both live builds have the variables unset. Cold signed-out loads make no bridge request. v0.6.42 removes the variables from the config, and F7 drops the two `#s=` proof checks.
 
@@ -214,25 +233,32 @@ Delegation's only real advantage is silent re-issue after a lost session. It cos
 
 pubky.app, homeserver, SDK, Paykit and signer changes belong to their teams. We don't push to `pubky/*` or `synonymdev/*`.
 
+**Launch work:**
+
 | # | Repo | Change | Size | Status |
 |---|---|---|---|---|
 | P1 | pubky.app | Top-menu **Marketplace** and **Messaging** items, URL from runtime config | S | Ask the pubky-app team |
-| P2 | pubky.app | Bundle sign-in with the Shop's companion frame, plus its own `/auth-companion` (after #2614) | M | SSO; not in the beta |
 | P3 | pubky.app | Optional "Message" on a profile, linking to the Shop | S | Optional |
-| S1 | Pubky SDK + FFI | Grant-bundle deep link and signer approve-bundle call | M | SSO; not in the beta |
-| R1 | Ring | Bundle approval screen | M | SSO |
-| R2 | Bitkit | Bundle approval | M | SSO |
-| R3 | Passport | Bundle approval | S–M | SSO |
-| G1 | messaging library: our `paykit-wasm` fork, or an upstream Paykit WASM package | Grant-session support for messaging | L | SSO prerequisite; not in the beta |
-| — | homeserver | No change | — | — |
 | F1 | Shop | Link-out behind a build flag, plus the component fixes (§2) | M | **Coding today** |
 | F2 | Shop | Unset the bridge variables | XS | **Done** (v0.6.42 cleans the config) |
-| F3 | Shop | Ring sign-in on grants | M after G1 | **Blocked on G1 and on a Ring release with grant auth**; D5 stopgap instead |
 | D5 | Shop | Ring cookie sign-in requests both sites' scopes | S | Decided; next |
 | F4 | Shop | Passport sign-in and service grant | M | **Coding today**; ships after Kimi |
 | F5 | Shop | Sign-out copy by session type | XS | **Coding today** |
-| F6 | Shop | `/auth-companion`, bundle on Shop sign-in, retire the cookie consumer | M | SSO; not in the beta |
 | F7 | Shop | Handoff docs, repo runbook, drop the `#s=` proof checks | S | **Coding today** |
+
+**SSO work (post-beta; full list in [sso-proposal-for-team.md §3.3](../sso/sso-proposal-for-team.md#33-change-list-per-repo)):**
+
+| # | Repo | Change | Status |
+|---|---|---|---|
+| SSO-H5, H6 | homeserver | Several bearers per grant; no cookie fallback | Ask core first; gates #2614 |
+| SSO-R0 | Ring | Release grant auth | Ask Ring for the release |
+| SSO-A1 | pubky.app | [#2614](https://github.com/pubky/pubky-app/pull/2614) | In review; we offer to review |
+| SSO-H1, K1, K3, K4 | homeserver, SDK | Delegable grants, agent protocol, SDK gaps | Ask core (proposal §4, Q1) |
+| SSO-Y1, Y2 | Paykit | Storage interface and WASM package | Ask Paykit (D2a) |
+| SSO-P1, P2 | Passport | Account agent; Ring-linked mode | Ask Passport |
+| SSO-R1, R2, B1 | Ring, Bitkit | Consent and session screens | Ask Ring and Bitkit |
+| SSO-F1, F2, F3 | Shop, service, Lock Server fork | Agent sign-in, messaging on Y2, service accepts the Shop's grant | us, after the above |
+| SSO-A2 | pubky.app | Grant from the agent | After P1 |
 
 ## 5. Launch-blocking vs post-launch
 
@@ -272,8 +298,13 @@ Recommendation: post-launch unless noted.
 
 ### Post-launch backlog
 
-- **SSO chain:** G1, F3, S1, R1–R3, P2 and F6 (§3). Messaging for Passport and Bitkit users arrives with G1.
-- **Messaging rebuild** on Paykit/pubky-noise storage seams (internal messaging plan). This overlaps G1.
+- **SSO chain** (§3 and the [team proposal](../sso/sso-proposal-for-team.md)):
+  - SSO-H5, H6 and R0 first, which unblock #2614;
+  - then SSO-H1, K1, K3, K4, Y1, Y2, P1, P2, R1, R2, B1;
+  - then SSO-F1, F2, F3 and A2.
+
+  Messaging for Passport and Bitkit users arrives with SSO-Y2 and F2.
+- **Messaging rebuild** on Paykit/pubky-noise storage seams (internal messaging plan). This overlaps SSO-Y1, Y2 and F2.
 - **Upstream convergence:** Locks and Paykit to `pubky/*` (internal convergence plan); [#44](https://github.com/BitcoinErrorLog/pubky-marketplace/issues/44), [#35](https://github.com/BitcoinErrorLog/pubky-marketplace/issues/35).
 - **Zero-conf payments** (internal Locks zero-conf plan).
 - **Nexus fork work:** tag race round 4, backfill retry, cache-fill guard, autocomplete race, rebase and slim, specs v1 (internal Nexus fork audit).
@@ -313,7 +344,7 @@ Today's items (top of this document) are day 0. Suggested start: Mon 5 Oct. Beta
 | 8–9 | Production QA. Cross-site matrix: Ring, Bitkit and Passport sign-in on each site; sign-out on each; Shop sign-in, then pubky.app Locks still works; pubky.app sign-in, then Shop degrade prompts appear; deep links both ways; the Passport no-messaging copy | QA |
 | 9 | Go/no-go; set the social-host variable on production | John, leads |
 | 10 | Beta opens; pubky.app ships P1 the same day | All |
-| From day 1, in parallel | G1 design (ours or Paykit's), and the S1 bundle design with the Pubky core, Ring, Bitkit and Passport teams | Backend dev, upstream teams |
+| From day 1, in parallel | <ul><li>Send the [team proposal](../sso/sso-proposal-for-team.md) to core, Ring, Bitkit, Passport, Paykit and pubky.app.</li><li>Ask core for SSO-H5 and H6 first (they gate #2614).</li><li>Ask Paykit for Y1 and Y2 (D2a).</li><li>Review #2614.</li></ul> | John, backend dev, upstream teams |
 
 ## 7. Infrastructure
 
@@ -382,9 +413,10 @@ There are two options:
 
 | Risk | Effect | Mitigation |
 |---|---|---|
-| G1 (paykit-wasm grant sessions) is slow upstream | No Ring SSO, and no messaging for Passport and Bitkit users | Start the design on day 1; beta copy says messaging needs Ring for now |
-| A signer team can't ship bundle support | No one-approval SSO for that signer's users | Sequential requests (two scans or taps); delegation stays a later option |
-| D5 widening | The Shop holds `/priv/social`; a Shop compromise reaches pubky.app's private social data | Accepted by John; Sol + Kimi on the change; removed when F3/F6 land |
+| SSO-Y1 and Y2 (Paykit storage interface and WASM) are slow upstream | No Ring move to grants, and no messaging for Passport and Bitkit users | Ask on day 1; we port our fork to the same shape if Paykit can't commit (D2a); beta copy says messaging needs Ring for now |
+| Core declines or delays delegable grants (SSO-H1) | No silent SSO for Ring users | Grants per app still ship: one approval per app per browser. Passport-key users still get SSO from the agent |
+| SSO-H5 and H6 slip | #2614 and the Shop can't go grant-only. Tabs invalidate each other, and an ambient cookie can stand in for a failed bearer | Ask core first; these are small changes, and the homeserver team already offered the multi-bearer fix |
+| D5 widening | The Shop holds `/priv/social`; a Shop compromise reaches pubky.app's private social data | Accepted by John; Sol + Kimi on the change; removed when SSO-F1 lands |
 | A pubky.app cookie sign-in still narrows the Shop | Shop messaging and watchlist sync ask for re-approval | Degrade paths exist; QA cross-site matrix |
 | Passport users expect messaging | Confusion | Clear refusal copy (F4) |
 | The pubky.app team can't take P1 in time | No entry point from pubky.app | The Shop launches on its own URL either way |
@@ -408,8 +440,14 @@ There are two options:
 
 Each has a recommendation:
 
-1. **D2 Beta and SSO.** *Recommended:* open the beta on day 10 with the stopgaps (one approval per site). Commit to the **Ring-led bundle** design as post-beta work: G1 messaging grant sessions, S1 SDK bundle, R1–R3 signers, P2 pubky.app, F6 Shop. No homeserver change. Start G1 and S1 on day 1. *Alternatives:* hold the beta until SSO lands, which is all outside the two weeks; or the delegated-grant design (§3 comparison), which needs a homeserver protocol change and puts minting power in a browser app.
-2. **D2a Messaging library (G1) owner.** *Recommended:* ask Paykit (dzdidi) on day 1 for a supported WASM package on their grant-based `paykit-sdk`, and port our fork's `paykit-wasm` ourselves only if they can't commit. *Alternative:* port our fork first.
+1. **D2 Beta and SSO.**
+   - *Recommended:* open the beta on day 10 with the stopgaps (one approval per site). Commit to **delegated grants through a Passport agent** as post-beta work ([pubky-sso-design.md](../sso/pubky-sso-design.md), [team proposal](../sso/sso-proposal-for-team.md)).
+   - Send the proposal on day 1. Ask core for SSO-H5 and H6 first, because they unblock pubky.app's #2614 and our own move to grants.
+   - *Alternatives:* hold the beta until SSO lands, which is all outside the two weeks; or the Ring bundle, rejected in §3 because it isn't SSO for new apps, new scopes or lost sessions.
+2. **D2a Messaging library owner (SSO-Y1, Y2).**
+   - *Recommended:* ask Paykit (dzdidi) on day 1 for a storage interface in `paykit-lib` and a WASM package of their grant-based `paykit-sdk`, both running on the host app's session.
+   - We port our fork's `paykit-wasm` to the same shape only if they can't commit.
+   - *Alternative:* port our fork first.
 3. **D4 New-user sign-up.** *Recommended:* keep the Shop's own sign-up, which covers Ring, Bitkit and, with F4, Passport. *Alternative:* send new users to pubky.app onboarding.
 4. **D6 follow-up.** *Recommended:* for test listings whose seat keys we don't hold, a listing denylist in the Shop runtime config or the Nexus fork (3–4 h). *Alternative:* leave them.
 5. **D7 Staging.** *Recommended:* its own marketplace Nexus on the new instances. *Alternative:* keep sharing the production marketplace Nexus.
