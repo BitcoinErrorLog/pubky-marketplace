@@ -270,7 +270,7 @@ Sizes describe technical scope, not time:
 | H1 | pubky-core homeserver | **Delegable grants, the root change.** <ul><li>`d` action.</li><li>Child-grant verification: signed by the parent's `cnf`, capabilities within the parent's `d` scopes, no `d`, expiry no later than the parent's, parent active.</li><li>Parent link stored; cascade revocation and revocation notices for children.</li><li>A delegate session can list and revoke its own children without root.</li></ul> | Pubky core | L |
 | H2 | pubky-core homeserver | Revoke-all for root sessions ("sign out everywhere"). Optional, since list-then-revoke works | Pubky core | S |
 | H3 | pubky-core homeserver | Grant status for services: an introspection endpoint, or a documented re-check rule | Pubky core | S–M |
-| H4 | pubky-core homeserver | Remove cookie auth once clients have moved | Pubky core | S |
+| H4 | pubky-core homeserver | Remove cookie auth once clients have moved. Waits for the Shop's messaging cutover (E1) | Pubky core | S |
 | **H5** | pubky-core homeserver | **Several bearers per grant (prerequisite; vlada, 21 Sep).** `replace_for_grant` keeps up to `MAX_SESSIONS_PER_GRANT` sessions (suggest 8), evicting the oldest atomically; revocation still deletes all. Gates #2614 and every grant-only web app | Pubky core | S |
 | **H6** | pubky-core homeserver and SDK | **No cookie fallback (prerequisite, from #2614).** A request carrying `Authorization` ignores cookies; the SDK sends grant-session requests without browser credentials | Pubky core | S |
 | K1 | pubky-core SDK (Rust, JS, FFI, react-native-pubky) | <ul><li>Signer side: approve an agent-grant request and display its ceiling.</li><li>Delegate side: sign a child grant from a stored agent grant with a non-extractable key.</li><li>A helper to verify a grant plus a PoP with a custom audience, for services.</li></ul> | Pubky core | M |
@@ -288,9 +288,9 @@ Sizes describe technical scope, not time:
 | A1 | pubky/pubky-app | **[#2614](https://github.com/pubky/pubky-app/pull/2614) (vlada):** <ul><li>New logins get per-app grants signed directly by Ring.</li><li>Legacy cookies keep restoring until they expire.</li><li>Sign-out revokes pubky.app's own grant.</li><li>Locks step-up.</li><li>Client id set to the origin host.</li></ul> Release gates: H5, H6, R0 | pubky-app maintainers | M (in review) |
 | A2 | pubky/pubky-app | Get the grant from the agent instead of directly from Ring. Lock Server sign-in moves to the grant. Recovery-phrase and file logins move to Passport | pubky-app maintainers | S–M |
 | F1 | BitcoinErrorLog/pubky-app (Shop) | One sign-in path through the agent for every signer. Delete the cookie path, the session bridge (`src/libs/vibe-session/*`), the `AuthToken` dual post, the scope union and the Bitkit-only branch, after a workspace-wide dead-code check | us | M |
-| F2 | BitcoinErrorLog/pubky-app (Shop) | Messaging on Y2 with folder-scoped capabilities (`marketplace/wallet`, so no path migration). Retire the vendored `paykit-wasm` | us | M |
+| E1 | BitcoinErrorLog/pubky-app (Shop) | Replaces F2. Shop messaging moves to the shared pubky-chat library (MLS) on the app's own grant session; see the [chat plan](https://github.com/BitcoinErrorLog/pubky-chat/blob/main/docs/chat-unification-plan.md). Retire the vendored `paykit-wasm` | us | L |
 | F3 | BitcoinErrorLog marketplace service and Lock Server fork | Accept the Shop's grant plus a PoP addressed to the service, requiring the service's capability. Remove the `AuthToken` route | us | M |
-| F4 | BitcoinErrorLog/paykit-rs-official | Retire `paykit-wasm` after F2 | us | S |
+| F4 | BitcoinErrorLog/paykit-rs-official | Retire `paykit-wasm` after E1 | us | S |
 
 **Order.**
 
