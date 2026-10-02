@@ -26,9 +26,9 @@ The web client is a fork of the Pubky social app ([pubky/pubky-app](https://gith
 | [BitcoinErrorLog/pubky-shop](https://github.com/BitcoinErrorLog/pubky-shop) | `@bitcoinerrorlog/pubky-shop` SDK (npm) | `main` | npm |
 | [BitcoinErrorLog/pubky-marketplace](https://github.com/BitcoinErrorLog/pubky-marketplace) | Issue tracker for testers | — | — |
 
-The backend services run today on John's own Railway account, and only John deploys them there. Backend PRs merge on GitHub and John deploys them; [paykit-server#23](https://github.com/BitcoinErrorLog/paykit-server/pull/23) goes this way. Infra is one of two options (launch plan §7, D8):
+The backend services run today on John's own Railway account. John owns the account and makes the decisions; we run the deploys there. Backend PRs merge on GitHub and we deploy them, staging then production; [paykit-server#23](https://github.com/BitcoinErrorLog/paykit-server/pull/23) goes this way. Infra is one of two options (launch plan §7, D8):
 
-- **R:** John keeps running Railway alone.
+- **R:** we keep deploying on John's Railway account.
 - **S:** Synonym DevOps builds new instances on Synonym's cloud and cuts over before the beta (recommended).
 
 The full inventory is in launch plan §7.
@@ -171,7 +171,8 @@ Project context:
 
 | Topic | Person (GitHub) |
 |---|---|
-| Product calls, priorities, Vercel access, test seats, backend deploys until the cutover | John ([BitcoinErrorLog](https://github.com/BitcoinErrorLog)) |
+| Product calls, priorities, Vercel access, test seats, the Railway account | John ([BitcoinErrorLog](https://github.com/BitcoinErrorLog)) |
+| Backend deploys on Railway until the cutover | us, the team that wrote this brief, until the handover |
 | New instances on Synonym's cloud | Synonym DevOps |
 | Passport integration | [pubky-passport](https://github.com/pubky/pubky-passport) maintainers |
 | Testing, issue reports, payment canaries | Pav ([thisispav](https://github.com/thisispav)) |

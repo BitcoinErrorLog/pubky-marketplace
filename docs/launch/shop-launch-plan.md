@@ -21,7 +21,7 @@ Scope: [shop.pubky.app](https://shop.pubky.app), built from the fork [BitcoinErr
 - **D5:** Ring sign-in requests both sites' scopes as a stopgap. Accepted widening: the Shop gets pubky.app's `/priv/social`. See §3 for the scope of the change.
 - **D6:** delete the 16 production test listings with seat keys where held.
 - **Default branch:** switch the Shop repo's default branch from `pubchi/v1` to `release/shop-v0.6.8`. It is still `pubchi/v1` on GitHub as of this writing.
-- **[paykit-server#23](https://github.com/BitcoinErrorLog/paykit-server/pull/23):** review with Sol + Kimi and merge on the fork; John deploys.
+- **[paykit-server#23](https://github.com/BitcoinErrorLog/paykit-server/pull/23):** review with Sol + Kimi and merge on the fork; we deploy it on John's Railway.
 
 ### In progress elsewhere
 
@@ -57,7 +57,7 @@ Scope: [shop.pubky.app](https://shop.pubky.app), built from the fork [BitcoinErr
      - F5 is copy.
 3. **For the beta: one approval per site, without the two sites breaking each other.** D5's stopgap stops a Shop sign-in from stripping pubky.app. Passport (F4) gives Google users a way in. F5 makes sign-out honest.
 4. **Freeze features.** Launch existing flows. The backlog in §5 stays post-launch unless John moves an item up.
-5. **Infra is one of two choices.** **R:** John runs Railway alone. **S:** Synonym DevOps builds new instances on Synonym's cloud. Recommendation: S, with cutover before the beta (§7).
+5. **Infra is one of two choices.** **R:** we keep deploying on John's Railway account. **S:** Synonym DevOps builds new instances on Synonym's cloud. Recommendation: S, with cutover before the beta (§7).
 6. **Paykit server moves onto upstream before the beta.** Upstream Paykit rc59 is wire-incompatible with our fork (rc55), and Paykit launches at the end of the week of 5 Oct or the week after (Ben, 2 Oct). The port targets rc60 and lands before the Shop launch, in about two weeks. We're pre-launch, so there is no Bitcoin pause plan. Its owner is still to be decided (§5, §9 D10).
 
 ## 2. Seam 1: navigation between pubky.app and the Shop
@@ -281,7 +281,7 @@ pubky.app, homeserver, SDK, Paykit and signer changes belong to their teams. We 
 | [#61](https://github.com/BitcoinErrorLog/pubky-marketplace/issues/61) address search 503 | In progress elsewhere. Closed on GitHub; breaker fix pending | S |
 | [#164](https://github.com/BitcoinErrorLog/pubky-app/pull/164) acked publish reported as failed | Rebase in progress; for v0.6.42 | S |
 | v0.6.42 (#170, #171) | In progress elsewhere | — |
-| [paykit-server#23](https://github.com/BitcoinErrorLog/paykit-server/pull/23) relink on recovery marker | Sol + Kimi review, merge on the fork; John deploys | S |
+| [paykit-server#23](https://github.com/BitcoinErrorLog/paykit-server/pull/23) relink on recovery marker | Sol + Kimi review, merge on the fork; we deploy on John's Railway | S |
 | **Paykit server port onto upstream, targeting rc60.** <ul><li>Start from upstream master and re-implement the marketplace contract the service and Shop use.</li><li>Fresh database; exactly one process (upstream's rule).</li><li>The server stays a delegated Paykit app and never holds identity secrets.</li><li>Shop side: the buyer pre-check reads the App Registry and the signed Noise-key record, and the Get Paid copy says that Paykit Server can read and write the seller's Paykit data.</li></ul> | Lands before the Shop launch (about 2 weeks), ahead of or with Paykit's launch (end of the week of 5 Oct or the week after). Pre-launch, so no Bitcoin pause plan. **Owner to be decided** (§9 D10) | L, sensitive: design review, independent protocol review, fresh Kimi audit, staging proof on Android and iOS |
 | Production homeserver on v0.14 with WebDAV locks | rc59 and rc60 take a lock for every shared-state write, and production `homeserver.pubky.app` doesn't advertise locks yet. James's call | External |
 | QA retests: [#50](https://github.com/BitcoinErrorLog/pubky-marketplace/issues/50) quantity-1, including whether unpaid orders lapse; [#12](https://github.com/BitcoinErrorLog/pubky-marketplace/issues/12) packing slip, needs a paid shipping order | Waiting on Pav | QA |
@@ -388,14 +388,14 @@ There are two options:
 
 ### The two options
 
-| | R. John runs Railway alone | S. Synonym DevOps runs new instances (recommended) |
+| | R. We keep deploying on John's Railway | S. Synonym DevOps runs new instances (recommended) |
 |---|---|---|
-| Who deploys backend | John only. The dev team merges backend PRs; John deploys (as for paykit-server#23 today) | DevOps, from the repos' images, with their own manifests |
+| Who deploys backend | We do, on John's Railway account. The dev team merges backend PRs; we deploy staging then production (as for paykit-server#23 today). John owns the account and makes the decisions | DevOps, from the repos' images, with their own manifests |
 | Dev team access | Shop (Vercel) only | What DevOps grants |
 | Work before the beta | None | Provision and cut over: L for DevOps, with backend-dev support |
 | Data | Kept | Clean databases at cutover, allowed by the pre-launch policy. Export the canary orders first. Sellers reconnect Paykit and Locks; Nexus reindexes. D6 deletions must happen first, or the reindex brings those listings back |
 | Nexus fork | Stays John's bespoke service | DevOps runs two Nexus codebases. Freeze fork features until it is slimmed to a marketplace indexer |
-| Single point of failure | John | DevOps on-call |
+| Single point of failure | John's personal Railway account, with us as the only deployers | DevOps on-call |
 
 **Recommendation:** S, with cutover on day 8. John's Railway services are stopped (not deleted) as rollback until a week after the beta. If DevOps can't confirm capacity by day 2, the beta runs on R.
 
@@ -443,7 +443,7 @@ There are two options:
 - **D5:** the scope-union stopgap, with the `/priv/social` widening accepted.
 - **D6:** delete the 16 test listings with seat keys where held.
 - **Default branch:** switch to `release/shop-v0.6.8`.
-- **paykit-server#23:** Sol + Kimi review, merge on the fork; John deploys.
+- **paykit-server#23:** Sol + Kimi review, merge on the fork; we deploy it on John's Railway.
 - **#49:** Bitkit scanning the sign-up QR is supported.
 - **D1:** link-out, coded today behind a flag that John switches on.
 
@@ -464,7 +464,7 @@ Each has a recommendation unless noted:
 2. **D4 New-user sign-up.** *Recommended:* keep the Shop's own sign-up, which covers Ring, Bitkit and, with F4, Passport. *Alternative:* send new users to pubky.app onboarding.
 3. **D6 follow-up.** *Recommended:* for test listings whose seat keys we don't hold, a listing denylist in the Shop runtime config or the Nexus fork (3–4 h). *Alternative:* leave them.
 4. **D7 Staging.** *Recommended:* its own marketplace Nexus on the new instances. *Alternative:* keep sharing the production marketplace Nexus.
-5. **D8 Infra.** *Recommended:* S, cutover on day 8. *Alternative:* R, John runs Railway alone and deploys every backend change.
+5. **D8 Infra.** *Recommended:* S, cutover on day 8. *Alternative:* R, we keep deploying every backend change on John's Railway account.
 6. **D9 Paykit refusals and paykit-server#24.** *Recommended:* post-launch, unless the beta promotes Bitcoin checkout or includes Android sellers.
 7. **D10 Paykit server port owner.** No recommendation yet. The port (§5) must land before the beta.
    - *Option:* the incoming backend dev, paired with dzdidi.
