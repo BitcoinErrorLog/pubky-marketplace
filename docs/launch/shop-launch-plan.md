@@ -346,7 +346,7 @@ Today's items (top of this document) are day 0. Suggested start: Mon 5 Oct. Beta
 | 1–7 | New instances on Synonym's cloud, production and staging (§7) | DevOps, Backend dev |
 | 3–8 | Design PRs through the train | Designer, Shop lead |
 | 5 | D6 test-listing deletion; decide what to do with listings whose keys we don't hold | Backend dev |
-| 1–9 | Paykit server port onto upstream (rc60), staging proof with rc60 Bitkit builds on Android and iOS, then production on a fresh database with sellers reconnecting | Owner to be decided (D10); John deploys while on R |
+| 1–9 | Paykit server port onto upstream (rc60), staging proof with rc60 Bitkit builds on Android and iOS, then production on a fresh database with sellers reconnecting | Owner to be decided (D10). While on R, the owner deploys on John's Railway |
 | 7 | Feature freeze. Set the social-host variable on staging; QA the link-out | Shop lead, QA |
 | 8 | Cutover to new instances with clean databases; Nexus reindex; Shop runtime-config switch | DevOps, Backend dev |
 | 8–9 | Production QA. Cross-site matrix: Ring, Bitkit and Passport sign-in on each site; sign-out on each; Shop sign-in, then pubky.app Locks still works; pubky.app sign-in, then Shop degrade prompts appear; deep links both ways; the Passport no-messaging copy | QA |
@@ -468,4 +468,4 @@ Each has a recommendation unless noted:
 6. **D9 Paykit refusals and paykit-server#24.** *Recommended:* post-launch, unless the beta promotes Bitcoin checkout or includes Android sellers.
 7. **D10 Paykit server port owner.** No recommendation yet. The port (§5) must land before the beta.
    - *Option:* the incoming backend dev, paired with dzdidi.
-   - *Option:* us, with John deploying until the infra cutover.
+   - *Option:* us, deploying staging then production. We run deploys on John's Railway ourselves until the infra cutover.
