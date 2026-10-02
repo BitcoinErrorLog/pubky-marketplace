@@ -312,7 +312,7 @@ The exact format depends on core's answer to Q1.
 | **1a. Grants per app** | <ul><li>Several bearers per grant and no cookie fallback (H5, H6).</li><li>Ring grant-auth release (R0).</li><li>pubky.app's [#2614](https://github.com/pubky/pubky-app/pull/2614) ships (A1), with one Ring approval per app per browser and no scope overwriting.</li></ul> | Q3; R0 |
 | **1b. Foundations** | <ul><li>Delegable grants in the homeserver and SDK (H1, K1).</li><li>The agent protocol spec (K3).</li><li>SDK gaps (K4).</li><li>The Paykit storage interface and WASM package (Y1, Y2).</li></ul> | Answers to Q1, Q2, Q4, Q5 |
 | **2. Signers and agent** | <ul><li>Passport as account agent, with a Ring-linked mode (P1, P2).</li><li>Ring and Bitkit consent and session screens (R1, R2, B1).</li></ul> | H1, K1, K3; R0 for the Ring items |
-| **3. Apps and services** | <ul><li>pubky.app (A2) and the Shop (F1) sign in through the agent with grants only.</li><li>Shop messaging on the new Paykit package (F2).</li><li>The marketplace service and Lock Server accept the app's grant (F3).</li></ul> | Phase 2; Y2 for F2; H3 for F3 |
+| **3. Apps and services** | <ul><li>pubky.app (A2) and the Shop (F1) sign in through the agent with grants only.</li><li>Shop messaging on the shared pubky-chat library (E1).</li><li>The marketplace service and Lock Server accept the app's grant (F3).</li></ul> | Phase 2; pubky-chat Phase 2 for E1; H3 for F3 |
 | **4. Cleanup** | <ul><li>The homeserver removes cookie auth (H4).</li><li>The fork's `paykit-wasm` is retired (F4).</li></ul> | All clients moved |
 
 ### 3.2 During the beta
@@ -353,7 +353,7 @@ None of them depends on Ring's grant auth being released. The Ring stopgap is a 
 | **H1** | **Delegable grants, the root change.** <ul><li>`d` action.</li><li>Child-grant verification (signer is the parent's `cnf`, capabilities within the parent's `d` scopes, no `d`, expiry no later than the parent's, parent active).</li><li>Parent link stored; cascade revocation, including revocation notices that close private streams.</li><li>A delegate session can list and revoke its own children.</li></ul> | L | Q1 |
 | H2 | Revoke-all for root sessions ("sign out everywhere"). Optional, since list-then-revoke works today | S | — |
 | H3 | Grant status for services: an introspection endpoint, or a documented re-check rule | S–M | Q4 |
-| H4 | Remove cookie auth once clients have moved | S | Phase 3 |
+| H4 | Remove cookie auth once clients have moved; waits for the Shop's messaging cutover (E1) | S | Phase 3 |
 | K1 | SDK for Rust, JS and the FFI (react-native-pubky): <ul><li>signer side approves an agent-grant request and shows its ceiling;</li><li>delegate side signs child grants with a non-extractable key;</li><li>a helper to verify a grant plus a PoP addressed to a service.</li></ul> | M | H1 |
 | **H5** | **Several bearers per grant (§2.6).** `replace_for_grant` keeps up to `MAX_SESSIONS_PER_GRANT` sessions (suggest 8), evicting the oldest atomically; revocation still deletes all | S | Q3 |
 | **H6** | **No cookie fallback (§2.6).** A request carrying `Authorization` ignores cookies; the SDK sends grant-session requests without browser credentials | S | Q3 |
@@ -396,9 +396,9 @@ None of them depends on Ring's grant auth being released. The Ring stopgap is a 
 | # | Change | Size | Depends on |
 |---|---|---|---|
 | F1 | One sign-in path through the agent for every signer. Remove the cookie path, the session bridge (`src/libs/vibe-session/*`), the `AuthToken` dual post, the scope union and the Bitkit-only branch, after a dead-code check | M | P1 |
-| F2 | Messaging on Y2, with scopes narrowed to the Shop's folder (`marketplace/wallet`; no data migration needed) | M | Y2 |
+| E1 | Replaces F2: Shop messaging moves to the shared pubky-chat library (MLS) on the app's own grant session ([chat plan](https://github.com/BitcoinErrorLog/pubky-chat/blob/main/docs/chat-unification-plan.md)) | L | pubky-chat Phase 2 |
 | F3 | The marketplace service and our Lock Server fork accept the app's grant plus a PoP addressed to the service, requiring the service's capability; the `AuthToken` route is removed | M | K1, H3 |
-| F4 | Retire `paykit-wasm` in [BitcoinErrorLog/paykit-rs-official](https://github.com/BitcoinErrorLog/paykit-rs-official) | S | F2 |
+| F4 | Retire `paykit-wasm` in [BitcoinErrorLog/paykit-rs-official](https://github.com/BitcoinErrorLog/paykit-rs-official) | S | E1 |
 
 ### 3.4 Suggested order and timeline
 
@@ -409,7 +409,7 @@ The beta opens about **15 Oct**. After that, each phase starts when its dependen
 | **Now to the beta** | <ul><li>Phase 0 ships.</li><li>The core team answers Q1–Q5, with Q3 first because it gates #2614; Paykit answers Q10.</li><li>Core ships H5 and H6; Ring ships R0. Together they unblock #2614.</li><li>Design reviews start for H1, K3 and Y1.</li></ul> |
 | **From the answers** | <ul><li>Two tracks in parallel: H1, K1, K3 and K4 (core); Y1 then Y2 (Paykit).</li><li>A1 (#2614) ships once H5, H6 and R0 are deployed.</li><li>Ring releases grant auth (R0), which doesn't wait on anything here.</li><li>Ring starts R1 as soon as K1's request format is fixed.</li></ul> |
 | **When H1 and K1 are released** | <ul><li>P1 and P2 (Passport), R2 (Ring), B1 (Bitkit).</li><li>F3 (us), once H3 is settled.</li></ul> |
-| **When P1 is live on staging** | <ul><li>A2 (pubky.app) and F1 (us).</li><li>F2 (us), once Y2 is published.</li><li>A cross-app QA matrix: each signer on each app; sign-out at each level; third-party popup; new browser; Safari.</li></ul> |
+| **When P1 is live on staging** | <ul><li>A2 (pubky.app) and F1 (us).</li><li>E1 (us), once pubky-chat Phase 2 ships.</li><li>A cross-app QA matrix: each signer on each app; sign-out at each level; third-party popup; new browser; Safari.</li></ul> |
 | **When both apps and the services run without cookies** | H4 (core) and F4 (us) |
 
 **The critical path to grant-only apps** is H5, H6 and R0, then A1 (#2614).
@@ -420,7 +420,7 @@ The beta opens about **15 Oct**. After that, each phase starts when its dependen
 
 | Available without H1 | Effect |
 |---|---|
-| **Y1, Y2 and F2** | All users get messaging, and Paykit scopes narrow to each app's folder. That ends the cross-app marker exposure and lets the Shop drop cookies for Ring |
+| **Y1, Y2 and E1** | Paykit scopes narrow to each app's folder, and E1 gives all users messaging on their own grant session. That ends the cross-app marker exposure and lets the Shop drop cookies for Ring |
 | **A1 ([#2614](https://github.com/pubky/pubky-app/pull/2614)) with H5, H6 and R0** | pubky.app on grants: no cookie overwriting from pubky.app's side, and its sign-out signs out pubky.app only. It needs only the two small homeserver fixes and the Ring release, not H1 |
 | **F1 without the agent** | The Shop uses grant sessions for every signer, one approval per app per browser. No more scope overwriting, and sign-out stops being shared. **For Ring users this needs R0** (the Ring grant-auth release) as well as Y2 |
 | **P1 for Passport-key users** | Passport already holds their key, so it can sign per-app grants directly, with full SSO and origin-verified client ids, and no protocol change |
@@ -449,7 +449,7 @@ The beta opens about **15 Oct**. After that, each phase starts when its dependen
 7. **Grant management (gates R2).** Ring's grant list ([#369](https://github.com/pubky/pubky-ring/pull/369)) waits on [pubky-core-ffi#37](https://github.com/pubky/pubky-core-ffi/pull/37) and react-native-pubky [#42](https://github.com/pubky/react-native-pubky/pull/42) and [#43](https://github.com/pubky/react-native-pubky/pull/43). When will those release? Is a revoke-all endpoint planned?
 8. **Ring auto-auth.** *Answered by the Ring team:* it is a developer setting, off by default. Remaining ask: keep it unreachable in release builds, and never apply it to agent grants.
 9. **Passport as the agent (gates P1, P2).** Will the Passport team own the account-agent role, including a mode that holds an agent grant instead of the user's root key?
-10. **Paykit (gates Y1–Y3, F2).**
+10. **Paykit (gates Y1–Y3).**
     - Will Paykit accept a storage interface in place of `&PubkySession`, and ship a WASM package of `paykit-sdk`?
     - Should first-party apps share one messaging inbox (one receiver folder and Noise key), or keep one per app? Our recommendation: one app owns Messages and the others link to it.
 
@@ -509,7 +509,7 @@ No Passport change is needed for the beta stopgap (Passport sign-in on the Shop)
 **Us (Shop):**
 
 - **Now:** ship the three stopgaps.
-- **When P1 and Y2 land:** F1 and F2.
+- **When P1 and Y2 land:** F1. E1 follows pubky-chat Phase 2.
 - **When K1 and H3 land:** F3.
 - **Last:** F4.
 
