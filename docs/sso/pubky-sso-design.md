@@ -4,7 +4,7 @@ Sources, read on 1 Oct 2026: [pubky/pubky-core](https://github.com/pubky/pubky-c
 
 ## Answer
 
-Identity is the user's key. Authorization is a grant: a statement signed by that key, giving one app's own key a set of capabilities. A session is just an app holding its grant and its key; the one-hour bearer is a cache. The single "signed in" state belongs **in the browser, on one dedicated account-agent origin** (Pubky Passport), held as a grant that the signer issued to the agent, with permission to issue narrower grants to individual apps. The signer (Ring, Bitkit, or Passport's own key) remains the only source of authority and is asked **once per browser**. The homeserver remains the verifier and the revocation authority. Every app keeps its own grant. The root fix is in the auth model, and the homeserver and SDK own it: **one level of delegable grants** (a `d` capability action, child grants signed by the delegate's key, cascade revocation), plus a **client id the agent verifies from the browser origin** instead of one the app declares. Messaging's cookie dependency is an accident of our pinned `paykit-wasm` (pubky 0.8, with its own HTTP client). The fix is a Paykit storage interface that runs on the host app's grant session. Cookies go away. To be decisive: change the homeserver and SDK first, because that is the root; make Passport the agent; fix messaging, which is a prerequisite for leaving cookies but not the root; and make small changes to Ring's consent and session screens. Ring doesn't need a redesign.
+Identity is the user's key. Authorization is a grant: a statement signed by that key, giving one app's own key a set of capabilities. A session is just an app holding its grant and its key; the one-hour bearer is a cache. The single "signed in" state belongs **in the browser, on one dedicated account-agent origin** (Pubky Passport), held as a grant that the signer issued to the agent, with permission to issue narrower grants to individual apps. The signer (Ring, Bitkit, or Passport's own key) remains the only source of authority and is asked **once per browser**. The homeserver remains the verifier and the revocation authority. Every app keeps its own grant. The root fix is in the auth model, and the homeserver and SDK own it: **one level of delegable grants** (a `d` capability action, child grants signed by the delegate's key, cascade revocation), plus a **client id the agent verifies from the browser origin** instead of one the app declares. Messaging's cookie dependency is an accident of our pinned `paykit-wasm` (pubky 0.8, with its own HTTP client). The fix is moving Shop messaging to the shared pubky-chat library (MLS), which borrows the host app's grant session (E1). Paykit keeps Encrypted Links for payments and needs no browser package. Cookies go away. Encryption keys for private data travel beside the grant, never inside it: the signer derives stable keys scoped to the grant's paths and delivers them in the encrypted relay payload (K6). To be decisive: change the homeserver and SDK first, because that is the root; make Passport the agent; move messaging to pubky-chat, which is a prerequisite for leaving cookies but not the root; and make small changes to Ring's consent and session screens. Ring doesn't need a redesign.
 
 ## 1. Facts from the code that drive the design
 
@@ -74,6 +74,19 @@ Identity is the user's key. Authorization is a grant: a statement signed by that
   - It runs one runtime per app, with that app's own receiver folder: `/pub/paykit/v0/{app}/{wallet|server}` and `/pub/paykit/v0/private/{app}/...`. The Shop's folder is `marketplace/wallet`.
   - It ships no WASM binding.
 - **The receiver marker that publishes an app's Noise key is unsigned.** It is trusted only because the folder can be written by nobody but its owner (`paykit-lib/src/receiver_marker.rs`).
+- **Upstream Paykit since rc59 (Ben, 2 Oct).**
+  - State is shared across all of an identity's apps by design. App ids route; they don't isolate. Narrowing a scope therefore can't isolate one app's messaging.
+  - The Noise key is published in an App Registry. [pubky/paykit-rs#169](https://github.com/pubky/paykit-rs/pull/169) (open, rc60) signs it with the identity key, at a path ordinary Paykit sessions can't write. That closes the registry key swap. We raised one gap: the Noise handshake doesn't yet check that the peer's static key is the signed key.
+  - Paykit ships no WASM package and no custom-message API, and plans neither. Browser payments need only a public read.
+
+**Private-data keys (Andrei, 2 Oct).** The SDK is gaining stable keys derived from the user's root and scoped to paths (K6, in progress):
+
+- an exact-file scope (`/pub/app`) gets an exact-file key, and a directory scope (`/pub/app/`) gets a subtree seed. Neither reaches `/pub/app-evil`;
+- `/pub/` and `/priv/` derive separate trees, and `/priv/` adds the homeserver's access control;
+- the root derivation uses a dedicated namespace;
+- there is no purpose API: apps derive separate encryption, HMAC or X25519 keys from their seed with HKDF and their own versioned labels;
+- random data-key wrapping is optional and not implemented in the SDK;
+- no delegated grants are designed in this work.
 
 **Version skew.** Core `main` is 0.14.0. Both apps are on SDK 0.11.0. Upstream Paykit is on 0.12. Our fork is on 0.8.
 
@@ -127,7 +140,7 @@ Identity is the user's key. Authorization is a grant: a statement signed by that
 3. The agent records the browser-reported origin. It refuses if the client id doesn't match that origin.
 4. The agent has no grant yet. It shows "Sign in with Pubky": Ring (a QR, or a deep link on mobile), Bitkit, or Google.
 5. The signer shows a distinct screen: "Let this browser sign you in to apps, up to: *ceiling*. Expires *date*." **This is the one approval.**
-6. The agent signs the Shop's child grant and posts it to the Shop's relay channel. The Shop's existing `awaitApproval` exchanges it.
+6. The agent signs the Shop's child grant and posts it to the Shop's relay channel. The Shop's existing `awaitApproval` exchanges it. If the grant covers a `/priv` scope the user approved for decryption, the agent derives that scope's key from its own scoped seed and puts it beside the grant in the same encrypted relay payload (K6).
 7. The marketplace service accepts the same grant with a PoP addressed to the service. There is no second token and no dual post.
 
 ### Second app (pubky.app, same browser)
@@ -152,16 +165,27 @@ Identity is the user's key. Authorization is a grant: a statement signed by that
   - Apps fail on their next request, because the homeserver checks the grant on each one.
   - Private streams close.
 - **Sign out everywhere:** Ring uses its root session to list all grants, grouped by parent, and revokes them.
+- **Revocation doesn't reach keys.** Revoking a grant stops the app's future `/priv` reads. It can't invalidate a key or ciphertext the app already downloaded. Access control protects data from revoked apps, and encryption protects it from the operator. Revoking cryptographically means rotating: the app re-encrypts under a new random data key, wrapped under its scoped key.
+
+### Encryption keys beside the grant (K6)
+
+- **Derivation.** The signer, which holds the root, derives stable keys scoped to paths. Scope matching follows the capability rules: a file scope gets a key for that file only, and a directory scope gets a subtree seed for everything below it.
+- **Delivery.** The key travels beside the grant, in the relay payload that is already encrypted with the request's `client_secret`. It is never inside the grant JWS, which the homeserver stores.
+- **Rule.** An app receives a scope's key only if its grant covers that scope with read access, and only for scopes the user approved for decryption.
+- **Agent custody.** The Passport agent receives scoped seeds from the signer for the `/priv` scopes the user approved for decryption, and derives child keys for apps locally. The signer is not asked again per app.
+- **Purposes.** The SDK derives one stable key per scope and has no purpose labels. Each app derives separate encryption, HMAC or X25519 keys with HKDF and its own versioned labels. It wraps random data keys under them rather than encrypting with the scoped key directly, which keeps rotation possible.
+- **Recovery.** The keys come back from the user's pubky backup. Data comes back only if its ciphertext survives at its original paths, so apps keep encrypted paths stable.
+- **What it doesn't do.** No delegated grants are designed in the key work. Delegation (H1) is still core's open item (§7, Q1).
 
 ### Messaging
 
-- Each app runs its own Paykit runtime on its **own** grant session.
-- The library writes through a storage interface the host app provides, backed by its `Session.storage`. Reads stay public.
-- Capabilities narrow to the app's folder, for the Shop `/pub/paykit/v0/marketplace/:rw,/pub/paykit/v0/private/marketplace/:rw`, instead of all of `/pub/paykit/`. Today any app holding `/pub/paykit/:rw` can rewrite another app's receiver marker and intercept new links.
-- **"Messaging only works with cookie sessions" is not a protocol constraint.** Paykit needs only an authorized writer for its folder.
-  - The cookie was the one credential a separately compiled WASM module on pubky 0.8 could reach.
-  - The real constraint is the one-bearer-per-grant rule: a library that restores the app's grant itself evicts the app's bearer. So the library must borrow the app's session, not restore it.
-- **Optional hardening:** the app signs its receiver marker with its PoP key and attaches its grant. Counterparties can then check that the user authorized that key for that folder, instead of trusting write access alone. The grant doubles as the app certificate.
+- **Messaging moves to the shared pubky-chat library on MLS** ([chat plan](https://github.com/BitcoinErrorLog/pubky-chat/blob/main/docs/chat-unification-plan.md)). The Shop adopts it in E1. Paykit keeps Encrypted Links for payments.
+- **The library borrows the host app's grant session.** It never restores, refreshes or signs it out, because a library that restores the app's grant itself evicts the app's bearer (the one-bearer-per-grant rule).
+- **"Messaging only works with cookie sessions" is not a protocol constraint.** The cookie was the one credential a separately compiled WASM module on pubky 0.8 could reach.
+- **Until E1, Shop messaging stays on Ring cookie sessions.** E1 is what brings messaging to Passport and Bitkit users.
+- **Withdrawn (Ben, 2 Oct):** the Paykit storage interface (Y1), the WASM package (Y2) and a custom-message API. Payments need nothing in the browser except a public read, and chat doesn't run on Paykit.
+- **Dropped: Paykit scope narrowing.** Paykit state is shared per identity by design, so a folder scope can't isolate an app. Today any app holding `/pub/paykit/:rw` can rewrite the Shop's unsigned receiver marker. That ends when the Shop drops `/pub/paykit/:rw` after E1.
+- **Signed Noise keys (formerly Y3)** are upstream in [pubky/paykit-rs#169](https://github.com/pubky/paykit-rs/pull/169). They close the registry swap for Paykit's own links. The open gap is binding the handshake's static key to the signed key.
 
 ### Phishing (an origin claiming to be another app)
 
@@ -173,7 +197,8 @@ Identity is the user's key. Authorization is a grant: a statement signed by that
   - Auto-approval never applies to agent grants. Ring's developer-only auto-auth must stay unreachable in release builds.
 - **Script injected on the agent origin:**
   - The agent is a small static app with a strict CSP and no user content.
-  - The damage is capped by the ceiling and revocable as one unit.
+  - Grant power is capped by the ceiling and revocable as one unit.
+  - Confidentiality is not revocable. Scoped seeds the script reads stay leaked until the affected apps rotate their data keys. This is why the agent holds seeds only for scopes the user approved for decryption.
   - That is a smaller hot credential than either thing it replaces: today's cookie, which every origin rides, and Passport's root key in browser storage.
 
 ### Browsers and mobile
@@ -276,15 +301,16 @@ Sizes describe technical scope, not time:
 | K1 | pubky-core SDK (Rust, JS, FFI, react-native-pubky) | <ul><li>Signer side: approve an agent-grant request and display its ceiling.</li><li>Delegate side: sign a child grant from a stored agent grant with a non-extractable key.</li><li>A helper to verify a grant plus a PoP with a custom audience, for services.</li></ul> | Pubky core | M |
 | K4 | pubky-core SDK (JS) | Gaps #2614 works around: delete one abandoned delegated proof key by attempt; a structured "missing record" error; `list()` reports IndexedDB errors | Pubky core | S |
 | K3 | pubky-core docs | The agent request protocol: message types, versioning, origin rules, errors | Pubky core with the Passport team | S |
-| P1 | pubky-passport | **The account agent.** <ul><li>A `postMessage` API, with the client id set from the verified origin.</li><li>Consent remembered per origin and scope set; a first-party allow-list.</li><li>Child-grant issuance and the step-up ceiling.</li><li>A page listing the apps signed in on this browser, with revoke one or all.</li></ul> | Passport team | L |
+| K6 | pubky-core SDK (Rust, JS, FFI) | **Scoped keys (in progress, Andrei).** Stable keys derived from the root and scoped like capabilities (file key or subtree seed; `/pub/` and `/priv/` separate; dedicated root namespace). Signer side: derive and put the key beside the grant in the encrypted relay payload. App side: receive it. No purpose API; apps use HKDF with their own versioned labels | Pubky core | M |
+| P1 | pubky-passport | **The account agent.** <ul><li>A `postMessage` API, with the client id set from the verified origin.</li><li>Consent remembered per origin and scope set; a first-party allow-list.</li><li>Child-grant issuance and the step-up ceiling.</li><li>Scoped seeds from the signer for approved `/priv` scopes only; child keys derived locally and posted beside each child grant (K6).</li><li>A page listing the apps signed in on this browser, with revoke one or all.</li></ul> | Passport team | L |
 | P2 | pubky-passport | Ring-linked mode: hold an agent grant from Ring instead of a root key | Passport team | M |
 | R0 | pubky-ring | Release grant auth, already merged in [#360](https://github.com/pubky/pubky-ring/pull/360). It is a prerequisite for every Ring item below and for any Ring user signing in with grants. **In progress:** the release process has started | Ring team | S |
-| R1 | pubky-ring | <ul><li>Show the client id, marked "unverified" for QR requests, and the scopes in plain words. **Agreed** by the Ring team.</li><li>A distinct screen for agent grants, showing the ceiling and expiry (after H1).</li><li>The developer-only auto-auth never applies to them and can't ship reachable in release builds.</li></ul> | Ring team | M |
+| R1 | pubky-ring | <ul><li>Show the client id, marked "unverified" for QR requests, and the scopes in plain words. **Agreed** by the Ring team.</li><li>A distinct screen for agent grants, showing the ceiling and expiry (after H1).</li><li>A separate "can decrypt your private data under …" consent line whenever a request asks for scoped keys (K6). It is stronger than read access and can't be taken back.</li><li>The developer-only auto-auth never applies to them and can't ship reachable in release builds.</li></ul> | Ring team | M |
 | R2 | pubky-ring | Sessions screen listing grants with per-grant revoke. **It exists** as draft [pubky-ring#369](https://github.com/pubky/pubky-ring/pull/369) ("Authorized Apps"), waiting on [pubky-core-ffi#37](https://github.com/pubky/pubky-core-ffi/pull/37), [react-native-pubky#42](https://github.com/pubky/react-native-pubky/pull/42), [#43](https://github.com/pubky/react-native-pubky/pull/43) and the next react-native-pubky release. After H1: group by parent, and revoke a whole browser | Ring team | S after #369 |
-| B1 | Bitkit | R1's consent changes | Bitkit team | S–M |
-| Y1 | pubky/paykit-rs | **A storage interface in `paykit-lib`.** Operations take a trait (own-folder put, get, delete and list, plus public reads) instead of `&PubkySession`. A `PubkySession` adapter keeps the current Rust and FFI API | Paykit team | M–L |
-| Y2 | pubky/paykit-rs | A WASM package of `paykit-sdk` on Y1. Its JS adapter is backed by the host app's `Session.storage` and host-provided durable state | Paykit team | M |
-| Y3 | pubky/paykit-rs | Optional: receiver marker signed by the app key, with the grant attached | Paykit team | M |
+| B1 | Bitkit | R1's consent changes, plus scoped-key derivation and delivery (K6) | Bitkit team | S–M |
+| ~~Y1~~ | pubky/paykit-rs | **Withdrawn (2 Oct).** Storage interface in `paykit-lib`: not needed, since messaging moves to pubky-chat (E1) | — | — |
+| ~~Y2~~ | pubky/paykit-rs | **Withdrawn (2 Oct).** WASM package of `paykit-sdk`: Paykit plans none, and browser payments need only a public read | — | — |
+| Y3 | pubky/paykit-rs | **Taken by Paykit as [#169](https://github.com/pubky/paykit-rs/pull/169):** the Noise key signed by the identity key and verified on every link operation. Open gap: check the handshake's static key against the signed key | Paykit team | M |
 | A1 | pubky/pubky-app | **[#2614](https://github.com/pubky/pubky-app/pull/2614) (vlada):** <ul><li>New logins get per-app grants signed directly by Ring.</li><li>Legacy cookies keep restoring until they expire.</li><li>Sign-out revokes pubky.app's own grant.</li><li>Locks step-up.</li><li>Client id set to the origin host.</li></ul> Release gates: H5, H6, R0 | pubky-app maintainers | M (in review) |
 | A2 | pubky/pubky-app | Get the grant from the agent instead of directly from Ring. Lock Server sign-in moves to the grant. Recovery-phrase and file logins move to Passport | pubky-app maintainers | S–M |
 | F1 | BitcoinErrorLog/pubky-app (Shop) | One sign-in path through the agent for every signer. Delete the cookie path, the session bridge (`src/libs/vibe-session/*`), the `AuthToken` dual post, the scope union and the Bitkit-only branch, after a workspace-wide dead-code check | us | M |
@@ -297,8 +323,8 @@ Sizes describe technical scope, not time:
 - **First, because they unblock work already written:** H5, H6 and R0 gate [#2614](https://github.com/pubky/pubky-app/pull/2614) (A1).
 - **In parallel:**
   - H1, K1 and K3, which are the root;
-  - Y1–Y2, which messaging needs before anyone leaves cookies;
-  - K4.
+  - E1 (pubky-chat on MLS), which messaging needs before anyone leaves cookies;
+  - K4 and K6.
 - **Then:** P1–P2, R1–R2 and B1.
 - **Then:** A2, F1–F3.
 - **Last:** H4.
@@ -314,6 +340,8 @@ The code can't answer these. Each gates the item named.
    - A child the homeserver records at the agent's request: no new token format, but only valid where it was recorded.
 
    How does a parent's revocation reach mirrors?
+
+   Still open as of 2 Oct. The scoped-key work (K6) designs no delegated grants, and only assumes an agent that holds scoped seeds.
 2. **Cookie removal (H4).** In which version does `POST /session` go?
 3. **Several bearers per grant (H5, H6).** This question was first raised by vlada in #pubky-core on 21 Sep.
    - In which homeserver version will `replace_for_grant` keep several bearers per grant, and what bound will it use (we suggest 8, evicting the oldest)?
@@ -324,4 +352,14 @@ The code can't answer these. Each gates the item named.
 7. **Grant management.** Ring's grant list ([#369](https://github.com/pubky/pubky-ring/pull/369)) waits on [pubky-core-ffi#37](https://github.com/pubky/pubky-core-ffi/pull/37) and react-native-pubky [#42](https://github.com/pubky/react-native-pubky/pull/42) and [#43](https://github.com/pubky/react-native-pubky/pull/43). When will those release? Is a revoke-all endpoint planned?
 8. **Ring auto-auth.** Answered by the Ring team: it is a developer setting. Remaining ask: keep it unreachable in release builds.
 9. **Passport as the agent (P1, P2).** Will the Passport team own the agent role and a mode that holds no root key?
-10. **Paykit (Y1–Y3).** Will Paykit accept the storage interface and ship a WASM package? Should first-party apps share one messaging inbox (one receiver and Noise key) or keep one per app? Recommendation: one app owns Messages, and the others link to it.
+10. **Paykit (Y1–Y3).** *Answered by Ben, 2 Oct:* no storage interface, WASM package or custom-message API; state is shared per identity by design; signed Noise keys come in [#169](https://github.com/pubky/paykit-rs/pull/169). Messaging moves to pubky-chat, where one conversation spans every app (E1). Remaining ask: bind the handshake's static key to the signed key.
+11. **Scoped keys (K6).** *Answered by Andrei, 2 Oct:*
+    - scope matching follows grants, with file keys and subtree seeds, and never reaches a sibling path;
+    - `/pub/` and `/priv/` are separate trees;
+    - keys travel beside the grant in the encrypted relay payload;
+    - Passport agents receive scoped seeds and derive locally;
+    - revocation blocks future `/priv` retrieval but not downloaded keys, so cryptographic revocation needs rotation;
+    - purposes stay with the caller, through HKDF;
+    - the root uses a dedicated namespace.
+
+    Still open: delegated grants (Q1), which this work doesn't design.
