@@ -10,7 +10,7 @@ A peer-to-peer marketplace on Pubky:
 - **A small Rust service enforces the rules a browser can't.** It owns single-winner inventory, auctions, orders and receipts.
 - **Payments go straight to the seller.** Bitcoin runs over Paykit and Locks; PayPal is seller-direct. Card payments are paused.
 - **No custody.** The Shop never holds funds.
-- **Built-in messaging.** Messages are end-to-end encrypted over Paykit Encrypted Links.
+- **Built-in messaging.** Messages are end-to-end encrypted over Paykit Encrypted Links today. That stack is frozen as beta and moves to the shared pubky-chat library on MLS ([chat plan](https://github.com/BitcoinErrorLog/pubky-chat/blob/main/docs/chat-unification-plan.md), item E1).
 
 The web client is a fork of the Pubky social app ([pubky/pubky-app](https://github.com/pubky/pubky-app)). For the beta it runs as its own site next to pubky.app, and social pages link back there (launch plan §2).
 
@@ -21,7 +21,7 @@ The web client is a fork of the Pubky social app ([pubky/pubky-app](https://gith
 | [BitcoinErrorLog/pubky-app](https://github.com/BitcoinErrorLog/pubky-app) | Shop web client (Next.js 16, SDK `@synonymdev/pubky` 0.11) | `release/shop-v0.6.8`, the long-lived release line despite the name. The repo default is being switched to it from `pubchi/v1`, a different product. Until that lands, clone with `-b release/shop-v0.6.8` | Vercel production project → shop.pubky.app; Vercel staging project → a generated staging host (ask John) |
 | [BitcoinErrorLog/pubky-marketplace-service](https://github.com/BitcoinErrorLog/pubky-marketplace-service) | Transaction service (Rust, sqlx, Postgres) | `main` | Railway, via a GHCR image pinned in `.railway/railway.ts`; staging at `staging-api.pubky.app` |
 | [BitcoinErrorLog/pubky-nexus](https://github.com/BitcoinErrorLog/pubky-nexus) | Marketplace indexer (Nexus fork) | `main` | Railway, marketplace Nexus project; see `docs/railway-deploy.md` |
-| [BitcoinErrorLog/paykit-server](https://github.com/BitcoinErrorLog/paykit-server) | Paykit server (fork) | `master` | Railway; production host `paykit-shop.pubky.app` |
+| [BitcoinErrorLog/paykit-server](https://github.com/BitcoinErrorLog/paykit-server) | Paykit server (fork, rc55). Being ported onto upstream at rc60 before the beta (launch plan §5); the port runs as exactly one process | `master` | Railway; production host `paykit-shop.pubky.app` |
 | [BitcoinErrorLog/pubky-app-specs](https://github.com/BitcoinErrorLog/pubky-app-specs) | Marketplace record types (specs fork) | — | Vendored into the Shop as a tarball |
 | [BitcoinErrorLog/pubky-shop](https://github.com/BitcoinErrorLog/pubky-shop) | `@bitcoinerrorlog/pubky-shop` SDK (npm) | `main` | npm |
 | [BitcoinErrorLog/pubky-marketplace](https://github.com/BitcoinErrorLog/pubky-marketplace) | Issue tracker for testers | — | — |
@@ -117,10 +117,19 @@ Project context:
 - **Service:** `main` at [#79](https://github.com/BitcoinErrorLog/pubky-marketplace-service/pull/79). It includes the PayPal email privacy fix, the listing-revival fix and address search.
 - **Nexus:** marketplace nexusd at `71637ffa`. Two generic fixes are open upstream ([#1099](https://github.com/pubky/pubky-nexus/pull/1099), [#1100](https://github.com/pubky/pubky-nexus/pull/1100)).
 - **Payments:** PayPal and Bitcoin have each completed a real production payment ([#53](https://github.com/BitcoinErrorLog/pubky-marketplace/issues/53), [#54](https://github.com/BitcoinErrorLog/pubky-marketplace/issues/54)). Stripe is paused.
+- **Paykit (Ben, 2 Oct):**
+  - Paykit launches at the end of the week of 5 Oct or the week after.
+  - Upstream rc59 is wire-incompatible with our rc55 fork, so the Paykit server port onto upstream (rc60) lands before the Shop launch. We're pre-launch, so there's no Bitcoin pause plan. The owner is still to be decided (launch plan D10).
+  - Paykit state is shared per identity by design. The server holds the seller's delegated Paykit key, not identity or spending keys.
+  - Ben's signed Noise-key proof ([pubky/paykit-rs#169](https://github.com/pubky/paykit-rs/pull/169)) closes the App Registry key swap. We raised one gap: the handshake doesn't bind the peer's static key to the signed key.
+  - The Shop needs no Paykit code in the browser for payments.
+- **Homeserver:**
+  - Moving production `homeserver.pubky.app` to v0.14, which brings the WebDAV locks rc59 and rc60 need, is James's call.
+  - tomos merged the same-path 500 fix. The lock-gap fix, where a write can still publish after its lock expired, waits for Sev.
 - **Open tester issues:** [pubky-marketplace issues](https://github.com/BitcoinErrorLog/pubky-marketplace/issues). Open PRs: [#164](https://github.com/BitcoinErrorLog/pubky-app/pull/164) on the Shop, [paykit-server #23](https://github.com/BitcoinErrorLog/paykit-server/pull/23).
 - **Known gaps,** detailed in launch plan §3 and §5:
   - **Permissions overwrite.** The two sites' cookie sign-ins overwrite each other's permissions. The stopgap: Ring sign-in requests both sites' scopes (D5, decided).
-  - **Messaging needs a Ring cookie session.** The vendored `paykit-wasm` supports only cookie sessions, so Bitkit and Passport users get no messaging, and Ring can't move to grants yet.
+  - **Messaging needs a Ring cookie session.** The vendored `paykit-wasm` supports only cookie sessions, so Bitkit and Passport users get no messaging, and Ring can't move to grants yet. This stays until the MLS cutover (chat plan E1), which is what brings messaging to Passport and Bitkit users. Paykit won't ship a browser package, so there is no Paykit-side fix to wait for.
   - **Released Ring signs in with cookies only.** Ring's grant auth is merged ([pubky-ring#360](https://github.com/pubky/pubky-ring/pull/360)) but isn't in the latest release, [v1.19](https://github.com/pubky/pubky-ring/releases/tag/v1.19). Every Ring sign-in on the Shop is therefore a cookie sign-in. The beta stopgaps don't depend on Ring grants.
   - **No single sign-on with pubky.app.**
     - The target design is **delegated grants through a Passport agent**: [pubky-sso-design.md](../sso/pubky-sso-design.md), team version [sso-proposal-for-team.md](../sso/sso-proposal-for-team.md), summary in launch plan §3.
@@ -135,7 +144,8 @@ Project context:
       - **Delegable grants** in the homeserver and SDK.
       - **Passport as the agent.**
       - **Ring and Bitkit** consent and session screens.
-      - **Messaging on the app's own grant session:** a Paykit storage interface and WASM package, replacing our `paykit-wasm` in [BitcoinErrorLog/paykit-rs-official](https://github.com/BitcoinErrorLog/paykit-rs-official).
+      - **Messaging on the app's own grant session:** the shared pubky-chat library on MLS (E1), replacing our `paykit-wasm` in [BitcoinErrorLog/paykit-rs-official](https://github.com/BitcoinErrorLog/paykit-rs-official).
+      - **Scoped keys** for `/priv` data, which the signer derives and delivers beside the grant (SSO-K6; SDK work in progress).
     - That puts it outside the beta.
     - The Ring bundle (one approval issuing grants to several apps through companion frames) was considered and rejected; see launch plan §3.
   - **Leftover production test listings:** being deleted (D6).
@@ -152,9 +162,10 @@ Project context:
    - **Core:** several bearers per grant and no cookie fallback (SSO-H5, H6) first.
    - **Ring:** the grant-auth release is in progress (SSO-R0), the client id and scopes on the approval screen are agreed, and the grant list is [#369](https://github.com/pubky/pubky-ring/pull/369).
    - **pubky.app:** review [#2614](https://github.com/pubky/pubky-app/pull/2614).
-   - **Paykit:** the storage interface and WASM package (SSO-Y1, Y2).
+   - **Paykit:** nothing for SSO. The storage interface and WASM package (SSO-Y1, Y2) are withdrawn.
 
-   Moving the Shop's Ring users to grants (SSO-F1) waits on those, plus our messaging port (SSO-F2).
+   Moving the Shop's Ring users to grants (SSO-F1) waits on those, plus the Shop's move to pubky-chat (E1).
+7. Port the Paykit server onto upstream at rc60 before the beta (launch plan §5). It is sensitive work that needs a design review, an independent protocol review, a fresh Kimi audit and a staging proof with rc60 Bitkit builds. The owner is still to be decided (D10).
 
 ## Who to ask
 
@@ -168,7 +179,9 @@ Project context:
 | Visual design and design PRs | Aldert ([aldertnl](https://github.com/aldertnl)) |
 | pubky.app changes (menu links, grants) | pubky-app maintainers: [secondl1ght](https://github.com/secondl1ght), [infin1t3](https://github.com/infin1t3), [talosmachina](https://github.com/talosmachina) |
 | Nexus upstream | Chris (pubky-nexus maintainer) |
-| Homeserver behavior (429s, locks) | tomos (homeserver team) |
+| Homeserver behavior (429s, locks) | tomos (homeserver team); Sev for the lock-gap fix |
+| Production homeserver version (v0.14) | James |
+| Scoped keys in the SDK | Andrei |
 | Delegable grants, several bearers per grant, SDK | Pubky core ([pubky/pubky-core](https://github.com/pubky/pubky-core)); Marcos for the homeserver multi-bearer fix |
 | pubky.app grant migration ([#2614](https://github.com/pubky/pubky-app/pull/2614)) | vlada |
 | Ring grant-auth release and consent screens | Philipp ([pubky/pubky-ring](https://github.com/pubky/pubky-ring)) |
