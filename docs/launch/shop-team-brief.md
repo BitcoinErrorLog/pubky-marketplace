@@ -121,7 +121,9 @@ Project context:
   - Paykit launches at the end of the week of 5 Oct or the week after.
   - Upstream rc59 is wire-incompatible with our rc55 fork, so the Paykit server port onto upstream lands before the Shop launch. It starts from paykit-server rc8 (released 2 Oct) and ships on the release that pins Paykit rc60. We're pre-launch, so there's no Bitcoin pause plan. The owner is still to be decided (launch plan D10).
   - Paykit state is shared per identity by design. The server holds the seller's delegated Paykit key, not identity or spending keys.
-  - Ben's signed Noise-key proof ([pubky/paykit-rs#169](https://github.com/pubky/paykit-rs/pull/169)) closes the App Registry key swap. We raised one gap: the handshake doesn't bind the peer's static key to the signed key.
+  - Ben's signed Noise-key proof ([pubky/paykit-rs#169](https://github.com/pubky/paykit-rs/pull/169)) closes the App Registry key swap. The handshake gap we raised is closed (3 Oct): Ben's commits `4eda7102` and `73345917` check the peer's static key against the signed key before any transport use, on handshake completion and on restore. A mismatch fails into recovery-required, and substitution tests cover both roles and restored links. Jasonvdb approved; dzdidi's re-review is pending.
+  - There is no rc59 compatibility fallback: rc59 state is officially unsupported, which fits the port's fresh database.
+  - **rc60 is on the Shop launch's critical path:** [pubky/pubky-noise#39](https://github.com/pubky/pubky-noise/pull/39) (no rc12 tag yet) → paykit-rs rc60 → a paykit-server release on rc60 → our port.
   - The Shop needs no Paykit code in the browser for payments.
 - **Homeserver:**
   - Moving production `homeserver.pubky.app` to v0.14, which brings the WebDAV locks rc59 and rc60 need, is James's call.
@@ -165,7 +167,7 @@ Project context:
    - **Paykit:** nothing for SSO. The storage interface and WASM package (SSO-Y1, Y2) are withdrawn.
 
    Moving the Shop's Ring users to grants (SSO-F1) waits on those, plus the Shop's move to pubky-chat (E1).
-7. Port the Paykit server onto upstream at rc60 before the beta (launch plan §5). It is sensitive work that needs a design review, an independent protocol review, a fresh Kimi audit and a staging proof with rc60 Bitkit builds. The owner is still to be decided (D10).
+7. Port the Paykit server onto upstream at rc60 before the beta (launch plan §5). It is sensitive work that needs a design review, an independent protocol review, a fresh Kimi audit and a staging proof with rc60 Bitkit builds. The owner is still to be decided (D10). It can't ship until pubky-noise#39 (rc12), paykit-rs rc60 and a paykit-server release on rc60 are out.
 
 ## Who to ask
 
