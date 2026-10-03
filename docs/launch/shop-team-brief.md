@@ -119,7 +119,7 @@ Project context:
 - **Payments:** PayPal and Bitcoin have each completed a real production payment ([#53](https://github.com/BitcoinErrorLog/pubky-marketplace/issues/53), [#54](https://github.com/BitcoinErrorLog/pubky-marketplace/issues/54)). Stripe is paused.
 - **Paykit (Ben, 2 Oct):**
   - Paykit launches at the end of the week of 5 Oct or the week after.
-  - Upstream rc59 is wire-incompatible with our rc55 fork, so the Paykit server port onto upstream (rc60) lands before the Shop launch. We're pre-launch, so there's no Bitcoin pause plan. The owner is still to be decided (launch plan D10).
+  - Upstream rc59 is wire-incompatible with our rc55 fork, so the Paykit server port onto upstream lands before the Shop launch. It starts from paykit-server rc8 (released 2 Oct) and ships on the release that pins Paykit rc60. We're pre-launch, so there's no Bitcoin pause plan. The owner is still to be decided (launch plan D10).
   - Paykit state is shared per identity by design. The server holds the seller's delegated Paykit key, not identity or spending keys.
   - Ben's signed Noise-key proof ([pubky/paykit-rs#169](https://github.com/pubky/paykit-rs/pull/169)) closes the App Registry key swap. We raised one gap: the handshake doesn't bind the peer's static key to the signed key.
   - The Shop needs no Paykit code in the browser for payments.

@@ -58,7 +58,7 @@ Scope: [shop.pubky.app](https://shop.pubky.app), built from the fork [BitcoinErr
 3. **For the beta: one approval per site, without the two sites breaking each other.** D5's stopgap stops a Shop sign-in from stripping pubky.app. Passport (F4) gives Google users a way in. F5 makes sign-out honest.
 4. **Freeze features.** Launch existing flows. The backlog in §5 stays post-launch unless John moves an item up.
 5. **Infra is one of two choices.** **R:** we keep deploying on John's Railway account. **S:** Synonym DevOps builds new instances on Synonym's cloud. Recommendation: S, with cutover before the beta (§7).
-6. **Paykit server moves onto upstream before the beta.** Upstream Paykit rc59 is wire-incompatible with our fork (rc55), and Paykit launches at the end of the week of 5 Oct or the week after (Ben, 2 Oct). The port targets rc60 and lands before the Shop launch, in about two weeks. We're pre-launch, so there is no Bitcoin pause plan. Its owner is still to be decided (§5, §9 D10).
+6. **Paykit server moves onto upstream before the beta.** Upstream Paykit rc59 is wire-incompatible with our fork (rc55), and Paykit launches at the end of the week of 5 Oct or the week after (Ben, 2 Oct). The port starts from upstream paykit-server rc8, which Denys released on 2 Oct and pinned on Synonym's staging stack ([pubky/pubky-stack#336](https://github.com/pubky/pubky-stack/pull/336)). It ships on the paykit-server release that pins Paykit rc60 and lands before the Shop launch, in about two weeks. We're pre-launch, so there is no Bitcoin pause plan. Its owner is still to be decided (§5, §9 D10).
 
 ## 2. Seam 1: navigation between pubky.app and the Shop
 
@@ -384,7 +384,7 @@ There are two options:
   - On 1 Oct the staging Shop's runtime config also listed the production Locks URL. Check whether staging actually uses it.
 - **The Railway hosts are generated Railway names**, baked into the Shop's runtime config.
 - **The Nexus fork is a second full indexer.** It is 86 commits ahead and 154 behind upstream, and pins a specs fork (internal Nexus fork audit). Its moderation covers posts, tags and users, not listings.
-- **The Paykit fork** is 278 ahead and 65 behind, on rc55. It is being ported onto upstream at rc60 before the beta (§5). The ported server must run as **exactly one process**: restoring the same grant in a second process invalidates the first one's bearer, so deploys stop the old process before starting the new one. The Locks fork goes away in the convergence plan.
+- **The Paykit fork** is 278 ahead and 65 behind, on rc55. It is being ported onto upstream at rc60 before the beta (§5). The ported server must run as **exactly one process**: restoring the same grant in a second process invalidates the first one's bearer, so deploys stop the old process before starting the new one. The Locks fork goes away in the convergence plan. Locks rc8 (2 Oct) shipped the terminal `expired` mapping that plan waited on, so the Locks switch now waits only on the Paykit port.
 
 ### The two options
 
