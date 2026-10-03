@@ -76,7 +76,7 @@ Identity is the user's key. Authorization is a grant: a statement signed by that
 - **The receiver marker that publishes an app's Noise key is unsigned.** It is trusted only because the folder can be written by nobody but its owner (`paykit-lib/src/receiver_marker.rs`).
 - **Upstream Paykit since rc59 (Ben, 2 Oct).**
   - State is shared across all of an identity's apps by design. App ids route; they don't isolate. Narrowing a scope therefore can't isolate one app's messaging.
-  - The Noise key is published in an App Registry. [pubky/paykit-rs#169](https://github.com/pubky/paykit-rs/pull/169) (open, rc60) signs it with the identity key, at a path ordinary Paykit sessions can't write. That closes the registry key swap. We raised one gap: the Noise handshake doesn't yet check that the peer's static key is the signed key.
+  - The Noise key is published in an App Registry. [pubky/paykit-rs#169](https://github.com/pubky/paykit-rs/pull/169) (open, rc60) signs it with the identity key, at a path ordinary Paykit sessions can't write. That closes the registry key swap. The handshake gap we raised is closed (3 Oct): Ben's commits `4eda7102` and `73345917` check the peer's static key against the signed key before any transport use, on handshake completion and on restore. A mismatch fails into recovery-required, and substitution tests cover both roles and restored links. The rc60 release waits on [pubky-noise#39](https://github.com/pubky/pubky-noise/pull/39) (rc12).
   - Paykit ships no WASM package and no custom-message API, and plans neither. Browser payments need only a public read.
 
 **Private-data keys (Andrei, 2 Oct).** The SDK is gaining stable keys derived from the user's root and scoped to paths (K6, in progress):
@@ -185,7 +185,7 @@ Identity is the user's key. Authorization is a grant: a statement signed by that
 - **Until E1, Shop messaging stays on Ring cookie sessions.** E1 is what brings messaging to Passport and Bitkit users.
 - **Withdrawn (Ben, 2 Oct):** the Paykit storage interface (Y1), the WASM package (Y2) and a custom-message API. Payments need nothing in the browser except a public read, and chat doesn't run on Paykit.
 - **Dropped: Paykit scope narrowing.** Paykit state is shared per identity by design, so a folder scope can't isolate an app. Today any app holding `/pub/paykit/:rw` can rewrite the Shop's unsigned receiver marker. That ends when the Shop drops `/pub/paykit/:rw` after E1.
-- **Signed Noise keys (formerly Y3)** are upstream in [pubky/paykit-rs#169](https://github.com/pubky/paykit-rs/pull/169). They close the registry swap for Paykit's own links. The open gap is binding the handshake's static key to the signed key.
+- **Signed Noise keys (formerly Y3)** are upstream in [pubky/paykit-rs#169](https://github.com/pubky/paykit-rs/pull/169). They close the registry swap for Paykit's own links, and since 3 Oct the handshake checks the peer's static key against the signed key, on completion and on restore.
 
 ### Phishing (an origin claiming to be another app)
 
@@ -310,7 +310,7 @@ Sizes describe technical scope, not time:
 | B1 | Bitkit | R1's consent changes, plus scoped-key derivation and delivery (K6) | Bitkit team | S–M |
 | ~~Y1~~ | pubky/paykit-rs | **Withdrawn (2 Oct).** Storage interface in `paykit-lib`: not needed, since messaging moves to pubky-chat (E1) | — | — |
 | ~~Y2~~ | pubky/paykit-rs | **Withdrawn (2 Oct).** WASM package of `paykit-sdk`: Paykit plans none, and browser payments need only a public read | — | — |
-| Y3 | pubky/paykit-rs | **Taken by Paykit as [#169](https://github.com/pubky/paykit-rs/pull/169):** the Noise key signed by the identity key and verified on every link operation. Open gap: check the handshake's static key against the signed key | Paykit team | M |
+| Y3 | pubky/paykit-rs | **Taken by Paykit as [#169](https://github.com/pubky/paykit-rs/pull/169):** the Noise key signed by the identity key and verified on every link operation, including the handshake's static key (gap closed 3 Oct) | Paykit team | M |
 | A1 | pubky/pubky-app | **[#2614](https://github.com/pubky/pubky-app/pull/2614) (vlada):** <ul><li>New logins get per-app grants signed directly by Ring.</li><li>Legacy cookies keep restoring until they expire.</li><li>Sign-out revokes pubky.app's own grant.</li><li>Locks step-up.</li><li>Client id set to the origin host.</li></ul> Release gates: H5, H6, R0 | pubky-app maintainers | M (in review) |
 | A2 | pubky/pubky-app | Get the grant from the agent instead of directly from Ring. Lock Server sign-in moves to the grant. Recovery-phrase and file logins move to Passport | pubky-app maintainers | S–M |
 | F1 | BitcoinErrorLog/pubky-app (Shop) | One sign-in path through the agent for every signer. Delete the cookie path, the session bridge (`src/libs/vibe-session/*`), the `AuthToken` dual post, the scope union and the Bitkit-only branch, after a workspace-wide dead-code check | us | M |
@@ -352,7 +352,7 @@ The code can't answer these. Each gates the item named.
 7. **Grant management.** Ring's grant list ([#369](https://github.com/pubky/pubky-ring/pull/369)) waits on [pubky-core-ffi#37](https://github.com/pubky/pubky-core-ffi/pull/37) and react-native-pubky [#42](https://github.com/pubky/react-native-pubky/pull/42) and [#43](https://github.com/pubky/react-native-pubky/pull/43). When will those release? Is a revoke-all endpoint planned?
 8. **Ring auto-auth.** Answered by the Ring team: it is a developer setting. Remaining ask: keep it unreachable in release builds.
 9. **Passport as the agent (P1, P2).** Will the Passport team own the agent role and a mode that holds no root key?
-10. **Paykit (Y1–Y3).** *Answered by Ben, 2 Oct:* no storage interface, WASM package or custom-message API; state is shared per identity by design; signed Noise keys come in [#169](https://github.com/pubky/paykit-rs/pull/169). Messaging moves to pubky-chat, where one conversation spans every app (E1). Remaining ask: bind the handshake's static key to the signed key.
+10. **Paykit (Y1–Y3).** *Answered by Ben, 2 Oct:* no storage interface, WASM package or custom-message API; state is shared per identity by design; signed Noise keys come in [#169](https://github.com/pubky/paykit-rs/pull/169). Messaging moves to pubky-chat, where one conversation spans every app (E1). The handshake static-key binding we asked for landed on 3 Oct; nothing remains asked.
 11. **Scoped keys (K6).** *Answered by Andrei, 2 Oct:*
     - scope matching follows grants, with file keys and subtree seeds, and never reaches a sibling path;
     - `/pub/` and `/priv/` are separate trees;

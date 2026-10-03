@@ -116,7 +116,7 @@ Upstream [pubky/paykit-rs](https://github.com/pubky/paykit-rs) is on pubky 0.12 
 **Where this stands (Ben, 2 Oct):**
 
 - Upstream Paykit shares state across all of an identity's apps by design, so narrowing the scope to one folder can't isolate an app. Scope narrowing is dropped.
-- Upstream signs the Noise key with the identity key in [pubky/paykit-rs#169](https://github.com/pubky/paykit-rs/pull/169), which closes the swap for Paykit's own links. We raised one gap: the handshake doesn't yet check the peer's static key against the signed key.
+- Upstream signs the Noise key with the identity key in [pubky/paykit-rs#169](https://github.com/pubky/paykit-rs/pull/169), which closes the swap for Paykit's own links. The handshake gap we raised is closed too (3 Oct): Ben's commits `4eda7102` and `73345917` check the peer's static key against the signed key before any transport use, on handshake completion and on restore. A mismatch fails into recovery-required, and substitution tests cover both roles and restored links.
 - The Shop's own unsigned marker stays on the frozen messaging stack until E1. The Shop then drops `/pub/paykit/:rw`.
 
 ### 1.7 Services need a second sign-in
@@ -413,7 +413,7 @@ None of them depends on Ring's grant auth being released. The Ring stopgap is a 
 |---|---|---|
 | ~~Y1~~ | A storage interface in `paykit-lib` | **Withdrawn.** Messaging moves to pubky-chat (E1), so nothing needs it |
 | ~~Y2~~ | WASM package of `paykit-sdk` | **Withdrawn.** Paykit plans none, and browser payments need only a public read |
-| Y3 | Signed Noise key | **Taken upstream** as [#169](https://github.com/pubky/paykit-rs/pull/169), signed by the identity key and verified on every link operation. Open gap: check the handshake's static key against the signed key |
+| Y3 | Signed Noise key | **Taken upstream** as [#169](https://github.com/pubky/paykit-rs/pull/169), signed by the identity key and verified on every link operation, including the handshake's static key on completion and restore (gap closed 3 Oct) |
 
 A custom-message API is not needed either, and scope narrowing is dropped because Paykit state is shared per identity by design.
 
@@ -489,7 +489,8 @@ The beta opens about **15 Oct**. After that, each phase starts when its dependen
     - State is shared across an identity's apps by design, so there is no per-app inbox to choose.
     - Signed Noise keys are [#169](https://github.com/pubky/paykit-rs/pull/169).
     - Messaging moves to pubky-chat, where one conversation spans every app.
-    - Remaining ask: check the handshake's static key against the signed key.
+    - The handshake static-key check we asked for landed in `4eda7102` and `73345917` (3 Oct). Nothing remains asked of Paykit for SSO.
+    - rc60 release depends on [pubky-noise#39](https://github.com/pubky/pubky-noise/pull/39) (rc12).
 11. **Scoped keys (K6).** *Answered by Andrei, 2 Oct;* the answers are in §2.9.
 
 ---
@@ -534,7 +535,7 @@ No Passport change is needed for the beta stopgap (Passport sign-in on the Shop)
 **Paykit:**
 
 - Q10 is answered, and Y1 and Y2 are withdrawn.
-- **Remaining ask:** in [#169](https://github.com/pubky/paykit-rs/pull/169), check the handshake's static key against the signed key, with a negative test.
+- No remaining ask. [#169](https://github.com/pubky/paykit-rs/pull/169) now checks the handshake's static key against the signed key, with substitution tests (3 Oct). Its release waits on [pubky-noise#39](https://github.com/pubky/pubky-noise/pull/39).
 
 **pubky.app:**
 
