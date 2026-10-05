@@ -134,8 +134,13 @@ Launch blockers, deadlines and open decisions are in the launch plan (top sectio
   - There is no rc59 compatibility fallback: rc59 state is officially unsupported, which fits the port's fresh database.
   - The Shop needs no Paykit code in the browser for payments.
 - **Homeserver:**
-  - Moving production `homeserver.pubky.app` to v0.14, which brings the WebDAV locks rc59 and rc60 need, is James's call. Production doesn't advertise locks yet.
-  - tomos merged the same-path 500 fix. The lock-gap fix, where a write can still publish after its lock expired, waits for Sev.
+  - **Production `homeserver.pubky.app` runs v0.14.0 since 5 Oct** ([pubky/pubky-stack#338](https://github.com/pubky/pubky-stack/issues/338)), with the WebDAV locks rc59 and rc60 need. `/info` advertises `webdav-locks`.
+    - Locks work on the path-addressed `/storage/{user}/{path}` route. A write without the token on a locked path gets 423, and a stale token gets 412.
+    - The Shop, service, Paykit server and marketplace Nexus showed no breakage on it: sign-in (Ring and Bitkit grant), messaging, listings, logs.
+    - The Paykit port's production-homeserver gate is cleared, and the Bitkit team can retest lock-based flows on production.
+  - **Not in production yet:**
+    - the same-path 500 → 429 fix ([pubky/pubky-homeserver#662](https://github.com/pubky/pubky-homeserver/issues/662)) was merged after the v0.14.0 tag, so same-path races still return 500. The Shop already retries 429, 500 and 503 on every write; keep the 500 retry until it ships.
+    - The lock-gap fix ([pubky/pubky-homeserver#654](https://github.com/pubky/pubky-homeserver/issues/654)), where a write can still publish after its lock expired, is still open (Sev). Until it ships, nothing should rely on homeserver locks for exclusivity across a stalled write.
 - **Open tester issues:** [pubky-marketplace issues](https://github.com/BitcoinErrorLog/pubky-marketplace/issues).
 - **Known gaps,** detailed in launch plan §3 and §5:
   - **Permissions overwrite.** The two sites' cookie sign-ins overwrite each other's permissions. The stopgap: Ring sign-in requests both sites' scopes (D5, shipped in v0.6.45).
@@ -199,7 +204,7 @@ Each owning team assigns the people behind these roles: the Shop team its Shop l
 | pubky.app changes (menu links, grants) | pubky-app maintainers: [secondl1ght](https://github.com/secondl1ght), [infin1t3](https://github.com/infin1t3), [talosmachina](https://github.com/talosmachina) |
 | Nexus upstream | Chris (pubky-nexus maintainer) |
 | Homeserver behavior (429s, locks) | tomos (homeserver team); Sev for the lock-gap fix |
-| Production homeserver version (v0.14) | James |
+| Production homeserver deploys (v0.14.0 since 5 Oct; #662 and #654 next) | James |
 | Scoped keys in the SDK | Andrei |
 | Delegable grants, several bearers per grant, SDK | Pubky core ([pubky/pubky-core](https://github.com/pubky/pubky-core)); Marcos for the homeserver multi-bearer fix |
 | pubky.app grant migration ([#2614](https://github.com/pubky/pubky-app/issues/2614)) | vlada |
