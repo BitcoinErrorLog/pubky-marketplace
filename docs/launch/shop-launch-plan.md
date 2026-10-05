@@ -20,9 +20,9 @@ Where a row says "team to assign", the owning team names the person.
 | Mon 5 – Tue 6 Oct | Assign the Paykit port owner and decide which branch the port starts from (D10) | Paykit team — team to assign |
 | **Thu 8 Oct, 17:07 UTC** | GitHub and Railway write invites expire (Railway staging at 17:35 UTC) | Vlad accepts; the current maintainers resend if missed |
 | End of the week of 5 Oct, or the week after | Paykit launch (Ben, 2 Oct) | Paykit team |
-| Fri 9 Oct (day 5) | D6 test-listing deletion; denylist for listings whose keys aren't held | Marketplace backend team — team to assign; John restates D6 |
+| Fri 9 or Sat 10 Oct (day 4 or 5) | Denylist the remaining test listings; prepare a separate staging index | Nexus team — team to assign; every listing under our deletion control is already deleted |
 | Sun 11 or Mon 12 Oct (day 7) | Feature freeze; set the social-host variable on staging; QA the link-out | Shop team — team to assign; QA |
-| Mon 12 or Tue 13 Oct (day 8) | Production cutover to the new instances (if S); Nexus reindex | Vlad; marketplace backend team — team to assign |
+| Mon 12 or Tue 13 Oct (day 8) | Production cutover to the new instances (if S); Nexus reset and reindex | Vlad; Nexus team — team to assign |
 | Thu 15 Oct | Beta opens | All |
 
 ### What's frozen
@@ -271,12 +271,12 @@ pubky.app, homeserver, SDK, Paykit and signer changes belong to their teams. We 
 |---|---|---|
 | Infra access and the R-or-S decision (D8) | DevOps capacity answer due Tue 6 Oct; GitHub and Railway invites pending, expiring Thu 8 Oct 17:07 UTC. No write invite yet for [pubky-payment-rails](https://github.com/BitcoinErrorLog/pubky-payment-rails) (the Locks source, which production checkout depends on), `pubky-chat`, `pubky-app-specs` or `pubky-shop` | ops |
 | F4 Passport Google-login production proof | Shipped in v0.6.45; the proof is pending. Shop team — team to assign | XS |
-| [#67](https://github.com/BitcoinErrorLog/pubky-marketplace/issues/67) buyer inbox never loads, "Message seller" does nothing (v0.6.45) | No reply, unassigned. Shop team — team to assign; before the freeze | S |
+| [#67](https://github.com/BitcoinErrorLog/pubky-marketplace/issues/67) buyer inbox never loads, "Message seller" does nothing (v0.6.45) | Triaged: the mute-list 404s are expected; an untimed messaging status check is the likely blocker. Unassigned. Shop team — team to assign; before the freeze | S |
 | Chat Phase 0 fixes ([chat plan](https://github.com/BitcoinErrorLog/pubky-chat/blob/main/docs/chat-unification-plan.md)): P0-1 receive cap defers instead of consuming unread; P0-2 sign-out keeps the encrypted history | No issue or PR yet. Shop team — team to assign; security review | S each |
 | [#49](https://github.com/BitcoinErrorLog/pubky-marketplace/issues/49) Bitkit sign-up | Copy shipped in v0.6.45. The authorize failure is [bitkit-android#1398](https://github.com/synonymdev/bitkit-android/issues/1398) (Bitkit team); retest once Bitkit ships it | external |
 | P1 menu links | Ask the pubky-app team; not yet confirmed as asked | S |
-| D6 production test listings | 24 of 43 listings on the marketplace Nexus have test-style titles ([#69](https://github.com/BitcoinErrorLog/pubky-marketplace/issues/69), no reply). The decision record conflicts (30 Sep: "the other 16 stay"; 1 Oct D6: delete where keys are held), so D6 is restated in §9. Then one deletion pass where keys are held, and a listing denylist (3–4 h) for the rest; the Nexus fork's moderation doesn't cover listings. Marketplace backend team — team to assign; day 5 | S (ops) |
-| Nexus reset and full reindex, then the stale-listing dry run. On new instances, this is the cutover | At cutover (§7), day 8. A reindex brings back anything not deleted or denylisted | S (ops) |
+| Remaining production test listings | Every listing under our deletion control is deleted. Test-style listings whose source records we do not control remain ([#69](https://github.com/BitcoinErrorLog/pubky-marketplace/issues/69)). The Nexus team owns the denylist for those records and the separate staging index; day 4 or 5 | S (ops) |
+| Nexus reset and full reindex, then the stale-listing dry run. On new instances, this is the cutover | Nexus team, at cutover (§7), day 8. Apply the denylist first so the remaining source records do not return | S (ops) |
 | [#61](https://github.com/BitcoinErrorLog/pubky-marketplace/issues/61) address search 503 | Closed on GitHub 1 Oct; confirm the breaker no longer trips on Photon failures | S |
 | v0.6.46 ([#183](https://github.com/BitcoinErrorLog/pubky-app/issues/183), [#184](https://github.com/BitcoinErrorLog/pubky-app/issues/184), [#185](https://github.com/BitcoinErrorLog/pubky-app/issues/185), [#186](https://github.com/BitcoinErrorLog/pubky-app/issues/186)) | Merged, unreleased. Ship as a normal train with a team member shadowing (§9) | — |
 | [paykit-server#27](https://github.com/BitcoinErrorLog/paykit-server/issues/27) a buyer's request must never go to their own claim inbox | In review; merge on the fork and deploy | S |
@@ -326,14 +326,15 @@ Roles:
 
 - **Shop lead:** owns the release train.
 - **Shop dev**
-- **Backend dev:** Rust; owns the service and the Nexus fork.
+- **Backend dev:** Rust; owns the marketplace service.
+- **Nexus team:** owns the marketplace index, including test-listing policy, staging separation, reset and reindex.
 - **DevOps:** Synonym.
 - **QA:** Pav, Piotr.
 - **Designer**
 - **pubky.app maintainer**
 - **John:** product owner.
 
-Each owning team assigns the people behind these roles: the Shop team its Shop lead and Shop dev, the marketplace backend team its backend dev, the Paykit team the port owner (D10), and the operations team the beta-week on-call.
+Each owning team assigns the people behind these roles: the Shop team its Shop lead and Shop dev, the marketplace backend team its backend dev, the Nexus team its index owner, the Paykit team the port owner (D10), and the operations team the beta-week on-call.
 
 Day 0 was 1 Oct. Beta: Thu 15 Oct. Day numbers below follow the recommended anchor (day 1 = Tue 6 Oct, so day 10 = Thu 15 Oct); see the date note at the top of this document.
 
@@ -349,10 +350,10 @@ Day 0 was 1 Oct. Beta: Thu 15 Oct. Day numbers below follow the recommended anch
 | 2–5 | P1 menu links | pubky.app maintainer |
 | 1–7 | New instances on Synonym's cloud, production and staging (§7) | DevOps, Backend dev |
 | 3–8 | Design PRs through the train | Designer, Shop lead |
-| 5 | D6 test-listing deletion; decide what to do with listings whose keys we don't hold | Backend dev |
+| 4–5 | Apply the denylist for remaining test listings; prepare the separate staging index. Every listing under our deletion control is already deleted | Nexus team |
 | 1–9 | Paykit server port onto upstream (latest Paykit rc6x, matching Bitkit's pin), staging proof with rc6x Bitkit builds on Android and iOS, including request-delivery latency, then production on a fresh database with sellers reconnecting | Port owner, assigned by the Paykit team (D10). Until the cutover, deploys go through the current maintainers |
 | 7 | Feature freeze. Set the social-host variable on staging; QA the link-out | Shop lead, QA |
-| 8 | Cutover to new instances with clean databases; Nexus reindex; Shop runtime-config switch | DevOps, Backend dev |
+| 8 | Cutover to new instances with clean databases; Nexus reset and reindex; Shop runtime-config switch | DevOps, Nexus team |
 | 8–9 | Production QA. Cross-site matrix: Ring, Bitkit and Passport sign-in on each site; sign-out on each; Shop sign-in, then pubky.app Locks still works; pubky.app sign-in, then Shop degrade prompts appear; deep links both ways; the Passport no-messaging copy | QA |
 | 9 | Go/no-go; set the social-host variable on production | John, leads |
 | 10 | Beta opens; pubky.app ships P1 the same day | All |
@@ -398,7 +399,7 @@ There are two options:
 | Who deploys backend | The current maintainers. The dev team merges backend PRs; the current maintainers deploy staging then production | DevOps, from the repos' images, with their own manifests |
 | Dev team access | Shop (Vercel) only | What DevOps grants |
 | Work before the beta | None | Provision and cut over: L for DevOps, with backend-dev support |
-| Data | Kept | Clean databases at cutover, allowed by the pre-launch policy. Export the canary orders first. Sellers reconnect Paykit and Locks; Nexus reindexes. D6 deletions must happen first, or the reindex brings those listings back |
+| Data | Kept | Clean databases at cutover, allowed by the pre-launch policy. Export the canary orders first. Sellers reconnect Paykit and Locks; Nexus reindexes. Every listing under our deletion control is already deleted; the Nexus team's denylist must land first so the remaining source records do not return |
 | Nexus fork | Stays a bespoke service run by the current maintainers | DevOps runs two Nexus codebases. Freeze fork features until it is slimmed to a marketplace indexer |
 | Single point of failure | One Railway deployment, with the current maintainers as the only deployers | DevOps on-call |
 
@@ -406,7 +407,7 @@ There are two options:
 
 ### Transition plan for S
 
-1. **Days 1–2:** DevOps gets the inventory, image digests and resource use. The backend dev lists variable names only. New secrets are generated wherever possible; only secrets that can't be regenerated are transferred, through an agreed end-to-end-encrypted channel.
+1. **Days 1–2:** DevOps gets the inventory, image digests and resource use. The backend dev lists variable names only. The Nexus team defines the remaining-listing denylist and the separate staging index. New secrets are generated wherever possible; only secrets that can't be regenerated are transferred, through an agreed end-to-end-encrypted channel.
 2. **Days 2–5:** build production and staging sets. Each set has:
    - the service + Postgres;
    - Paykit (the ported rc6x build, one process, no deploy overlap) + Postgres;
@@ -439,7 +440,7 @@ There are two options:
 | Passport users expect messaging | Confusion | Clear refusal copy (F4) |
 | The pubky.app team can't take P1 in time | No entry point from pubky.app | The Shop launches on its own URL either way |
 | DevOps capacity for S | Cutover slips | Decide by day 2; R fallback |
-| Cutover reindex brings back test listings | Real users see "do not buy" listings | D6 before cutover; a denylist for listings whose keys we don't hold |
+| Cutover reindex brings back test listings | Real users see "do not buy" listings | Every listing under our deletion control is deleted; the Nexus team applies the denylist for the remaining source records before the reset and reindex |
 | Release and deploy steps not yet in the repos | The team can't release or deploy alone | `release.md` is in the Shop repo; backend deploy docs are listed in the [team brief](shop-team-brief.md) release table; a team member shadows v0.6.46 |
 | Bitkit authorize bug (bitkit-android#1398) | Bitkit sign-up can fail after a wipe | Copy fix; retest when Bitkit ships |
 
@@ -448,7 +449,6 @@ There are two options:
 ### Made 1 Oct
 
 - **D5:** the scope-union stopgap, with the `/priv/social` widening accepted.
-- **D6:** delete the 16 test listings with seat keys where held (restated as open in "Still open").
 - **Default branch:** switch to `release/shop-v0.6.8`.
 - **paykit-server#23:** review and merge on the fork. It was closed on 1 Oct without merging.
 - **#49:** Bitkit scanning the sign-up QR is supported.
@@ -469,17 +469,15 @@ Each has a recommendation unless noted:
    - Send the proposal on day 1. Ask core for SSO-H5 and H6 first, because they unblock pubky.app's #2614 and our own move to grants.
    - *Alternatives:* hold the beta until SSO lands, which is all outside the two weeks; or the Ring bundle, rejected in §3 because it isn't SSO for new apps, new scopes or lost sessions.
 2. **D4 New-user sign-up.** *Recommended:* keep the Shop's own sign-up, which covers Ring, Bitkit and, with F4, Passport. *Alternative:* send new users to pubky.app onboarding.
-3. **D6 restated, plus the denylist (John).** The record conflicts (30 Sep: "the other 16 stay"; 1 Oct: delete where keys are held), and 24 of 43 live listings now look like tests. *Recommended:* delete every listing whose keys are held, and denylist the rest in the Shop runtime config or the Nexus fork (3–4 h) before the reindex. *Alternative:* leave the ones without held keys.
-4. **D7 Staging (John).** *Recommended:* its own marketplace Nexus on the new instances. *Alternative:* keep sharing the production marketplace Nexus.
-5. **D8 Infra (John, on Vlad's 6 Oct answer).** *Recommended:* S, cutover on day 8. *Alternative:* R, the current maintainers keep deploying every backend change on the current Railway deployment through the beta.
-6. **D9 Paykit refusals and paykit-server#24 (John).** *Recommended:* post-launch, unless the beta promotes Bitcoin checkout or includes Android sellers. The port changes the refusal states (reconnect required, `reader_not_payable`, parked peer), so design the copy against the port, not the fork.
-7. **D10 Paykit server port: owner and starting branch (Paykit team).** The Paykit team assigns the owner and makes the technical decision on which branch the port starts from: a fresh port from upstream paykit-server `v0.1.0-rc8` on a fresh database (the plan in §5), or the merge-forward in [paykit-server#28](https://github.com/BitcoinErrorLog/paykit-server/issues/28) into the fork's `marketplace-rails` branch.
+3. **D8 Infra (John, on Vlad's 6 Oct answer).** *Recommended:* S, cutover on day 8. *Alternative:* R, the current maintainers keep deploying every backend change on the current Railway deployment through the beta.
+4. **D9 Paykit refusals and paykit-server#24 (John).** *Recommended:* post-launch, unless the beta promotes Bitcoin checkout or includes Android sellers. The port changes the refusal states (reconnect required, `reader_not_payable`, parked peer), so design the copy against the port, not the fork.
+5. **D10 Paykit server port: owner and starting branch (Paykit team).** The Paykit team assigns the owner and makes the technical decision on which branch the port starts from: a fresh port from upstream paykit-server `v0.1.0-rc8` on a fresh database (the plan in §5), or the merge-forward in [paykit-server#28](https://github.com/BitcoinErrorLog/paykit-server/issues/28) into the fork's `marketplace-rails` branch.
    - *Recommended:* decide by Tue 6 Oct. Hold #28 until a protocol design review checks it against the delegated-app rule: as written, its manual-claim path has the server generate and keep the seller's Paykit identity secret. #28 also has a failing PostgreSQL E2E check and no review yet.
    - Before more code, the design review answers how a browser-only seller authorizes Paykit without the server holding the identity secret.
-8. **Shop hosting for the beta (John).** *Recommended:* production stays on its current Vercel hosting through the beta, and the cutover only switches runtime config; DevOps builds a Cloud Run staging Shop; production moves after the beta.
-9. **Locks at cutover (John, with the backend dev).** *Recommended:* run the current fork image, pinned by digest, as separate production and staging instances, and switch to upstream Locks after the port.
-10. **Secrets handoff (John and Vlad).** *Recommended:* agree one end-to-end-encrypted channel and a regenerate-or-transfer list; regenerate everything except the pinned Locks key and secrets that can't be reissued.
-11. **Team test seats (John).** *Recommended:* mint new team test seats rather than handing over existing ones.
-12. **v0.6.46 (John).** *Recommended:* ship now as a normal train, with a team member shadowing.
-13. **Review rule on `release/shop-v0.6.8` (Shop team).** *Recommended:* an independent reviewer on every PR, plus a security review for auth, crypto, Paykit and messaging changes.
-14. **Date anchor (John).** *Recommended:* keep the beta on Thu 15 Oct and count day 1 as Tue 6 Oct.
+6. **Shop hosting for the beta (John).** *Recommended:* production stays on its current Vercel hosting through the beta, and the cutover only switches runtime config; DevOps builds a Cloud Run staging Shop; production moves after the beta.
+7. **Locks at cutover (John, with the backend dev).** *Recommended:* run the current fork image, pinned by digest, as separate production and staging instances, and switch to upstream Locks after the port.
+8. **Secrets handoff (John and Vlad).** *Recommended:* agree one end-to-end-encrypted channel and a regenerate-or-transfer list; regenerate everything except the pinned Locks key and secrets that can't be reissued.
+9. **Team test seats (John).** *Recommended:* mint new team test seats rather than handing over existing ones.
+10. **v0.6.46 (John).** *Recommended:* ship now as a normal train, with a team member shadowing.
+11. **Review rule on `release/shop-v0.6.8` (Shop team).** *Recommended:* an independent reviewer on every PR, plus a security review for auth, crypto, Paykit and messaging changes.
+12. **Date anchor (John).** *Recommended:* keep the beta on Thu 15 Oct and count day 1 as Tue 6 Oct.
