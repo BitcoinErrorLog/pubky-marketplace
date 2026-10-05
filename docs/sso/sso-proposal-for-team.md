@@ -47,10 +47,10 @@ A cookie session is set by the homeserver on its own host (`homeserver.pubky.app
 
 **Where things stand:**
 
-- pubky.app `main` still signs Ring users in with cookies (`signinCookie`, `startCookieAuthFlow`). Its grant migration is draft PR [pubky/pubky-app#2614](https://github.com/pubky/pubky-app/pull/2614), by vlada; §2.7 covers how it fits.
+- pubky.app `main` still signs Ring users in with cookies (`signinCookie`, `startCookieAuthFlow`). Its grant migration is draft PR [pubky/pubky-app#2614](https://github.com/pubky/pubky-app/issues/2614), by vlada; §2.7 covers how it fits.
 - The Shop signs Ring users in with cookies too. It uses grants only for Bitkit (and, in the beta, Passport).
 - **Released Ring supports cookie auth only.**
-  - Ring's grant auth is merged ([pubky/pubky-ring#360](https://github.com/pubky/pubky-ring/pull/360), 3 Sep).
+  - Ring's grant auth is merged ([pubky/pubky-ring#360](https://github.com/pubky/pubky-ring/issues/360), 3 Sep).
   - It isn't in the latest release, [v1.19](https://github.com/pubky/pubky-ring/releases/tag/v1.19) (4 Sep), and is still to be released.
   - Ring itself works as designed. The problems below come from the shared cookie and from the messaging library.
 
@@ -69,7 +69,7 @@ The result:
 - **Signing in on pubky.app strips the Shop's Paykit and `/priv` access.** The Shop then shows re-approval prompts.
 - **Signing out of either site ends the session for both.**
 
-The earlier cookie bridge ([pubky/pubky-app#2484](https://github.com/pubky/pubky-app/pull/2484)) passed this shared cookie between sites. It is switched off in both live Shop builds.
+The earlier cookie bridge ([pubky/pubky-app#2484](https://github.com/pubky/pubky-app/issues/2484)) passed this shared cookie between sites. It is switched off in both live Shop builds.
 
 ### 1.3 Passport and Bitkit users have no messaging
 
@@ -116,7 +116,7 @@ Upstream [pubky/paykit-rs](https://github.com/pubky/paykit-rs) is on pubky 0.12 
 **Where this stands (Ben, 2 Oct):**
 
 - Upstream Paykit shares state across all of an identity's apps by design, so narrowing the scope to one folder can't isolate an app. Scope narrowing is dropped.
-- Upstream signs the Noise key with the identity key in [pubky/paykit-rs#169](https://github.com/pubky/paykit-rs/pull/169), which closes the swap for Paykit's own links. The handshake gap we raised is closed too (3 Oct): Ben's commits `4eda7102` and `73345917` check the peer's static key against the signed key before any transport use, on handshake completion and on restore. A mismatch fails into recovery-required, and substitution tests cover both roles and restored links.
+- Upstream signs the Noise key with the identity key in [pubky/paykit-rs#169](https://github.com/pubky/paykit-rs/issues/169), which closes the swap for Paykit's own links. The handshake gap we raised is closed too (3 Oct): Ben's commits `4eda7102` and `73345917` check the peer's static key against the signed key before any transport use, on handshake completion and on restore. A mismatch fails into recovery-required, and substitution tests cover both roles and restored links.
 - The Shop's own unsigned marker stays on the frozen messaging stack until E1. The Shop then drops `/pub/paykit/:rw`.
 
 ### 1.7 Services need a second sign-in
@@ -216,7 +216,7 @@ The original auth spec ([`docs/AUTH.md`](https://github.com/pubky/pubky-core/blo
 
 | Alternative | Why it is worse |
 |---|---|
-| **Cookie bridge** ([#2484](https://github.com/pubky/pubky-app/pull/2484)), or lending `*.pubky.app` hostnames | <ul><li>Keeps the ambient, shared cookie: every site rides one scope set, and the last sign-in wins.</li><li>Off-domain apps break on Safari.</li><li>It is deprecated.</li><li>Script injected on any participating site can act with the shared session.</li></ul> |
+| **Cookie bridge** ([#2484](https://github.com/pubky/pubky-app/issues/2484)), or lending `*.pubky.app` hostnames | <ul><li>Keeps the ambient, shared cookie: every site rides one scope set, and the last sign-in wins.</li><li>Off-domain apps break on Safari.</li><li>It is deprecated.</li><li>Script injected on any participating site can act with the shared session.</li></ul> |
 | **Ring bundle:** one approval issues grants to several apps at sign-in | <ul><li>Only covers apps that are present and coordinated at sign-in. Each app must host a companion frame for every other app, and third-party frames are partitioned.</li><li>A new app, a new scope or a lost session goes back to the signer.</li><li>It is consent to several apps at once, not single sign-on.</li><li>Its only advantage is no homeserver change.</li></ul> |
 | **Ring auto-approve**, or remembered consent in Ring | <ul><li>Ring can't tell which website showed a QR, and `client_id` is self-declared.</li><li>A phishing page claiming `shop.pubky.app` would get a silent grant.</li><li>Ring's existing auto-auth is a developer setting, not this.</li></ul> |
 | **A user session at the homeserver** that issues per-app grants | <ul><li>The homeserver is cross-origin to every app, so that session is a cookie again, or partitioned storage.</li><li>It doesn't carry to mirrors.</li><li>It makes the storage provider an identity provider.</li><li>A variant where the homeserver *records* a child at the agent's request is an acceptable way to implement this proposal (question Q1).</li></ul> |
@@ -237,7 +237,7 @@ The original auth spec ([`docs/AUTH.md`](https://github.com/pubky/pubky-core/blo
 3. Tab A's next write gets a 401, although the grant is still valid.
 4. If tab A restores again, it kills bearer B, and the two tabs keep invalidating each other.
 
-Every grant-only web app hits this. That includes pubky.app under [#2614](https://github.com/pubky/pubky-app/pull/2614), the Shop, and every app the agent signs in.
+Every grant-only web app hits this. That includes pubky.app under [#2614](https://github.com/pubky/pubky-app/issues/2614), the Shop, and every app the agent signs in.
 
 **Recommended fix (H5): the homeserver keeps several live bearers per grant.**
 
@@ -261,7 +261,7 @@ According to #2614, the homeserver team has already confirmed the limitation and
 
 ### 2.7 How pubky.app's migration fits (#2614)
 
-**[#2614](https://github.com/pubky/pubky-app/pull/2614) is pubky.app's half of moving off cookies, and this proposal builds on it.**
+**[#2614](https://github.com/pubky/pubky-app/issues/2614) is pubky.app's half of moving off cookies, and this proposal builds on it.**
 
 | #2614 does | Fit with this proposal |
 |---|---|
@@ -298,7 +298,7 @@ According to #2614, the homeserver team has already confirmed the limitation and
 
 **Revocation.**
 
-- The agent grant appears in Ring's grant list ([#369](https://github.com/pubky/pubky-ring/pull/369)) as one entry, for example "Passport · Chrome on macOS", with the apps it signed in nested under it.
+- The agent grant appears in Ring's grant list ([#369](https://github.com/pubky/pubky-ring/issues/369)) as one entry, for example "Passport · Chrome on macOS", with the apps it signed in nested under it.
 - Revoking the entry revokes the agent grant. The homeserver then revokes every child grant, and those apps are signed out on their next request.
 - Each child can also be revoked on its own.
 
@@ -339,7 +339,7 @@ The exact format depends on core's answer to Q1.
 | Phase | What ships | Depends on |
 |---|---|---|
 | **0. Beta stopgaps** (being built now) | Ring sign-in requests both sites' scopes; Passport sign-in on the Shop; honest sign-out copy. See §3.2 | Nothing upstream |
-| **1a. Grants per app** | <ul><li>Several bearers per grant and no cookie fallback (H5, H6).</li><li>Ring grant-auth release (R0).</li><li>pubky.app's [#2614](https://github.com/pubky/pubky-app/pull/2614) ships (A1), with one Ring approval per app per browser and no scope overwriting.</li></ul> | Q3; R0 |
+| **1a. Grants per app** | <ul><li>Several bearers per grant and no cookie fallback (H5, H6).</li><li>Ring grant-auth release (R0).</li><li>pubky.app's [#2614](https://github.com/pubky/pubky-app/issues/2614) ships (A1), with one Ring approval per app per browser and no scope overwriting.</li></ul> | Q3; R0 |
 | **1b. Foundations** | <ul><li>Delegable grants in the homeserver and SDK (H1, K1).</li><li>The agent protocol spec (K3).</li><li>SDK gaps (K4).</li><li>Scoped keys in the SDK, delivered beside the grant (K6; in progress).</li></ul> | Answers to Q1, Q2, Q4, Q5 |
 | **2. Signers and agent** | <ul><li>Passport as account agent, with a Ring-linked mode (P1, P2).</li><li>Ring and Bitkit consent and session screens (R1, R2, B1).</li></ul> | H1, K1, K3; R0 for the Ring items |
 | **3. Apps and services** | <ul><li>pubky.app (A2) and the Shop (F1) sign in through the agent with grants only.</li><li>Shop messaging on the shared pubky-chat library (E1).</li><li>The marketplace service and Lock Server accept the app's grant (F3).</li></ul> | Phase 2; pubky-chat Phase 2 for E1; H3 for F3 |
@@ -402,9 +402,9 @@ None of them depends on Ring's grant auth being released. The Ring stopgap is a 
 
 | # | Change | Size | Depends on |
 |---|---|---|---|
-| R0 | **Release grant auth**, already merged in [#360](https://github.com/pubky/pubky-ring/pull/360). Every Ring user's move off cookies depends on it (F1 for Ring users, A1), and so do R1 and R2. **In progress:** the release process has started | S | — |
+| R0 | **Release grant auth**, already merged in [#360](https://github.com/pubky/pubky-ring/issues/360). Every Ring user's move off cookies depends on it (F1 for Ring users, A1), and so do R1 and R2. **In progress:** the release process has started | S | — |
 | R1 | Ring consent: <ul><li>show `client_id`, marked "unverified" for QR requests, and the scopes in plain words. **Agreed** by the Ring team;</li><li>a distinct agent-grant screen showing the ceiling and expiry (§2.8);</li><li>a separate "can decrypt" consent line when a request asks for scoped keys (§2.9);</li><li>the developer-only auto-auth never applies to it and can't ship reachable in release builds.</li></ul> | M | K1 for the agent screen; K6 for keys |
-| R2 | Ring sessions screen: list grants with per-grant revoke. **Exists** as draft [pubky-ring#369](https://github.com/pubky/pubky-ring/pull/369) ("Authorized Apps"), waiting on [pubky-core-ffi#37](https://github.com/pubky/pubky-core-ffi/pull/37), [react-native-pubky#42](https://github.com/pubky/react-native-pubky/pull/42), [#43](https://github.com/pubky/react-native-pubky/pull/43) and the next react-native-pubky release. After H1: group by browser, and revoke a whole browser | S after #369 | #369's dependencies; H1 for grouping |
+| R2 | Ring sessions screen: list grants with per-grant revoke. **Exists** as draft [pubky-ring#369](https://github.com/pubky/pubky-ring/issues/369) ("Authorized Apps"), waiting on [pubky-core-ffi#37](https://github.com/pubky/pubky-core-ffi/issues/37), [react-native-pubky#42](https://github.com/pubky/react-native-pubky/issues/42), [#43](https://github.com/pubky/react-native-pubky/issues/43) and the next react-native-pubky release. After H1: group by browser, and revoke a whole browser | S after #369 | #369's dependencies; H1 for grouping |
 | B1 | Bitkit: R1's consent changes, plus scoped-key derivation and delivery, on [bitkit-android](https://github.com/synonymdev/bitkit-android) and [bitkit-ios](https://github.com/synonymdev/bitkit-ios) | S–M | K1; K6 for keys |
 
 **Paykit** ([pubky/paykit-rs](https://github.com/pubky/paykit-rs)): answered by Ben on 2 Oct (Q10)
@@ -413,7 +413,7 @@ None of them depends on Ring's grant auth being released. The Ring stopgap is a 
 |---|---|---|
 | ~~Y1~~ | A storage interface in `paykit-lib` | **Withdrawn.** Messaging moves to pubky-chat (E1), so nothing needs it |
 | ~~Y2~~ | WASM package of `paykit-sdk` | **Withdrawn.** Paykit plans none, and browser payments need only a public read |
-| Y3 | Signed Noise key | **Taken upstream** as [#169](https://github.com/pubky/paykit-rs/pull/169), signed by the identity key and verified on every link operation, including the handshake's static key on completion and restore (gap closed 3 Oct) |
+| Y3 | Signed Noise key | **Taken upstream** as [#169](https://github.com/pubky/paykit-rs/issues/169), signed by the identity key and verified on every link operation, including the handshake's static key on completion and restore (gap closed 3 Oct) |
 
 A custom-message API is not needed either, and scope narrowing is dropped because Paykit state is shared per identity by design.
 
@@ -421,7 +421,7 @@ A custom-message API is not needed either, and scope narrowing is dropped becaus
 
 | # | Change | Size | Depends on |
 |---|---|---|---|
-| A1 | **[#2614](https://github.com/pubky/pubky-app/pull/2614) (vlada, draft):** <ul><li>New logins get per-app grants signed directly by Ring.</li><li>Legacy cookies keep restoring.</li><li>Sign-out revokes pubky.app's own grant.</li><li>Locks step-up.</li><li>Client id set to the origin host.</li></ul> | M (in review) | H5, H6, R0 |
+| A1 | **[#2614](https://github.com/pubky/pubky-app/issues/2614) (vlada, draft):** <ul><li>New logins get per-app grants signed directly by Ring.</li><li>Legacy cookies keep restoring.</li><li>Sign-out revokes pubky.app's own grant.</li><li>Locks step-up.</li><li>Client id set to the origin host.</li></ul> | M (in review) | H5, H6, R0 |
 | A2 | Get the grant from the agent instead of directly from Ring. Lock Server sign-in moves to the grant. Recovery-phrase and file logins move to Passport | S–M | P1, A1 |
 
 **Shop and our services** (BitcoinErrorLog): we own these
@@ -455,7 +455,7 @@ The beta opens about **15 Oct**. After that, each phase starts when its dependen
 |---|---|
 | **E1** | All users get messaging on their own grant session, and the Shop drops `/pub/paykit/:rw`. That ends the cross-app marker exposure and lets the Shop drop cookies for Ring |
 | **K6** | Apps encrypt `/priv` data under keys the operator never sees. It needs signer support, not delegation |
-| **A1 ([#2614](https://github.com/pubky/pubky-app/pull/2614)) with H5, H6 and R0** | pubky.app on grants: no cookie overwriting from pubky.app's side, and its sign-out signs out pubky.app only. It needs only the two small homeserver fixes and the Ring release, not H1 |
+| **A1 ([#2614](https://github.com/pubky/pubky-app/issues/2614)) with H5, H6 and R0** | pubky.app on grants: no cookie overwriting from pubky.app's side, and its sign-out signs out pubky.app only. It needs only the two small homeserver fixes and the Ring release, not H1 |
 | **F1 without the agent** | The Shop uses grant sessions for every signer, one approval per app per browser. No more scope overwriting, and sign-out stops being shared. **For Ring users this needs R0** (the Ring grant-auth release) as well as E1, so they keep messaging |
 | **P1 for Passport-key users** | Passport already holds their key, so it can sign per-app grants directly, with full SSO and origin-verified client ids, and no protocol change |
 | **R1 and R2** | Showing `client_id` and scopes (agreed) reduces phishing now. The grant list in #369 gives users per-app revoke |
@@ -481,16 +481,16 @@ The beta opens about **15 Oct**. After that, each phase starts when its dependen
    - Which revocation check should services use: an introspection endpoint, a re-check interval, or a public status lookup?
 5. **`client_id` (gates K3, R1).** Will core define `client_id` as the verified web origin (or verified app-link domain) and add a field marking it verified? What should a signer display when it isn't verified?
 6. **Lifetimes.** Is the SDK's 2-year default grant lifetime intended? Should the homeserver enforce a shorter maximum for agent grants, and if so, how long?
-7. **Grant management (gates R2).** Ring's grant list ([#369](https://github.com/pubky/pubky-ring/pull/369)) waits on [pubky-core-ffi#37](https://github.com/pubky/pubky-core-ffi/pull/37) and react-native-pubky [#42](https://github.com/pubky/react-native-pubky/pull/42) and [#43](https://github.com/pubky/react-native-pubky/pull/43). When will those release? Is a revoke-all endpoint planned?
+7. **Grant management (gates R2).** Ring's grant list ([#369](https://github.com/pubky/pubky-ring/issues/369)) waits on [pubky-core-ffi#37](https://github.com/pubky/pubky-core-ffi/issues/37) and react-native-pubky [#42](https://github.com/pubky/react-native-pubky/issues/42) and [#43](https://github.com/pubky/react-native-pubky/issues/43). When will those release? Is a revoke-all endpoint planned?
 8. **Ring auto-auth.** *Answered by the Ring team:* it is a developer setting, off by default. Remaining ask: keep it unreachable in release builds, and never apply it to agent grants.
 9. **Passport as the agent (gates P1, P2).** Will the Passport team own the account-agent role, including a mode that holds an agent grant instead of the user's root key?
 10. **Paykit (gates Y1–Y3).** *Answered by Ben, 2 Oct:*
     - No storage interface, WASM package or custom-message API. Y1 and Y2 are withdrawn.
     - State is shared across an identity's apps by design, so there is no per-app inbox to choose.
-    - Signed Noise keys are [#169](https://github.com/pubky/paykit-rs/pull/169).
+    - Signed Noise keys are [#169](https://github.com/pubky/paykit-rs/issues/169).
     - Messaging moves to pubky-chat, where one conversation spans every app.
     - The handshake static-key check we asked for landed in `4eda7102` and `73345917` (3 Oct). Nothing remains asked of Paykit for SSO.
-    - rc60 release depends on [pubky-noise#39](https://github.com/pubky/pubky-noise/pull/39) (rc12).
+    - It shipped in the Paykit rc60–rc62 prereleases (3 Oct). rc60 pins pubky-noise at revision `42e00f22`, so [pubky-noise#39](https://github.com/pubky/pubky-noise/issues/39) no longer gates it.
 11. **Scoped keys (K6).** *Answered by Andrei, 2 Oct;* the answers are in §2.9.
 
 ---
@@ -500,7 +500,7 @@ The beta opens about **15 Oct**. After that, each phase starts when its dependen
 **Pubky core:**
 
 - **By the beta (about 15 Oct):** answers to Q1–Q7.
-- **First:** H5 and H6, which unblock pubky.app's [#2614](https://github.com/pubky/pubky-app/pull/2614) now. Please answer Q3 first.
+- **First:** H5 and H6, which unblock pubky.app's [#2614](https://github.com/pubky/pubky-app/issues/2614) now. Please answer Q3 first.
 - **Then:** own H1, K1, K3 (with Passport) and K4, then H3, and H2 if wanted. H1 and K1 are the critical path to SSO.
 - **Last:** H4, once clients have moved.
 
@@ -517,13 +517,13 @@ No Passport change is needed for the beta stopgap (Passport sign-in on the Shop)
 
 - R0 grant-auth release: in progress.
 - R1 origin and scopes on the approval screen: agreed.
-- R2 grant list and revoke: exists as [#369](https://github.com/pubky/pubky-ring/pull/369).
+- R2 grant list and revoke: exists as [#369](https://github.com/pubky/pubky-ring/issues/369).
 - Q8 auto-auth: developer-only.
 - Agent grant: Ring asked for detail, which is in §2.8.
 
 **Remaining asks:**
 
-- **Now:** ship R0. Add the client id and plain-word scopes to the approval screen (R1). Land [#369](https://github.com/pubky/pubky-ring/pull/369) when its FFI and react-native-pubky dependencies release. Keep auto-auth out of reach in release builds.
+- **Now:** ship R0. Add the client id and plain-word scopes to the approval screen (R1). Land [#369](https://github.com/pubky/pubky-ring/issues/369) when its FFI and react-native-pubky dependencies release. Keep auto-auth out of reach in release builds.
 - **When K1's request format is fixed:** the agent-grant screen (§2.8).
 - **When H1 lands:** group #369's list by browser, and add revoke-browser.
 
@@ -535,14 +535,14 @@ No Passport change is needed for the beta stopgap (Passport sign-in on the Shop)
 **Paykit:**
 
 - Q10 is answered, and Y1 and Y2 are withdrawn.
-- No remaining ask. [#169](https://github.com/pubky/paykit-rs/pull/169) now checks the handshake's static key against the signed key, with substitution tests (3 Oct). Its release waits on [pubky-noise#39](https://github.com/pubky/pubky-noise/pull/39).
+- No remaining ask. [#169](https://github.com/pubky/paykit-rs/issues/169) now checks the handshake's static key against the signed key, with substitution tests (3 Oct). It shipped in the Paykit rc60–rc62 prereleases (3 Oct).
 
 **pubky.app:**
 
-- **Now, A1 = [#2614](https://github.com/pubky/pubky-app/pull/2614):**
+- **Now, A1 = [#2614](https://github.com/pubky/pubky-app/issues/2614):**
   - Set `PUBKY_RUNTIME_AUTH_CLIENT_ID` to the origin host.
   - Keep its release gates; they are H5, H6 and R0.
-  - Tell us the final Locks paths. The Shop's beta scope union uses the 1.12.0 cookie string ([#2719](https://github.com/pubky/pubky-app/pull/2719)) and will follow `/priv/locks.app/` if that ships.
+  - Tell us the final Locks paths. The Shop's beta scope union uses the 1.12.0 cookie string ([#2719](https://github.com/pubky/pubky-app/issues/2719)) and will follow `/priv/locks.app/` if that ships.
   - We're glad to review #2614.
 - **When P1 is on staging:** A2. Get the grant from the agent, and move recovery-phrase and file logins to Passport.
 
