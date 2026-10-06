@@ -3,6 +3,7 @@ name: Marketplace VRT
 on:
   pull_request:
     branches:
+      - master
       - 'release/shop-*'
 
 concurrency:

@@ -5,6 +5,11 @@ on:
     branches:
       - master
       - dev
+    # Not a required check, so a trigger path filter cannot leave one Pending.
+    paths-ignore:
+      - 'docs/**'
+      - 'payments-env/**'
+      - '**/*.md'
   workflow_dispatch:
 
 jobs:
