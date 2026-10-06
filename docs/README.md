@@ -20,6 +20,6 @@ Handoff readiness lives in these two docs; start with the team brief.
 
 ## How to comment
 
-- **Questions, objections or answers to an open question:** [open an issue](https://github.com/BitcoinErrorLog/pubky-marketplace/issues/new). Name the doc and section in the title, for example "SSO proposal §4 Q3: one bearer per grant".
+- **Questions, objections or answers to an open question:** [open an issue](https://github.com/pubky/pubky-marketplace/issues/new). Name the doc and section in the title, for example "SSO proposal §4 Q3: one bearer per grant".
 - **Line-level comments:** open a pull request against `master` that edits the doc, or comment on lines in any open PR touching it.
 - **Corrections and edits:** send a pull request with the change. Keep links between these docs relative so they work on GitHub and in clones.

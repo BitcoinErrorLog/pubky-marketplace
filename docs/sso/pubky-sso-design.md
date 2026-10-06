@@ -179,7 +179,7 @@ Identity is the user's key. Authorization is a grant: a statement signed by that
 
 ### Messaging
 
-- **Messaging moves to the shared pubky-chat library on MLS** ([chat plan](https://github.com/BitcoinErrorLog/pubky-chat/blob/main/docs/chat-unification-plan.md)). The Shop adopts it in E1. Paykit keeps Encrypted Links for payments.
+- **Messaging moves to the shared pubky-chat library on MLS** ([chat plan](https://github.com/pubky/pubky-chat/blob/main/docs/chat-unification-plan.md)). The Shop adopts it in E1. Paykit keeps Encrypted Links for payments.
 - **The library borrows the host app's grant session.** It never restores, refreshes or signs it out, because a library that restores the app's grant itself evicts the app's bearer (the one-bearer-per-grant rule).
 - **"Messaging only works with cookie sessions" is not a protocol constraint.** The cookie was the one credential a separately compiled WASM module on pubky 0.8 could reach.
 - **Until E1, Shop messaging stays on Ring cookie sessions.** E1 is what brings messaging to Passport and Bitkit users.
@@ -314,7 +314,7 @@ Sizes describe technical scope, not time:
 | A1 | pubky/pubky-app | **[#2614](https://github.com/pubky/pubky-app/issues/2614) (vlada):** <ul><li>New logins get per-app grants signed directly by Ring.</li><li>Legacy cookies keep restoring until they expire.</li><li>Sign-out revokes pubky.app's own grant.</li><li>Locks step-up.</li><li>Client id set to the origin host.</li></ul> Release gates: H5, H6, R0 | pubky-app maintainers | M (in review) |
 | A2 | pubky/pubky-app | Get the grant from the agent instead of directly from Ring. Lock Server sign-in moves to the grant. Recovery-phrase and file logins move to Passport | pubky-app maintainers | S–M |
 | F1 | BitcoinErrorLog/pubky-app (Shop) | One sign-in path through the agent for every signer. Delete the cookie path, the session bridge (`src/libs/vibe-session/*`), the `AuthToken` dual post, the scope union and the Bitkit-only branch, after a workspace-wide dead-code check | us | M |
-| E1 | BitcoinErrorLog/pubky-app (Shop) | Replaces F2. Shop messaging moves to the shared pubky-chat library (MLS) on the app's own grant session; see the [chat plan](https://github.com/BitcoinErrorLog/pubky-chat/blob/main/docs/chat-unification-plan.md). Retire the vendored `paykit-wasm` | us | L |
+| E1 | BitcoinErrorLog/pubky-app (Shop) | Replaces F2. Shop messaging moves to the shared pubky-chat library (MLS) on the app's own grant session; see the [chat plan](https://github.com/pubky/pubky-chat/blob/main/docs/chat-unification-plan.md). Retire the vendored `paykit-wasm` | us | L |
 | F3 | BitcoinErrorLog marketplace service and Lock Server fork | Accept the Shop's grant plus a PoP addressed to the service, requiring the service's capability. Remove the `AuthToken` route | us | M |
 | F4 | BitcoinErrorLog/paykit-rs-official | Retire `paykit-wasm` after E1 | us | S |
 

@@ -28,7 +28,7 @@ Two products touch Bitkit. They use different seams.
   invoice observation + **Bitkit iOS as the buyer wallet**. Proven live on
   2026-08-22: seller companion claim, in-app Payment Request, swipe-to-pay,
   on-chain confirmation. Written up in
-  `BitcoinErrorLog/pubky-payment-rails` `docs/wallet-leg.md` (local
+  `pubky/pubky-payment-rails` `docs/wallet-leg.md` (local
   checkout, HEAD
   `a4d70c893c0e89597a31a6c7b65536a7fed9633a`, same as `origin/master`). That
   revision corrected the reader-demo framing (mirror-coupling: the demo
@@ -50,7 +50,7 @@ why the rails looked green before a real wallet was tried.
 | Android (read, not used for the wallet leg) | `synonymdev/bitkit-android` | checked at `efc9bcd655b07209dd53106f3b1fdfdb34f3180c` (2026-07-30); current `origin/master` is `9182771b18eb594bd634e8018e3d505bc7389fa2` (2026-08-31) | At `efc9bcd65` there was no `x-bitkit-claim` / incoming Payment Request presentation in `app/src/main`. Current master implements both (§3.1). We have not run either Android path. |
 | bitkit-core (read) | `synonymdev/bitkit-core` | checked at `7e9849873a4f2600ef1c7fcfa0953c914d54f0f5` (2026-07-30); current `origin/master` is `5028865cb8a8946e57933d6e72ff767492932bc2` (2026-08-28) | `src/modules/pubky` is **upstream** (`25ced3b3ab070bc187c629e163327bc5d8d040bf`, 2026-03-04). We did not add it. `AGENTS.md` lists the module; `CLAUDE.md` is a symlink to `AGENTS.md`. |
 | Paykit Server (deployed) | `BitcoinErrorLog/paykit-server` | branch `marketplace-rails`; **deployed** `98f7c2251e5eabf1d7b14704dcdababf25499c53` | Fork of `pubky/paykit-server` @ `f38c7915e6b9b104e040773e78438f8aa984c46c` (“Initial public release”). Wallet-interop fixes exist because Bitkit rejected that revision's material (§2). Branch HEAD is one docs commit later (`651d428d74c94e6fa05579c126a6f564a3cc27c9`); staging is pinned at `98f7c22`. Verified in a local clone of the fork. |
-| Staging rails | `BitcoinErrorLog/pubky-payment-rails` | Railway `pubky-marketplace-staging`; docs HEAD `a4d70c8` | Lock Server + paykit-server + regtest bitcoind + Fulcrum. |
+| Staging rails | `pubky/pubky-payment-rails` | Railway `pubky-marketplace-staging`; docs HEAD `a4d70c8` | Lock Server + paykit-server + regtest bitcoind + Fulcrum. |
 | Hypercolor | `BitcoinErrorLog/hypercolor` | local checkout, HEAD `46b65dbcc289a425c607eb698c8fb62aa1cd6902` (= `origin/main`) | Chat app. Handoff at `src/services/payments/walletHandoff.ts`. |
 | RN Bitkit (unused) | `BitcoinErrorLog/bitkit` | local checkout, HEAD `4c967f7af8a9368eece05ee87202fe40f32cd755` (= `origin/master`, 2025-11-27) | Stale production-app fork. Marketplace and Hypercolor do not run it. The working tree shows mass mode-churn (exFAT) and a rewritten README; HEAD still matches remote master. Substantive claim unchanged. |
 
@@ -189,7 +189,7 @@ expiry when `requiresActionableRequest` is false; incoming
 ## 3. Bitkit iOS behavior observed on the live wallet leg
 
 Source unless noted: `docs/wallet-leg.md` in
-`BitcoinErrorLog/pubky-payment-rails` at `a4d70c8`, plus the synonymdev
+`pubky/pubky-payment-rails` at `a4d70c8`, plus the synonymdev
 tree at `9b51fac3`, with current-master notes where the code moved.
 
 ### 3.1 Companion claim (seller): PASS on iOS; Android code exists, unrun
