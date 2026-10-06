@@ -732,7 +732,7 @@ function SellerBitcoinConfirmationReview({
   error: string | null;
   onConfirm: () => void;
 }) {
-  const nowMs = useNowMs(Boolean(deadline));
+  const nowMs = useNowMs(formatOrderInstant(deadline) !== null);
   const countdown = holdCountdownCopy(deadline, nowMs);
   return (
     <section

@@ -104,10 +104,12 @@ const CONFIRMED_SELLER_DEADLINE = `${PAYMENT_CONFIRMED_ON_CHAIN_COPY} ${SELLER_C
 /**
  * Buyer-visible Bitcoin states. A confirmation exists when the payment records
  * at least one confirmation or, before the order is paid, the request is
- * `confirmed`: there `paykitRequestState: confirmed` is the service's
- * confirmed observation, including the canary whose `payment.confirmations`
- * stayed 0. A paid order follows {@link bitcoinPaidConfirmation}. A manual
- * review that has none of those says the payment was received, not confirmed.
+ * `confirmed`. That request state is usually Paykit's confirmed observation,
+ * including the canary whose `payment.confirmations` stayed 0, but the
+ * 24-hour seller-window reaper also sets it with no chain fact, so
+ * `review-confirmed-request` can overstate the chain. A paid order follows
+ * {@link bitcoinPaidConfirmation}. A manual review that has none of those
+ * says the payment was received, not confirmed.
  */
 export const BITCOIN_BUYER_STATUS_TABLE: readonly BitcoinBuyerStatusRow[] = [
   {

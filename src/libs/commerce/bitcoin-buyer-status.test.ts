@@ -159,10 +159,13 @@ describe('bitcoin buyer status', () => {
       },
     );
 
-    it('does not count a resolved review without a chain reason as on-chain', () => {
-      const payment = { state: 'confirmed', confirmations: 0, reviewReason: null, resolutionOutcome: 'paid' };
-      expect(bitcoinPaidConfirmation(paidOrder, payment)).toEqual({ sellerConfirmed: true, onChain: false });
-    });
+    it.each([null, 'unpinned_legacy', 'refund_required'] as const)(
+      'does not count a resolved review with reason %s as on-chain',
+      (reviewReason) => {
+        const payment = { state: 'confirmed', confirmations: 0, reviewReason, resolutionOutcome: 'paid' };
+        expect(bitcoinPaidConfirmation(paidOrder, payment)).toEqual({ sellerConfirmed: true, onChain: false });
+      },
+    );
 
     it('credits the chain, not the seller, for late money that completed the order', () => {
       const late = { ...paidOrder, cancellationReason: 'payment window elapsed' };
