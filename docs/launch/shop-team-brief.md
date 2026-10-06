@@ -18,7 +18,7 @@ The web client is a fork of the Pubky social app ([pubky/pubky-app](https://gith
 
 | Repo | What | Branch for work | Deploys to |
 |---|---|---|---|
-| [BitcoinErrorLog/pubky-app](https://github.com/BitcoinErrorLog/pubky-app) | Shop web client (Next.js 16, SDK `@synonymdev/pubky` 0.11) | `release/shop-v0.6.8`, the long-lived release line despite the name. It is the repo default | Vercel production project → shop.pubky.app; Vercel staging project → a generated Vercel staging host |
+| [pubky/pubky-marketplace](https://github.com/pubky/pubky-marketplace) (this repo) | Shop web client (Next.js 16, SDK `@synonymdev/pubky` 0.11), these docs, tester issues | `master`, the release line and repo default. Releases up to `shop-v0.6.46` were cut from `release/shop-v0.6.8` in the fork `BitcoinErrorLog/pubky-app`, which is frozen for Shop work from 6 Oct; its history and tags are here | Vercel production project → shop.pubky.app; Vercel staging project → a generated Vercel staging host |
 | [pubky/pubky-marketplace-service](https://github.com/pubky/pubky-marketplace-service) | Transaction service (Rust, sqlx, Postgres) | `main` | Railway, via a GHCR image pinned in `.railway/railway.ts`; staging at `staging-api.pubky.app` |
 | [BitcoinErrorLog/pubky-nexus](https://github.com/BitcoinErrorLog/pubky-nexus) | Marketplace indexer (Nexus fork) | `main` | Railway, marketplace Nexus project; see `docs/railway-deploy.md` |
 | [BitcoinErrorLog/paykit-server](https://github.com/BitcoinErrorLog/paykit-server) | Paykit server (fork, rc55). Being ported onto upstream, on the latest Paykit rc6x, before the beta (launch plan §5); the port runs as exactly one process | `master` | Railway; production host `paykit-shop.pubky.app` |
@@ -36,29 +36,29 @@ The full inventory is in launch plan §7.
 ## Run it locally
 
 ```bash
-git clone -b release/shop-v0.6.8 https://github.com/BitcoinErrorLog/pubky-app.git && cd pubky-app
+git clone https://github.com/pubky/pubky-marketplace.git && cd pubky-marketplace
 HUSKY=0 npm ci           # HUSKY=0 keeps husky from overriding your git hooks
 npm run marketplace:dev  # terminal 1: in-memory sandbox service on :3100
 PUBKY_RUNTIME_COMMERCE_ADAPTER_MODE=sandbox \
 PUBKY_RUNTIME_MARKETPLACE_URL=http://localhost:3100 npm run dev   # terminal 2
 ```
 
-- **Sandbox walkthrough:** sign in, open `/marketplace/sandbox` and seed the catalog. Details: [RUNNING.md](https://github.com/BitcoinErrorLog/pubky-app/blob/release/shop-v0.6.8/docs/ecommerce/RUNNING.md).
+- **Sandbox walkthrough:** sign in, open `/marketplace/sandbox` and seed the catalog. Details: [RUNNING.md](../../docs/ecommerce/RUNNING.md).
 - **The real Rust service:** see the service [README](https://github.com/pubky/pubky-marketplace-service#run). It needs a local Postgres that uses scram-sha-256 auth.
 
 ## Test and merge
 
 - **Before every push, run `bash scripts/prepush.sh`.** The fast mode (default) runs prettier and eslint on changed files, typecheck, and `vitest related`. Its last line is `PREPUSH OK <sha> <seconds> <mode>`. A passing tree is reused, so pushing the same tree again doesn't rerun it.
 - **Releases run the full gate:** `PREPUSH_FULL=1 bash scripts/prepush.sh`. It adds Linux visual-regression (VRT) tests in the pinned Playwright container (`bash scripts/vrt-linux.sh src/test/vrt/marketplace/`).
-- **CI checks required on `release/shop-v0.6.8`:**
+- **CI checks for `master`** (to be marked required in this repo's branch protection; `launch-e2e` runs on PRs into `master` once the repo has its seller secret):
   - Code Quality, NextJS Build;
   - the five test shards, Run Tests, Merge Coverage Reports;
   - `vrt-marketplace`, `vrt-core`, `launch-e2e`.
   - No approving review is required yet. The Shop team sets its review rule (launch plan §9); the recommendation is an independent reviewer on every PR, plus a security review for auth, crypto, Paykit and messaging changes.
-- **Auto-merge is on.** After pushing, arm it with `gh pr merge --auto --squash` and move on instead of waiting on CI.
+- **Auto-merge:** once it is enabled in this repo's settings, arm it after pushing with `gh pr merge --auto --squash` and move on instead of waiting on CI. Docs-only PRs (`docs/`, `payments-env/`, `*.md`) skip the build, unit suite and VRT.
 - **A flake outside your diff:** rerun those test files alone twice. If both pass, the push may skip the hook, as long as the logs go in the PR body. Never skip on a touched file, typecheck, lint or VRT.
 - **VRT baselines:** regenerate Linux baselines only for scenes you changed, once, in a commit of PNGs alone. Never re-pin a scene you didn't touch.
-- **Code rules** are in [AGENTS.md](https://github.com/BitcoinErrorLog/pubky-app/blob/release/shop-v0.6.8/AGENTS.md). In short:
+- **Code rules** are in [AGENTS.md](../../AGENTS.md). In short:
   - layering is UI → controllers → application → services;
   - no `useMemo` or `useCallback`;
   - no barrel files;
@@ -81,7 +81,7 @@ Until the infra cutover (launch plan §7), the current maintainers run deploys. 
 
 | Service | Release and deploy | Rollback | Documentation gap |
 |---|---|---|---|
-| Shop | [`docs/ecommerce/release.md`](https://github.com/BitcoinErrorLog/pubky-app/blob/release/shop-v0.6.8/docs/ecommerce/release.md): train, VRT baselines, Vercel deploy, signed-in proof, tag and notes | [`runbook-production.md`](https://github.com/BitcoinErrorLog/pubky-app/blob/release/shop-v0.6.8/docs/ecommerce/runbook-production.md): kill switch, Vercel rollback or promote, moving the domain | The team has no Shop deploy access yet. `release.md`'s staging section needs a PayPal fixture listing that no repo script creates, so listing-creating staging proofs are paused until a fixture script with a teardown check lands in `scripts/release/`. Its "Backend releases" section says "the owner deploys them"; in practice the current maintainers deploy until the cutover |
+| Shop | [`docs/ecommerce/release.md`](../../docs/ecommerce/release.md): train, VRT baselines, Vercel deploy, signed-in proof, tag and notes | [`runbook-production.md`](../../docs/ecommerce/runbook-production.md): kill switch, Vercel rollback or promote, moving the domain | The team has no Shop deploy access yet. `release.md`'s staging section needs a PayPal fixture listing that no repo script creates, so listing-creating staging proofs are paused until a fixture script with a teardown check lands in `scripts/release/`. Its "Backend releases" section says "the owner deploys them"; in practice the current maintainers deploy until the cutover |
 | Marketplace service | [`.railway/README.md`](https://github.com/pubky/pubky-marketplace-service/blob/main/.railway/README.md) (IaC apply); service [README](https://github.com/pubky/pubky-marketplace-service#run) | `runbook-production.md`, "Railway Service Restart And Rollback". After a migration, fix forward only | Not in the repo yet: the image-connect deploy, the environment-targeting guard (staging's only environment is also named `production`), when to run the hold smoke, the production-schema-clone migration rehearsal, and the variables to drop at the next IaC apply. Target: `docs/operations/deploy.md` |
 | Nexus fork | [`docs/railway-deploy.md`](https://github.com/BitcoinErrorLog/pubky-nexus/blob/main/docs/railway-deploy.md), [`docs/production-cutover.md`](https://github.com/BitcoinErrorLog/pubky-nexus/blob/main/docs/production-cutover.md) | Reconnect the previous digest | Check the docs cover waiting for in-flight deployments (one source connect can start two) and the token-redaction smoke |
 | Paykit server | [`docs/operations/production-image.md`](https://github.com/BitcoinErrorLog/paykit-server/blob/master/docs/operations/production-image.md) (image pin); `scripts/rehearse-production-schema-clone.sh` | Reconnect the previous digest; stop the old deployment first | No deploy doc and no IaC. The one-process rule needs stop-then-start; write that order into `docs/operations/deploy.md` |
@@ -91,13 +91,13 @@ Write the backend deploy docs without machine paths or infrastructure IDs, and r
 
 ## Where the docs are
 
-Shop docs, all in `docs/` on the release branch:
+Shop docs, all in this repo's `docs/`:
 
-- [`docs/ecommerce/status.md`](https://github.com/BitcoinErrorLog/pubky-app/blob/release/shop-v0.6.8/docs/ecommerce/status.md): what's real and what's simulated.
-- [`FEATURES.md`](https://github.com/BitcoinErrorLog/pubky-app/blob/release/shop-v0.6.8/docs/ecommerce/FEATURES.md): the feature inventory.
-- [`runbook-production.md`](https://github.com/BitcoinErrorLog/pubky-app/blob/release/shop-v0.6.8/docs/ecommerce/runbook-production.md): production operations.
-- [`single-approval.md`](https://github.com/BitcoinErrorLog/pubky-app/blob/release/shop-v0.6.8/docs/ecommerce/single-approval.md) and [`step-up-approval.md`](https://github.com/BitcoinErrorLog/pubky-app/blob/release/shop-v0.6.8/docs/ecommerce/step-up-approval.md): sign-in.
-- [ADRs 0019–0029](https://github.com/BitcoinErrorLog/pubky-app/tree/release/shop-v0.6.8/docs/adr): the marketplace architecture decisions.
+- [`docs/ecommerce/status.md`](../../docs/ecommerce/status.md): what's real and what's simulated.
+- [`FEATURES.md`](../../docs/ecommerce/FEATURES.md): the feature inventory.
+- [`runbook-production.md`](../../docs/ecommerce/runbook-production.md): production operations.
+- [`single-approval.md`](../../docs/ecommerce/single-approval.md) and [`step-up-approval.md`](../../docs/ecommerce/step-up-approval.md): sign-in.
+- [ADRs 0019–0029](../../docs/adr): the marketplace architecture decisions.
 
 Other repos:
 
