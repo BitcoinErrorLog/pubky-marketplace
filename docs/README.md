@@ -4,10 +4,11 @@ Project documents for the Pubky Marketplace come first; the Shop client's standa
 
 ## Shop launch
 
-Handoff readiness lives in these two docs; start with the team brief.
+Handoff readiness lives in these docs; start with the team brief.
 
 - [Team brief](launch/shop-team-brief.md): repos, local setup, test and release rules, the current status, first tasks for each team, per-service release, deploy and rollback with known documentation gaps, and who to ask, for developers taking over the Shop.
 - [Beta launch and handoff plan](launch/shop-launch-plan.md): this week's deadlines and what's frozen, launch blockers, the two-week timeline, infrastructure options, risks and the open decisions with who makes each, for the [shop.pubky.app](https://shop.pubky.app) beta.
+- [Verifying a marketplace installation](launch/install-verification.md): the post-deployment check of every service, its wiring, keys, origins, migrations and versions, with the fix for each failure.
 
 ## Single sign-on
 
