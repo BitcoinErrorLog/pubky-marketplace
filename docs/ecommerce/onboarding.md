@@ -77,8 +77,9 @@ Live suites that need a running service, a local Pubky testnet, or staging signu
   `master` at the cut.
 - CI must pass: Check Code Quality, Check NextJS Build, the five test shards, Run Tests, Merge Coverage Reports,
   `vrt-marketplace`, `vrt-core`, `launch-e2e`. No approving review is configured; agree a review rule as a team.
-- Auto-merge is off. After pushing, wait with `gh pr checks <N> --watch`, then merge with `gh pr merge <N> --squash`
-  once every check passed or skipped.
+- Auto-merge is off, and maintainers do the merges. After pushing, wait with `gh pr checks <N> --watch`, then ask a
+  maintainer to merge; they merge with `gh pr merge <N> --squash` once every check passed or skipped. Automated agents
+  never merge and never push `master`.
 - Regenerate Linux VRT baselines only for scenes you changed, once, in a commit of PNGs alone. Never re-pin a scene
   you did not touch. Details: [`release.md`](release.md#visual-regression-baselines).
 - User-visible changes add a fragment under `changelog.d/next/`.
