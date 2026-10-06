@@ -38,13 +38,16 @@ missing dependency: fix `package-lock.json` in a pull request, then `HUSKY=0 npm
 2. Before every push run `bash scripts/prepush.sh`. Fast mode (the default) runs `prettier --check` and `eslint` on
    files changed since the merge base, `npm run typecheck`, and `npx vitest related --run` on those files. The last
    line on success is `PREPUSH OK <sha> <seconds> fast`. A tree that already passed is not re-run.
-3. Arm auto-merge after pushing (`gh pr merge --auto --squash`) instead of waiting on CI.
+3. Auto-merge is off in this repository. After pushing, wait for CI with `gh pr checks <N> --watch`, then merge with
+   `gh pr merge <N> --squash` (train-to-release pull requests keep a merge commit: `--merge`). Merge only when every
+   check passed or skipped, and never with `--admin`.
 4. Required checks on `master`: Check Code Quality, Check NextJS Build, Run Shard Tests (1) to (5), Run Tests, Merge
-   Coverage Reports, `vrt-marketplace`, `vrt-core`, `launch-e2e`. A pull request is required, admins included; no
-   approving review is configured, so the team sets its own review rule. Force pushes and branch deletion are
-   blocked. `launch-e2e` runs on pull requests into `release/shop-*` only until the repository secret
-   `LAUNCH_E2E_SELLER_SECRET_HEX` exists, because it fails closed without it. Pull requests that change only
-   `docs/`, `payments-env/` or `*.md` files skip the build, the unit suite and VRT; their checks still report.
+   Coverage Reports, `vrt-marketplace`, `vrt-core`, `launch-e2e`. A pull request is required; no approving review is
+   configured, so the team sets its own review rule. Force pushes and branch deletion are blocked. `launch-e2e` runs on
+   pull requests into `master` and `release/shop-*` with the repository secret `LAUNCH_E2E_SELLER_SECRET_HEX`; it
+   fails closed on a same-repository pull request if the secret is missing, and skips with a notice on fork pull
+   requests. Pull requests that change only `docs/`, `payments-env/` or `*.md` files skip the build, the unit suite
+   and VRT; their checks still report.
 
 **Flake outside the diff.** If the only failures are test files the diff does not touch, rerun those files alone
 twice. If both reruns pass and the rest of the gate passed, the push may skip the hook (`--no-verify`) with the gate

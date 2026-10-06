@@ -55,7 +55,7 @@ PUBKY_RUNTIME_MARKETPLACE_URL=http://localhost:3100 npm run dev   # terminal 2
   - the five test shards, Run Tests, Merge Coverage Reports;
   - `vrt-marketplace`, `vrt-core`, `launch-e2e`.
   - No approving review is required yet. The Shop team sets its review rule (launch plan §9); the recommendation is an independent reviewer on every PR, plus a security review for auth, crypto, Paykit and messaging changes.
-- **Auto-merge:** once it is enabled in this repo's settings, arm it after pushing with `gh pr merge --auto --squash` and move on instead of waiting on CI. Docs-only PRs (`docs/`, `payments-env/`, `*.md`) skip the build, unit suite and VRT.
+- **Merging:** auto-merge is off in this repo; the team decides whether to enable it. After pushing, wait with `gh pr checks <N> --watch`, then merge with `gh pr merge <N> --squash` once every check passed or skipped. Docs-only PRs (`docs/`, `payments-env/`, `*.md`) skip the build, unit suite and VRT.
 - **A flake outside your diff:** rerun those test files alone twice. If both pass, the push may skip the hook, as long as the logs go in the PR body. Never skip on a touched file, typecheck, lint or VRT.
 - **VRT baselines:** regenerate Linux baselines only for scenes you changed, once, in a commit of PNGs alone. Never re-pin a scene you didn't touch.
 - **Code rules** are in [AGENTS.md](../../AGENTS.md). In short:
