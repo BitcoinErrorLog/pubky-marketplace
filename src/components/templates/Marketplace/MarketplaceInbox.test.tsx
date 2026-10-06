@@ -260,6 +260,20 @@ describe('MarketplaceInbox conversation query', () => {
     expect(screen.queryByText(MESSAGING_COPY.inboxEmptyTitle)).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: MESSAGING_COPY.requestsTitle })).not.toBeInTheDocument();
   });
+
+  it('the paused notice says the whole list is paused, not only new messages', () => {
+    expect(MESSAGING_COPY.mutesNeedApproval).toBe(
+      'Your conversations and new messages are paused until you approve private sync, so mutes keep working.',
+    );
+    expect(MESSAGING_COPY.mutesUnavailable).toBe(
+      'Your conversations and new messages are paused because your mutes could not be loaded. Try again.',
+    );
+    encryptedView.mutesStatus = 'error';
+    encryptedView.conversations = [];
+    render(<MarketplaceInbox />);
+
+    expect(screen.getByTestId('messaging-mutes-notice')).toHaveTextContent(MESSAGING_COPY.mutesUnavailable);
+  });
 });
 
 describe('MarketplaceInbox for a grant sign-in', () => {
