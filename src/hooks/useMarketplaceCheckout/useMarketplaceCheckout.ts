@@ -23,7 +23,6 @@ import {
   marketplaceCheckoutRefusalMessage,
   marketplaceErrorCode,
   marketplaceFailureMessage,
-  marketplacePaymentMethodFailureMessage,
 } from '@/libs/commerce/failure-messages';
 import { commerceListingFulfillmentMethods } from '@/libs/commerce/marketplace-records';
 import type { PaymentMethodKind } from '@/libs/commerce/payment-methods';
@@ -40,6 +39,7 @@ import {
 import { AppError } from '@/libs/error/error';
 import { isMarketplaceSessionRequiredError } from '@/libs/error/error.utils';
 import type { CommerceDeliveryAddressModelSchema } from '@/models/commerce/commerce.schema';
+import { showPaymentMethodRefusalToast } from '@/molecules/Toaster/payment-method-refusal-toast';
 import { toast } from '@/molecules/Toaster/use-toast';
 import type { MarketplaceOrder } from '@/services/marketplace/marketplace';
 import { useAuthStore } from '@/stores/auth/auth.store';
@@ -125,7 +125,8 @@ export function useMarketplaceCheckout(
 ): {
   form: UseFormReturn<MarketplaceCheckoutData>;
   submit: () => Promise<boolean>;
-  pay: (method: PaymentMethodKind | null) => Promise<MarketplacePayResult>;
+  /** `onRetry` backs the Try again action of a wallet-setup refusal; it runs only on the buyer's click. */
+  pay: (method: PaymentMethodKind | null, onRetry?: () => void) => Promise<MarketplacePayResult>;
   isPaying: boolean;
   needsSession: boolean;
   sessionError: string | null;
@@ -684,7 +685,7 @@ export function useMarketplaceCheckout(
     return succeeded;
   };
 
-  const pay = async (method: PaymentMethodKind | null): Promise<MarketplacePayResult> => {
+  const pay = async (method: PaymentMethodKind | null, onRetry?: () => void): Promise<MarketplacePayResult> => {
     const empty: MarketplacePayResult = { ok: false, orderIds: [], boundOrders: [] };
     if (!items.length || isPaying) return empty;
     let outcome = empty;
@@ -729,10 +730,7 @@ export function useMarketplaceCheckout(
           }
         } catch (bindError) {
           await cancelCreatedCheckouts(createdIds);
-          toast({
-            variant: 'error',
-            description: marketplacePaymentMethodFailureMessage(bindError, MARKETPLACE_FAILURE_MESSAGES.checkout),
-          });
+          showPaymentMethodRefusalToast({ error: bindError, fallback: MARKETPLACE_FAILURE_MESSAGES.checkout, onRetry });
           return;
         }
         await finishCreatedCheckout(data);

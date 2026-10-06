@@ -6,7 +6,9 @@ import { createCommerceSandboxCatalog } from '@/libs/commerce/sandbox-catalog';
 import { AppError } from '@/libs/error/error';
 import { ClientErrorCode } from '@/libs/error/error.codes';
 import { ErrorCategory, ErrorService } from '@/libs/error/error.types';
+import { toast } from '@/molecules/Toaster/use-toast';
 import { useCommerceStore } from '@/stores/commerce/commerce.store';
+import { asOpaque } from '@/test-utils/type-assertions';
 import { useMarketplaceCheckout } from './useMarketplaceCheckout';
 
 const listing = createCommerceSandboxCatalog().listings.find(({ sale }) => sale.format === 'fixed_price')!;
@@ -716,6 +718,34 @@ describe('useMarketplaceCheckout', () => {
         payload: expect.objectContaining({ orderId }),
       }),
     );
+
+    // service#84: an unfinished Paykit wallet refuses the bind. The toast names it and offers
+    // Try again, which runs only the caller's step on click; the hook never retries by itself.
+    const onRetry = vi.fn();
+    const bindsBefore = vi.mocked(CommerceController.bindPaymentMethod).mock.calls.length;
+    vi.mocked(CommerceController.bindPaymentMethod).mockRejectedValueOnce(
+      new AppError({
+        category: ErrorCategory.Client,
+        code: ClientErrorCode.BAD_REQUEST,
+        message: 'SENTINEL',
+        service: ErrorService.Marketplace,
+        operation: 'bindPaymentMethod',
+        context: { statusCode: 409, reason: 'buyer_paykit_wallet_setup_needed', serviceCode: 'INVALID_STATE' },
+      }),
+    );
+    const setupNeeded = await act(async () => result.current.pay('bitcoin', onRetry));
+    expect(setupNeeded.ok).toBe(false);
+    const setupToast = vi.mocked(toast).mock.calls.at(-1)?.[0];
+    expect(setupToast).toMatchObject({
+      variant: 'error',
+      title: 'Reader wallet setup needed',
+      description: 'Finish setting up Bitkit (or another Paykit wallet) for this pubky, then try again.',
+    });
+    expect(vi.mocked(CommerceController.bindPaymentMethod).mock.calls.length).toBe(bindsBefore + 1);
+    expect(onRetry).not.toHaveBeenCalled();
+    asOpaque<{ props: { onClick: () => void } }>(setupToast?.action).props.onClick();
+    expect(onRetry).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(CommerceController.bindPaymentMethod).mock.calls.length).toBe(bindsBefore + 1);
   });
 
   it('skips bind in sandbox when Pay has no method, then stays on checkout', async () => {

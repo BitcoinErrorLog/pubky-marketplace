@@ -4,14 +4,11 @@ import { useRef, useState } from 'react';
 import { CommerceController } from '@/controllers/commerce/commerce';
 import { isMarketplaceAwardCheckoutEligible } from '@/core/services/marketplace/marketplace-projections';
 import { BIND_FAIL_CANCEL_REASON, extractCheckoutOrderIds } from '@/libs/commerce/checkout-phase';
-import {
-  MARKETPLACE_FAILURE_MESSAGES,
-  marketplaceOfferCheckoutFailureMessage,
-  marketplacePaymentMethodFailureMessage,
-} from '@/libs/commerce/failure-messages';
+import { MARKETPLACE_FAILURE_MESSAGES, marketplaceOfferCheckoutFailureMessage } from '@/libs/commerce/failure-messages';
 import type { PaymentMethodKind } from '@/libs/commerce/payment-methods';
 import { buildMarketplaceOrderAggregateId } from '@/libs/commerce/transaction-commands';
 import { isMarketplaceSessionRequiredError } from '@/libs/error/error.utils';
+import { showPaymentMethodRefusalToast } from '@/molecules/Toaster/payment-method-refusal-toast';
 import { toast } from '@/molecules/Toaster/use-toast';
 import type { MarketplaceOffer, MarketplaceOfferAward, MarketplaceOrder } from '@/services/marketplace/marketplace';
 
@@ -41,6 +38,7 @@ export function useMarketplaceOfferCheckout(onCompleted?: () => Promise<void> | 
     offer: MarketplaceOffer,
     deliveryAddress: DeliveryAddress | null,
     method?: PaymentMethodKind | null,
+    onRetry?: () => void,
   ): Promise<MarketplaceOfferCheckoutResult> => {
     if (submittingRef.current) return { ok: false, code: 'SUBMITTING' };
     submittingRef.current = true;
@@ -118,9 +116,10 @@ export function useMarketplaceOfferCheckout(onCompleted?: () => Promise<void> | 
             } catch {
               // Bind already failed; leftover expires on the hold clock.
             }
-            toast({
-              variant: 'error',
-              description: marketplacePaymentMethodFailureMessage(bindError, MARKETPLACE_FAILURE_MESSAGES.checkout),
+            showPaymentMethodRefusalToast({
+              error: bindError,
+              fallback: MARKETPLACE_FAILURE_MESSAGES.checkout,
+              onRetry,
             });
             return { ok: false, code: 'BIND_FAILED' };
           }
