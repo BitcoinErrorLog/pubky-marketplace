@@ -6,6 +6,7 @@ import { preloadImages, renderForVRT, VRT_ROOT_TESTID } from '@/test-utils/vrt';
 import { VRT_VIEWPORT_DESKTOP, VRT_VIEWPORT_MOBILE } from '@/test-utils/vrt.viewports';
 import { MarketplaceSessionConnectDialog } from '@/organisms/Marketplace/MarketplaceSessionConnectDialog';
 import { MarketplaceSessionRequiredCard } from '@/organisms/Marketplace/MarketplaceSessionRequiredCard';
+import { BOOTSTRAP_APPROVAL_EXPIRED } from '@/libs/commerce/failure-messages';
 
 // The QR encodes the authorization URL verbatim, so it must be a FIXED fake
 // for a byte-stable matrix across runs and OSes. It is never dereferenced.
@@ -99,6 +100,7 @@ describe('Marketplace session connect — visual regression', () => {
     view.isOpeningRing = false;
     view.grantEnabled = false;
     view.bootstrap = false;
+    view.approvalSigner = 'Bitkit';
   });
 
   it('renders the Bitkit purchase bootstrap approval at desktop viewport', async () => {
@@ -114,6 +116,39 @@ describe('Marketplace session connect — visual regression', () => {
     );
     await openDialog(screen.getByRole('button', { name: 'Approve purchases' }));
     await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot('session-connect-bitkit-bootstrap-desktop');
+  });
+
+  it('renders the Pubky Ring (cookie) sign-in purchase bootstrap approval at desktop viewport', async () => {
+    view.grantEnabled = true;
+    view.bootstrap = true;
+    view.approvalSigner = 'Pubky Ring or Bitkit';
+    view.authorizationUrl = VRT_BOOTSTRAP_URL;
+
+    const screen = await renderForVRT(
+      <Harness>
+        <MarketplaceSessionConnectDialog triggerLabel="Approve in Pubky Ring or Bitkit" />
+      </Harness>,
+      { viewport: VRT_VIEWPORT_DESKTOP },
+    );
+    await openDialog(screen.getByRole('button', { name: 'Approve in Pubky Ring or Bitkit' }));
+    await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot('session-connect-ring-bootstrap-desktop');
+  });
+
+  it('renders a lapsed grant approval with the signers that can approve it at desktop viewport', async () => {
+    view.grantEnabled = true;
+    view.bootstrap = true;
+    view.approvalSigner = 'Pubky Ring or Bitkit';
+    view.status = 'error';
+    view.errorMessage = BOOTSTRAP_APPROVAL_EXPIRED;
+
+    const screen = await renderForVRT(
+      <Harness>
+        <MarketplaceSessionConnectDialog triggerLabel="Approve in Pubky Ring or Bitkit" />
+      </Harness>,
+      { viewport: VRT_VIEWPORT_DESKTOP },
+    );
+    await openDialog(screen.getByRole('button', { name: 'Approve in Pubky Ring or Bitkit' }));
+    await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot('session-connect-grant-lapsed-desktop');
   });
 
   it('renders the awaiting-approval QR state at desktop viewport', async () => {
@@ -205,6 +240,17 @@ describe('Marketplace session connect — visual regression', () => {
       { viewport: VRT_VIEWPORT_DESKTOP },
     );
     await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot('session-required-card-desktop');
+  });
+
+  it('renders the session-required card for a Pubky Ring sign-in with the grant flow on at desktop viewport', async () => {
+    view.grantEnabled = true;
+    const screen = await renderForVRT(
+      <Harness>
+        <MarketplaceSessionRequiredCard />
+      </Harness>,
+      { viewport: VRT_VIEWPORT_DESKTOP },
+    );
+    await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot('session-required-card-ring-or-bitkit-desktop');
   });
 
   it('renders the session-required card at mobile viewport', async () => {
