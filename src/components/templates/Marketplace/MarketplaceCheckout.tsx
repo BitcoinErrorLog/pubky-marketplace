@@ -334,6 +334,7 @@ function MarketplaceCartCheckout() {
             countryCode: values.countryCode,
           },
       method,
+      () => void pay(),
     );
     if (result.ok) {
       await removeAwardLine();
@@ -379,7 +380,7 @@ function MarketplaceCartCheckout() {
       return;
     }
     const method = isSandbox && selectedMethod === null ? null : selectedMethod;
-    const result = await checkout.pay(method);
+    const result = await checkout.pay(method, () => void pay());
     if (!result.ok) return;
     setPayingOrderIds(result.orderIds);
     if (result.orderIds[0]) {

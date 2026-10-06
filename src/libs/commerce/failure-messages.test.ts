@@ -4,6 +4,7 @@ import { AppError } from '@/libs/error/error';
 import { ClientErrorCode, ServerErrorCode, ValidationErrorCode } from '@/libs/error/error.codes';
 import { ErrorCategory, ErrorService } from '@/libs/error/error.types';
 import {
+  isReaderWalletSetupNeeded,
   MARKETPLACE_FAILURE_MESSAGES,
   marketplaceBootstrapFailureMessage,
   marketplaceCheckoutRefusalMessage,
@@ -209,6 +210,31 @@ describe('marketplacePaymentMethodFailureMessage', () => {
     expect(marketplacePaymentMethodFailureMessage(error, 'fallback')).toBe(
       'Connect Bitkit to pay with Bitcoin: this account has no Paykit wallet that can receive a payment request.',
     );
+  });
+
+  it('names the reader wallet setup refusal (service#84), never a Paykit outage', () => {
+    const error = new AppError({
+      category: ErrorCategory.Client,
+      code: ClientErrorCode.BAD_REQUEST,
+      message: 'SENTINEL',
+      service: ErrorService.Marketplace,
+      operation: 'bindPaymentMethod',
+      context: { statusCode: 409, reason: 'buyer_paykit_wallet_setup_needed', serviceCode: 'INVALID_STATE' },
+    });
+    expect(marketplacePaymentMethodFailureMessage(error, 'fallback')).toBe(
+      'Reader wallet setup needed. Finish setting up Bitkit (or another Paykit wallet) for this pubky, then try again.',
+    );
+    expect(isReaderWalletSetupNeeded(error)).toBe(true);
+    const required = new AppError({
+      category: ErrorCategory.Client,
+      code: ClientErrorCode.CONFLICT,
+      message: 'SENTINEL',
+      service: ErrorService.Marketplace,
+      operation: 'bindPaymentMethod',
+      context: { statusCode: 409, reason: 'buyer_paykit_wallet_required' },
+    });
+    expect(isReaderWalletSetupNeeded(required)).toBe(false);
+    expect(isReaderWalletSetupNeeded(new Error('buyer_paykit_wallet_setup_needed'))).toBe(false);
   });
 
   it('keeps the action fallback when no payment-method reason is present', () => {

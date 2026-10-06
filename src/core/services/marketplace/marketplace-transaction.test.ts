@@ -1329,6 +1329,29 @@ describe('MarketplaceTransactionService read projections', () => {
       });
     });
 
+    it('maps the service#84 wallet-setup refusal to its own copy and reason, with one request and no retry', async () => {
+      await establishSession();
+      vi.mocked(fetch).mockClear();
+      vi.mocked(fetch).mockResolvedValueOnce(
+        jsonResponse(409, {
+          ok: false,
+          error: {
+            code: 'INVALID_STATE',
+            message:
+              'Reader wallet setup needed. Finish setting up Bitkit (or another Paykit wallet) for this identity, then choose Pay again.',
+            reason: 'buyer_paykit_wallet_setup_needed',
+          },
+        }),
+      );
+
+      await expect(MarketplaceTransactionService.bindPaymentMethod(ACTOR, ORDER_ID, 'bitcoin')).rejects.toMatchObject({
+        message:
+          'Reader wallet setup needed. Finish setting up Bitkit (or another Paykit wallet) for this pubky, then try again.',
+        context: { statusCode: 409, reason: 'buyer_paykit_wallet_setup_needed', serviceCode: 'INVALID_STATE' },
+      });
+      expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
     it('surfaces capability_required, method_unavailable, and CAS revision conflict as static copy', async () => {
       await establishSession();
       vi.mocked(fetch).mockResolvedValueOnce(

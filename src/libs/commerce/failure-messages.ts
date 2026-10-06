@@ -222,6 +222,21 @@ export function marketplaceFailureMessage(code: MarketplaceFailureCode, fallback
 }
 
 /**
+ * A buyer whose Paykit wallet has no App Registry yet: Paykit answers
+ * `503 reader_setup_pending` and the bind refuses with `409 INVALID_STATE`,
+ * reason `buyer_paykit_wallet_setup_needed` (pubky-marketplace-service#84,
+ * pubky/paykit-server#45). The buyer finishes setup and tries again; the Shop
+ * never retries it on its own.
+ */
+export const BUYER_PAYKIT_WALLET_SETUP_NEEDED = 'buyer_paykit_wallet_setup_needed';
+
+export const READER_WALLET_SETUP_COPY = {
+  title: 'Reader wallet setup needed',
+  description: 'Finish setting up Bitkit (or another Paykit wallet) for this pubky, then try again.',
+  retry: 'Try again',
+} as const;
+
+/**
  * Static copy for durable payment-method refusals. Keys are service
  * `error.reason` values and, for families that ship `code` with no `reason`
  * (`capability_required`, CAS `REVISION_CONFLICT`), the wire `error.code`.
@@ -229,6 +244,7 @@ export function marketplaceFailureMessage(code: MarketplaceFailureCode, fallback
  */
 export const MARKETPLACE_PAYMENT_METHOD_REASON_MESSAGES: ReadonlyMap<string, string> = new Map([
   ['bitcoin_unavailable', 'Bitcoin payments are not available for this seller.'],
+  [BUYER_PAYKIT_WALLET_SETUP_NEEDED, `${READER_WALLET_SETUP_COPY.title}. ${READER_WALLET_SETUP_COPY.description}`],
   [
     'buyer_paykit_wallet_required',
     'Connect Bitkit to pay with Bitcoin: this account has no Paykit wallet that can receive a payment request.',
@@ -292,6 +308,11 @@ export function marketplacePaymentMethodReasonMessage(reason: string | null | un
     MARKETPLACE_PAYMENT_METHOD_REASON_MESSAGES.get('unavailable') ??
     'The payment method request was refused.'
   );
+}
+
+/** True for the bind refusal that asks the buyer to finish Paykit wallet setup. */
+export function isReaderWalletSetupNeeded(error: unknown): boolean {
+  return isAppError(error) && error.context?.reason === BUYER_PAYKIT_WALLET_SETUP_NEEDED;
 }
 
 /** Buyer/seller payment-action toast: map reason or family code, never a wire message. */

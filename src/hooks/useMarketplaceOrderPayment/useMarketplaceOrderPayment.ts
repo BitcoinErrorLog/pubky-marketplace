@@ -6,7 +6,6 @@ import {
   MARKETPLACE_FAILURE_MESSAGES,
   marketplaceErrorCode,
   marketplaceFailureMessage,
-  marketplacePaymentMethodFailureMessage,
 } from '@/libs/commerce/failure-messages';
 import {
   availablePaymentMethods,
@@ -14,6 +13,7 @@ import {
   type SellerPaymentConfig,
 } from '@/libs/commerce/payment-methods';
 import { Logger } from '@/libs/logger/logger';
+import { showPaymentMethodRefusalToast } from '@/molecules/Toaster/payment-method-refusal-toast';
 import { toast } from '@/molecules/Toaster/use-toast';
 import type { MarketplaceOrder } from '@/services/marketplace/marketplace';
 
@@ -63,17 +63,18 @@ export function useMarketplaceOrderPayment({
   }, [needsConfig, order.sellerPubky]);
 
   const runAction = useCallback(
-    async (action: 'bind' | 'verify' | 'mark-paid' | 'confirm', run: () => Promise<void>) => {
+    async (action: 'bind' | 'verify' | 'mark-paid' | 'confirm', run: () => Promise<void>, onRetry?: () => void) => {
       setPendingAction(action);
       try {
         await run();
         await onPaymentChanged();
       } catch (error) {
         Logger.error(`Marketplace payment action '${action}' failed`, { error });
-        toast({
-          variant: 'error',
+        showPaymentMethodRefusalToast({
+          error,
+          fallback: 'The payment action could not be completed.',
           title: 'Payment action failed',
-          description: marketplacePaymentMethodFailureMessage(error, 'The payment action could not be completed.'),
+          onRetry,
         });
       } finally {
         setPendingAction(null);
@@ -84,9 +85,13 @@ export function useMarketplaceOrderPayment({
 
   const bind = useCallback(
     async (method: PaymentMethodKind) => {
-      await runAction('bind', async () => {
+      const run = async () => {
         await CommerceController.bindPaymentMethod(order.id, method);
-      });
+      };
+      async function attempt(): Promise<void> {
+        await runAction('bind', run, () => void attempt());
+      }
+      await attempt();
     },
     [order.id, runAction],
   );
