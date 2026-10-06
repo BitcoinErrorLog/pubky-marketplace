@@ -1,0 +1,1 @@
+While the Shop can't confirm your mute list, the inbox banner now says that your conversations and new messages are paused, not only new messages. The Shop holds back the whole list until private sync is approved or the mutes load, so a muted conversation never shows.

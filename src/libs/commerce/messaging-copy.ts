@@ -87,9 +87,10 @@ export const MESSAGING_COPY = {
   muteListFull: 'You can mute up to 1,000 people. Unmute someone to mute another person.',
   muteNeedsApproval: 'Approve private sync to save mutes.',
   approvePrivateSync: 'Approve private sync',
-  mutesNeedApproval: 'New messages are paused until you approve private sync, so mutes keep working.',
+  mutesNeedApproval:
+    'Your conversations and new messages are paused until you approve private sync, so mutes keep working.',
   sendPausedForMutes: 'Sending is paused until your mutes can be loaded. Try again in a moment.',
-  mutesUnavailable: 'New messages are paused because your mutes could not be loaded. Try again.',
+  mutesUnavailable: 'Your conversations and new messages are paused because your mutes could not be loaded. Try again.',
   rateCap: 'Too many messages from this person. Try again later.',
   report: 'Report',
   reportCopied: 'Report details copied. Paste them only where you intend to send them.',
