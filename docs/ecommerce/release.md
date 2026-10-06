@@ -38,9 +38,10 @@ missing dependency: fix `package-lock.json` in a pull request, then `HUSKY=0 npm
 2. Before every push run `bash scripts/prepush.sh`. Fast mode (the default) runs `prettier --check` and `eslint` on
    files changed since the merge base, `npm run typecheck`, and `npx vitest related --run` on those files. The last
    line on success is `PREPUSH OK <sha> <seconds> fast`. A tree that already passed is not re-run.
-3. Auto-merge is off in this repository. After pushing, wait for CI with `gh pr checks <N> --watch`, then merge with
-   `gh pr merge <N> --squash` (train-to-release pull requests keep a merge commit: `--merge`). Merge only when every
-   check passed or skipped, and never with `--admin`.
+3. Auto-merge is off in this repository, and maintainers do the merges. After pushing, wait for CI with
+   `gh pr checks <N> --watch` and ask a maintainer to merge. The maintainer merges with `gh pr merge <N> --squash`
+   (train-to-release pull requests keep a merge commit: `--merge`), only when every check passed or skipped, and never
+   with `--admin`. Automated agents open pull requests and comment; they never merge and never push `master`.
 4. Required checks on `master`: Check Code Quality, Check NextJS Build, Run Shard Tests (1) to (5), Run Tests, Merge
    Coverage Reports, `vrt-marketplace`, `vrt-core`, `launch-e2e`. A pull request is required; no approving review is
    configured, so the team sets its own review rule. Force pushes and branch deletion are blocked. `launch-e2e` runs on
