@@ -1,5 +1,4 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import type React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CommerceController } from '@/controllers/commerce/commerce';
 import type { MarketplaceCartItem } from '@/hooks/useMarketplaceCart/useMarketplaceCart';
@@ -9,6 +8,7 @@ import { ClientErrorCode } from '@/libs/error/error.codes';
 import { ErrorCategory, ErrorService } from '@/libs/error/error.types';
 import { toast } from '@/molecules/Toaster/use-toast';
 import { useCommerceStore } from '@/stores/commerce/commerce.store';
+import { asOpaque } from '@/test-utils/type-assertions';
 import { useMarketplaceCheckout } from './useMarketplaceCheckout';
 
 const listing = createCommerceSandboxCatalog().listings.find(({ sale }) => sale.format === 'fixed_price')!;
@@ -743,7 +743,7 @@ describe('useMarketplaceCheckout', () => {
     });
     expect(vi.mocked(CommerceController.bindPaymentMethod).mock.calls.length).toBe(bindsBefore + 1);
     expect(onRetry).not.toHaveBeenCalled();
-    (setupToast?.action as React.ReactElement<{ onClick: () => void }>).props.onClick();
+    asOpaque<{ props: { onClick: () => void } }>(setupToast?.action).props.onClick();
     expect(onRetry).toHaveBeenCalledTimes(1);
     expect(vi.mocked(CommerceController.bindPaymentMethod).mock.calls.length).toBe(bindsBefore + 1);
   });

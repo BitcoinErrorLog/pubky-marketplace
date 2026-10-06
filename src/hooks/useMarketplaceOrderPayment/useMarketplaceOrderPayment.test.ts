@@ -1,5 +1,4 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import type React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { CommerceController } from '@/controllers/commerce/commerce';
 import { AppError } from '@/libs/error/error';
@@ -7,6 +6,7 @@ import { ClientErrorCode } from '@/libs/error/error.codes';
 import { ErrorCategory, ErrorService } from '@/libs/error/error.types';
 import { toast } from '@/molecules/Toaster/use-toast';
 import { createOrderFixture } from '@/test/fixtures/commerce/orders';
+import { asOpaque } from '@/test-utils/type-assertions';
 import { useMarketplaceOrderPayment } from './useMarketplaceOrderPayment';
 
 vi.mock('@/controllers/commerce/commerce', () => ({
@@ -118,7 +118,7 @@ describe('useMarketplaceOrderPayment', () => {
     expect(onPaymentChanged).not.toHaveBeenCalled();
 
     await act(async () => {
-      (toastCall?.action as React.ReactElement<{ onClick: () => void }>).props.onClick();
+      asOpaque<{ props: { onClick: () => void } }>(toastCall?.action).props.onClick();
     });
     await waitFor(() => expect(CommerceController.bindPaymentMethod).toHaveBeenCalledTimes(2));
     expect(CommerceController.bindPaymentMethod).toHaveBeenLastCalledWith(order.id, 'bitcoin');
