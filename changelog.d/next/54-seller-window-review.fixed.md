@@ -1,0 +1,1 @@
+When the seller's 24-hour confirmation window ends and the payment goes to review, the buyer now sees "Payment received — the seller is reviewing it." unless the marketplace recorded an on-chain confirmation. It no longer says "Payment confirmed on-chain" with no confirmation behind it.

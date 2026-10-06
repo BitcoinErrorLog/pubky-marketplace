@@ -635,6 +635,28 @@ describe('MarketplacePaymentStatusCard', () => {
     expect(screen.queryByText(/Pay by/)).not.toBeInTheDocument();
   });
 
+  it('does not call a review the seller-confirmation window sent with 0 confirmations confirmed on-chain', () => {
+    render(
+      <MarketplacePaymentStatusCard
+        order={createOrderFixture('pending_payment', {
+          paymentMethod: 'bitcoin',
+          paykitRequestState: 'confirmed',
+          paykitDeliveryState: 'delivered',
+        })}
+        payment={createPaymentFixture('manual_review', { adapter: 'paykit', reviewReason: null, confirmations: 0 })}
+        isBuyer
+        adapterMode="transaction-service"
+        advancePayment={async () => false}
+        onPaymentChanged={() => {}}
+      />,
+    );
+
+    expect(screen.getByTestId('payment-manual-review-copy')).toHaveTextContent(
+      'Payment received — the seller is reviewing it.',
+    );
+    expect(screen.queryByText(/on-chain/)).not.toBeInTheDocument();
+  });
+
   it('does not call an unconfirmed manual review a chain confirmation', () => {
     auth.currentUserPubky = 'b'.repeat(52);
     render(

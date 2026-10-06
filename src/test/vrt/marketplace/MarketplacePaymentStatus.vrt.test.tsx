@@ -499,6 +499,8 @@ describe('Marketplace payment status card — visual regression', () => {
   it('renders buyer projections without seller evidence or controls', async () => {
     const screen = await renderCapturedCard('buyer_manual_review_held', true);
     await expect.element(screen.getByText('Under manual review')).toBeInTheDocument();
+    await expect.element(screen.getByText('Payment received — the seller is reviewing it.')).toBeInTheDocument();
+    await expect.element(screen.getByText(/on-chain/)).not.toBeInTheDocument();
     await expect.element(screen.getByText('Resolve Bitcoin payment review')).not.toBeInTheDocument();
     await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot(
       'payment-status-buyer-manual-review-redacted-desktop',
