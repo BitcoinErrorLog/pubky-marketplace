@@ -1,6 +1,6 @@
 # Pubky Shop: beta launch and handoff plan
 
-Scope: [shop.pubky.app](https://shop.pubky.app), built from the fork [BitcoinErrorLog/pubky-app](https://github.com/BitcoinErrorLog/pubky-app) (branch `release/shop-v0.6.8`), handed to a dev team for about two weeks, ending in a beta for real users. Facts were checked on 1 Oct 2026 against the repos, the live sites and GitHub (status, blockers, timeline and decisions refreshed 5 Oct), and reviewed against the code as it stood that day and the 1 Oct issue triage of the [pubky-marketplace tracker](https://github.com/pubky/pubky-marketplace/issues). Sizes are for one developer and include tests and review: **XS** under half a day, **S** half a day to 2 days, **M** 3 to 5 days, **L** more than a week.
+Scope: [shop.pubky.app](https://shop.pubky.app), built from this repository, [pubky/pubky-marketplace](https://github.com/pubky/pubky-marketplace) (branch `master`; the code and its history came from the fork `BitcoinErrorLog/pubky-app`, branch `release/shop-v0.6.8`, which is frozen for Shop work from 6 Oct), handed to a dev team for about two weeks, ending in a beta for real users. Facts were checked on 1 Oct 2026 against the repos, the live sites and GitHub (status, blockers, timeline and decisions refreshed 5 Oct), and reviewed against the code as it stood that day and the 1 Oct issue triage of the [pubky-marketplace tracker](https://github.com/pubky/pubky-marketplace/issues). Sizes are for one developer and include tests and review: **XS** under half a day, **S** half a day to 2 days, **M** 3 to 5 days, **L** more than a week.
 
 ## Status, deadlines and freeze (5 Oct)
 
@@ -82,7 +82,7 @@ Where a row says "team to assign", the owning team names the person.
 
 ### Option B in detail
 
-**Redirects.** Social routes 307-redirect to the same path on pubky.app (on staging, to `staging.pubky.app`) from `redirects()` in [`next.config.ts`](https://github.com/BitcoinErrorLog/pubky-app/blob/release/shop-v0.6.8/next.config.ts). They are gated on the social-host build variable.
+**Redirects.** Social routes 307-redirect to the same path on pubky.app (on staging, to `staging.pubky.app`) from `redirects()` in [`next.config.ts`](../../next.config.ts). They are gated on the social-host build variable.
 
 | Path on the Shop | Goes to | Note |
 |---|---|---|
@@ -95,7 +95,7 @@ Where a row says "team to assign", the owning team names the person.
 
 **Component fixes. A redirect list alone is not enough,** because several places send users to `/home` themselves. Without SSO, each of these would land a signed-in user on a signed-out pubky.app. All of them point to `/marketplace` instead:
 
-- `AUTHENTICATED_ROUTES.redirectTo` in [`routes.ts`](https://github.com/BitcoinErrorLog/pubky-app/blob/release/shop-v0.6.8/src/app/routes.ts), which the route guard uses;
+- `AUTHENTICATED_ROUTES.redirectTo` in [`routes.ts`](../../src/app/routes.ts), which the route guard uses;
 - the `Logo`;
 - the Header and MobileFooter Home items;
 - about 8 `router.push(APP_ROUTES.HOME)` calls.
@@ -141,7 +141,7 @@ Where a row says "team to assign", the owning team names the person.
   - **The fix is the chat plan, not Paykit.** Shop messaging is frozen as beta and moves to the shared pubky-chat library on MLS (SSO-E1). Until that cutover it stays on Ring cookie sessions, and the cutover is what gates messaging for Passport and Bitkit users.
   - If Ring sign-in moved to grants now, three things would break:
     - every Ring user would lose messaging;
-    - Ring's single approval (one AuthToken to both the homeserver and the service, per [single-approval.md](https://github.com/BitcoinErrorLog/pubky-app/blob/release/shop-v0.6.8/docs/ecommerce/single-approval.md)) would become two;
+    - Ring's single approval (one AuthToken to both the homeserver and the service, per [single-approval.md](../../docs/ecommerce/single-approval.md)) would become two;
     - the messaging fallback would set a narrow `/pub/paykit/:rw` cookie, which brings the overwrite back.
 - **The transaction service authenticates separately today.**
   - Ring cookie sessions post the same `AuthToken` to the homeserver and the service.
@@ -489,5 +489,5 @@ Each has a recommendation unless noted:
 8. **Secrets handoff (John and Vlad).** *Recommended:* agree one end-to-end-encrypted channel and a regenerate-or-transfer list; regenerate everything except the pinned Locks key and secrets that can't be reissued.
 9. **Team test seats (John).** *Recommended:* mint new team test seats rather than handing over existing ones.
 10. **v0.6.46 (John).** *Recommended:* ship now as a normal train, with a team member shadowing.
-11. **Review rule on `release/shop-v0.6.8` (Shop team).** *Recommended:* an independent reviewer on every PR, plus a security review for auth, crypto, Paykit and messaging changes.
+11. **Review rule on `master` (Shop team).** *Recommended:* an independent reviewer on every PR, plus a security review for auth, crypto, Paykit and messaging changes.
 12. **Date anchor (John).** *Recommended:* keep the beta on Thu 15 Oct and count day 1 as Tue 6 Oct.
