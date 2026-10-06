@@ -35,6 +35,10 @@ ARG NEXT_PUBLIC_APP_VERSION
 # (PUBKY_RUNTIME_SENTRY_*, see runner stage). Source-map upload is optional: Synonym CI passes
 # Sentry build credentials, while third-party public image builds skip upload and still succeed.
 
+# The production build needs more than Node's default ~2 GB heap
+ARG NODE_MAX_OLD_SPACE_SIZE=6144
+ENV NODE_OPTIONS=--max-old-space-size=${NODE_MAX_OLD_SPACE_SIZE}
+
 # Disable telemetry during build
 ENV NEXT_TELEMETRY_DISABLED=1
 
