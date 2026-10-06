@@ -162,7 +162,7 @@ jobs:
           test -s public/sw.js
 
       - name: Upload Next build for launch-e2e
-        if: github.event_name == 'pull_request' && startsWith(github.base_ref, 'release/shop-')
+        if: github.event_name == 'pull_request' && (github.base_ref == 'master' || startsWith(github.base_ref, 'release/shop-'))
         uses: actions/upload-artifact@v4
         with:
           name: next-build
@@ -182,7 +182,7 @@ jobs:
     # successful required-check status (success, skipped, or neutral): it does
     # not stay Pending. Unrelated pull requests skip the build, and this job
     # skips with it for the same reason.
-    if: always() && needs.build.result == 'success' && github.event_name == 'pull_request' && startsWith(github.base_ref, 'release/shop-')
+    if: always() && needs.build.result == 'success' && github.event_name == 'pull_request' && (github.base_ref == 'master' || startsWith(github.base_ref, 'release/shop-'))
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v1.60.0-noble
