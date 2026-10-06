@@ -138,10 +138,10 @@ The homeserver admin endpoint on port 6288 matches the Cypress defaults (`HOMESE
 
 `services/marketplace/` is the **sandbox adapter only**. The real, durable transaction service is a separate Rust service with PostgreSQL persistence and real Pubky AuthToken authentication:
 
-<https://github.com/BitcoinErrorLog/pubky-marketplace-service>
+<https://github.com/pubky/pubky-marketplace-service>
 
 ```bash
-git clone https://github.com/BitcoinErrorLog/pubky-marketplace-service
+git clone https://github.com/pubky/pubky-marketplace-service
 cd pubky-marketplace-service
 docker compose up -d --wait
 export DATABASE_URL='postgres://marketplace:marketplace@localhost:55432/marketplace'

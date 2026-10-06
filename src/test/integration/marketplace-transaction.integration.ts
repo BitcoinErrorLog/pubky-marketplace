@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 /**
  * End-to-end proof that the client transport speaks to the REAL Marketplace
- * Transaction Service (github.com/BitcoinErrorLog/pubky-marketplace-service):
+ * Transaction Service (github.com/pubky/pubky-marketplace-service):
  * a genuine Pubky auth flow (the test acts as the signer with a throwaway
  * keypair via `Signer.approveAuthRequest`, exactly what Pubky Ring does),
  * `AuthToken` bytes exchanged for a bearer session, and snake_case commands

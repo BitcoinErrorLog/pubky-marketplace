@@ -4,7 +4,7 @@ import type { MarketplaceNotification } from '@/services/marketplace/marketplace
  * Notification `type` strings pubky-marketplace-service writes.
  * Extracted from `insert_notification_intent` literals, `finish_order_action`
  * `(type, recipient)` tuples, and `notify_paid_buyers` on
- * BitcoinErrorLog/pubky-marketplace-service `origin/main`
+ * pubky/pubky-marketplace-service `origin/main`
  * `947f5574ef38c3eb4e5c9bc2e73fef3d17b12fc7`, plus the PayPal refund
  * notification `finish` in `payment_methods/paypal_refund.rs` at
  * `94ecb0d11b16808dd56e475e5308953f85a561f7`. `bitcoin_payment_seen` and
