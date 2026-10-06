@@ -27,6 +27,12 @@ async function registryGet(registry, repository, path, accept, auth) {
     const tokenUrl = new URL(challenge.realm);
     if (challenge.service) tokenUrl.searchParams.set('service', challenge.service);
     tokenUrl.searchParams.set('scope', `repository:${repository}:pull`);
+    // Credentials go only to the registry's own host (Docker Hub issues tokens from auth.docker.io).
+    const trustedRealm =
+      tokenUrl.protocol === 'https:' &&
+      (tokenUrl.host === registry || (registry === 'registry-1.docker.io' && tokenUrl.host === 'auth.docker.io'));
+    if (process.env.REGISTRY_BASIC && !trustedRealm)
+      throw new Error(`refusing to send REGISTRY_BASIC to token host ${tokenUrl.host}`);
     const basic = process.env.REGISTRY_BASIC;
     const tokenResponse = await fetch(tokenUrl, {
       headers: basic ? { authorization: `Basic ${Buffer.from(basic).toString('base64')}` } : {},

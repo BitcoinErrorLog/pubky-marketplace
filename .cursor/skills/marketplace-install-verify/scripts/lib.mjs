@@ -4,11 +4,13 @@ import { createHash } from 'node:crypto';
 /** Parses a dotenv-style file: KEY=VALUE, `#` comments, optional single or double quotes. */
 export function parseEnvFile(text) {
   const out = {};
-  for (const raw of text.split(/\r?\n/)) {
-    const line = raw.trim();
+  const lines = text.split(/\r?\n/);
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index].trim();
     if (!line || line.startsWith('#')) continue;
     const match = line.match(/^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
-    if (!match) throw new Error(`config line is not KEY=VALUE: ${line.slice(0, 40)}`);
+    // The line itself is never echoed: it may hold a secret.
+    if (!match) throw new Error(`line ${index + 1} is not KEY=VALUE`);
     let value = match[2];
     const quote = value[0];
     if ((quote === '"' || quote === "'") && value.endsWith(quote) && value.length >= 2) {
@@ -130,6 +132,21 @@ export function normalizeOrigin(value) {
   } catch {
     return null;
   }
+}
+
+/** Whether a Content-Security-Policy's frame-ancestors directive names exactly this origin. */
+export function frameAncestorsAllow(csp, origin) {
+  const directive = String(csp ?? '')
+    .split(';')
+    .map((part) => part.trim().split(/\s+/))
+    .find((tokens) => tokens[0]?.toLowerCase() === 'frame-ancestors');
+  const wanted = normalizeOrigin(origin);
+  return Boolean(wanted && directive?.slice(1).some((token) => normalizeOrigin(token) === wanted));
+}
+
+/** Environment-style booleans: 1, true, yes, on. */
+export function isTruthy(value) {
+  return /^(1|true|yes|on)$/i.test(String(value ?? '').trim());
 }
 
 /** A base URL without trailing slashes, for equality between configured and published URLs. */

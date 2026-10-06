@@ -42,8 +42,8 @@ Keep these when changing the scripts:
     that expires and is never completed, the same as a seller opening and closing the dialog).
   - `--write-probe`: one post (plus a profile only if the identity has none) on the homeserver the
     Nexus watches; deleted, verified gone from the homeserver and the Nexus. Production requires
-    `ALLOW_PRODUCTION_WRITE_PROBE=1`. A throwaway identity's secret is kept mode 600 under `--out`
-    only until cleanup is verified.
+    `ALLOW_PRODUCTION_WRITE_PROBE=1`. A throwaway identity needs `--out`: its secret is kept there,
+    mode 600, only until cleanup is verified.
   - `--browser`: a signed-out page load in headless Chromium. Nothing is clicked.
   - `--deep`: refused when `MIV_ENV=production` or when a command names a `PRODUCTION_HOSTS`
     entry. Runs the operator's staging proofs, which must clean up after themselves.

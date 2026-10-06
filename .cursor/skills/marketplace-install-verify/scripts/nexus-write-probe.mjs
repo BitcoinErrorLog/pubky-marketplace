@@ -52,6 +52,8 @@ export async function runNexusWriteProbe({ get, nexusUrl, out, runCommand, recor
   if (get('NEXUS_PROBE_SECRET_FILE')) {
     keypair = Keypair.fromSecret(decodeSecret(readFileSync(get('NEXUS_PROBE_SECRET_FILE'), 'utf8')));
   } else if (get('NEXUS_PROBE_HOMESERVER') && (get('NEXUS_PROBE_SIGNUP_TOKEN') || get('NEXUS_PROBE_SIGNUP_TOKEN_CMD'))) {
+    if (!out)
+      return record(id, 'FAIL', 'Nexus indexes a fresh write', 'a throwaway identity needs --out', 'rerun with --out <dir>: its secret is kept there until cleanup is verified');
     let token = get('NEXUS_PROBE_SIGNUP_TOKEN');
     if (!token) {
       const result = await runCommand(get('NEXUS_PROBE_SIGNUP_TOKEN_CMD'));
@@ -59,10 +61,8 @@ export async function runNexusWriteProbe({ get, nexusUrl, out, runCommand, recor
       if (!token) return record(id, 'FAIL', 'probe signup token minted', `command exit ${result.code}`, 'fix NEXUS_PROBE_SIGNUP_TOKEN_CMD');
     }
     keypair = Keypair.random();
-    if (out) {
-      secretFile = join(out, 'probe-seat.secret');
-      writeFileSync(secretFile, Buffer.from(keypair.secret()).toString('hex'), { mode: 0o600 });
-    }
+    secretFile = join(out, 'probe-seat.secret');
+    writeFileSync(secretFile, Buffer.from(keypair.secret()).toString('hex'), { mode: 0o600 });
     await pubky.signer(keypair).signup(PublicKey.from(get('NEXUS_PROBE_HOMESERVER')), token);
     record('write.seat', 'INFO', 'throwaway probe identity signed up', `${keypair.publicKey.z32().slice(0, 8)}…`);
   } else {

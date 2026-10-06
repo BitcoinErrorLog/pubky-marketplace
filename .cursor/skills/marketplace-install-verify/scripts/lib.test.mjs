@@ -6,6 +6,8 @@ import {
   compareMigrations,
   expectedMigration,
   extractRuntimeConfig,
+  frameAncestorsAllow,
+  isTruthy,
   missingOrigins,
   normalizeBase,
   parseBearerChallenge,
@@ -34,7 +36,19 @@ test('parseEnvFile reads quotes, comments and export prefixes', () => {
   assert.equal(env.B, 'quoted # not a comment');
   assert.equal(env.C, '["https://a.example"]');
   assert.equal(env.D, 'ssh vm docker inspect --format \'{{index .Config.Labels "x"}}\' svc');
-  assert.throws(() => parseEnvFile('not a pair'), /KEY=VALUE/);
+  assert.throws(() => parseEnvFile('A=1\nhunter2 secret'), (error) => {
+    assert.equal(error.message, 'line 2 is not KEY=VALUE');
+    return true;
+  });
+});
+
+test('frame-ancestors matches exact origins only', () => {
+  const csp = "default-src 'none'; frame-ancestors https://shop.example.evil.com https://Shop.example:443";
+  assert.equal(frameAncestorsAllow(csp, 'https://shop.example'), true);
+  assert.equal(frameAncestorsAllow('frame-ancestors https://shop.example.evil.com', 'https://shop.example'), false);
+  assert.equal(frameAncestorsAllow('', 'https://shop.example'), false);
+  assert.equal(isTruthy('Yes'), true);
+  assert.equal(isTruthy('0'), false);
 });
 
 test('parseTomlFlat reads the Paykit and Locks keys the checks use', () => {

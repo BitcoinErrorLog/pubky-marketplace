@@ -20,9 +20,10 @@ import {
   compareMigrations,
   expectedMigration,
   extractRuntimeConfig,
+  frameAncestorsAllow,
+  isTruthy,
   missingOrigins,
   normalizeBase,
-  normalizeOrigin,
   parseEnvFile,
   parseJsonLenient,
   parseList,
@@ -67,14 +68,20 @@ if (args.help || !args.config) {
   console.log(readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\n').slice(1, 12).join('\n'));
   process.exit(args.help ? 0 : 2);
 }
-const mainConfig = parseEnvFile(readFileSync(resolve(args.config), 'utf8'));
+function loadConfig(path) {
+  try {
+    return parseEnvFile(readFileSync(path, 'utf8'));
+  } catch (error) {
+    console.error(`config error in ${path}: ${error.code ?? error.message}`);
+    process.exit(2);
+  }
+}
+const mainConfig = loadConfig(resolve(args.config));
 // MIV_INCLUDE lists further config files (relative to this one); the main file's values win.
 const fileConfig = {
   ...Object.assign(
     {},
-    ...parseList(mainConfig.MIV_INCLUDE).map((file) =>
-      parseEnvFile(readFileSync(resolve(dirname(resolve(args.config)), file), 'utf8')),
-    ),
+    ...parseList(mainConfig.MIV_INCLUDE).map((file) => loadConfig(resolve(dirname(resolve(args.config)), file))),
   ),
   ...mainConfig,
 };
@@ -491,8 +498,12 @@ async function sectionPaykit() {
   const network = get('EXPECT_BITCOIN_NETWORK') && chain(get('EXPECT_BITCOIN_NETWORK'));
   const tip = body.electrum_tip_height ?? body.electrum?.tip_height;
   if (network === 'bitcoin' && typeof tip === 'number')
-    check('paykit.electrum-chain', tip > 800_000, 'Electrum serves mainnet', `tip ${tip}`, 'the Electrum endpoint is not a mainnet server');
+    // Mainnet is near 1M blocks; testnet3 is past 4M; testnet4, signet and regtest are far below 800k.
+    check('paykit.electrum-chain', tip > 800_000 && tip < 2_000_000, 'Electrum serves mainnet', `tip ${tip}`, 'the Electrum endpoint is not a mainnet server');
   else if (typeof tip === 'number') info('paykit.electrum-chain', 'Electrum tip', `height ${tip}`);
+  const tipAge = body.electrum_tip_age_seconds ?? body.electrum?.tip_age_secs;
+  if (typeof tipAge === 'number' && tipAge > 7200)
+    warn('paykit.electrum-tip-age', 'Electrum tip is recent', `last block ${Math.round(tipAge / 60)} min ago`, 'the Electrum server may be stuck or behind; compare its tip with a block explorer');
   if (network && facts.paykitBitcoinNetwork)
     check('paykit.bitcoin-network', chain(facts.paykitBitcoinNetwork) === network, `bitcoin.network is ${network}`, facts.paykitBitcoinNetwork, 'set [bitcoin] network in the Paykit config');
   const signed =
@@ -552,8 +563,9 @@ async function sectionLocks() {
     if (facts.locksPublicKey)
       check('locks.identity.config', facts.locksPublicKey === identity.lock_server, 'published identity matches config', short(facts.locksPublicKey), 'restart Locks after changing its credentials');
   }
-  const devRoute = await http(`${LOCKS}/verification-task-completions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
-  check('locks.dev-route-closed', devRoute.status === 404 || devRoute.status === 405, 'development completion route is not exposed', describe(devRoute), 'set [runtime] environment to a non-development value: this route completes verification tasks without payment');
+  // GET never reaches the POST handler: 405 means the route exists, 404 means it does not.
+  const devRoute = await http(`${LOCKS}/verification-task-completions`);
+  check('locks.dev-route-closed', devRoute.status === 404, 'development completion route is not exposed', describe(devRoute), 'set [runtime] environment to a non-development value: this route completes verification tasks without payment');
   if (facts.locksRuntimeEnvironment !== undefined)
     check('locks.runtime-environment', facts.locksRuntimeEnvironment !== 'development', 'runtime environment is not development', String(facts.locksRuntimeEnvironment), 'set [runtime] environment = "production" (or "staging")');
   for (const origin of SHOP_ORIGINS) {
@@ -581,15 +593,17 @@ async function sectionFiat() {
 }
 
 async function nexusListings(base) {
-  const rows = [];
+  const rows = new Map();
   for (let skipCount = 0; skipCount <= 5000; skipCount += 50) {
     const page = await http(`${base}/v0/stream/listings?limit=50&skip=${skipCount}`);
     if (page.status !== 200) throw new Error(`${base} listings ${describe(page)}`);
     const items = parseJsonLenient(page.text);
     if (!Array.isArray(items) || !items.length) break;
-    for (const item of items) rows.push({ key: `${item.owner_id}/${item.id}`, revision: item.revision, state: item.state });
+    const before = rows.size;
+    for (const item of items) rows.set(`${item.owner_id}/${item.id}`, { key: `${item.owner_id}/${item.id}`, revision: item.revision, state: item.state });
+    if (rows.size === before) break;
   }
-  return rows;
+  return [...rows.values()];
 }
 
 async function sectionNexus() {
@@ -671,6 +685,17 @@ async function checkReach(id, title, target, commandKey) {
 
 async function sectionWiring() {
   heading('wiring');
+  // Where Locks-gated Bitcoin invoices land. A Lock Server shared from another environment by design
+  // (LOCKS_SHARED_FROM) sends them to that environment's Paykit; the check names the route either way.
+  const bitcoinRoute = (id, title, target, expectedKey, hint) => {
+    if ([PAYKIT, get(expectedKey)].filter(Boolean).map(normalizeBase).includes(target)) return pass(id, title, target);
+    const detail = `Locks-gated Bitcoin goes to ${target}, not this stack’s Paykit ${PAYKIT}`;
+    const shared = get('LOCKS_SHARED_FROM');
+    if (!shared) return fail(id, title, detail, `${hint}; if the Lock Server is shared from another environment by design, declare LOCKS_SHARED_FROM=<environment>`);
+    const declared = `${detail} (declared: Lock Server shared from ${shared})`;
+    if (!PRODUCTION) return info(id, title, declared);
+    return warn(id, title, declared, `accepted only as a pre-launch exception: Locks-gated purchases settle on ${shared}’s Paykit, while seller-direct Bitcoin checkout uses ${PAYKIT}; a production install points Locks at its own Paykit`);
+  };
   const configHint = (key, file) => `set ${key}${file ? ` or ${file}` : ''} in ${args.config} to check this`;
   if (!state.lockServerKey && LOCKS) state.lockServerKey = jsonOf(await http(`${LOCKS}/.well-known/locks-server`))?.lock_server;
   if (!facts.paykitTrustedLocksKey) skip('wiring.paykit-trusts-locks', 'Paykit trusts the Lock Server key', configHint('PAYKIT_TRUSTED_LOCKS_KEY', 'PAYKIT_CONFIG_FILE'));
@@ -693,7 +718,8 @@ async function sectionWiring() {
   else {
     const target = normalizeBase(facts.locksPaykitServerUrl);
     const known = [PAYKIT, FIAT, get('LOCKS_PAYKIT_EXPECTED_URL')].filter(Boolean).map(normalizeBase);
-    check('wiring.locks-paykit-url', known.includes(target), 'Locks points at this stack’s Paykit (or the fiat gateway)', target, 'set [paykit] server_url to PAYKIT_URL, the fiat verifier, or their private address (declare it as LOCKS_PAYKIT_EXPECTED_URL)');
+    if (known.includes(target)) pass('wiring.locks-paykit-url', 'Locks points at this stack’s Paykit (or the fiat gateway)', target);
+    else bitcoinRoute('wiring.locks-paykit-url', 'Locks points at this stack’s Paykit (or the fiat gateway)', target, 'LOCKS_PAYKIT_EXPECTED_URL', 'set [paykit] server_url to PAYKIT_URL, the fiat verifier, or their private address (declare it as LOCKS_PAYKIT_EXPECTED_URL)');
     await checkReach('wiring.locks-paykit-reachable', 'Locks [paykit] server_url answers', target, 'LOCKS_PAYKIT_REACH_CMD');
   }
   const upstreamUrl = async (name, fact, envName, expectedKeys, reachKey) => {
@@ -706,7 +732,7 @@ async function sectionWiring() {
   await upstreamUrl('service-paykit-url', facts.servicePaykitUrl, 'PAYKIT_SERVER_URL', ['PAYKIT_URL', 'SERVICE_PAYKIT_EXPECTED_URL'], 'SERVICE_PAYKIT_REACH_CMD');
   await upstreamUrl('service-locks-url', facts.serviceLocksUrl, 'LOCKS_SERVER_URL', ['LOCKS_URL', 'SERVICE_LOCKS_EXPECTED_URL'], 'SERVICE_LOCKS_REACH_CMD');
   if (facts.serviceSandboxPayments !== undefined) {
-    const on = String(facts.serviceSandboxPayments).toLowerCase() === 'true';
+    const on = isTruthy(facts.serviceSandboxPayments);
     if (PRODUCTION) check('wiring.service-sandbox', !on, 'sandbox payments off in production', `SANDBOX_PAYMENTS_ENABLED=${facts.serviceSandboxPayments}`, 'unset SANDBOX_PAYMENTS_ENABLED on the production service');
     else info('wiring.service-sandbox', 'sandbox payments', `SANDBOX_PAYMENTS_ENABLED=${facts.serviceSandboxPayments}`);
   }
@@ -716,7 +742,7 @@ async function sectionWiring() {
     else skip('wiring.fiat-trusts-locks', 'fiat verifier trusts the Lock Server key', configHint('FIAT_TRUSTED_LOCKS_KEY'));
     if (facts.fiatPaykitUrl) {
       const target = normalizeBase(facts.fiatPaykitUrl);
-      check('wiring.fiat-paykit-url', [PAYKIT, get('FIAT_PAYKIT_EXPECTED_URL')].filter(Boolean).map(normalizeBase).includes(target), 'fiat verifier forwards Bitcoin to this Paykit', target, 'set FIAT_PAYKIT_SERVER_URL to this stack’s Paykit (declare a private address as FIAT_PAYKIT_EXPECTED_URL)');
+      bitcoinRoute('wiring.fiat-paykit-url', 'fiat verifier forwards Bitcoin to this Paykit', target, 'FIAT_PAYKIT_EXPECTED_URL', 'set FIAT_PAYKIT_SERVER_URL to this stack’s Paykit (declare a private address as FIAT_PAYKIT_EXPECTED_URL)');
       await checkReach('wiring.fiat-paykit-reachable', 'fiat verifier’s Paykit answers', target, 'FIAT_PAYKIT_REACH_CMD');
     } else skip('wiring.fiat-paykit-url', 'fiat verifier forwards Bitcoin to this Paykit', configHint('FIAT_PAYKIT_SERVER_URL'));
     originCheck('wiring.fiat-return-origins', 'fiat checkout returns to the Shop origins', facts.fiatReturnOrigins, 'FIAT_BUYER_RETURN_ORIGINS');
@@ -790,7 +816,8 @@ async function sectionDb() {
     }
     if (!expected) {
       const failed = applied.filter((row) => !row.success).map((row) => row.version);
-      check(id, !failed.length, `${label} migrations applied`, `${applied.length} applied, last ${applied.at(-1).version}${failed.length ? `, failed ${failed.join(',')}` : ''}`, 'a failed migration blocks startup; read the server log');
+      check(`${id}-applied`, !failed.length, `${label} migrations applied without failures`, `${applied.length} applied, last ${applied.at(-1).version}${failed.length ? `, failed ${failed.join(',')}` : ''}`, 'a failed migration blocks startup; read the server log');
+      skip(id, `${label} migrations match the source exactly`, `set ${name}_SOURCE (or ${name}_MIGRATIONS_DIR) to compare checksums`);
       continue;
     }
     const diff = compareMigrations(expected, applied);
@@ -818,7 +845,7 @@ async function probeFlows() {
       for (const origin of SHOP_ORIGINS) {
         const page = await http(`${PAYKIT}/setup?return_to=${encodeURIComponent(`${origin}/marketplace`)}&state=install-verify`);
         const csp = page.headers.get('content-security-policy') ?? '';
-        check(`flow.paykit-setup.${new URL(origin).host}`, page.status === 200 && csp.includes(`frame-ancestors ${normalizeOrigin(origin)}`), 'Paykit setup page frames the Shop', `${describe(page)}, ${csp || 'no CSP'}`, `add ${origin} to [setup] allowed_origins`);
+        check(`flow.paykit-setup.${new URL(origin).host}`, page.status === 200 && frameAncestorsAllow(csp, origin), 'Paykit setup page frames the Shop', `${describe(page)}, ${csp || 'no CSP'}`, `add ${origin} to [setup] allowed_origins`);
       }
       const foreign = await http(`${PAYKIT}/setup?return_to=${encodeURIComponent(`${PROBE_ORIGIN}/x`)}&state=install-verify`);
       if (foreign.status === 400) pass('flow.paykit-setup.foreign', 'Paykit setup refuses other origins', describe(foreign));
@@ -830,7 +857,7 @@ async function probeFlows() {
     for (const origin of SHOP_ORIGINS) {
       const page = await http(`${LOCKS}/connect?return_to=${encodeURIComponent(`${origin}/marketplace`)}&state=install-verify&delivery=postmessage`);
       const csp = page.headers.get('content-security-policy') ?? '';
-      check(`flow.locks-connect.${new URL(origin).host}`, page.status === 200 && csp.includes(`frame-ancestors ${normalizeOrigin(origin)}`), 'Locks connect page frames the Shop', `${describe(page)}, ${csp || 'no CSP'}`, `add ${origin} to [creator_authority_acquisition.legacy_connect] allowed_return_origins`);
+      check(`flow.locks-connect.${new URL(origin).host}`, page.status === 200 && frameAncestorsAllow(csp, origin), 'Locks connect page frames the Shop', `${describe(page)}, ${csp || 'no CSP'}`, `add ${origin} to [creator_authority_acquisition.legacy_connect] allowed_return_origins`);
     }
     const foreign = await http(`${LOCKS}/connect?return_to=${encodeURIComponent(`${PROBE_ORIGIN}/x`)}&state=install-verify&delivery=postmessage`);
     check('flow.locks-connect.foreign', foreign.status === 400, 'Locks connect refuses other origins', describe(foreign), 'allowed_return_origins must list exact origins');
