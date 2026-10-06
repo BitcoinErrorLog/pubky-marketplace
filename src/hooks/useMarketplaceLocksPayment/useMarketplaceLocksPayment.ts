@@ -133,7 +133,7 @@ export function useMarketplaceLocksPayment({
     let timer: number | undefined;
     const read = async () => {
       try {
-        const next = await CommerceController.getMarketplaceLocksAdmission(payment.id);
+        const next = await CommerceController.fetchMarketplaceLocksAdmission(payment.id);
         if (!active) return;
         setAdmission(next);
         if (next && next.kind !== 'in_flight') window.clearInterval(timer);

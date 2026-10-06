@@ -165,20 +165,24 @@ describe('CommerceApplication Locks payment start (pubky/locks#72 no-resubmit ru
       })
       .mockResolvedValueOnce(null);
     await expect(
-      CommerceApplication.getMarketplaceLocksAdmission(ORDER_FIXTURE_BUYER, 'payment-1'),
+      CommerceApplication.fetchMarketplaceLocksAdmission(ORDER_FIXTURE_BUYER, 'payment-1'),
     ).resolves.toBeNull();
     await begin();
 
-    await expect(CommerceApplication.getMarketplaceLocksAdmission(ORDER_FIXTURE_BUYER, 'payment-1')).resolves.toEqual({
-      kind: 'in_flight',
-      readerWalletSetupNeeded: true,
-    });
-    await expect(CommerceApplication.getMarketplaceLocksAdmission(ORDER_FIXTURE_BUYER, 'payment-1')).resolves.toEqual({
-      kind: 'failed',
-      failure: 'admission_deadline_exceeded',
-    });
+    await expect(CommerceApplication.fetchMarketplaceLocksAdmission(ORDER_FIXTURE_BUYER, 'payment-1')).resolves.toEqual(
+      {
+        kind: 'in_flight',
+        readerWalletSetupNeeded: true,
+      },
+    );
+    await expect(CommerceApplication.fetchMarketplaceLocksAdmission(ORDER_FIXTURE_BUYER, 'payment-1')).resolves.toEqual(
+      {
+        kind: 'failed',
+        failure: 'admission_deadline_exceeded',
+      },
+    );
     await expect(
-      CommerceApplication.getMarketplaceLocksAdmission(ORDER_FIXTURE_BUYER, 'payment-1'),
+      CommerceApplication.fetchMarketplaceLocksAdmission(ORDER_FIXTURE_BUYER, 'payment-1'),
     ).resolves.toBeNull();
     expect(find).toHaveBeenCalledTimes(3);
     expect(LocksGatewayService.submitPaykitProof).toHaveBeenCalledTimes(1);

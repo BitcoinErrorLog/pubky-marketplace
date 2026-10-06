@@ -1641,7 +1641,7 @@ export class CommerceApplication {
    * setup in progress, a terminal admission failure, or neither. `null` when
    * no correlation is stored or the Lock Server holds no task for it.
    */
-  static async getMarketplaceLocksAdmission(buyerPubky: string, paymentId: string) {
+  static async fetchMarketplaceLocksAdmission(buyerPubky: string, paymentId: string) {
     const correlation = await LocalCommerceService.getLocksCorrelation(buyerPubky, paymentId);
     if (!correlation) return null;
     const lifecycle = await LocksGatewayService.findVerification(correlation.seller_pubky, correlation.bundle_id);

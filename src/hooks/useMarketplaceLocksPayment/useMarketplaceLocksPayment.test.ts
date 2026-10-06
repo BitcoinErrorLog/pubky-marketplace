@@ -21,7 +21,7 @@ vi.mock('@/config/commerce', async () => {
 vi.mock('@/controllers/commerce/commerce', () => ({
   CommerceController: {
     getMarketplaceLocksCorrelation: vi.fn(),
-    getMarketplaceLocksAdmission: vi.fn(),
+    fetchMarketplaceLocksAdmission: vi.fn(),
     beginMarketplaceLocksPayment: vi.fn(),
     getMarketplaceOrder: vi.fn(),
     unlockMarketplaceLocksContent: vi.fn(),
@@ -69,7 +69,7 @@ describe('useMarketplaceLocksPayment', () => {
     vi.clearAllMocks();
     config.mode = 'locks-paykit';
     vi.mocked(CommerceController.getMarketplaceLocksCorrelation).mockResolvedValue(null);
-    vi.mocked(CommerceController.getMarketplaceLocksAdmission).mockResolvedValue(null);
+    vi.mocked(CommerceController.fetchMarketplaceLocksAdmission).mockResolvedValue(null);
   });
 
   it('is disabled outside locks-paykit mode and never touches the controller', async () => {
@@ -238,7 +238,7 @@ describe('useMarketplaceLocksPayment', () => {
     vi.mocked(CommerceController.getMarketplaceLocksCorrelation).mockResolvedValue(
       makeCorrelation(true, new Date(Date.now() + 60_000).toISOString()) as never,
     );
-    vi.mocked(CommerceController.getMarketplaceLocksAdmission)
+    vi.mocked(CommerceController.fetchMarketplaceLocksAdmission)
       .mockResolvedValueOnce({ kind: 'in_flight', readerWalletSetupNeeded: false })
       .mockResolvedValueOnce({ kind: 'in_flight', readerWalletSetupNeeded: true })
       .mockResolvedValue({ kind: 'failed', failure: 'reader_not_payable' });
@@ -249,11 +249,11 @@ describe('useMarketplaceLocksPayment', () => {
 
     await waitFor(() => expect(result.current.admission).toEqual({ kind: 'in_flight', readerWalletSetupNeeded: true }));
     await waitFor(() => expect(result.current.admission).toEqual({ kind: 'failed', failure: 'reader_not_payable' }));
-    const readsAtFailure = vi.mocked(CommerceController.getMarketplaceLocksAdmission).mock.calls.length;
+    const readsAtFailure = vi.mocked(CommerceController.fetchMarketplaceLocksAdmission).mock.calls.length;
     await new Promise((resolve) => setTimeout(resolve, 200));
     // A terminal answer ends the task poll; the bundle is never submitted again.
-    expect(vi.mocked(CommerceController.getMarketplaceLocksAdmission).mock.calls.length).toBe(readsAtFailure);
-    expect(CommerceController.getMarketplaceLocksAdmission).toHaveBeenCalledWith(payment.id);
+    expect(vi.mocked(CommerceController.fetchMarketplaceLocksAdmission).mock.calls.length).toBe(readsAtFailure);
+    expect(CommerceController.fetchMarketplaceLocksAdmission).toHaveBeenCalledWith(payment.id);
     expect(CommerceController.beginMarketplaceLocksPayment).not.toHaveBeenCalled();
     unmount();
   });
@@ -267,7 +267,7 @@ describe('useMarketplaceLocksPayment', () => {
 
     await waitFor(() => expect(result.current.correlation?.registered).toBe(false));
     await new Promise((resolve) => setTimeout(resolve, 150));
-    expect(CommerceController.getMarketplaceLocksAdmission).not.toHaveBeenCalled();
+    expect(CommerceController.fetchMarketplaceLocksAdmission).not.toHaveBeenCalled();
     expect(result.current.admission).toBeNull();
   });
 });

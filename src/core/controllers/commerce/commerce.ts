@@ -1209,8 +1209,8 @@ export class CommerceController {
     );
   }
 
-  static async getMarketplaceLocksAdmission(paymentId: unknown) {
-    return await CommerceApplication.getMarketplaceLocksAdmission(
+  static async fetchMarketplaceLocksAdmission(paymentId: unknown) {
+    return await CommerceApplication.fetchMarketplaceLocksAdmission(
       this.getCurrentUserPubky(),
       CommerceRecordNormalizer.entityId(paymentId),
     );
