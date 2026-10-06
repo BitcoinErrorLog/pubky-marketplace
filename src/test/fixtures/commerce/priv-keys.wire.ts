@@ -1,6 +1,6 @@
 /**
  * `GET /v1/me/priv-keys` wire bodies as `crates/service/src/priv_keys.rs`
- * (BitcoinErrorLog/pubky-marketplace-service `bb509068`) writes them. The
+ * (pubky/pubky-marketplace-service `bb509068`) writes them. The
  * staging proof (`src/test/live/priv-encryption.live.ts`) asserts that the
  * deployed service's 200 and 403 bodies have exactly these members and
  * member types. Owner, key id and key bytes are placeholders.

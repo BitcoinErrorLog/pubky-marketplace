@@ -2,7 +2,7 @@ DESIGN STATUS: NEEDS-OWNER-INPUT (r4 = r3 + two Kimi round-3 P3 wording fixes; K
 
 # Encrypted buyer delivery address to seller
 
-**Scope.** This design applies to Shop at `mp-ux` commit `17a21e77` and marketplace-service at `132a61a`. It follows the owner decision on BitcoinErrorLog/pubky-marketplace#12: encrypt the address in the buyer client, store only ciphertext the service cannot open, and decrypt in the seller client. The issue has no additional comments beyond that decision. This document is design-only.
+**Scope.** This design applies to Shop at `mp-ux` commit `17a21e77` and marketplace-service at `132a61a`. It follows the owner decision on pubky/pubky-marketplace#12: encrypt the address in the buyer client, store only ciphertext the service cannot open, and decrypt in the seller client. The issue has no additional comments beyond that decision. This document is design-only.
 
 V1 covers `checkout.create` orders only. Auction-won orders and offer flows remain conversation-based address exchange in v1 and must not accidentally gain a plaintext address path.
 

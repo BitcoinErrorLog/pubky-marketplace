@@ -29,7 +29,7 @@ Project documents (launch plan, team brief, SSO, upstream briefs):
 - **Durable transactions** — carts, checkout, offers/counteroffers, proxy-bid
   auctions, orders, fulfillment, returns, and disputes run against a
   separate Rust transaction service
-  ([`BitcoinErrorLog/pubky-marketplace-service`](https://github.com/BitcoinErrorLog/pubky-marketplace-service),
+  ([`pubky/pubky-marketplace-service`](https://github.com/pubky/pubky-marketplace-service),
   ADR 0019/0022): server-time deadlines, constraint-backed one-winner
   concurrency, idempotent command envelopes.
 - **Real payments, out of band** — Bitcoin via Locks + Paykit (regtest,

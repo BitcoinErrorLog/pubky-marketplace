@@ -1,7 +1,7 @@
 /**
  * A listing projection as the durable service serves it (snake_case wire),
  * pinned from `contracts/samples/projections.json`
- * (`auction_non_seller_bidder_projection`, BitcoinErrorLog/pubky-marketplace-service
+ * (`auction_non_seller_bidder_projection`, pubky/pubky-marketplace-service
  * `d7c3c759`). Placeholders are replaced with valid values; every field and
  * its type is the service's.
  */

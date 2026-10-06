@@ -10,7 +10,7 @@ Stripe test mode only).
 
 ## What was built
 
-**[`BitcoinErrorLog/pubky-fiat-verifier`](https://github.com/BitcoinErrorLog/pubky-fiat-verifier)** —
+**[`pubky/pubky-fiat-verifier`](https://github.com/pubky/pubky-fiat-verifier)** —
 a Rust (axum + Postgres) payment verifier gateway implementing the design's option A
 (design §2). It impersonates the Paykit Server wire contract behind the Lock Server's
 single `[paykit] server_url`:
@@ -69,7 +69,7 @@ Rollback is that one env var set back plus a redeploy.
 ## Proof 1: BTC purchase through the gateway, after cutover
 
 Full live purchase on the deployed rails with the Lock Server talking **only** to the
-gateway, run with the `BitcoinErrorLog/pubky-payment-rails` verification driver:
+gateway, run with the `pubky/pubky-payment-rails` verification driver:
 
 | Step                                                          | Observed value                                                                                                                                                                                                                                                     |
 | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

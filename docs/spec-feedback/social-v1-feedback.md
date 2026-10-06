@@ -4,7 +4,7 @@ Audience: the authors of `pubky_social_v1.md`. Source: the 2026-08-26
 compatibility review ("Marketplace on Social v1") plus the working marketplace
 deployment (`BitcoinErrorLog/pubky-app-specs` @ `marketplace-4-build`,
 `BitcoinErrorLog/pubky-app` @ `marketplace/pr25-ux`,
-`BitcoinErrorLog/pubky-marketplace-service`). The headline finding stands
+`pubky/pubky-marketplace-service`). The headline finding stands
 without qualification: the marketplace record layer needs zero additions to
 social/v1 — section 6's composition law, the app-namespace convention, and
 `PostEnvelope<K>` are the designed seam, and we have committed to riding the
