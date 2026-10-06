@@ -85,6 +85,8 @@ fi
 
 if [ -n "${PREPUSH_BASE:-}" ]; then
   base="$PREPUSH_BASE"
+elif git rev-parse --verify --quiet origin/master >/dev/null; then
+  base="$(git merge-base HEAD origin/master)"
 elif git rev-parse --verify --quiet origin/release/shop-v0.6.8 >/dev/null; then
   base="$(git merge-base HEAD origin/release/shop-v0.6.8)"
 else

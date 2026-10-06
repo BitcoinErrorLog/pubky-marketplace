@@ -8,15 +8,15 @@ Local setup is in [`onboarding.md`](onboarding.md) and [`RUNNING.md`](RUNNING.md
 
 ## Branches and targets
 
-| Item               | Value                                                                                                                                         |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Release branch     | `release/shop-v0.6.8`, the repository default and the long-lived Shop line. The name is historical; every release ships from it.              |
-| Train branches     | `train/shop-<YYYY-MM-DD>-<am\|pm>`, cut from the release branch head                                                                          |
-| Tags               | `shop-vX.Y.Z` on the deployed commit, with a GitHub release                                                                                   |
-| Production client  | Vercel project `pubky-marketplace-production`, team `synonymdev`, alias `shop.pubky.app`                                                      |
-| Staging client     | Vercel project `pubky-marketplace-staging`, team `synonymdev`, <https://pubky-marketplace-staging.vercel.app>                                 |
-| Backend services   | Separate repositories, deployed separately: `pubky-marketplace-service`, the `pubky-nexus` fork, the `paykit-server` fork. See their READMEs. |
-| Unrelated branches | `pubchi/v1` is a different product. Do not base Shop work on it.                                                                              |
+| Item               | Value                                                                                                                                                                                                                       |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Release branch     | `master`, the repository default and the Shop line; every release ships from it. Releases up to `shop-v0.6.46` shipped from `release/shop-v0.6.8` in `BitcoinErrorLog/pubky-app`, whose history is part of this repository. |
+| Train branches     | `train/shop-<YYYY-MM-DD>-<am\|pm>`, cut from the release branch head                                                                                                                                                        |
+| Tags               | `shop-vX.Y.Z` on the deployed commit, with a GitHub release                                                                                                                                                                 |
+| Production client  | Vercel project `pubky-marketplace-production`, team `synonymdev`, alias `shop.pubky.app`                                                                                                                                    |
+| Staging client     | Vercel project `pubky-marketplace-staging`, team `synonymdev`, <https://pubky-marketplace-staging.vercel.app>                                                                                                               |
+| Backend services   | Separate repositories, deployed separately: `pubky-marketplace-service`, the `pubky-nexus` fork, the `paykit-server` fork. See their READMEs.                                                                               |
+| Unrelated branches | `pubchi/v1` is a different product. Do not base Shop work on it.                                                                                                                                                            |
 
 ## Tools
 
@@ -39,10 +39,12 @@ missing dependency: fix `package-lock.json` in a pull request, then `HUSKY=0 npm
    files changed since the merge base, `npm run typecheck`, and `npx vitest related --run` on those files. The last
    line on success is `PREPUSH OK <sha> <seconds> fast`. A tree that already passed is not re-run.
 3. Arm auto-merge after pushing (`gh pr merge --auto --squash`) instead of waiting on CI.
-4. Required checks on `release/shop-v0.6.8`: Check Code Quality, Check NextJS Build, Run Shard Tests (1) to (5),
-   Run Tests, Merge Coverage Reports, `vrt-marketplace`, `vrt-core`, `launch-e2e`. A pull request is required, admins
-   included; no approving review is configured, so the team sets its own review rule. Force pushes and branch
-   deletion are blocked.
+4. Required checks on `master`: Check Code Quality, Check NextJS Build, Run Shard Tests (1) to (5), Run Tests, Merge
+   Coverage Reports, `vrt-marketplace`, `vrt-core`, `launch-e2e`. A pull request is required, admins included; no
+   approving review is configured, so the team sets its own review rule. Force pushes and branch deletion are
+   blocked. `launch-e2e` runs on pull requests into `release/shop-*` only until the repository secret
+   `LAUNCH_E2E_SELLER_SECRET_HEX` exists, because it fails closed without it. Pull requests that change only
+   `docs/`, `payments-env/` or `*.md` files skip the build, the unit suite and VRT; their checks still report.
 
 **Flake outside the diff.** If the only failures are test files the diff does not touch, rerun those files alone
 twice. If both reruns pass and the rest of the gate passed, the push may skip the hook (`--no-verify`) with the gate
@@ -75,8 +77,9 @@ Darwin PNGs are not required and are not regenerated.
 
 At most one or two Shop releases a day. An extra cut runs only for a production P0 or P1 fix.
 
-1. **Find the live release.** `gh release list -R BitcoinErrorLog/pubky-app --limit 1` gives the last `shop-vX.Y.Z`.
-2. **Close the train.** Open one pull request from `train/shop-<date>-<am|pm>` into `release/shop-v0.6.8`. A pull
+1. **Find the live release.** `gh release list -R pubky/pubky-marketplace --limit 1` gives the last `shop-vX.Y.Z`
+   (`-R BitcoinErrorLog/pubky-app` for `shop-v0.6.46` and earlier).
+2. **Close the train.** Open one pull request from `train/shop-<date>-<am|pm>` into `master`. A pull
    request that missed the cut waits for the next train. Nothing merges to the release branch outside a train.
 3. **Baselines once.** If any merged change moved a scene, regenerate Linux baselines once on the train head (rules
    above), then run the full marketplace VRT suite once.
@@ -261,7 +264,7 @@ added or changed since the previous tag:
 git diff --name-only shop-v<prev>..HEAD -- changelog.d/next
 git tag shop-vX.Y.Z <deployed-sha>
 git push origin shop-vX.Y.Z
-gh release create shop-vX.Y.Z -R BitcoinErrorLog/pubky-app --title "Shop vX.Y.Z" --notes-file <evidence-folder>/notes.md
+gh release create shop-vX.Y.Z -R pubky/pubky-marketplace --title "Shop vX.Y.Z" --notes-file <evidence-folder>/notes.md
 ```
 
 The notes carry the version, date, exact commit, Vercel deployment id and URL, one line per user-visible change, the

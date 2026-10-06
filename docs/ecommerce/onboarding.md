@@ -14,26 +14,26 @@ A peer-to-peer marketplace on Pubky:
   are paused. The Shop never holds funds.
 - **Messaging is end-to-end encrypted** over Paykit Encrypted Links.
 
-This repository is a fork of the Pubky social app ([pubky/pubky-app](https://github.com/pubky/pubky-app)). The Shop
-runs as its own site next to pubky.app.
+This repository holds the Shop web client, built on the Pubky social app
+([pubky/pubky-app](https://github.com/pubky/pubky-app)), together with the project documents and the tester issue
+tracker. The Shop runs as its own site next to pubky.app.
 
 Read [`status.md`](status.md) for what is real and what is simulated, and [`FEATURES.md`](FEATURES.md) for the
 feature inventory.
 
 ## Repositories
 
-| Repository                                                                                                | What                                                | Work branch           | Deploys to                                                                              |
-| --------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | --------------------- | --------------------------------------------------------------------------------------- |
-| [BitcoinErrorLog/pubky-app](https://github.com/BitcoinErrorLog/pubky-app)                                 | Shop web client (Next.js, `@synonymdev/pubky` 0.11) | `release/shop-v0.6.8` | Vercel `pubky-marketplace-production` (shop.pubky.app) and `pubky-marketplace-staging`  |
-| [BitcoinErrorLog/pubky-marketplace-service](https://github.com/BitcoinErrorLog/pubky-marketplace-service) | Transaction service (Rust, sqlx, Postgres)          | `main`                | Railway, GHCR image pinned in `.railway/railway.ts`; staging at `staging-api.pubky.app` |
-| [BitcoinErrorLog/pubky-nexus](https://github.com/BitcoinErrorLog/pubky-nexus)                             | Marketplace indexer (Nexus fork)                    | `main`                | Railway; see its `docs/railway-deploy.md`                                               |
-| [BitcoinErrorLog/paykit-server](https://github.com/BitcoinErrorLog/paykit-server)                         | Paykit server (fork)                                | `master`              | Railway; production host `paykit-shop.pubky.app`                                        |
-| [BitcoinErrorLog/pubky-app-specs](https://github.com/BitcoinErrorLog/pubky-app-specs)                     | Marketplace record types (specs fork)               | —                     | Vendored into this repository as a tarball                                              |
-| [BitcoinErrorLog/pubky-shop](https://github.com/BitcoinErrorLog/pubky-shop)                               | `@bitcoinerrorlog/pubky-shop` SDK                   | `main`                | npm                                                                                     |
-| [BitcoinErrorLog/pubky-marketplace](https://github.com/BitcoinErrorLog/pubky-marketplace)                 | Issue tracker for testers                           | —                     | —                                                                                       |
+| Repository                                                                            | What                                                                             | Work branch | Deploys to                                                                              |
+| ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ----------- | --------------------------------------------------------------------------------------- |
+| [pubky/pubky-marketplace](https://github.com/pubky/pubky-marketplace)                 | Shop web client (Next.js, `@synonymdev/pubky` 0.11), project docs, tester issues | `master`    | Vercel `pubky-marketplace-production` (shop.pubky.app) and `pubky-marketplace-staging`  |
+| [pubky/pubky-marketplace-service](https://github.com/pubky/pubky-marketplace-service) | Transaction service (Rust, sqlx, Postgres)                                       | `main`      | Railway, GHCR image pinned in `.railway/railway.ts`; staging at `staging-api.pubky.app` |
+| [BitcoinErrorLog/pubky-nexus](https://github.com/BitcoinErrorLog/pubky-nexus)         | Marketplace indexer (Nexus fork)                                                 | `main`      | Railway; see its `docs/railway-deploy.md`                                               |
+| [BitcoinErrorLog/paykit-server](https://github.com/BitcoinErrorLog/paykit-server)     | Paykit server (fork)                                                             | `master`    | Railway; production host `paykit-shop.pubky.app`                                        |
+| [BitcoinErrorLog/pubky-app-specs](https://github.com/BitcoinErrorLog/pubky-app-specs) | Marketplace record types (specs fork)                                            | —           | Vendored into this repository as a tarball                                              |
+| [pubky/pubky-shop-sdk](https://github.com/pubky/pubky-shop-sdk)                       | `@bitcoinerrorlog/pubky-shop` SDK                                                | `main`      | npm                                                                                     |
 
-In this repository, `release/shop-v0.6.8` is the default branch and the long-lived Shop release line, despite the
-version in its name. `pubchi/v1` is a different product.
+In this repository, `master` is the default branch and the Shop release line. Releases up to `shop-v0.6.46` were cut
+from `release/shop-v0.6.8` in `BitcoinErrorLog/pubky-app`; that history and its tags are part of this repository.
 
 ## Access to request on day one
 
@@ -45,7 +45,7 @@ version in its name. `pubchi/v1` is a different product.
 ## Run it locally
 
 ```bash
-git clone https://github.com/BitcoinErrorLog/pubky-app.git && cd pubky-app
+git clone https://github.com/pubky/pubky-marketplace.git && cd pubky-marketplace
 HUSKY=0 npm ci           # HUSKY=0 keeps husky from replacing your global git hooks
 npm run marketplace:dev  # terminal 1: in-memory sandbox transaction service on :3100
 PUBKY_RUNTIME_COMMERCE_ADAPTER_MODE=sandbox \
@@ -74,7 +74,7 @@ Live suites that need a running service, a local Pubky testnet, or staging signu
 ## Merge
 
 - Pull requests target the open train branch `train/shop-<date>-<am|pm>`; the train merges into
-  `release/shop-v0.6.8` at the cut.
+  `master` at the cut.
 - CI must pass: Check Code Quality, Check NextJS Build, the five test shards, Run Tests, Merge Coverage Reports,
   `vrt-marketplace`, `vrt-core`, `launch-e2e`. No approving review is configured; agree a review rule as a team.
 - Auto-merge is enabled. Arm it after pushing with `gh pr merge --auto --squash`.
