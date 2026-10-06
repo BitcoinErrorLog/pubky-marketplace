@@ -357,6 +357,35 @@ describe('Marketplace payment status card — visual regression', () => {
     view.locks.enabled = true;
   });
 
+  it('renders a seller-confirmed Bitcoin payment apart from its on-chain state', async () => {
+    view.locks = { ...view.locks, enabled: false, correlation: null, delivery: null, error: null };
+    const screen = await renderCard('confirmed', 'transaction-service', {
+      deployEnv: 'staging',
+      adapter: 'paykit',
+      orderState: 'paid',
+      currentUserPubky: 'b'.repeat(52),
+      paymentOverrides: { confirmations: 0 },
+      orderOverrides: {
+        paymentMethod: 'bitcoin',
+        paykitRequestState: 'confirmed',
+        paykitDeliveryState: 'delivered',
+        paykitTotalSats: 1_753,
+        merchandiseTotal: { amountMinor: 1_000, currency: 'BTC', exponent: 8 },
+        bitcoinPayable: { amountMinor: 1_753, currency: 'SAT', exponent: 0 },
+        subtotal: { amountMinor: 1_000, currency: 'BTC', exponent: 8 },
+        shipping: { amountMinor: 0, currency: 'BTC', exponent: 8 },
+        total: { amountMinor: 1_753, currency: 'BTC', exponent: 8 },
+      },
+    });
+    await expect.element(screen.getByText('Seller confirmed payment')).toBeInTheDocument();
+    await expect.element(screen.getByTestId('bitcoin-seller-confirmed-before-chain')).toBeInTheDocument();
+    await expect.element(screen.getByText('Payment confirmed', { exact: true })).not.toBeInTheDocument();
+    await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot(
+      'payment-status-bitcoin-seller-confirmed-desktop',
+    );
+    view.locks.enabled = true;
+  });
+
   it('renders a bound card order without offering card checkout at desktop viewport', async () => {
     view.locks = { ...view.locks, enabled: false, correlation: null, delivery: null, error: null };
     const screen = await renderCard('awaiting_entitlement', 'transaction-service', {

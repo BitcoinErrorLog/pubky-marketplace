@@ -441,7 +441,8 @@ describe('MarketplacePaymentStatusCard', () => {
       unmount();
     }
     const { unmount } = renderBound('delivered');
-    expect(screen.getByTestId('paykit-delivery-status')).toHaveTextContent('Delivered to your wallet');
+    expect(screen.getByTestId('paykit-delivery-status')).toHaveTextContent('Sent to your wallet');
+    expect(screen.queryByText(/Delivered/)).not.toBeInTheDocument();
     unmount();
   });
 
@@ -552,7 +553,7 @@ describe('MarketplacePaymentStatusCard', () => {
       expect(screen.getByText('Awaiting payment')).toBeInTheDocument();
       expect(screen.queryByText('Payment seen')).not.toBeInTheDocument();
       expect(screen.getByTestId('paykit-delivery-status')).toHaveTextContent(
-        'Delivered to your wallet. Open Bitkit to pay. If you have already sent the payment, this page updates as soon as the marketplace sees the transaction.',
+        "Sent to your wallet. Open Bitkit to pay. If the request isn't there, check that the seller is one of your Bitkit contacts. If you have already sent the payment, this page updates as soon as the marketplace sees the transaction.",
       );
     });
 
@@ -855,5 +856,145 @@ describe('MarketplacePaymentStatusCard', () => {
 
     expect(screen.getByText(CHECKOUT_HOLD_COPY.expiredNoLateMoney)).toBeInTheDocument();
     expect(screen.queryByText(/reconciled manually/)).not.toBeInTheDocument();
+  });
+
+  describe('paid Bitcoin order', () => {
+    const renderPaid = ({
+      isBuyer = true,
+      payment = {},
+      order = {},
+    }: {
+      isBuyer?: boolean;
+      payment?: Parameters<typeof createPaymentFixture>[1];
+      order?: Parameters<typeof createOrderFixture>[1];
+    }) => {
+      const paid = createPaymentFixture('confirmed', { adapter: 'paykit', confirmations: 0, ...payment });
+      return render(
+        <MarketplacePaymentStatusCard
+          order={createOrderFixture('paid', {
+            paymentId: paid.id,
+            paymentMethod: 'bitcoin',
+            paykitRequestState: 'confirmed',
+            paykitDeliveryState: 'delivered',
+            ...order,
+          })}
+          payment={paid}
+          isBuyer={isBuyer}
+          adapterMode="transaction-service"
+          advancePayment={async () => false}
+          onPaymentChanged={() => {}}
+        />,
+      );
+    };
+
+    it('names the seller, not the chain, when the seller confirmed at 0 confirmations', () => {
+      renderPaid({});
+      expect(screen.getByText('Seller confirmed payment')).toBeInTheDocument();
+      expect(screen.getByTestId('bitcoin-seller-confirmed-before-chain')).toHaveTextContent(
+        'The seller confirmed they received your payment before the marketplace saw an on-chain confirmation. Your wallet shows when the transaction confirms.',
+      );
+      expect(screen.queryByText('Payment confirmed')).not.toBeInTheDocument();
+      expect(screen.queryByText(/Confirmed on-chain/)).not.toBeInTheDocument();
+      expect(screen.queryByTestId('bitcoin-on-chain-badge')).not.toBeInTheDocument();
+    });
+
+    it('tells the seller they confirmed before the chain did', () => {
+      renderPaid({ isBuyer: false });
+      expect(screen.getByText('Seller confirmed payment')).toBeInTheDocument();
+      expect(screen.getByTestId('bitcoin-seller-confirmed-before-chain')).toHaveTextContent(
+        'You confirmed this payment before the marketplace saw an on-chain confirmation.',
+      );
+    });
+
+    it('shows the on-chain state as its own badge once a confirmation was recorded', () => {
+      renderPaid({ payment: { confirmations: 1 } });
+      expect(screen.getByText('Seller confirmed payment')).toBeInTheDocument();
+      expect(screen.getByTestId('bitcoin-on-chain-badge')).toHaveTextContent('Confirmed on-chain');
+      expect(screen.queryByTestId('bitcoin-seller-confirmed-before-chain')).not.toBeInTheDocument();
+    });
+
+    it('counts a resolved late settlement as on-chain even with 0 recorded confirmations', () => {
+      renderPaid({ payment: { reviewReason: 'late_settlement', resolutionOutcome: 'paid' } });
+      expect(screen.getByText('Seller confirmed payment')).toBeInTheDocument();
+      expect(screen.getByTestId('bitcoin-on-chain-badge')).toHaveTextContent('Confirmed on-chain');
+    });
+
+    it('does not credit the seller for late money that completed the order on its own', () => {
+      renderPaid({ order: { cancellationReason: 'payment window elapsed' } });
+      expect(screen.getByText('Confirmed on-chain')).toBeInTheDocument();
+      expect(screen.queryByText('Seller confirmed payment')).not.toBeInTheDocument();
+      expect(screen.getByText(CHECKOUT_HOLD_COPY.lateCompleteBuyer)).toBeInTheDocument();
+    });
+
+    it('keeps the generic label on a paid PayPal order', () => {
+      renderPaid({
+        payment: { adapter: 'paypal' },
+        order: { paymentMethod: 'paypal', paykitRequestState: null, fiatVerification: 'seller-attested' },
+      });
+      expect(screen.getByText('Payment confirmed')).toBeInTheDocument();
+      expect(screen.queryByText('Seller confirmed payment')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('seller confirm-by time', () => {
+    const DEADLINE = '2026-10-02T09:28:10.186Z';
+
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] });
+      vi.setSystemTime(new Date('2026-10-01T09:28:30.000Z'));
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    const renderSellerReview = () => {
+      const payment = createPaymentFixture('awaiting_entitlement', { adapter: 'paykit' });
+      return render(
+        <MarketplacePaymentStatusCard
+          order={createOrderFixture('pending_payment', {
+            paymentId: payment.id,
+            paymentMethod: 'bitcoin',
+            paykitRequestState: 'awaiting_seller_confirmation',
+            paykitSellerConfirmationDeadline: DEADLINE,
+            paykitObservation: {
+              txid: null,
+              observedSats: null,
+              confirmations: 0,
+              amountMatched: true,
+              disappeared: false,
+              observedAt: '2026-10-01T09:28:54.000Z',
+            },
+          })}
+          payment={payment}
+          isBuyer={false}
+          adapterMode="transaction-service"
+          advancePayment={async () => false}
+          onPaymentChanged={() => {}}
+        />,
+      );
+    };
+
+    it('shows a readable deadline with the live countdown instead of the raw timestamp', () => {
+      renderSellerReview();
+      const deadline = screen.getByTestId('seller-bitcoin-confirm-deadline');
+      expect(deadline).toHaveTextContent('Confirm by');
+      expect(deadline).toHaveTextContent('Oct 2, 2026, 9:28 AM UTC · 23:59:40 left');
+      expect(screen.getByText('Oct 1, 2026, 9:28 AM UTC')).toBeInTheDocument();
+      expect(screen.queryByText(/2026-10-0\dT/)).not.toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(1_000);
+      });
+      expect(deadline).toHaveTextContent('23:59:39 left');
+    });
+
+    it('drops the countdown once the window has ended', () => {
+      vi.setSystemTime(new Date('2026-10-02T10:00:00.000Z'));
+      renderSellerReview();
+      const deadline = screen.getByTestId('seller-bitcoin-confirm-deadline');
+      expect(deadline).toHaveTextContent('Oct 2, 2026, 9:28 AM UTC');
+      expect(deadline).not.toHaveTextContent('left');
+    });
   });
 });

@@ -35,7 +35,7 @@ import { useMarketplaceOfferCheckout } from '@/hooks/useMarketplaceOfferCheckout
 import { useMarketplaceOffers } from '@/hooks/useMarketplaceOffers/useMarketplaceOffers';
 import { useMarketplaceOrders } from '@/hooks/useMarketplaceOrders/useMarketplaceOrders';
 import { useMarketplaceSellerSummary } from '@/hooks/useMarketplaceSellerSummary/useMarketplaceSellerSummary';
-import { buyerCheckoutProgressCopy } from '@/libs/commerce/bitcoin-buyer-status';
+import { buyerCheckoutProgressCopy, paidOrderHeadline } from '@/libs/commerce/bitcoin-buyer-status';
 import { BITCOIN_PAYMENT_CODE_CHECKOUT_NOTE } from '@/libs/commerce/bitcoin-payment-code';
 import {
   getMarketplaceCheckoutRoute,
@@ -456,7 +456,11 @@ function MarketplaceCartCheckout() {
               focusedPaying.map(({ order, payment }) => (
                 <Card key={order.id} className="border">
                   <CardContent className="grid min-w-0 gap-4 px-6">
-                    {isPaidOrLaterState(order.state) ? <Typography as="p">Payment confirmed.</Typography> : null}
+                    {isPaidOrLaterState(order.state) ? (
+                      <Typography as="p" data-testid="marketplace-checkout-paid-headline">
+                        {paidOrderHeadline(order, payment)}
+                      </Typography>
+                    ) : null}
                     <MarketplaceOrderReference order={order} isBuyer />
                     <MarketplacePaymentStatusCard
                       order={order}

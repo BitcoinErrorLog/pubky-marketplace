@@ -4,7 +4,7 @@ import {
   formatBitcoinAwareMoney,
   satoshiCount,
 } from '@/libs/commerce/bitcoin-payment-code';
-import { CHECKOUT_HOLD_COPY, formatHoldDeadline } from '@/libs/commerce/checkout-hold';
+import { CHECKOUT_HOLD_COPY, formatHoldDeadline, PAYMENT_WINDOW_ELAPSED_REASON } from '@/libs/commerce/checkout-hold';
 import { buyerCheckoutStateLabel, formatRemainingHMmSs, reservedWhileYouPayCopy } from '@/libs/commerce/checkout-phase';
 import type { PaymentMethodKind } from '@/libs/commerce/payment-methods';
 import type { CommerceMoney } from '@/libs/commerce/transaction-contracts';
@@ -21,7 +21,20 @@ export const PAYMENT_CONFIRMED_ON_CHAIN_LABEL = 'Confirmed on-chain';
 export const PAYMENT_SEEN_HOLD_COPY =
   'Your payment was seen, so the item is held for you for up to 24 hours while the seller confirms it.';
 
-export const PAYMENT_CONFIRMED_LABEL = 'Payment confirmed.';
+export const PAYMENT_CONFIRMED_ON_CHAIN_COPY = 'Payment confirmed on-chain.';
+
+/** Badge once the seller has confirmed receipt. It says nothing about the chain. */
+export const PAYMENT_SELLER_CONFIRMED_LABEL = 'Seller confirmed payment';
+
+export const SELLER_CONFIRMED_PAYMENT_COPY = 'Seller confirmed payment.';
+
+export const SELLER_CONFIRMED_ON_CHAIN_COPY = 'Seller confirmed payment. Confirmed on-chain.';
+
+export const SELLER_CONFIRMED_BEFORE_CHAIN_BUYER_COPY =
+  'The seller confirmed they received your payment before the marketplace saw an on-chain confirmation. Your wallet shows when the transaction confirms.';
+
+export const SELLER_CONFIRMED_BEFORE_CHAIN_SELLER_COPY =
+  'You confirmed this payment before the marketplace saw an on-chain confirmation.';
 
 export const PAYMENT_CONFIRMED_REVIEW_COPY = 'Payment confirmed on-chain. The seller is reviewing it.';
 
@@ -35,8 +48,12 @@ export const PAYMENT_AMOUNT_MISMATCH_UNCONFIRMED_COPY = 'The amount does not mat
 export const PAYMENT_CONFIRMED_WAITING_SELLER_COPY =
   'Payment confirmed on-chain. Waiting for the seller to confirm they received it.';
 
-export const BITCOIN_WALLET_DELIVERED_COPY =
-  'Delivered to your wallet. Open Bitkit to pay. If you have already sent the payment, this page updates as soon as the marketplace sees the transaction.';
+/**
+ * Paykit's `delivered` means the request was published for the buyer's
+ * wallet, not that the wallet accepted it, so the copy says "sent".
+ */
+export const BITCOIN_WALLET_SENT_COPY =
+  "Sent to your wallet. Open Bitkit to pay. If the request isn't there, check that the seller is one of your Bitkit contacts. If you have already sent the payment, this page updates as soon as the marketplace sees the transaction.";
 
 export const BITCOIN_WALLET_WAITING_COPY =
   'Waiting for your wallet. Keep Bitkit open so it can receive the payment request.';
@@ -44,6 +61,7 @@ export const BITCOIN_WALLET_WAITING_COPY =
 const SEEN_REQUEST_STATES = new Set(['detected', 'awaiting_seller_confirmation', 'confirmed']);
 
 type BitcoinStatusOrder = {
+  cancellationReason?: string | null;
   paymentMethod?: PaymentMethodKind | null;
   paykitRequestState?: string | null;
   paykitDeliveryState?: string | null;
@@ -62,6 +80,7 @@ type BitcoinStatusPayment = {
   state?: string | null;
   reviewReason?: string | null;
   confirmations?: number | null;
+  resolutionOutcome?: string | null;
 } | null;
 
 export type BitcoinBuyerStatusRow = {
@@ -80,13 +99,14 @@ export type BitcoinBuyerStatusRow = {
 };
 
 const SELLER_CONFIRMS_BY = 'Seller confirms by Sep 29, 2026, 10:56 AM UTC.';
-const CONFIRMED_SELLER_DEADLINE = `Payment confirmed on-chain. ${SELLER_CONFIRMS_BY}`;
+const CONFIRMED_SELLER_DEADLINE = `${PAYMENT_CONFIRMED_ON_CHAIN_COPY} ${SELLER_CONFIRMS_BY}`;
 
 /**
- * Buyer-visible Bitcoin states. A confirmation exists when the request or the
- * payment is `confirmed`, or the payment records at least one confirmation.
- * `paykitRequestState: confirmed` is the service's confirmed observation,
- * including the canary whose `payment.confirmations` stayed 0. A manual
+ * Buyer-visible Bitcoin states. A confirmation exists when the payment records
+ * at least one confirmation or, before the order is paid, the request is
+ * `confirmed`: there `paykitRequestState: confirmed` is the service's
+ * confirmed observation, including the canary whose `payment.confirmations`
+ * stayed 0. A paid order follows {@link bitcoinPaidConfirmation}. A manual
  * review that has none of those says the payment was received, not confirmed.
  */
 export const BITCOIN_BUYER_STATUS_TABLE: readonly BitcoinBuyerStatusRow[] = [
@@ -99,7 +119,7 @@ export const BITCOIN_BUYER_STATUS_TABLE: readonly BitcoinBuyerStatusRow[] = [
     confirmations: 0,
     confirmationExists: false,
     progress: 'Reserved while you pay · 5:00',
-    wallet: BITCOIN_WALLET_DELIVERED_COPY,
+    wallet: BITCOIN_WALLET_SENT_COPY,
     forbidsPayLabels: false,
   },
   {
@@ -111,7 +131,7 @@ export const BITCOIN_BUYER_STATUS_TABLE: readonly BitcoinBuyerStatusRow[] = [
     confirmations: 0,
     confirmationExists: false,
     progress: 'Reserved while you pay · 5:00',
-    wallet: BITCOIN_WALLET_DELIVERED_COPY,
+    wallet: BITCOIN_WALLET_SENT_COPY,
     forbidsPayLabels: false,
   },
   {
@@ -151,15 +171,27 @@ export const BITCOIN_BUYER_STATUS_TABLE: readonly BitcoinBuyerStatusRow[] = [
     forbidsPayLabels: true,
   },
   {
-    id: 'paid-confirmed',
-    enteredFrom: 'payment confirmed',
+    id: 'paid-seller-confirmed-on-chain',
+    enteredFrom: 'seller confirmed after a chain confirmation',
     paykitRequestState: 'confirmed',
     paymentState: 'confirmed',
     reviewReason: null,
     confirmations: 1,
     confirmationExists: true,
-    progress: PAYMENT_CONFIRMED_LABEL,
-    wallet: PAYMENT_CONFIRMED_LABEL,
+    progress: SELLER_CONFIRMED_ON_CHAIN_COPY,
+    wallet: SELLER_CONFIRMED_ON_CHAIN_COPY,
+    forbidsPayLabels: true,
+  },
+  {
+    id: 'paid-seller-confirmed-unconfirmed',
+    enteredFrom: 'seller confirmed at 0 confirmations (canary c62d186d)',
+    paykitRequestState: 'confirmed',
+    paymentState: 'confirmed',
+    reviewReason: null,
+    confirmations: 0,
+    confirmationExists: false,
+    progress: SELLER_CONFIRMED_PAYMENT_COPY,
+    wallet: SELLER_CONFIRMED_PAYMENT_COPY,
     forbidsPayLabels: true,
   },
   {
@@ -302,9 +334,51 @@ function isBitcoinOrder(order: BitcoinStatusOrder): boolean {
 
 /** A chain confirmation the buyer projection actually records. */
 export function bitcoinConfirmationExists(order: BitcoinStatusOrder, payment: BitcoinStatusPayment): boolean {
-  return (
-    order.paykitRequestState === 'confirmed' || payment?.state === 'confirmed' || (payment?.confirmations ?? 0) > 0
-  );
+  if ((payment?.confirmations ?? 0) > 0) return true;
+  if (payment?.state === 'confirmed') return bitcoinPaidConfirmation(order, payment)?.onChain ?? true;
+  return order.paykitRequestState === 'confirmed';
+}
+
+export type BitcoinPaidConfirmation = {
+  /** The seller attested receipt: a confirm, or a resolve with outcome `paid`. */
+  sellerConfirmed: boolean;
+  /** The marketplace recorded an on-chain confirmation. */
+  onChain: boolean;
+};
+
+/**
+ * How a paid Bitcoin order was settled. A seller confirm also sets
+ * `paykitRequestState: confirmed`, so that state is not chain evidence here.
+ * Late money that completes an expired order and a resolved `late_settlement`
+ * or `amount_mismatch` review both start from Paykit's confirmed
+ * observation. Any other paid order was confirmed by its seller: a creator
+ * is `shared_manual` unless it claims through `bitkit_watch_only_v1`, which
+ * no Shop or service path sends.
+ */
+export function bitcoinPaidConfirmation(
+  order: BitcoinStatusOrder,
+  payment: BitcoinStatusPayment,
+): BitcoinPaidConfirmation | null {
+  if (order.paymentMethod !== 'bitcoin' || payment?.state !== 'confirmed') return null;
+  const resolvedPaid = payment.resolutionOutcome === 'paid';
+  const lateCompleted = !resolvedPaid && order.cancellationReason === PAYMENT_WINDOW_ELAPSED_REASON;
+  const reviewedChainObservation =
+    resolvedPaid && (payment.reviewReason === 'late_settlement' || payment.reviewReason === 'amount_mismatch');
+  return {
+    sellerConfirmed: !lateCompleted,
+    onChain: lateCompleted || reviewedChainObservation || (payment.confirmations ?? 0) > 0,
+  };
+}
+
+export function bitcoinPaidConfirmationCopy(paid: BitcoinPaidConfirmation): string {
+  if (!paid.sellerConfirmed) return PAYMENT_CONFIRMED_ON_CHAIN_COPY;
+  return paid.onChain ? SELLER_CONFIRMED_ON_CHAIN_COPY : SELLER_CONFIRMED_PAYMENT_COPY;
+}
+
+/** Headline for a paid order. Bitcoin names who confirmed it; other rails keep the generic line. */
+export function paidOrderHeadline(order: BitcoinStatusOrder, payment: BitcoinStatusPayment): string {
+  const paid = bitcoinPaidConfirmation(order, payment);
+  return paid ? bitcoinPaidConfirmationCopy(paid) : 'Payment confirmed.';
 }
 
 /** The service has observed the payment. The buyer must not be told to pay again. */
@@ -373,12 +447,16 @@ export function buyerCheckoutProgressCopy(
         nowMs,
       );
       if (bitcoinConfirmationExists(order, payment)) {
-        return deadline === PAYMENT_SEEN_LABEL ? PAYMENT_CONFIRMED_LABEL : `Payment confirmed on-chain. ${deadline}`;
+        return deadline === PAYMENT_SEEN_LABEL
+          ? PAYMENT_CONFIRMED_ON_CHAIN_COPY
+          : `${PAYMENT_CONFIRMED_ON_CHAIN_COPY} ${deadline}`;
       }
       return deadline;
     }
     if (bitcoinPaymentHasBeenSeen(order, payment)) {
-      return bitcoinConfirmationExists(order, payment) ? PAYMENT_CONFIRMED_LABEL : PAYMENT_SEEN_LABEL;
+      const paid = bitcoinPaidConfirmation(order, payment);
+      if (paid) return bitcoinPaidConfirmationCopy(paid);
+      return bitcoinConfirmationExists(order, payment) ? PAYMENT_CONFIRMED_ON_CHAIN_COPY : PAYMENT_SEEN_LABEL;
     }
   }
   if (order.paymentMethod) return reservedWhileYouPayCopy(order.holdExpiresAt, nowMs);
@@ -414,14 +492,16 @@ export function buyerBitcoinWalletCopy(
     };
   }
   if (bitcoinPaymentHasBeenSeen(order, payment)) {
+    const paid = bitcoinPaidConfirmation(order, payment);
+    if (paid) return { kind: 'seen', text: bitcoinPaidConfirmationCopy(paid) };
     return {
       kind: 'seen',
-      text: bitcoinConfirmationExists(order, payment) ? PAYMENT_CONFIRMED_LABEL : PAYMENT_SEEN_WAITING_COPY,
+      text: bitcoinConfirmationExists(order, payment) ? PAYMENT_CONFIRMED_ON_CHAIN_COPY : PAYMENT_SEEN_WAITING_COPY,
     };
   }
   return {
     kind: 'pay',
-    text: order.paykitDeliveryState === 'delivered' ? BITCOIN_WALLET_DELIVERED_COPY : BITCOIN_WALLET_WAITING_COPY,
+    text: order.paykitDeliveryState === 'delivered' ? BITCOIN_WALLET_SENT_COPY : BITCOIN_WALLET_WAITING_COPY,
   };
 }
 
