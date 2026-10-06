@@ -9,6 +9,7 @@ import { isPassportApprovalRefused } from '@/hooks/useGrantSigner/useGrantSigner
 import { useIsGrantSession } from '@/hooks/useIsGrantSession/useIsGrantSession';
 import { useMarketplaceSessionConnect } from '@/hooks/useMarketplaceSessionConnect/useMarketplaceSessionConnect';
 import type { MarketplaceSessionConnectStatus } from '@/hooks/useMarketplaceSessionConnect/useMarketplaceSessionConnect.types';
+import { BOOTSTRAP_APPROVAL_EXPIRED, MARKETPLACE_FAILURE_MESSAGES } from '@/libs/commerce/failure-messages';
 import { Logger } from '@/libs/logger/logger';
 import { getMarketplaceGrantFlowEnabled } from '@/libs/runtime-config/runtime-config';
 import { GrantSessionRefusal } from '@/molecules/GrantSessionRefusal/GrantSessionRefusal';
@@ -16,6 +17,14 @@ import { MarketplaceApprovalDisclosure } from '@/molecules/MarketplaceApprovalDi
 import { QrCodeSlot } from '@/molecules/QrCodeSlot/QrCodeSlot';
 import { toast } from '@/molecules/Toaster/use-toast';
 import { marketplaceApprovalDisclosure } from '@/services/marketplace/marketplace-session-grant';
+
+/**
+ * Shown when a grant-link approval lapses unapproved. The usual cause is the
+ * wrong app: Bitkit or a Pubky Ring older than 1.19 cannot approve it, and a
+ * signer that cannot parse the link never answers, so the Shop only sees it expire.
+ */
+export const GRANT_APPROVAL_SIGNER_HINT =
+  'Approve with the app that holds this pubky: Pubky Ring 1.19 or later, or Bitkit.';
 
 /**
  * The in-app UX for establishing a marketplace transaction-service session
@@ -86,7 +95,17 @@ export function MarketplaceSessionConnectDialog({
   const requestsGrantReconnect = session.requestsGrantReconnect;
   const requestsGrantBootstrap = session.requestsGrantBootstrap;
   const requestsPassport = session.requestsPassport;
-  const grantSignerName = requestsPassport ? 'Pubky Passport' : 'Bitkit';
+  const approvalSigner = session.approvalSigner;
+  // A Ring (cookie) sign-in's grant link can be approved by either phone
+  // signer, so its copy names no single app.
+  const bootstrapSigner = approvalSigner === 'Pubky Ring or Bitkit' ? null : approvalSigner;
+  const approvalLapsed =
+    session.status === 'expired' ||
+    (session.status === 'error' &&
+      (session.errorMessage === MARKETPLACE_FAILURE_MESSAGES.sessionTimeout ||
+        session.errorMessage === BOOTSTRAP_APPROVAL_EXPIRED));
+  const showsGrantSignerHint =
+    approvalLapsed && !requestsPassport && (requestsGrantBootstrap || requestsGrantReconnect);
   const retry = () => {
     session.start();
     if (requestsPassport) session.startPassport();
@@ -105,7 +124,7 @@ export function MarketplaceSessionConnectDialog({
         <DialogHeader>
           <DialogTitle>
             {requestsGrantBootstrap
-              ? `Approve purchases in ${grantSignerName}`
+              ? `Approve purchases in ${approvalSigner}`
               : requestsGrantReconnect
                 ? 'Approve purchases'
                 : 'Approve purchases in Pubky Ring'}
@@ -114,7 +133,9 @@ export function MarketplaceSessionConnectDialog({
 
         <Typography as="p" className="text-sm text-muted-foreground">
           {requestsGrantBootstrap
-            ? `Approve with ${grantSignerName} to connect the marketplace for the identity signed in to Shop. Nothing is charged until you pay.`
+            ? bootstrapSigner
+              ? `Approve with ${bootstrapSigner} to connect the marketplace for the identity signed in to Shop. Nothing is charged until you pay.`
+              : 'Approve with Pubky Ring or Bitkit, whichever holds the pubky signed in to Shop. Nothing is charged until you pay.'
             : requestsGrantReconnect
               ? requestsPassport
                 ? 'Approve with Pubky Passport to reconnect the marketplace session for the identity already signed in to Shop. Nothing is charged until you pay.'
@@ -137,6 +158,11 @@ export function MarketplaceSessionConnectDialog({
                     ? 'Approval cancelled.'
                     : session.errorMessage}
             </div>
+            {showsGrantSignerHint ? (
+              <Typography as="p" className="text-sm text-muted-foreground" data-testid="grant-approval-signer-hint">
+                {GRANT_APPROVAL_SIGNER_HINT}
+              </Typography>
+            ) : null}
             <Button className="w-fit rounded-full" onClick={retry}>
               <RefreshCw className="mr-2 size-4" />
               Try again
@@ -182,7 +208,9 @@ export function MarketplaceSessionConnectDialog({
             {session.status === 'awaiting' && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground" aria-live="polite">
                 <Loader2 className="size-4 animate-spin motion-reduce:animate-none" />
-                {requestsGrantBootstrap ? 'Waiting for approval in Bitkit…' : 'Waiting for approval on your signer…'}
+                {requestsGrantBootstrap && bootstrapSigner
+                  ? `Waiting for approval in ${bootstrapSigner}…`
+                  : 'Waiting for approval on your signer…'}
               </div>
             )}
             {['creating', 'verifying', 'claiming'].includes(session.status) && (
@@ -212,14 +240,14 @@ export function MarketplaceSessionConnectDialog({
                   <Smartphone className="mr-2 size-4" />
                 )}
                 {session.isOpeningRing
-                  ? requestsGrantBootstrap
-                    ? 'Opening Bitkit...'
-                    : requestsGrantReconnect
+                  ? requestsGrantBootstrap && bootstrapSigner
+                    ? `Opening ${bootstrapSigner}...`
+                    : requestsGrantBootstrap || requestsGrantReconnect
                       ? 'Opening signer...'
                       : 'Opening Pubky Ring...'
-                  : requestsGrantBootstrap
-                    ? 'Open in Bitkit'
-                    : requestsGrantReconnect
+                  : requestsGrantBootstrap && bootstrapSigner
+                    ? `Open in ${bootstrapSigner}`
+                    : requestsGrantBootstrap || requestsGrantReconnect
                       ? 'Open in signer'
                       : 'Open in Pubky Ring'}
               </Button>

@@ -8,8 +8,8 @@ import { MarketplaceSessionConnectDialog } from './MarketplaceSessionConnectDial
 
 /**
  * Shows static approval copy on durable marketplace surfaces when the durable
- * transport reports `isMarketplaceSessionRequiredError`: Bitkit for a Bitkit
- * (grant) sign-in that can bootstrap, Pubky Ring otherwise. Sandbox surfaces
+ * transport reports `isMarketplaceSessionRequiredError`, naming the signer that
+ * approves the grant link (`useMarketplaceApprovalSigner`). Sandbox surfaces
  * never see this card because they do not use the durable transport.
  */
 /**

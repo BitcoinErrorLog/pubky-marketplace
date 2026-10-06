@@ -12,7 +12,6 @@ import {
 import { ErrorCategory, ErrorService } from '@/libs/error/error.types';
 import { HttpMethod } from '@/libs/http/http.types';
 import { Logger } from '@/libs/logger/logger';
-import signupGrantCapture from '@/test/fixtures/auth/bitkit-signup-grant.staging.json';
 import { asOpaque } from '@/test-utils/type-assertions';
 import { bytesToBase64 } from './homeserver.utils';
 
@@ -52,7 +51,6 @@ const mockState = vi.hoisted(() => ({
   startAuthFlow: vi.fn(),
   resumeAuthFlow: vi.fn(),
   authFlowKindSignin: vi.fn(),
-  authFlowKindSignup: vi.fn(),
   authTokenFromBytes: vi.fn(),
   eventStreamForUser: vi.fn(),
   // Auth store session
@@ -149,7 +147,6 @@ vi.mock('@synonymdev/pubky', () => {
     },
     AuthFlowKind: {
       signin: () => mockState.authFlowKindSignin(),
-      signup: (...args: unknown[]) => mockState.authFlowKindSignup(...args),
     },
     AuthToken: {
       fromBytes: (...args: unknown[]) => mockState.authTokenFromBytes(...args),
@@ -1143,32 +1140,6 @@ describe('HomeserverService', () => {
           relay: expect.any(String),
         });
         expect(authorizationUrl.startsWith('pubkyauth://signin_grant')).toBe(true);
-        expect(free).toHaveBeenCalled();
-      });
-
-      it('bitkit sign-up qr is a signup_grant for the configured homeserver and invite', async () => {
-        const free = vi.fn();
-        mockState.authFlowKindSignup.mockReturnValue('signup-kind');
-        const url = `${signupGrantCapture.scheme}//${signupGrantCapture.host}?${signupGrantCapture.params
-          .map((name) => `${name}=${encodeURIComponent(name === 'caps' ? signupGrantCapture.caps : 'x')}`)
-          .join('&')}`;
-        mockState.grantStartDelegated.mockResolvedValue({ authorizationUrl: url, tryPollOnce: vi.fn(), free });
-
-        const { authorizationUrl, awaitApproval, cancelAuthFlow } =
-          await HomeserverService.generateGrantSignupAuthUrl('INVT-CODE-0001');
-        awaitApproval.catch(() => undefined);
-        cancelAuthFlow();
-
-        expect(mockState.authFlowKindSignup).toHaveBeenCalledWith(
-          expect.objectContaining({ z32: expect.any(Function) }),
-          'INVT-CODE-0001',
-        );
-        expect(mockState.grantStartDelegated).toHaveBeenCalledWith(CAPABILITIES, 'signup-kind', {
-          clientId: signupGrantCapture.cid,
-          relay: expect.any(String),
-        });
-        expect(signupGrantCapture.caps).toBe(CAPABILITIES);
-        expect(new URL(authorizationUrl).host).toBe('signup_grant');
         expect(free).toHaveBeenCalled();
       });
 

@@ -38,7 +38,7 @@ const isAuthFlowCanceled = (error: unknown): boolean =>
 export function useAuthUrl(options: UseAuthUrlOptions = {}): UseAuthUrlReturn {
   const autoFetch = options.autoFetch ?? true;
   const type = options.type ?? 'signin';
-  const inviteCode = options.type === 'signup' || options.type === 'signup-grant' ? options.inviteCode : '';
+  const inviteCode = options.type === 'signup' ? options.inviteCode : '';
 
   const [url, setUrl] = useState('');
   const [isLoading, setIsLoading] = useState(autoFetch);
@@ -55,11 +55,9 @@ export function useAuthUrl(options: UseAuthUrlOptions = {}): UseAuthUrlReturn {
       const { authorizationUrl, awaitApproval } =
         type === 'signup'
           ? await AuthController.getSignupAuthUrl(inviteCode)
-          : type === 'signup-grant'
-            ? await AuthController.getSignupGrantAuthUrl(inviteCode)
-            : type === 'grant'
-              ? await AuthController.getGrantAuthUrl()
-              : await AuthController.getAuthUrl();
+          : type === 'grant'
+            ? await AuthController.getGrantAuthUrl()
+            : await AuthController.getAuthUrl();
 
       awaitApproval
         .then(async (session: Session) => {
@@ -108,10 +106,9 @@ export function useAuthUrl(options: UseAuthUrlOptions = {}): UseAuthUrlReturn {
     } catch (error) {
       Logger.error('Failed to generate auth URL:', error);
       if (!isMountedRef.current) return;
-      // The Bitkit grant options (sign-in and sign-up) need WebCrypto algorithms older browsers lack;
-      // each sits beside a Pubky Ring option, so fail it quietly into its reload state instead of an
-      // error toast.
-      if (type === 'grant' || type === 'signup-grant') {
+      // The Bitkit grant sign-in needs WebCrypto algorithms older browsers lack; it sits beside a
+      // Pubky Ring option, so fail it quietly into its reload state instead of an error toast.
+      if (type === 'grant') {
         setIsExpired(true);
         return;
       }

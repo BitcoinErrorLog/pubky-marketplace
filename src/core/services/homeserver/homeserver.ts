@@ -744,19 +744,6 @@ export class HomeserverService {
     return await this.startGrantAuthFlow(() => AuthFlowKind.signin(), 'generateGrantAuthUrl', xCallback);
   }
 
-  /**
-   * Starts a grant sign-up (`pubkyauth://signup_grant`) for signers that only
-   * accept grant URLs, such as Bitkit: the signer signs its key up on the
-   * configured homeserver with `inviteCode` (or keeps an account it already
-   * has there) and approves the same Shop grant as {@link generateGrantAuthUrl}.
-   */
-  static async generateGrantSignupAuthUrl(inviteCode: string): Promise<TGenerateAuthUrlResult> {
-    return await this.startGrantAuthFlow(
-      () => AuthFlowKind.signup(PublicKey.from(getHomeserver()), inviteCode),
-      'generateGrantSignupAuthUrl',
-    );
-  }
-
   private static async startGrantAuthFlow(
     kind: () => AuthFlowKind,
     operation: string,

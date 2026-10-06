@@ -449,7 +449,7 @@ describe('useMarketplaceSessionConnect grant reconnect', () => {
     vi.restoreAllMocks();
   });
 
-  it('bootstraps AuthToken when grant is enabled but no marketplace session exists', async () => {
+  it('with no Shop session, bootstraps AuthToken when grant is enabled but no marketplace session exists', async () => {
     const restore = await enableGrantFlow();
     try {
       vi.spyOn(MarketplaceSessionService, 'getActiveSession').mockReturnValue(null);
@@ -469,7 +469,7 @@ describe('useMarketplaceSessionConnect grant reconnect', () => {
     }
   });
 
-  it('falls back to AuthToken when grant create returns shop_session_missing', async () => {
+  it('with no Shop session, falls back to AuthToken when grant create returns shop_session_missing', async () => {
     const restore = await enableGrantFlow();
     try {
       vi.spyOn(MarketplaceSessionService, 'getActiveSession').mockReturnValue({
@@ -709,26 +709,144 @@ describe('useMarketplaceSessionConnect grant reconnect', () => {
       }
     });
 
-    it('a Ring (cookie) sign-in never runs the grant bootstrap', async () => {
+    function signInWithRingCookie(pubky = SESSION.pubky) {
+      useAuthStore.setState({
+        currentUserPubky: pubky,
+        session: asOpaque({ info: { publicKey: { z32: () => pubky } } }),
+      });
+    }
+
+    const ACTIVE_BEARER = {
+      token: 'session-token',
+      sessionId: '11111111-1111-4111-8111-111111111111',
+      pubky: SESSION.pubky,
+      capabilities: '',
+      expiresAt: SESSION.expiresAt,
+      expiresAtMs: Date.parse(SESSION.expiresAt),
+      issuedAt: SESSION.issuedAt,
+    };
+
+    it('a Ring (cookie) sign-in with no purchase session gets the grant bootstrap, never the Ring AuthToken link', async () => {
       const restore = await enableGrantFlow();
       try {
-        useAuthStore.setState({
-          currentUserPubky: SESSION.pubky,
-          session: asOpaque({ info: { publicKey: { z32: () => SESSION.pubky } } }),
-        });
+        signInWithRingCookie();
         vi.spyOn(MarketplaceSessionService, 'getActiveSession').mockReturnValue(null);
-        const { flow } = createDeferredFlow('pubkyauth:///?caps=ring');
-        vi.mocked(CommerceController.beginMarketplaceSessionConnect).mockReturnValue(flow);
+        const { grantFlow } = createDeferredGrantFlow('pubkyauth://signin_grant?caps=bootstrap');
+        vi.mocked(beginMarketplaceBootstrapFlow).mockResolvedValue(grantFlow);
         const { result } = renderHook(() => useMarketplaceSessionConnect());
 
-        expect(result.current.requestsGrantBootstrap).toBe(false);
+        expect(result.current.requestsGrantBootstrap).toBe(true);
+        expect(result.current.approvalSigner).toBe('Pubky Ring or Bitkit');
         act(() => result.current.start());
+        await waitFor(() => expect(result.current.status).toBe('awaiting'));
 
-        expect(beginMarketplaceBootstrapFlow).not.toHaveBeenCalled();
-        expect(CommerceController.beginMarketplaceSessionConnect).toHaveBeenCalledTimes(1);
+        expect(beginMarketplaceBootstrapFlow).toHaveBeenCalledWith({ pubky: SESSION.pubky });
+        expect(result.current.authorizationUrl).toBe('pubkyauth://signin_grant?caps=bootstrap');
+        expect(CommerceController.beginMarketplaceSessionConnect).not.toHaveBeenCalled();
+        expect(AuthController.beginBridgedCommerceSessionFlow).not.toHaveBeenCalled();
       } finally {
         restore();
       }
+    });
+
+    it('a Ring (cookie) bootstrap connects the purchase session the signer approved', async () => {
+      const restore = await enableGrantFlow();
+      try {
+        signInWithRingCookie();
+        vi.spyOn(MarketplaceSessionService, 'getActiveSession').mockReturnValue(null);
+        const establish = vi
+          .spyOn(MarketplaceSessionService, 'establishClaimedGrantSession')
+          .mockReturnValue({ ...SESSION, capabilities: parityCapture.parity_request.homeserver_verified });
+        const { grantFlow, resolveResult } = createDeferredGrantFlow('pubkyauth://signin_grant?caps=bootstrap');
+        vi.mocked(beginMarketplaceBootstrapFlow).mockResolvedValue(grantFlow);
+        const onConnected = vi.fn();
+        const { result } = renderHook(() => useMarketplaceSessionConnect({ onConnected }));
+
+        act(() => result.current.start());
+        await waitFor(() => expect(result.current.status).toBe('awaiting'));
+        resolveResult({
+          status: 'connected',
+          token: 'claimed-token',
+          pubky: SESSION.pubky,
+          capabilities: parityCapture.parity_request.homeserver_verified,
+          expires_at: SESSION.expiresAt,
+        });
+
+        await waitFor(() => expect(result.current.status).toBe('connected'));
+        expect(establish).toHaveBeenCalledWith(expect.objectContaining({ pubky: SESSION.pubky }), SESSION.pubky);
+        expect(onConnected).toHaveBeenCalledTimes(1);
+      } finally {
+        restore();
+      }
+    });
+
+    it('a failed Ring (cookie) bootstrap names either signer in its copy', async () => {
+      const restore = await enableGrantFlow();
+      try {
+        signInWithRingCookie();
+        vi.spyOn(MarketplaceSessionService, 'getActiveSession').mockReturnValue(null);
+        vi.mocked(beginMarketplaceBootstrapFlow).mockResolvedValue({
+          authorizationUrl: 'pubkyauth://signin_grant?caps=bootstrap',
+          awaitResult: vi.fn().mockResolvedValue({ status: 'failed' }),
+          cancel: vi.fn().mockResolvedValue(undefined),
+        });
+        const { result } = renderHook(() => useMarketplaceSessionConnect());
+
+        act(() => result.current.start());
+        await waitFor(() => expect(result.current.status).toBe('error'));
+
+        expect(result.current.errorMessage).toBe(
+          'That approval could not be verified. Approve again in Pubky Ring or Bitkit.',
+        );
+      } finally {
+        restore();
+      }
+    });
+
+    it.each([
+      ['a Ring (cookie)', signInWithRingCookie],
+      ['a Bitkit (grant)', signInWithGrant],
+    ])(
+      '%s sign-in whose purchase session the BFF has not paired falls back to the grant bootstrap',
+      async (_label, signIn) => {
+        const restore = await enableGrantFlow();
+        try {
+          signIn(SESSION.pubky);
+          vi.spyOn(MarketplaceSessionService, 'getActiveSession').mockReturnValue(ACTIVE_BEARER);
+          vi.mocked(beginMarketplaceGrantFlow).mockRejectedValue(new Error('shop_session_missing'));
+          const { grantFlow } = createDeferredGrantFlow('pubkyauth://signin_grant?caps=bootstrap');
+          vi.mocked(beginMarketplaceBootstrapFlow).mockResolvedValue(grantFlow);
+          const { result } = renderHook(() => useMarketplaceSessionConnect());
+
+          act(() => result.current.start());
+          await waitFor(() => expect(result.current.authorizationUrl).toBe('pubkyauth://signin_grant?caps=bootstrap'));
+
+          expect(beginMarketplaceGrantFlow).toHaveBeenCalledTimes(1);
+          expect(beginMarketplaceBootstrapFlow).toHaveBeenCalledWith({ pubky: SESSION.pubky });
+          expect(result.current.status).toBe('awaiting');
+          expect(result.current.requestsGrantReconnect).toBe(false);
+          expect(result.current.requestsGrantBootstrap).toBe(true);
+          expect(result.current.errorMessage).toBeNull();
+          expect(CommerceController.beginMarketplaceSessionConnect).not.toHaveBeenCalled();
+        } finally {
+          restore();
+        }
+      },
+    );
+
+    it('a Ring (cookie) sign-in keeps the Ring AuthToken connect while the grant flow is off', () => {
+      signInWithRingCookie();
+      vi.spyOn(MarketplaceSessionService, 'getActiveSession').mockReturnValue(null);
+      const { flow } = createDeferredFlow('pubkyauth:///?caps=ring');
+      vi.mocked(CommerceController.beginMarketplaceSessionConnect).mockReturnValue(flow);
+      const { result } = renderHook(() => useMarketplaceSessionConnect());
+
+      expect(result.current.requestsGrantBootstrap).toBe(false);
+      expect(result.current.approvalSigner).toBe('Pubky Ring');
+      act(() => result.current.start());
+
+      expect(beginMarketplaceBootstrapFlow).not.toHaveBeenCalled();
+      expect(CommerceController.beginMarketplaceSessionConnect).toHaveBeenCalledTimes(1);
     });
 
     it('browser rejects bearer for another pubky', async () => {

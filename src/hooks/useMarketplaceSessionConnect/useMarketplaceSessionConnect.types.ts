@@ -1,3 +1,4 @@
+import type { MarketplaceApprovalSigner } from '@/hooks/useMarketplaceApprovalSigner/useMarketplaceApprovalSigner';
 import type { CommerceMarketplaceSession } from '@/stores/commerce/commerce.types';
 
 /**
@@ -70,6 +71,12 @@ export interface UseMarketplaceSessionConnectReturn {
    * never a QR or a deeplink.
    */
   requestsPassport: boolean;
+  /**
+   * Who approves the grant link: the grant signer for a Bitkit or Pubky
+   * Passport sign-in, `'Pubky Ring or Bitkit'` for a Ring sign-in, whose pubky
+   * either phone signer may hold. The dialog names this signer.
+   */
+  approvalSigner: MarketplaceApprovalSigner;
   /** Begins a fresh flow, cancelling any in-flight one. */
   start: () => void;
   /** Opens the armed Passport approval. Call it from the click handler itself. */

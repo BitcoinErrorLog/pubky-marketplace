@@ -36,7 +36,7 @@ type MarketplaceReauthDialogProps = {
  * It routes on who raised the refusal, never on session facts. A
  * purchase-session refusal is repaired only by a marketplace session approval
  * that includes `/priv/pubky.app/`, so every signer gets
- * `MarketplaceSessionConnectDialog`: the Bitkit bootstrap or the grant
+ * `MarketplaceSessionConnectDialog`: the grant bootstrap or the grant
  * reconnect (Bitkit or Pubky Ring) when the grant flow is on, the Ring connect
  * QR otherwise. A homeserver refusal gets the Pubky Ring step-up for a cookie
  * sign-in. A Bitkit (grant) sign-in cannot run that step-up

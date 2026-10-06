@@ -965,16 +965,6 @@ export class AuthController {
     return await this.beginGrantCeremony(() => AuthApplication.generateGrantAuthUrl(xCallback), 'passport');
   }
 
-  /**
-   * Bitkit sign-up: a grant QR (`pubkyauth://signup_grant`) beside the Ring
-   * sign-up QR. Bitkit signs its key up with the invite code (or keeps the
-   * account it already has) and approves the same Shop grant, so completion
-   * is the Bitkit sign-in ceremony.
-   */
-  static async getSignupGrantAuthUrl(inviteCode: string): Promise<TGenerateAuthUrlResult> {
-    return await this.beginGrantCeremony(() => AuthApplication.generateGrantSignupAuthUrl(inviteCode), 'bitkit');
-  }
-
   private static async beginGrantCeremony(
     generate: () => Promise<TGenerateAuthUrlResult>,
     signer: GrantSigner,

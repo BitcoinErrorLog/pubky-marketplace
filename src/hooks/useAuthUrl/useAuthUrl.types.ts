@@ -19,14 +19,6 @@ export type UseAuthUrlOptions =
       type: 'signup';
       /** The invite code for signup. Required when type is 'signup'. */
       inviteCode: string;
-    }
-  | {
-      /** Whether to automatically fetch the auth URL on mount. @default true */
-      autoFetch?: boolean;
-      /** Grant sign-up (`pubkyauth://signup_grant`) for signers such as Bitkit */
-      type: 'signup-grant';
-      /** The invite code the signer signs up with. */
-      inviteCode: string;
     };
 
 export interface UseAuthUrlReturn {

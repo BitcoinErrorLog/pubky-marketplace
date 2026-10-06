@@ -127,7 +127,7 @@ const CHECKOUT_REFUSAL_MESSAGES: ReadonlyMap<string, string> = new Map([
  * the reconnect copy. Codes that send the user back to the signer name it
  * (see {@link marketplaceBootstrapFailureMessage}).
  */
-const BOOTSTRAP_APPROVAL_EXPIRED = 'This approval expired. Start again.';
+export const BOOTSTRAP_APPROVAL_EXPIRED = 'This approval expired. Start again.';
 const BOOTSTRAP_OTHER_TAB = 'This approval belongs to another tab. Start again here.';
 
 export const MARKETPLACE_BOOTSTRAP_CODE_MESSAGES: ReadonlyMap<string, string> = new Map([
@@ -148,8 +148,11 @@ export const MARKETPLACE_BOOTSTRAP_CODE_MESSAGES: ReadonlyMap<string, string> = 
   ['shop_session_expired', 'Your Shop session ended. Sign in again.'],
 ]);
 
-/** The grant signer a bootstrap message names: whichever approved the Shop sign-in. */
-export type BootstrapSignerName = 'Bitkit' | 'Pubky Passport';
+/**
+ * The signer a bootstrap message names: whichever approved the Shop sign-in,
+ * or either phone signer for a Pubky Ring (cookie) sign-in.
+ */
+export type BootstrapSignerName = 'Bitkit' | 'Pubky Passport' | 'Pubky Ring or Bitkit';
 
 function signerBootstrapMessage(code: string, signer: BootstrapSignerName): string | undefined {
   switch (code) {
