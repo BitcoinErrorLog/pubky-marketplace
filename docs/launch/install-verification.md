@@ -36,6 +36,7 @@ Then add, as they become available:
 | Rendered configs           | `PAYKIT_CONFIG_FILE`, `LOCKS_CONFIG_FILE` (only named non-secret keys are read)                                                                            | trusted key, allowed origins, Locks Paykit URL  |
 | Service environment values | `SERVICE_PAYKIT_SERVER_URL`, `SERVICE_LOCKS_SERVER_URL`, `SERVICE_ALLOWED_ORIGINS`, `SERVICE_SANDBOX_PAYMENTS_ENABLED`, `FIAT_*`                           | wiring checks                                   |
 | Private addresses          | `SERVICE_PAYKIT_EXPECTED_URL`, `SERVICE_LOCKS_EXPECTED_URL`, `LOCKS_PAYKIT_EXPECTED_URL`, `FIAT_PAYKIT_EXPECTED_URL`, and `<KEY>_REACH_CMD` for each       | internal URLs accepted and proven reachable     |
+| Shared Lock Server         | `LOCKS_SHARED_FROM=<environment>` when this stack uses another environment's Lock Server by design | the Bitcoin route is reported as declared |
 | Platform                   | `PAYKIT_INSTANCE_COUNT_CMD` (must print 1); `SERVICE_DB_SQL_CMD`, `PAYKIT_DB_SQL_CMD`, `LOCKS_DB_SQL_CMD`                                                  | single-instance Paykit, applied migrations      |
 | Expectations               | `EXPECT_LOCK_SERVER_KEY`, `EXPECT_HOMESERVER`, `EXPECT_SHOP_DEPLOY_ENV`, `EXPECT_BITCOIN_NETWORK`, `EXPECT_BITCOIN_OFFER`, `EXPECT_MIN_LISTINGS`, `FORBIDDEN_HOSTS`, `REFERENCE_NEXUS_URL` | identity carry-over, cutover hygiene, parity    |
 
@@ -66,7 +67,7 @@ node .cursor/skills/marketplace-install-verify/scripts/verify.mjs --config ~/sta
 Order for a new installation:
 
 1. **Staging, read-only**, with database and platform commands configured. Fix every FAIL.
-2. **Staging probes:** `--flow-probes --write-probe --browser`, then `--deep` with the staging proofs configured. For the write probe on a fresh staging homeserver, `NEXUS_PROBE_HOMESERVER` plus `NEXUS_PROBE_SIGNUP_TOKEN_CMD` sign up a throwaway identity for the run.
+2. **Staging probes:** `--flow-probes --write-probe --browser`, then `--deep` with the staging proofs configured. For the write probe on a fresh staging homeserver, `NEXUS_PROBE_HOMESERVER` plus `NEXUS_PROBE_SIGNUP_TOKEN_CMD` sign up a throwaway identity for the run; that needs `--out`, where its secret is kept until cleanup is verified.
 3. **Production, read-only, before DNS:** point the URLs at the new hosts directly. Set `FORBIDDEN_HOSTS` to the retired hosts and `REFERENCE_NEXUS_URL` to the old Nexus until the listing parity check passes.
 4. **Production after DNS:** the same run with the public hostnames, plus `--browser`.
 5. The team's signed-in Shop proof and the Bitkit regtest purchase on staging (section 6).
@@ -88,12 +89,12 @@ Exit code 0 means no FAIL; `--strict` also fails on WARN. `report.md` in the out
 | `service` | `service.public-read`, `service.auth-required` | a public database read answers; protected routes answer 401                                                      | read the service log                                                                                      |
 | `paykit`  | `paykit.live`, `paykit.ready`             | live; ready with Postgres, Electrum, delivery and outbox ready                                                       | check the database URL and the Electrum endpoint                                                          |
 | `paykit`  | `paykit.auth.*`                           | every signed route answers 401 to unsigned and forged requests; 404 means a wrong release                            | deploy the expected Paykit release                                                                        |
-| `paykit`  | `paykit.bitcoin-network`, `paykit.electrum-chain` | config network and Electrum chain match `EXPECT_BITCOIN_NETWORK`                                             | fix `[bitcoin] network` or the Electrum endpoint                                                          |
+| `paykit`  | `paykit.bitcoin-network`, `paykit.electrum-chain` | config network matches `EXPECT_BITCOIN_NETWORK`; for `bitcoin`, the Electrum tip is in mainnet's height range; a tip older than 2 hours is a WARN | fix `[bitcoin] network` or the Electrum endpoint                                                          |
 | `paykit`  | `paykit.single-instance`                  | `PAYKIT_INSTANCE_COUNT_CMD` prints 1                                                                                 | one replica, stop-then-start deploys: a second process invalidates the first one's grants                 |
 | `paykit`  | `paykit.log-authorization-url`            | `[setup] log_authorization_url` is not true                                                                          | set it to false: each logged URL is a bearer secret                                                       |
 | `locks`   | `locks.healthz`, `locks.readyz`, `locks.storage`, `locks.worker` | ready, Postgres-backed, worker enabled                                                        | configure the database and `[worker] enabled`                                                             |
 | `locks`   | `locks.identity.*`                        | `/.well-known/locks-server` publishes the Lock Server key, equal to `EXPECT_LOCK_SERVER_KEY`                         | install the carried-over `lock_server_secret_key`; a new key makes every seller republish                 |
-| `locks`   | `locks.dev-route-closed`                  | `POST /verification-task-completions` answers 404                                                                    | set `[runtime] environment` to production or staging: the route completes tasks without payment           |
+| `locks`   | `locks.dev-route-closed`                  | `GET /verification-task-completions` answers 404 (405 means the route exists)                                                                    | set `[runtime] environment` to production or staging: the route completes tasks without payment           |
 | `fiat`    | `fiat.health`, `fiat.auth.*`, `fiat.<processor>` | healthy with its database; signed routes answer 401; enabled processors have webhooks                       | check `FIAT_DATABASE_URL` and the webhook secrets                                                         |
 | `nexus`   | `nexus.info`, `nexus.commit`              | `/v0/info` answers and `commit_hash` equals `NEXUS_SOURCE`                                                           | build from a git checkout with `.git` in the Docker context                                               |
 | `nexus`   | `nexus.snapshot`, `nexus.listings`        | the index snapshot is recent; `/v0/stream/listings` returns at least `EXPECT_MIN_LISTINGS`                           | wait for the replay; check the watcher log                                                                |
@@ -101,10 +102,11 @@ Exit code 0 means no FAIL; `--strict` also fails on WARN. `report.md` in the out
 | `wiring`  | `wiring.paykit-trusts-locks`              | Paykit `[locks] trusted_public_key` equals the Lock Server key Locks publishes                                       | copy the published `lock_server` value into the Paykit config and restart Paykit                          |
 | `wiring`  | `wiring.*-origins`                        | Paykit setup, Locks connect, the service and the fiat verifier list every Shop origin, and no `*` in production      | add the missing origins                                                                                   |
 | `wiring`  | `wiring.*-url`, `wiring.*-reachable`      | the service, Locks and the fiat verifier point at this stack's Paykit and Locks, and those addresses answer          | fix the URL, or the network path                                                                          |
+| `wiring`  | `wiring.locks-paykit-url`, `wiring.fiat-paykit-url` | Locks-gated Bitcoin reaches this stack's Paykit. With `LOCKS_SHARED_FROM` declared, a route to the other environment's Paykit is INFO on staging and WARN on production, naming both Paykits | point Locks (or the fiat verifier) at this stack's Paykit |
 | `wiring`  | `wiring.service-sandbox`                  | sandbox payments are off in production                                                                               | unset `SANDBOX_PAYMENTS_ENABLED`                                                                          |
 | `wiring`  | `wiring.shop-setup-creator-param`         | the Shop sends `creator` to Paykit `/setup` only for the fork server                                                 | set `PUBKY_RUNTIME_PAYKIT_SETUP_CREATOR_PARAM` (false for upstream Paykit)                                |
 | `version` | `version.<svc>`                           | the running commit equals the source pin (`<SVC>_BUILD_SOURCE` when a wrapper repo builds the image)                 | rebuild from the pin                                                                                      |
-| `db`      | `db.<svc>.migrations`                     | `_sqlx_migrations` holds exactly the source's migrations, all successful, with matching SHA-384 checksums            | extra or mismatched rows mean another build migrated this database: use a fresh database for this release |
+| `db`      | `db.<svc>.migrations`                     | `_sqlx_migrations` holds exactly the source's migrations, all successful, with matching SHA-384 checksums. Without a source pin, `db.<svc>.migrations-applied` checks only for failures and the exact match is SKIP | extra or mismatched rows mean another build migrated this database: use a fresh database for this release |
 | `flow`    | `flow.paykit-setup.*`, `flow.locks-connect.*` | the setup and connect pages frame each Shop origin and refuse a foreign one                                      | fix `[setup] allowed_origins` or `allowed_return_origins`                                                 |
 | `write`   | `write.nexus*`                            | a fresh post appears in the Nexus, its delete is indexed, and the probe data is gone from the homeserver             | check the watcher's homeserver and its log                                                                |
 | `browser` | `browser.<host>.*`                        | the running client reads from this Nexus, calls no retired host, and logs no CORS error                              | fix the Shop runtime config or CORS                                                                       |
@@ -125,20 +127,20 @@ Exit code 0 means no FAIL; `--strict` also fails on WARN. `report.md` in the out
 
 ## 7. Sample run
 
-Production on Railway, 6 October 2026 (read-only, excerpt):
+Production on Railway, 6 October 2026 (read-only, excerpt). The stack declares `LOCKS_SHARED_FROM=staging`: before launch, one Lock Server in the staging project serves both Shops, and its fiat gateway sends Locks-gated Bitcoin to the staging (regtest) Paykit. Seller-direct Bitcoin checkout uses the production Paykit.
 
 ```text
 == wiring
 PASS  wiring.paykit-trusts-locks             Paykit trusts the Lock Server key — trusted pubkyrqrnn1d…, Locks pubkyrqrnn1d…
 PASS  wiring.paykit-setup-origins            Paykit setup allows the Shop origins — 1 origin(s)
 PASS  wiring.locks-paykit-reachable          Locks [paykit] server_url answers (from inside its network) — LOCKS_PAYKIT_REACH_CMD exit 0
-FAIL  wiring.fiat-paykit-url                 fiat verifier forwards Bitcoin to this Paykit — http://paykit-server.railway.internal:3001
-      fix: set FIAT_PAYKIT_SERVER_URL to this stack’s Paykit (declare a private address as FIAT_PAYKIT_EXPECTED_URL)
+WARN  wiring.fiat-paykit-url                 fiat verifier forwards Bitcoin to this Paykit — Locks-gated Bitcoin goes to http://paykit-server.railway.internal:3001, not this stack’s Paykit https://paykit-shop.pubky.app (declared: Lock Server shared from staging)
+      fix: accepted only as a pre-launch exception: Locks-gated purchases settle on staging’s Paykit, while seller-direct Bitcoin checkout uses https://paykit-shop.pubky.app; a production install points Locks at its own Paykit
 == db
 PASS  db.service.migrations                  marketplace service migrations match the source exactly — 51 applied of 51
 PASS  db.paykit.migrations                   Paykit migrations match the source exactly — 27 applied of 27
 
-RESULT FAIL  PASS 82  FAIL 1  WARN 0  SKIP 2  INFO 3
+RESULT PASS  PASS 85  FAIL 0  WARN 1  SKIP 2  INFO 5
 ```
 
-That FAIL is real: production Locks forwards Bitcoin invoices through the fiat verifier to the staging Paykit, not to the production Paykit the Shop's seller setup uses.
+Without the declaration, the same route is a FAIL. A new production installation should not need the declaration: its Lock Server points at its own Paykit.
