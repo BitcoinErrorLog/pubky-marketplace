@@ -332,7 +332,7 @@ export function useMarketplaceSessionConnect(
           }
           const code = error instanceof Error ? error.message : '';
           if ((code === 'shop_session_missing' || code === 'shop_session_expired') && onSessionMissing) {
-            Logger.warn('Marketplace grant reconnect needs a session; starting AuthToken connect', { code });
+            Logger.warn('Marketplace grant reconnect needs a session; starting a new approval', { code });
             onSessionMissing();
             return;
           }
