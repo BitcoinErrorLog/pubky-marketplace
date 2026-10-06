@@ -1,7 +1,7 @@
 // Intentional import order — browser-mode mock factories rely on stable aliases.
 /* eslint-disable simple-import-sort/imports */
 import { createMarketplaceVrtAuthStore, createMarketplaceVrtCommerceController } from '@/test/mocks/marketplace-vrt';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectVrtSurface, renderForVRT, VRT_ROOT_TESTID } from '@/test-utils/vrt';
 import { VRT_VIEWPORT_DESKTOP, VRT_VIEWPORT_MOBILE } from '@/test-utils/vrt.viewports';
 import { HOUR_MS, MINUTE_MS, VRT_FROZEN_NOW_MS } from '@/test-utils/vrt.clock';
@@ -41,6 +41,7 @@ const view = vi.hoisted(() => ({
     delivery: null as unknown,
     error: null as string | null,
     pollExhausted: false,
+    admission: null as unknown,
   },
   sellerConfig: {
     bitcoinAvailable: true,
@@ -165,6 +166,10 @@ async function renderCard(
 }
 
 describe('Marketplace payment status card — visual regression', () => {
+  afterEach(() => {
+    view.locks = { ...view.locks, admission: null };
+  });
+
   it('renders awaiting entitlement with the wallet payment request action (locks-paykit) at desktop viewport', async () => {
     view.locks = { ...view.locks, correlation: null, delivery: null, error: null, pollExhausted: false };
     const screen = await renderCard('awaiting_entitlement', 'locks-paykit', { adapter: 'sandbox' });
@@ -190,6 +195,32 @@ describe('Marketplace payment status card — visual regression', () => {
     };
     const screen = await renderCard('awaiting_entitlement', 'locks-paykit', { adapter: 'locks' });
     await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot('payment-status-awaiting-registered-desktop');
+  });
+
+  it('renders Reader wallet setup needed while the Lock Server admits the request at desktop viewport', async () => {
+    view.locks = {
+      ...view.locks,
+      correlation: makeCorrelation(true),
+      delivery: null,
+      error: null,
+      pollExhausted: false,
+      admission: { kind: 'in_flight', readerWalletSetupNeeded: true },
+    };
+    const screen = await renderCard('awaiting_entitlement', 'locks-paykit', { adapter: 'locks' });
+    await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot('payment-status-locks-wallet-setup-desktop');
+  });
+
+  it('renders a terminal invoice admission failure (reader not payable) at desktop viewport', async () => {
+    view.locks = {
+      ...view.locks,
+      correlation: makeCorrelation(true),
+      delivery: null,
+      error: null,
+      pollExhausted: false,
+      admission: { kind: 'failed', failure: 'reader_not_payable' },
+    };
+    const screen = await renderCard('awaiting_entitlement', 'locks-paykit', { adapter: 'locks' });
+    await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot('payment-status-locks-not-payable-desktop');
   });
 
   it('renders the bounded-poll limit with its explicit resume action at desktop viewport', async () => {
