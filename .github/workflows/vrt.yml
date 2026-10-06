@@ -39,12 +39,32 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run Linux visual regression tests
+      # One project per invocation: vrt and vrt-marketplace build their browser
+      # instances from the same list, so selecting both at once names
+      # "vrt (chromium)" twice and Vitest refuses to start. Chromium and Firefox
+      # match the pull request gates; WebKit baselines are incomplete.
+      - name: Run vrt project (chromium)
         env:
-          VRT_BROWSERS: chromium,firefox,webkit
+          VRT_BROWSERS: chromium
           PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
           CI: true
-        run: npx vitest run --project vrt --project vrt-marketplace
+        run: npx vitest run --project vrt
+
+      - name: Run vrt project (firefox)
+        if: success() || failure()
+        env:
+          VRT_BROWSERS: firefox
+          PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+          CI: true
+        run: npx vitest run --project vrt
+
+      - name: Run vrt-marketplace project (chromium, firefox)
+        if: success() || failure()
+        env:
+          VRT_BROWSERS: chromium,firefox
+          PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+          CI: true
+        run: npx vitest run --project vrt-marketplace
 
       - name: Upload VRT failure screenshots
         if: failure()
