@@ -103,13 +103,12 @@ const CONFIRMED_SELLER_DEADLINE = `${PAYMENT_CONFIRMED_ON_CHAIN_COPY} ${SELLER_C
 
 /**
  * Buyer-visible Bitcoin states. A confirmation exists when the payment records
- * at least one confirmation or, before the order is paid, the request is
- * `confirmed`. That request state is usually Paykit's confirmed observation,
- * including the canary whose `payment.confirmations` stayed 0, but the
- * 24-hour seller-window reaper also sets it with no chain fact, so
- * `review-confirmed-request` can overstate the chain. A paid order follows
- * {@link bitcoinPaidConfirmation}. A manual review that has none of those
- * says the payment was received, not confirmed.
+ * at least one confirmation, or when a manual review on a `confirmed` request
+ * carries a reason the service stamps only from Paykit's confirmed
+ * observation (the canary whose `payment.confirmations` stayed 0 was
+ * `late_settlement`). A paid order follows {@link bitcoinPaidConfirmation}.
+ * A manual review that has none of those says the payment was received, not
+ * confirmed.
  */
 export const BITCOIN_BUYER_STATUS_TABLE: readonly BitcoinBuyerStatusRow[] = [
   {
@@ -239,18 +238,30 @@ export const BITCOIN_BUYER_STATUS_TABLE: readonly BitcoinBuyerStatusRow[] = [
     paymentState: 'manual_review',
     reviewReason: 'unpinned_legacy',
     confirmations: 0,
-    confirmationExists: true,
-    progress: PAYMENT_CONFIRMED_REVIEW_COPY,
-    wallet: PAYMENT_CONFIRMED_REVIEW_COPY,
+    confirmationExists: false,
+    progress: PAYMENT_RECEIVED_REVIEW_COPY,
+    wallet: PAYMENT_RECEIVED_REVIEW_COPY,
     forbidsPayLabels: true,
   },
   {
-    id: 'review-confirmed-request',
-    enteredFrom: 'seller-confirmation window elapsed; request marked confirmed',
+    id: 'review-seller-window-elapsed',
+    enteredFrom: 'seller-confirmation window elapsed at 0 confirmations; request marked confirmed',
     paykitRequestState: 'confirmed',
     paymentState: 'manual_review',
     reviewReason: null,
     confirmations: 0,
+    confirmationExists: false,
+    progress: PAYMENT_RECEIVED_REVIEW_COPY,
+    wallet: PAYMENT_RECEIVED_REVIEW_COPY,
+    forbidsPayLabels: true,
+  },
+  {
+    id: 'review-seller-window-elapsed-on-chain',
+    enteredFrom: 'seller-confirmation window elapsed after a chain confirmation',
+    paykitRequestState: 'confirmed',
+    paymentState: 'manual_review',
+    reviewReason: null,
+    confirmations: 1,
     confirmationExists: true,
     progress: PAYMENT_CONFIRMED_REVIEW_COPY,
     wallet: PAYMENT_CONFIRMED_REVIEW_COPY,
@@ -338,7 +349,21 @@ function isBitcoinOrder(order: BitcoinStatusOrder): boolean {
 export function bitcoinConfirmationExists(order: BitcoinStatusOrder, payment: BitcoinStatusPayment): boolean {
   if ((payment?.confirmations ?? 0) > 0) return true;
   if (payment?.state === 'confirmed') return bitcoinPaidConfirmation(order, payment)?.onChain ?? true;
-  return order.paykitRequestState === 'confirmed';
+  return (
+    order.paykitRequestState === 'confirmed' &&
+    payment?.state === 'manual_review' &&
+    isChainObservationReviewReason(payment.reviewReason)
+  );
+}
+
+/**
+ * Review reasons the service stamps only from Paykit's confirmed (on-chain)
+ * observation. A review with no reason can come from the 24-hour
+ * seller-window reaper, which marks the request `confirmed` with no chain
+ * fact, and `unpinned_legacy` has no writer, so neither counts.
+ */
+function isChainObservationReviewReason(reason: string | null | undefined): boolean {
+  return reason === 'late_settlement' || reason === 'amount_mismatch' || reason === 'refund_required';
 }
 
 export type BitcoinPaidConfirmation = {
@@ -351,9 +376,9 @@ export type BitcoinPaidConfirmation = {
 /**
  * How a paid Bitcoin order was settled. A seller confirm also sets
  * `paykitRequestState: confirmed`, so that state is not chain evidence here.
- * Late money that completes an expired order and a resolved `late_settlement`
- * or `amount_mismatch` review both start from Paykit's confirmed
- * observation. Any other paid order was confirmed by its seller: a creator
+ * Late money that completes an expired order and a resolved review with a
+ * chain-observation reason both start from Paykit's confirmed observation.
+ * Any other paid order was confirmed by its seller: a creator
  * is `shared_manual` unless it claims through `bitkit_watch_only_v1`, which
  * no Shop or service path sends.
  */
@@ -364,8 +389,7 @@ export function bitcoinPaidConfirmation(
   if (order.paymentMethod !== 'bitcoin' || payment?.state !== 'confirmed') return null;
   const resolvedPaid = payment.resolutionOutcome === 'paid';
   const lateCompleted = !resolvedPaid && order.cancellationReason === PAYMENT_WINDOW_ELAPSED_REASON;
-  const reviewedChainObservation =
-    resolvedPaid && (payment.reviewReason === 'late_settlement' || payment.reviewReason === 'amount_mismatch');
+  const reviewedChainObservation = resolvedPaid && isChainObservationReviewReason(payment.reviewReason);
   return {
     sellerConfirmed: !lateCompleted,
     onChain: lateCompleted || reviewedChainObservation || (payment.confirmations ?? 0) > 0,

@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { marketplaceOrderSchema } from '@/core/services/marketplace/marketplace-projections';
+import projectionSamples from '@/libs/commerce/contracts/samples/projections.json';
+import { toCamelCaseWire } from '@/libs/commerce/wire-casing';
 import {
   BITCOIN_BUYER_STATUS_TABLE,
   BITCOIN_WALLET_SENT_COPY,
@@ -151,7 +154,7 @@ describe('bitcoin buyer status', () => {
       expect(paidOrderHeadline(paidOrder, payment)).toBe(SELLER_CONFIRMED_ON_CHAIN_COPY);
     });
 
-    it.each(['late_settlement', 'amount_mismatch'] as const)(
+    it.each(['late_settlement', 'amount_mismatch', 'refund_required'] as const)(
       'treats a resolved %s review as a chain observation the seller accepted',
       (reviewReason) => {
         const payment = { state: 'confirmed', confirmations: 0, reviewReason, resolutionOutcome: 'paid' };
@@ -159,7 +162,7 @@ describe('bitcoin buyer status', () => {
       },
     );
 
-    it.each([null, 'unpinned_legacy', 'refund_required'] as const)(
+    it.each([null, 'unpinned_legacy'] as const)(
       'does not count a resolved review with reason %s as on-chain',
       (reviewReason) => {
         const payment = { state: 'confirmed', confirmations: 0, reviewReason, resolutionOutcome: 'paid' };
@@ -179,6 +182,59 @@ describe('bitcoin buyer status', () => {
       expect(bitcoinPaidConfirmation({ paymentMethod: 'paypal' }, { state: 'confirmed' })).toBeNull();
       expect(paidOrderHeadline({ paymentMethod: 'paypal' }, { state: 'confirmed' })).toBe('Payment confirmed.');
       expect(paidOrderHeadline(paidOrder, null)).toBe('Payment confirmed.');
+    });
+  });
+
+  describe('manual review after the seller-confirmation window', () => {
+    const capturedReaperReview = () => {
+      const body = JSON.parse(
+        JSON.stringify(projectionSamples.buyer_manual_review_held.response.body, (_key, value: unknown) => {
+          if (typeof value !== 'string') return value;
+          const uuid = value.match(/^<uuid:(\d+)>$/);
+          if (uuid) return `018f47d2-6a27-7c23-a49d-${uuid[1].padStart(12, '0')}`;
+          if (value === '<pubky:buyer>') return 'b'.repeat(52);
+          if (value === '<pubky:seller>') return 's'.repeat(52);
+          if (value.startsWith('<timestamp:')) return '2026-09-28T10:00:00.000Z';
+          if (value.startsWith('<paykit-reference:')) return 'paykit-reference-1';
+          return value;
+        }),
+      ) as unknown;
+      const order = marketplaceOrderSchema.parse(toCamelCaseWire(body));
+      if (!order.payment) throw new TypeError('captured projection has no payment');
+      return { order, payment: order.payment };
+    };
+
+    it('does not call the captured reaper review confirmed on-chain', () => {
+      const { order, payment } = capturedReaperReview();
+      expect(order.paykitRequestState).toBe('confirmed');
+      expect(payment).toMatchObject({ state: 'manual_review', confirmations: 0 });
+      expect(payment.reviewReason ?? null).toBeNull();
+      expect(bitcoinConfirmationExists(order, payment)).toBe(false);
+      expect(buyerCheckoutProgressCopy(order, payment, NOW)).toBe('Payment received — the seller is reviewing it.');
+      expect(buyerBitcoinWalletCopy(order, payment).text).not.toMatch(/on-chain/);
+    });
+
+    it('says confirmed on-chain once the window had recorded a confirmation', () => {
+      const { order, payment } = capturedReaperReview();
+      const confirmed = { ...payment, confirmations: 1 };
+      expect(bitcoinConfirmationExists(order, confirmed)).toBe(true);
+      expect(buyerCheckoutProgressCopy(order, confirmed, NOW)).toBe(
+        'Payment confirmed on-chain. The seller is reviewing it.',
+      );
+    });
+
+    it.each(['late_settlement', 'amount_mismatch', 'refund_required'] as const)(
+      'still counts a %s review on a confirmed request as on-chain',
+      (reviewReason) => {
+        const { order, payment } = capturedReaperReview();
+        expect(bitcoinConfirmationExists(order, { ...payment, reviewReason })).toBe(true);
+      },
+    );
+
+    it('does not count a confirmed request outside a review as on-chain', () => {
+      const order = { ...seenOrder, paykitRequestState: 'confirmed' as const };
+      expect(bitcoinConfirmationExists(order, { state: 'awaiting_entitlement', confirmations: 0 })).toBe(false);
+      expect(bitcoinConfirmationExists(order, { state: 'expired', confirmations: 0 })).toBe(false);
     });
   });
 });
