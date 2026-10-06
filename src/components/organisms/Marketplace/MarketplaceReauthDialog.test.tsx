@@ -48,6 +48,7 @@ const RECONNECT_URL =
 const connect = vi.hoisted(() => ({
   start: vi.fn(),
   bootstrap: false,
+  approvalSigner: 'Bitkit' as 'Bitkit' | 'Pubky Ring or Bitkit',
 }));
 vi.mock('@/hooks/useMarketplaceSessionConnect/useMarketplaceSessionConnect', () => ({
   useMarketplaceSessionConnect: () => ({
@@ -57,6 +58,7 @@ vi.mock('@/hooks/useMarketplaceSessionConnect/useMarketplaceSessionConnect', () 
     requestsFullGrant: false,
     requestsGrantReconnect: !connect.bootstrap,
     requestsGrantBootstrap: connect.bootstrap,
+    approvalSigner: connect.approvalSigner,
     start: connect.start,
     cancel: vi.fn(),
     copyAuthUrl: vi.fn(async () => {}),
@@ -70,6 +72,7 @@ describe('MarketplaceReauthDialog', () => {
     vi.mocked(reauth.start).mockClear();
     connect.start.mockClear();
     connect.bootstrap = false;
+    connect.approvalSigner = 'Bitkit';
     signIn.isGrantSession = false;
     config.singleApproval = true;
     config.mode = 'transaction-service';

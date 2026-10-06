@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RING_COOKIE_CAPABILITIES } from '@/config/app';
 import type { MarketplaceSessionConnectStatus } from '@/hooks/useMarketplaceSessionConnect/useMarketplaceSessionConnect.types';
+import { BOOTSTRAP_APPROVAL_EXPIRED, MARKETPLACE_FAILURE_MESSAGES } from '@/libs/commerce/failure-messages';
 import {
   MARKETPLACE_DISCLOSURE_INVENTORY,
   MARKETPLACE_DISCLOSURE_PRIVATE_DATA,
@@ -9,7 +10,7 @@ import {
   MARKETPLACE_SESSION_GRANT,
 } from '@/services/marketplace/marketplace-session-grant';
 import parityCapture from '@/test/fixtures/auth/marketplace-grant-priv-parity.staging.json';
-import { MarketplaceSessionConnectDialog } from './MarketplaceSessionConnectDialog';
+import { GRANT_APPROVAL_SIGNER_HINT, MarketplaceSessionConnectDialog } from './MarketplaceSessionConnectDialog';
 
 /**
  * Dialog states are driven entirely by the mocked hook: these tests pin WHAT
@@ -26,6 +27,7 @@ const view = vi.hoisted(() => ({
   requestsGrantReconnect: false,
   requestsGrantBootstrap: false,
   requestsPassport: false,
+  approvalSigner: 'Bitkit' as 'Bitkit' | 'Pubky Passport' | 'Pubky Ring' | 'Pubky Ring or Bitkit',
   passportRefused: false,
   isGrantSession: false,
   grantEnabled: false,
@@ -54,6 +56,7 @@ vi.mock('@/hooks/useMarketplaceSessionConnect/useMarketplaceSessionConnect', () 
     requestsGrantReconnect: view.requestsGrantReconnect,
     requestsGrantBootstrap: view.requestsGrantBootstrap,
     requestsPassport: view.requestsPassport,
+    approvalSigner: view.approvalSigner,
     start: view.start,
     startPassport: view.startPassport,
     cancel: vi.fn(),
@@ -88,6 +91,7 @@ describe('MarketplaceSessionConnectDialog', () => {
     view.requestsGrantReconnect = false;
     view.requestsGrantBootstrap = false;
     view.requestsPassport = false;
+    view.approvalSigner = 'Bitkit';
     view.passportRefused = false;
     view.isGrantSession = false;
     view.grantEnabled = false;
@@ -130,6 +134,79 @@ describe('MarketplaceSessionConnectDialog', () => {
     expect(screen.queryByRole('button', { name: /open in pubky ring/i })).not.toBeInTheDocument();
     expect(screen.getByText('Waiting for approval in Bitkit…')).toBeInTheDocument();
     expect(screen.getByTestId('session-approval-disclosure')).toHaveTextContent(MARKETPLACE_DISCLOSURE_INVENTORY);
+  });
+
+  it('a Pubky Ring (cookie) sign-in gets a grant link either phone signer can approve, with no Ring-only copy', () => {
+    view.status = 'awaiting';
+    view.authorizationUrl = grantUrl(MARKETPLACE_SESSION_GRANT);
+    view.grantEnabled = true;
+    view.requestsGrantBootstrap = true;
+    view.requestsFullGrant = false;
+    view.approvalSigner = 'Pubky Ring or Bitkit';
+
+    render(<MarketplaceSessionConnectDialog autoOpen />);
+
+    expect(view.start).toHaveBeenCalled();
+    expect(screen.getByRole('heading', { name: 'Approve purchases in Pubky Ring or Bitkit' })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Approve with Pubky Ring or Bitkit, whichever holds the pubky signed in to Shop. Nothing is charged until you pay.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open in signer' })).toBeInTheDocument();
+    expect(screen.getByText('Waiting for approval on your signer…')).toBeInTheDocument();
+    expect(screen.queryByText(/Approve purchases in Pubky Ring$|Approve with Pubky Ring to connect/)).toBeNull();
+    expect(screen.queryByRole('button', { name: /open in pubky ring|open in bitkit/i })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['expired', 'expired', null],
+    ['timed out', 'error', MARKETPLACE_FAILURE_MESSAGES.sessionTimeout],
+    ['bootstrap expired', 'error', BOOTSTRAP_APPROVAL_EXPIRED],
+  ] as const)('a %s grant approval names the signers that can approve it', (_label, status, errorMessage) => {
+    view.status = status;
+    view.errorMessage = errorMessage;
+    view.grantEnabled = true;
+    view.requestsGrantBootstrap = true;
+    view.requestsFullGrant = false;
+    view.approvalSigner = 'Pubky Ring or Bitkit';
+
+    render(<MarketplaceSessionConnectDialog autoOpen />);
+
+    expect(screen.getByTestId('grant-approval-signer-hint')).toHaveTextContent(GRANT_APPROVAL_SIGNER_HINT);
+    expect(GRANT_APPROVAL_SIGNER_HINT).toBe(
+      'Approve with the app that holds this pubky: Pubky Ring 1.19 or later, or Bitkit.',
+    );
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+  });
+
+  it('no signer hint for a non-expiry failure, the Ring connect QR, or Pubky Passport', () => {
+    view.status = 'error';
+    view.errorMessage = 'Too many attempts. Wait a minute and try again.';
+    view.grantEnabled = true;
+    view.requestsGrantBootstrap = true;
+    view.requestsFullGrant = false;
+    view.approvalSigner = 'Pubky Ring or Bitkit';
+    const { unmount } = render(<MarketplaceSessionConnectDialog autoOpen />);
+    expect(screen.queryByTestId('grant-approval-signer-hint')).not.toBeInTheDocument();
+    unmount();
+
+    view.status = 'error';
+    view.errorMessage = MARKETPLACE_FAILURE_MESSAGES.sessionTimeout;
+    view.grantEnabled = false;
+    view.requestsGrantBootstrap = false;
+    view.approvalSigner = 'Pubky Ring';
+    const ring = render(<MarketplaceSessionConnectDialog autoOpen />);
+    expect(screen.queryByTestId('grant-approval-signer-hint')).not.toBeInTheDocument();
+    ring.unmount();
+
+    view.status = 'expired';
+    view.grantEnabled = true;
+    view.requestsGrantBootstrap = true;
+    view.requestsPassport = true;
+    view.approvalSigner = 'Pubky Passport';
+    render(<MarketplaceSessionConnectDialog autoOpen />);
+    expect(screen.queryByTestId('grant-approval-signer-hint')).not.toBeInTheDocument();
   });
 
   function grantUrl(caps: string): string {
@@ -264,6 +341,7 @@ describe('MarketplaceSessionConnectDialog', () => {
       view.isGrantSession = true;
       view.grantEnabled = true;
       view.requestsPassport = true;
+      view.approvalSigner = 'Pubky Passport';
       view.requestsGrantBootstrap = true;
       view.requestsFullGrant = false;
       view.status = 'idle';

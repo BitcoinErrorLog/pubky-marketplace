@@ -35,6 +35,7 @@ const view = vi.hoisted(() => ({
   isOpeningRing: false,
   grantEnabled: false,
   bootstrap: false,
+  approvalSigner: 'Bitkit' as 'Bitkit' | 'Pubky Ring or Bitkit',
 }));
 
 const VRT_BOOTSTRAP_URL =
@@ -65,6 +66,7 @@ vi.mock('@/hooks/useMarketplaceSessionConnect/useMarketplaceSessionConnect', () 
     requestsFullGrant: true,
     requestsGrantReconnect: view.grantEnabled && !view.bootstrap,
     requestsGrantBootstrap: view.bootstrap,
+    approvalSigner: view.approvalSigner,
     start: vi.fn(),
     cancel: vi.fn(),
     copyAuthUrl: vi.fn(async () => {}),

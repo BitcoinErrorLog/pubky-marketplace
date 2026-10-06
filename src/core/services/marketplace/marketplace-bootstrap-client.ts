@@ -12,10 +12,11 @@ import type { MarketplaceGrantFlow } from './marketplace-grant-client';
 import { isMarketplaceSessionGrantUrl } from './marketplace-session-grant';
 
 /**
- * Browser purchase bootstrap for a Bitkit (grant) sign-in. The grant session
- * proves write access to its own homeserver with a single-use proof document,
- * the Shop BFF runs the CLI verifier's checks and opens a marketplace
- * `signin_grant`, and after the Bitkit approval the BFF claims the bearer.
+ * Browser purchase bootstrap for any Shop sign-in (Bitkit or Pubky Passport
+ * grant, or Pubky Ring cookie). The Shop session proves write access to its
+ * own homeserver with a single-use proof document, the Shop BFF runs the CLI
+ * verifier's checks and opens a marketplace `signin_grant`, and after the
+ * signer approves it the BFF claims the bearer.
  */
 const challengeSchema = z.object({
   challenge_id: z.uuid(),

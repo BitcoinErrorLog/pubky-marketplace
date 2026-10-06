@@ -46,8 +46,8 @@ import {
 import { cancelGrant, claimGrantResult, createBootstrapFlow, getGrantStatus } from './service';
 
 /**
- * Browser purchase bootstrap for a Bitkit (grant) sign-in: the CLI verifier's
- * checks, run by the BFF for a same-origin browser. The result PoP seed is
+ * Browser purchase bootstrap for a Shop sign-in of any kind (grant or Ring
+ * cookie): the CLI verifier's checks, run by the BFF for a same-origin browser. The result PoP seed is
  * derived from the state key and the challenge id (never stored on the
  * challenge row, never sent to the browser); the flow is bound to the
  * reconnect flow's `__Host-shop-marketplace-grant` cookie, not a CLI token.

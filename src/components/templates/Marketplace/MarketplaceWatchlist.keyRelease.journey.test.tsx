@@ -9,7 +9,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CommerceApplication } from '@/application/commerce/commerce';
 import { CommercePrivKeyringApplication } from '@/application/commerce/priv-keyring';
-import { CAPABILITIES } from '@/config/app';
+import { CAPABILITIES, RING_COOKIE_CAPABILITIES } from '@/config/app';
 import { decryptPrivRecord, privEntryName, privEntryUrl } from '@/libs/commerce/priv-envelope';
 import { privKeyringFromResponse } from '@/libs/commerce/priv-keys';
 import { resetRuntimeConfigForTests } from '@/libs/runtime-config/runtime-config';
@@ -35,8 +35,10 @@ import { MarketplaceWatchlist } from './MarketplaceWatchlist';
 /**
  * #49 end to end: the marketplace refuses to release the private data key
  * (`GET /v1/me/priv-keys` 403 `needs_reauth`) to a Bitkit sign-in's purchase
- * session, the watchlist offers the marketplace approval, Bitkit approves,
- * and the next sync gets the key and seals the watchlist.
+ * session, the watchlist offers the marketplace approval as a grant link, the
+ * signer approves, and the next sync gets the key and seals the watchlist. A
+ * Pubky Ring cookie sign-in gets the same grant link, never the Ring AuthToken
+ * connect that Bitkit rejects.
  *
  * Nothing in the Shop is mocked: the watchlist template and every hook it
  * runs, the keyring holder, the purchase-session service and its
@@ -62,8 +64,12 @@ function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
 }
 
-/** The marketplace service and Shop BFF, as they answer on the wire. Bitkit approves when `approved` is set. */
-function installNetwork(signer: { approved: boolean }) {
+/**
+ * The marketplace service and Shop BFF, as they answer on the wire. The signer
+ * approves when `approved` is set. With `bffPaired` false the BFF holds no
+ * paired cookie, so the grant reconnect answers `shop_session_missing`.
+ */
+function installNetwork(signer: { approved: boolean; bffPaired?: boolean }) {
   const requests: Recorded[] = [];
   const connected = {
     status: 'connected',
@@ -88,6 +94,7 @@ function installNetwork(signer: { approved: boolean }) {
           : json(403, PRIV_KEYS_WIRE_NEEDS_REAUTH);
       }
       if (path === '/api/marketplace/grant-flows' && method === 'POST') {
+        if (signer.bffPaired === false) return json(401, { error: 'shop_session_missing' });
         return json(200, { authorization_url: GRANT_URL, expires_at: FUTURE, state_id: STATE_ID, status: 'awaiting' });
       }
       if (path === `/api/marketplace/grant-flows/${STATE_ID}/status`) {
@@ -123,6 +130,16 @@ function signInWithBitkit() {
     session: asOpaque({
       grant: {},
       info: { publicKey: { z32: () => OWNER }, capabilities: CAPABILITIES.split(',') },
+    }),
+  });
+}
+
+/** A Pubky Ring cookie sign-in, also what Bitkit gets by scanning the Ring create QR. */
+function signInWithRingCookie() {
+  useAuthStore.setState({
+    currentUserPubky: asOpaque(OWNER),
+    session: asOpaque({
+      info: { publicKey: { z32: () => OWNER }, capabilities: RING_COOKIE_CAPABILITIES.split(',') },
     }),
   });
 }
@@ -170,7 +187,7 @@ function sealedWatchlist(homeserver: FakeHomeserver): unknown {
   });
 }
 
-describe('#49 key-release refusal → marketplace approval → Bitkit reconnect (watchlist, nothing mocked)', () => {
+describe('#49 key-release refusal → marketplace approval → grant link (watchlist, nothing mocked)', () => {
   let homeserver: FakeHomeserver;
 
   beforeEach(() => {
@@ -209,15 +226,33 @@ describe('#49 key-release refusal → marketplace approval → Bitkit reconnect 
   });
 
   it.each([
-    ['an inventory-only purchase session', 'reconnect', 'Approve purchases', 'Open in signer'],
-    ['no purchase session', 'bootstrap', 'Approve purchases in Bitkit', 'Open in Bitkit'],
+    ['a Bitkit', 'an inventory-only purchase session', 'reconnect', true, 'Approve purchases', 'Open in signer'],
+    ['a Bitkit', 'no purchase session', 'bootstrap', true, 'Approve purchases in Bitkit', 'Open in Bitkit'],
+    [
+      'a Pubky Ring (cookie)',
+      'no purchase session',
+      'bootstrap',
+      true,
+      'Approve purchases in Pubky Ring or Bitkit',
+      'Open in signer',
+    ],
+    [
+      'a Pubky Ring (cookie)',
+      'an inventory-only purchase session the BFF has not paired',
+      'reconnect',
+      false,
+      'Approve purchases in Pubky Ring or Bitkit',
+      'Open in signer',
+    ],
   ] as const)(
-    'a Bitkit sign-in with %s approves in Bitkit and then syncs',
-    async (_label, flow, dialogTitle, openLabel) => {
-      const signer = { approved: false };
+    '%s sign-in with %s approves a grant link and then syncs',
+    async (signIn, _label, flow, bffPaired, dialogTitle, openLabel) => {
+      const signer = { approved: false, bffPaired };
       const requests = installNetwork(signer);
       const stepUp = vi.spyOn(HomeserverService, 'generateAuthUrl');
-      signInWithBitkit();
+      const ringConnect = vi.spyOn(HomeserverService, 'generateAuthTokenFlow');
+      if (signIn === 'a Bitkit') signInWithBitkit();
+      else signInWithRingCookie();
       if (flow === 'reconnect') {
         useCommerceStore.getState().setMarketplaceSession(
           MarketplaceSessionService.establishClaimedGrantSession(
@@ -253,8 +288,12 @@ describe('#49 key-release refusal → marketplace approval → Bitkit reconnect 
       await user.click(screen.getByRole('button', { name: 'Approve private sync' }));
 
       const dialog = await screen.findByRole('dialog');
-      expect(within(dialog).getByRole('heading', { name: dialogTitle })).toBeInTheDocument();
+      expect(await within(dialog).findByRole('heading', { name: dialogTitle })).toBeInTheDocument();
       expect(await within(dialog).findByRole('button', { name: openLabel })).toBeEnabled();
+      expect(ringConnect).not.toHaveBeenCalled();
+      expect(requests.some((request) => request.path === '/api/marketplace/bootstrap-challenges')).toBe(
+        flow === 'bootstrap' || !bffPaired,
+      );
       expect(within(dialog).getByTestId('session-approval-disclosure')).toHaveTextContent(
         MARKETPLACE_DISCLOSURE_PRIVATE_DATA,
       );
@@ -271,6 +310,7 @@ describe('#49 key-release refusal → marketplace approval → Bitkit reconnect 
       expect(keyReads().at(-1)?.bearer).toBe(CLAIMED_TOKEN);
       expect(sealedWatchlist(homeserver)).toMatchObject({ items: [{ listingId: 'boots_01' }] });
       expect(stepUp).not.toHaveBeenCalled();
+      expect(ringConnect).not.toHaveBeenCalled();
     },
     15_000,
   );

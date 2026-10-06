@@ -5,7 +5,9 @@ import { isSingleApprovalSignInEnabled } from '@/config/app';
 import { AuthController } from '@/controllers/auth/auth';
 import { CommerceController } from '@/controllers/commerce/commerce';
 import { readGrantSigner } from '@/hooks/useGrantSigner/useGrantSigner';
+import { marketplaceApprovalSigner } from '@/hooks/useMarketplaceApprovalSigner/useMarketplaceApprovalSigner';
 import {
+  type BootstrapSignerName,
   MARKETPLACE_FAILURE_MESSAGES,
   marketplaceBootstrapFailureMessage,
   marketplaceErrorCode,
@@ -52,16 +54,27 @@ type ActiveFlow =
  * `start()` first detach the current flow, so a rejection arriving from a
  * detached flow is dropped silently instead of being surfaced as a failure.
  */
-/** The signed-in pubky when the Shop session is grant-backed (Bitkit or Pubky Passport sign-in), else null. */
-function grantSignInPubky(): string | null {
+/**
+ * The pubky of the Shop session, grant-backed (Bitkit or Pubky Passport) or a
+ * Pubky Ring cookie session. Either can write the bootstrap's homeserver proof.
+ */
+function signedInPubky(): string | null {
   const session = useAuthStore.getState().session;
-  if (!session || session.grant === undefined) return null;
+  if (!session) return null;
   return session.info.publicKey.z32();
 }
 
 /** True when Pubky Passport approved the Shop sign-in, so it approves the purchase grant too. */
 function isPassportGrantSignIn(): boolean {
   return readGrantSigner(useAuthStore.getState()) === 'passport';
+}
+
+/** Who approves the bootstrap's grant link, named in its failure copy. */
+function bootstrapSignerName(): BootstrapSignerName {
+  const signer = readGrantSigner(useAuthStore.getState());
+  if (signer === 'passport') return 'Pubky Passport';
+  if (signer === 'bitkit') return 'Bitkit';
+  return 'Pubky Ring or Bitkit';
 }
 
 /** Copy for a Passport purchase approval that ended without a result. Null returns to idle silently. */
@@ -87,12 +100,12 @@ export function useMarketplaceSessionConnect(
     () => getMarketplaceGrantFlowEnabled() && Boolean(MarketplaceSessionService.getActiveSession()),
   );
   const [requestsGrantBootstrap, setRequestsGrantBootstrap] = useState(
-    () =>
-      getMarketplaceGrantFlowEnabled() && grantSignInPubky() !== null && !MarketplaceSessionService.getActiveSession(),
+    () => getMarketplaceGrantFlowEnabled() && signedInPubky() !== null && !MarketplaceSessionService.getActiveSession(),
   );
   // A Passport approval opens a popup, which needs a click: `start()` only
   // arms it and `startPassport()` runs it.
   const requestsPassport = getMarketplaceGrantFlowEnabled() && isPassportGrantSignIn() && getPassportSignInEnabled();
+  const approvalSigner = marketplaceApprovalSigner(readGrantSigner(useAuthStore.getState()));
   const activeFlowRef = useRef<ActiveFlow | null>(null);
   /** The Passport approval `start()` prepared, waiting for the user's click. */
   const passportRunRef = useRef<(() => void) | null>(null);
@@ -337,41 +350,51 @@ export function useMarketplaceSessionConnect(
       return;
     }
 
-    // A grant (Bitkit or Pubky Passport) sign-in carries no AuthToken to
-    // redeem: its purchase session comes from the browser bootstrap, a second
-    // approval in the same signer.
-    const bootstrapPubky = grantSignInPubky();
+    // With the grant flow on, every signed-in purchase approval is a
+    // `signin_grant` link, which Bitkit and Pubky Ring 1.19+ both approve.
+    // Bitkit rejects the Ring AuthToken link, so no Shop session falls back to
+    // it. The browser bootstrap needs only a session that can write its own
+    // homeserver (the proof document), so it serves Ring cookie sessions too.
+    const bootstrapPubky = signedInPubky();
+    const runBootstrap = (pubky: string) => {
+      setRequestsGrantReconnect(false);
+      setRequestsGrantBootstrap(true);
+      runGrantFlow(
+        () => beginMarketplaceBootstrapFlow({ pubky }),
+        (code) => marketplaceBootstrapFailureMessage(code, bootstrapSignerName()),
+        undefined,
+        viaPassport,
+      );
+    };
     if (grantFlowEnabled && bootstrapPubky && !MarketplaceSessionService.getActiveSession()) {
       setRequestsGrantReconnect(false);
       setRequestsGrantBootstrap(true);
-      const runBootstrap = () =>
-        runGrantFlow(
-          () => beginMarketplaceBootstrapFlow({ pubky: bootstrapPubky }),
-          (code) => marketplaceBootstrapFailureMessage(code, viaPassport ? 'Pubky Passport' : 'Bitkit'),
-          undefined,
-          viaPassport,
-        );
       if (viaPassport) {
-        armPassport(runBootstrap);
+        armPassport(() => runBootstrap(bootstrapPubky));
         return;
       }
-      runBootstrap();
+      runBootstrap(bootstrapPubky);
       return;
     }
 
     // Reconnect grant cannot mint a first session: BFF createFlow requires a
-    // paired cookie. A seller with no marketplace bearer must bootstrap via
-    // AuthToken instead of opening a grant that 401s locally as "expired".
-    // Pubky Passport cannot approve that Ring AuthToken, so a Passport
-    // reconnect that needs a session ends with the failure copy instead.
+    // paired cookie. When the BFF has none, the bootstrap mints the session
+    // instead of opening a grant that 401s locally as "expired". A Passport
+    // reconnect needs a fresh click for the bootstrap popup, so it ends with
+    // the failure copy instead.
     if (grantFlowEnabled && MarketplaceSessionService.getActiveSession()) {
       setRequestsGrantBootstrap(false);
       setRequestsGrantReconnect(true);
+      const onSessionMissing = viaPassport
+        ? undefined
+        : bootstrapPubky
+          ? () => runBootstrap(bootstrapPubky)
+          : startAuthTokenConnect;
       const runReconnect = () =>
         runGrantFlow(
           beginMarketplaceGrantFlow,
           (code) => marketplaceFailureMessage(code, MARKETPLACE_FAILURE_MESSAGES.sessionStart),
-          viaPassport ? undefined : startAuthTokenConnect,
+          onSessionMissing,
           viaPassport,
         );
       if (viaPassport) {
@@ -444,6 +467,7 @@ export function useMarketplaceSessionConnect(
     requestsGrantReconnect,
     requestsGrantBootstrap,
     requestsPassport,
+    approvalSigner,
     start,
     startPassport,
     cancel,
