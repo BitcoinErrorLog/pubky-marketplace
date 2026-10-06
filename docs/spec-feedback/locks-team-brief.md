@@ -34,10 +34,10 @@ not fork Locks.
 | --- | --- | --- | --- |
 | Lock Server (deployed) | `pubky/locks` **(no fork)** | detached at `ba49a777a94db318ec6ebd427315080a5b904645` (“fix: docker local dev setup env generation (#9)”, 2026-08-03) | Clean upstream clone, working tree clean. Railway image clones this revision at build time. |
 | `pubky/locks` `origin/master` | same repo | `1329f16771dd78b4b5f1de41483a8cd158d95404`, tag `v0.1.0-rc2` | **8** commits ahead of the pin. All eight are on `origin/master` (`git ls-remote` + `git merge-base --is-ancestor`). |
-| Staging rails | `BitcoinErrorLog/pubky-payment-rails` | `master` `a4d70c893c0e89597a31a6c7b65536a7fed9633a` | Railway project `pubky-marketplace-staging`. `locks-server/Dockerfile` `ARG LOCKS_REV=ba49a777…` with a fail-closed `test "$(git rev-parse HEAD)" = "$LOCKS_REV"`. |
+| Staging rails | `pubky/pubky-payment-rails` | `master` `a4d70c893c0e89597a31a6c7b65536a7fed9633a` | Railway project `pubky-marketplace-staging`. `locks-server/Dockerfile` `ARG LOCKS_REV=ba49a777…` with a fail-closed `test "$(git rev-parse HEAD)" = "$LOCKS_REV"`. |
 | Client-vendored WASM | `BitcoinErrorLog/pubky-app` | app `64cb7aee23f4762c995c5ae1b16eef37346c9e10` (`marketplace/pr25-ux`); WASM from locks pin `ba49a777…` | Built from `locks-sdk/bindings/js`. Provenance: `docs/ecommerce/locks-sdk-provenance.md`. Used for `BundleId.generate()` only. |
-| Fiat verifier | `BitcoinErrorLog/pubky-fiat-verifier` | `master` `e379bd99073735380c4c84d87e8fb1d228a5727b` | Sits at Lock Server `[paykit] server_url`. New service, no upstream. |
-| Transaction service | `BitcoinErrorLog/pubky-marketplace-service` | `main` `0fd9b45737a8dd2bb35afff4156526ea616ca41e` | Stores an encrypted Locks correlation. Does not advance payment on registration. |
+| Fiat verifier | `pubky/pubky-fiat-verifier` | `master` `e379bd99073735380c4c84d87e8fb1d228a5727b` | Sits at Lock Server `[paykit] server_url`. New service, no upstream. |
+| Transaction service | `pubky/pubky-marketplace-service` | `main` `0fd9b45737a8dd2bb35afff4156526ea616ca41e` | Stores an encrypted Locks correlation. Does not advance payment on registration. |
 | Paykit Server (BTC target) | `BitcoinErrorLog/paykit-server` | deployed `98f7c2251e5eabf1d7b14704dcdababf25499c53` | Fork of `pubky/paykit-server`. Locks is not on the physical-goods invoice path; see the Paykit brief. |
 
 Live Railway facts, re-checked 2026-09-01. Both deploy timestamps
@@ -261,7 +261,7 @@ other on the wire label. No Paykit code change is required for it.
 
 ## 6. Guarded-content 404 (root cause unproven)
 
-Quoted from `BitcoinErrorLog/pubky-payment-rails` `docs/wallet-leg.md`
+Quoted from `pubky/pubky-payment-rails` `docs/wallet-leg.md`
 at `a4d70c893c0e89597a31a6c7b65536a7fed9633a` (the current text; an
 earlier revision of that file is obsolete):
 

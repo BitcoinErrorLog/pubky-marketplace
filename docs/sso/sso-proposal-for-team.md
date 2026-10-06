@@ -189,7 +189,7 @@ The original auth spec ([`docs/AUTH.md`](https://github.com/pubky/pubky-core/blo
 
 **Messaging:**
 
-- Each app runs the shared pubky-chat library (MLS) on **its own** grant session. The library borrows that session and never restores it ([chat plan](https://github.com/BitcoinErrorLog/pubky-chat/blob/main/docs/chat-unification-plan.md)).
+- Each app runs the shared pubky-chat library (MLS) on **its own** grant session. The library borrows that session and never restores it ([chat plan](https://github.com/pubky/pubky-chat/blob/main/docs/chat-unification-plan.md)).
 - Passport, Bitkit and Ring users all get messaging once the Shop moves to it (E1). Until then, Shop messaging stays on Ring cookie sessions.
 
 **Private data:**
@@ -366,7 +366,7 @@ None of them depends on Ring's grant auth being released. The Ring stopgap is a 
 - **pubky.app can still narrow the Shop.** Signing in on pubky.app after the Shop narrows the Shop's session, and the Shop then asks for re-approval for messaging and watchlist sync.
 - **Messaging needs Ring for now.** Passport and Bitkit users can browse and buy but can't message yet, and the Shop says so without implying Ring is the only way in.
 - **Ring sign-out is shared.** Signing out of the Shop with a Ring session signs pubky.app out in that browser.
-- **Bitkit sign-up** after a wipe can fail at authorize, tracked in [synonymdev/bitkit-android#1398](https://github.com/synonymdev/bitkit-android/issues/1398). Shop copy no longer implies only Ring can create an identity ([BitcoinErrorLog/pubky-marketplace#49](https://github.com/BitcoinErrorLog/pubky-marketplace/issues/49)).
+- **Bitkit sign-up** after a wipe can fail at authorize, tracked in [synonymdev/bitkit-android#1398](https://github.com/synonymdev/bitkit-android/issues/1398). Shop copy no longer implies only Ring can create an identity ([pubky/pubky-marketplace#49](https://github.com/pubky/pubky-marketplace/issues/49)).
 
 ### 3.3 Change list per repo
 
@@ -429,7 +429,7 @@ A custom-message API is not needed either, and scope narrowing is dropped becaus
 | # | Change | Size | Depends on |
 |---|---|---|---|
 | F1 | One sign-in path through the agent for every signer. Remove the cookie path, the session bridge (`src/libs/vibe-session/*`), the `AuthToken` dual post, the scope union and the Bitkit-only branch, after a dead-code check | M | P1 |
-| E1 | Replaces F2: Shop messaging moves to the shared pubky-chat library (MLS) on the app's own grant session ([chat plan](https://github.com/BitcoinErrorLog/pubky-chat/blob/main/docs/chat-unification-plan.md)) | L | pubky-chat Phase 2 |
+| E1 | Replaces F2: Shop messaging moves to the shared pubky-chat library (MLS) on the app's own grant session ([chat plan](https://github.com/pubky/pubky-chat/blob/main/docs/chat-unification-plan.md)) | L | pubky-chat Phase 2 |
 | F3 | The marketplace service and our Lock Server fork accept the app's grant plus a PoP addressed to the service, requiring the service's capability; the `AuthToken` route is removed | M | K1, H3 |
 | F4 | Retire `paykit-wasm` in [BitcoinErrorLog/paykit-rs-official](https://github.com/BitcoinErrorLog/paykit-rs-official) | S | E1 |
 
