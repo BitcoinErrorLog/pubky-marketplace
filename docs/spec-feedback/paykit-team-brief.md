@@ -46,8 +46,8 @@ Payments-related repos:
 | paykit-rs (pubky wasm patches) | same repo | `fix/wasm-homeserver-write-abort` HEAD `d4a73a5765e1f0b18ed451d78f98dab97c611a8c` (`paykit-wasm` 0.1.0-rc50) | Same line plus a vendored `pubky` 0.8.0 with the wasm write/pkarr patches in §5. |
 | paykit-rs (chat FFI) | same repo, second clone tracking `origin/feat/chat-ffi` | `feat/chat-ffi` HEAD `4b2c495cb01a705d7858d1815b2bc170055d64ea` | Separate line from `0a6c6e4`. Not vendored into the web client. The wasm-binding working copy does not have this branch fetched; a fresh clone of the fork does. |
 | Client-vendored wasm | inside `BitcoinErrorLog/pubky-app` | `paykit-wasm` **0.1.0-rc44** built from `0a6c6e4521fd41f5081ad9f074020f4813d8a03e` | Behind the wasm-binding HEAD and the write-abort line above. The write-abort tip is 0.1.0-rc50; the web client still runs this rc44 build. Provenance: `vendor/paykit-wasm/PROVENANCE.md`. |
-| Fiat verifier | `BitcoinErrorLog/pubky-fiat-verifier` | new service, no upstream | Sits at Lock Server `[paykit] server_url`. Proxies `asset: "BTC"` verbatim to paykit-server; settles `USD` itself. |
-| Staging rails | `BitcoinErrorLog/pubky-payment-rails` | Railway project `pubky-marketplace-staging` | Lock Server + paykit-server @ `98f7c22` + regtest bitcoind + Fulcrum. |
+| Fiat verifier | `pubky/pubky-fiat-verifier` | new service, no upstream | Sits at Lock Server `[paykit] server_url`. Proxies `asset: "BTC"` verbatim to paykit-server; settles `USD` itself. |
+| Staging rails | `pubky/pubky-payment-rails` | Railway project `pubky-marketplace-staging` | Lock Server + paykit-server @ `98f7c22` + regtest bitcoind + Fulcrum. |
 | Locks | `pubky/locks` **(no fork)** | detached at `ba49a777a94db318ec6ebd427315080a5b904645` | Clean upstream checkout. Local `origin/master` is **8** commits ahead of this pin (not 7). One of those is `e6a2027` “fix(paykit): consume server-issued companion handles (#38)”. |
 | Local compose | this repo, `payments-env/` | Paykit Server image built from **upstream** `f38c7915` | Protocol-level Locks→Paykit→regtest path. This local stack is *not* the deployed fork pin. |
 
@@ -373,7 +373,7 @@ Two consequences for you to weigh:
 ### 8.1 Noise message slot index 1
 
 Observation, not a diagnosis. Source:
-`BitcoinErrorLog/pubky-payment-rails` `docs/wallet-leg.md`.
+`pubky/pubky-payment-rails` `docs/wallet-leg.md`.
 
 On the deployed server, noise channels showed a gap at slot index 1 (two
 independent channels). `pubky-noise`’s `receive_messages` treats a 404 at

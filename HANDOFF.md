@@ -8,12 +8,12 @@ Pubky Marketplace is a P2P marketplace on Pubky: sellers publish catalog records
 
 | Repo | Remote | Deployed branch / line | Current HEAD check |
 | --- | --- | --- | --- |
-| `pubky-marketplace-umbrella` | `https://github.com/BitcoinErrorLog/pubky-marketplace.git` | `pubky-marketplace-umbrella`, branch `master` | branch `master`; current HEAD via `git log -1 --oneline` |
+| `pubky-marketplace-umbrella` | `https://github.com/pubky/pubky-marketplace.git` | `pubky-marketplace-umbrella`, branch `master` | branch `master`; current HEAD via `git log -1 --oneline` |
 | `mp-ux` / Shop client | `https://github.com/BitcoinErrorLog/pubky-app.git` | integration worktree `mp-ux`, branch `marketplace/pr25-ux` (also deploys staging); production worktree `mp-prod-deploy`, branch `marketplace/prod-deploy`, Vercel project `pubky-marketplace-production` (serves `https://shop.pubky.app`); shipped single-approval implementation worktree `mp-oneauth`, branch `marketplace/one-approval`; bridge rehearsal worktree `mp-bridge-rehearsal`, branch `marketplace/bridge-rehearsal`; production probe worktree `mp-probe`, branch `marketplace/prod-probe` | current HEAD via the corresponding worktree's `git log -1 --oneline` |
-| `marketplace-service` | `https://github.com/BitcoinErrorLog/pubky-marketplace-service.git` | `marketplace-service`, branch `main` for the transaction service | branch `main`; current HEAD via `git log -1 --oneline` |
+| `marketplace-service` | `https://github.com/pubky/pubky-marketplace-service.git` | `marketplace-service`, branch `main` for the transaction service | branch `main`; current HEAD via `git log -1 --oneline` |
 | `pubky-nexus` | `https://github.com/BitcoinErrorLog/pubky-nexus` | `/Volumes/vibedrive/vibes-dev/pubky-nexus`, branch `feat/marketplace-indexing` for staging and production marketplace Nexus | branch `feat/marketplace-indexing`; current HEAD via `git -C /Volumes/vibedrive/vibes-dev/pubky-nexus log -1 --oneline`; fixed artifact references remain in `docs/production-cutover.md` and deployment records |
-| `pubky-payment-rails` | `https://github.com/BitcoinErrorLog/pubky-payment-rails.git` | `pubky-payment-rails`, branch `master`, Railway project `pubky-marketplace-staging` | branch `master`; current HEAD via `git log -1 --oneline` |
-| `pubky-fiat-verifier` | `https://github.com/BitcoinErrorLog/pubky-fiat-verifier.git` | `pubky-fiat-verifier`, branch `master`, Railway service `fiat-verifier` | branch `master`; current HEAD via `git log -1 --oneline` |
+| `pubky-payment-rails` | `https://github.com/pubky/pubky-payment-rails.git` | `pubky-payment-rails`, branch `master`, Railway project `pubky-marketplace-staging` | branch `master`; current HEAD via `git log -1 --oneline` |
+| `pubky-fiat-verifier` | `https://github.com/pubky/pubky-fiat-verifier.git` | `pubky-fiat-verifier`, branch `master`, Railway service `fiat-verifier` | branch `master`; current HEAD via `git log -1 --oneline` |
 | `specs-mp4` / specs fork | `https://github.com/BitcoinErrorLog/pubky-app-specs.git` | `specs-mp4`, branch `marketplace-4-build`, consumed by Shop/Nexus/service contracts | branch `marketplace-4-build`; current HEAD via `git log -1 --oneline` |
 
 ## Deployments
