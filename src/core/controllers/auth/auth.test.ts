@@ -2513,42 +2513,6 @@ describe('AuthController', () => {
       );
     });
 
-    async function approveGrantSignUp(session: Session) {
-      const generate = vi.spyOn(AuthApplication, 'generateGrantSignupAuthUrl').mockResolvedValue({
-        authorizationUrl: 'pubkyauth://signup_grant?caps=x&relay=r&secret=s&hs=h&st=t&cid=shop.pubky.app&cpk=k',
-        awaitApproval: Promise.resolve(session),
-        cancelAuthFlow: vi.fn(),
-      });
-      const { awaitApproval } = await AuthController.getSignupGrantAuthUrl('INVT-CODE-0001');
-      expect(generate).toHaveBeenCalledWith('INVT-CODE-0001');
-      return await awaitApproval;
-    }
-
-    it('a Bitkit sign-up completes like a Bitkit sign-in: saved as a grant record', async () => {
-      const session = grantSession();
-      const authStore = grantAuthStore();
-      vi.spyOn(useAuthStore, 'getState').mockReturnValue(authStore);
-      const saveSpy = vi.spyOn(AuthApplication, 'saveGrantSession').mockResolvedValue('rec-2');
-
-      await AuthController.initializeAuthenticatedSession({ session: await approveGrantSignUp(session) });
-
-      expect(saveSpy).toHaveBeenCalledWith(session);
-      expect(authStore.init).toHaveBeenCalledWith(
-        expect.objectContaining({ session, currentUserPubky: TEST_PUBKY, grantSessionRecordId: 'rec-2' }),
-      );
-    });
-
-    it('a Bitkit sign-up narrower than the Shop grant is signed out and never saved', async () => {
-      const session = grantSession(['/pub/pubky.app/:rw']);
-      vi.spyOn(useAuthStore, 'getState').mockReturnValue(grantAuthStore());
-      const saveSpy = vi.spyOn(AuthApplication, 'saveGrantSession').mockResolvedValue('rec-2');
-      const logoutSpy = vi.spyOn(HomeserverService, 'logout').mockResolvedValue(undefined);
-
-      await expect(approveGrantSignUp(session)).rejects.toMatchObject({ code: ValidationErrorCode.INVALID_INPUT });
-      expect(logoutSpy).toHaveBeenCalledWith({ session });
-      expect(saveSpy).not.toHaveBeenCalled();
-    });
-
     it('an approval narrower than the Shop grant is signed out and never saved', async () => {
       const session = grantSession(['/pub/pubky.app/:rw']);
       vi.spyOn(useAuthStore, 'getState').mockReturnValue(grantAuthStore());

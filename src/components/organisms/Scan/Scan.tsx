@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Key, Loader2, RefreshCw } from 'lucide-react';
-import { ONBOARDING_ROUTES } from '@/app/routes';
+import { AUTH_ROUTES, ONBOARDING_ROUTES } from '@/app/routes';
 import { Button } from '@/atoms/Button/Button';
 import { Card } from '@/atoms/Card/Card';
 import { Container } from '@/atoms/Container/Container';
@@ -24,7 +24,7 @@ import { PageTitle } from '@/molecules/Page/Page';
 import { QrCodeSlot } from '@/molecules/QrCodeSlot/QrCodeSlot';
 import {
   SIGN_UP_COPY,
-  SIGNER_AUTH_COPY,
+  SIGN_UP_SIGNER_COPY,
   SignerAuthOption,
   SignerAuthorizeButton,
 } from '@/molecules/SignerAuthOption/SignerAuthOption';
@@ -42,56 +42,49 @@ async function copyWithToast(copy: () => Promise<void>) {
   }
 }
 
-/**
- * Pubky Ring and Bitkit side by side. Ring scans the classic sign-up QR and
- * creates a new key; Bitkit scans a `signup_grant` for the key it already
- * holds. Both carry the same invite code; the first approval wins and the
- * controller cancels the other flow.
- */
-const ScanBothSigners = ({ ring, inviteCode }: { ring: SignerAuth; inviteCode: string }) => {
-  const bitkit = useMobileAuth({ type: 'signup-grant', inviteCode });
-  const copy = SIGNER_AUTH_COPY.signUp;
-  return (
-    <>
-      <Container size="container" className="hidden md:flex">
-        <ScanHeader isMobile={false} signer="both" />
-        <Card
-          data-testid="scan-qr-card"
-          className="w-full flex-row items-start justify-center gap-12 rounded-md p-6 lg:gap-24 lg:p-12"
-        >
-          <SignerAuthOption
-            copy={copy.ring}
-            auth={ring}
-            onCopied={() => copyWithToast(ring.copyAuthUrl)}
-            testId="sign-up-ring-option"
-          />
-          <SignerAuthOption
-            copy={copy.bitkit}
-            auth={bitkit}
-            onCopied={() => copyWithToast(bitkit.copyAuthUrl)}
-            testId="sign-up-bitkit-option"
-          />
-        </Card>
-        <Typography as="p" className="mt-4 text-center text-sm text-muted-foreground" data-testid="sign-up-retry-hint">
-          {SIGN_UP_COPY.retryDesktop}
-        </Typography>
-      </Container>
+/** Points someone whose pubky already lives in a signer to Sign in. */
+const SignInInstead = () => (
+  <Typography as="p" className="text-center text-sm text-muted-foreground" data-testid="sign-up-sign-in-instead">
+    {`${SIGN_UP_COPY.existingPubky} `}
+    <Link href={AUTH_ROUTES.SIGN_IN}>{SIGN_UP_COPY.signInLink}</Link>
+  </Typography>
+);
 
-      <Container size="container" className="md:hidden">
-        <ScanHeader isMobile={true} signer="both" />
-        <ContentCard layout="column">
-          <Container className="flex-col items-center justify-center gap-4">
-            <SignerAuthorizeButton copy={copy.ring} auth={ring} testId="button" />
-            <SignerAuthorizeButton copy={copy.bitkit} auth={bitkit} testId="sign-up-grant-button" />
-            <Typography as="p" className="text-center text-sm text-muted-foreground" data-testid="sign-up-retry-hint">
-              {SIGN_UP_COPY.retryMobile}
-            </Typography>
-          </Container>
-        </ContentCard>
-      </Container>
-    </>
-  );
-};
+/**
+ * One create QR for both signers: Pubky Ring and Bitkit each turn the Ring
+ * sign-up link into a new pubky and its homeserver account. A pubky already
+ * in either signer signs in instead, since Bitkit treats a `signup_grant` as
+ * a sign-in for a key it holds and creates no account (#49).
+ */
+const ScanEitherSigner = ({ auth }: { auth: SignerAuth }) => (
+  <>
+    <Container size="container" className="hidden md:flex">
+      <ScanHeader isMobile={false} signer="both" />
+      <Card
+        data-testid="scan-qr-card"
+        className="w-full flex-col items-center justify-center gap-6 rounded-md p-6 lg:p-12"
+      >
+        <SignerAuthOption
+          copy={SIGN_UP_SIGNER_COPY}
+          auth={auth}
+          onCopied={() => copyWithToast(auth.copyAuthUrl)}
+          testId="sign-up-option"
+        />
+        <SignInInstead />
+      </Card>
+    </Container>
+
+    <Container size="container" className="md:hidden">
+      <ScanHeader isMobile={true} signer="both" />
+      <ContentCard layout="column">
+        <Container className="flex-col items-center justify-center gap-4">
+          <SignerAuthorizeButton copy={SIGN_UP_SIGNER_COPY} auth={auth} testId="button" />
+          <SignInInstead />
+        </Container>
+      </ContentCard>
+    </Container>
+  </>
+);
 
 export const ScanContent = () => {
   const router = useRouter();
@@ -116,7 +109,7 @@ export const ScanContent = () => {
   const isGrantSignUpAvailable = useGrantSignInAvailable();
   const { url, isLoading, isExpired, fetchUrl, isOpeningRing, onAuthorizeClick } = ringAuth;
   if (!hasInviteCode) return null;
-  if (isGrantSignUpAvailable) return <ScanBothSigners ring={ringAuth} inviteCode={inviteCode} />;
+  if (isGrantSignUpAvailable) return <ScanEitherSigner auth={ringAuth} />;
   const isMobileLaunching = isLoading || isOpeningRing;
   const mobileAuthorizeContent = isMobileLaunching ? (
     <>

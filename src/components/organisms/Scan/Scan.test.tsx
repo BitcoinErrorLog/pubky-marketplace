@@ -1,10 +1,15 @@
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ONBOARDING_ROUTES } from '@/app/routes';
+import { AUTH_ROUTES, ONBOARDING_ROUTES } from '@/app/routes';
 import { getPubkyCoreLink } from '@/config/externalLinks';
 import { useMobileAuth } from '@/hooks/useMobileAuth/useMobileAuth';
-import { BITKIT_IDENTITY_HINT, SIGN_UP_COPY, SIGNER_AUTH_COPY } from '@/molecules/SignerAuthOption/SignerAuthOption';
+import {
+  BITKIT_IDENTITY_HINT,
+  SIGN_UP_COPY,
+  SIGN_UP_SIGNER_COPY,
+  SIGNER_AUTH_COPY,
+} from '@/molecules/SignerAuthOption/SignerAuthOption';
 import { asOpaque } from '@/test-utils/type-assertions';
 import { ScanContent, ScanFooter, ScanHeader, ScanNavigation } from './Scan';
 
@@ -355,40 +360,37 @@ describe('ScanContent', () => {
     expect(mockFetchUrl).toHaveBeenCalledTimes(1);
   });
 
-  it('offers a Bitkit sign-up QR beside Pubky Ring when grant sign-in is available', async () => {
+  it('shows one create QR for Pubky Ring or Bitkit when grant sign-in is available', async () => {
     grantSignUp.available = true;
     try {
       render(<ScanContent />);
 
-      expect(screen.getByTestId('sign-up-ring-option')).toHaveTextContent('Pubky Ring');
-      expect(screen.getByTestId('sign-up-bitkit-option')).toHaveTextContent('Bitkit');
-      expect(screen.getByTestId('sign-up-grant-button')).toHaveTextContent('Authorize with Bitkit');
+      expect(screen.getByTestId('sign-up-option')).toHaveTextContent('Pubky Ring or Bitkit');
+      expect(screen.getByTestId('button')).toHaveTextContent('Authorize with Pubky Ring or Bitkit');
+      expect(screen.queryByTestId('sign-up-bitkit-option')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('sign-up-grant-button')).not.toBeInTheDocument();
+      expect(vi.mocked(useMobileAuth)).toHaveBeenCalledTimes(1);
       expect(vi.mocked(useMobileAuth)).toHaveBeenCalledWith({ type: 'signup', inviteCode: 'A9KM-7MJP-ERM9' });
-      expect(vi.mocked(useMobileAuth)).toHaveBeenCalledWith({ type: 'signup-grant', inviteCode: 'A9KM-7MJP-ERM9' });
     } finally {
       grantSignUp.available = false;
     }
   });
 
-  it('tells Bitkit users they can create a pubky from the sign-up QR and to retry a failed authorize', async () => {
+  it('sends a pubky that already lives in a signer to Sign in, with no retry hint', async () => {
     grantSignUp.available = true;
     try {
       render(<ScanContent />);
 
-      const pageText = document.body.textContent ?? '';
-      expect(pageText).not.toContain('must create a Pubky identity');
-      expect(pageText).not.toContain('Scan with Pubky Ring to create a new pubky, or with Bitkit');
       expect(screen.getByText(SIGN_UP_COPY.subtitleDesktop)).toBeInTheDocument();
-      expect(screen.getByTestId('sign-up-ring-option')).toHaveTextContent('Bitkit can scan this QR too.');
-      expect(screen.getByTestId('sign-up-bitkit-option')).toHaveTextContent(
-        'No pubky in Bitkit yet? Scan the Pubky Ring QR with Bitkit.',
-      );
-      const retryHints = [SIGN_UP_COPY.retryDesktop, SIGN_UP_COPY.retryMobile];
-      for (const hint of retryHints) {
-        expect(screen.getByText(hint)).toBeInTheDocument();
-        expect(hint).toMatch(/again\.$/);
-        expect(hint).not.toMatch(/not supported|unsupported|Pubky Ring instead/i);
+      const links = screen.getAllByRole('link', { name: SIGN_UP_COPY.signInLink });
+      expect(links).toHaveLength(2);
+      for (const link of links) {
+        expect(link).toHaveAttribute('href', AUTH_ROUTES.SIGN_IN);
+        expect(link.parentElement).toHaveTextContent(`${SIGN_UP_COPY.existingPubky} ${SIGN_UP_COPY.signInLink}`);
       }
+      const pageText = document.body.textContent ?? '';
+      expect(pageText).not.toMatch(/Authorization failed|scan the QR again/i);
+      expect(screen.queryByTestId('sign-up-retry-hint')).not.toBeInTheDocument();
     } finally {
       grantSignUp.available = false;
     }
@@ -396,14 +398,15 @@ describe('ScanContent', () => {
 
   it('keeps the Bitkit identity requirement on sign-in, where Bitkit cannot create a pubky', () => {
     expect(SIGNER_AUTH_COPY.signIn.bitkit.identityHint).toBe(BITKIT_IDENTITY_HINT);
-    expect(SIGNER_AUTH_COPY.signUp.bitkit.identityHint).toBe(SIGN_UP_COPY.bitkitIdentityHint);
+    expect(SIGN_UP_SIGNER_COPY.identityHint).toBeNull();
   });
 
   it('keeps the Pubky Ring sign-up QR alone when grant sign-in is unavailable', async () => {
     render(<ScanContent />);
 
     expect(screen.queryByTestId('sign-up-bitkit-option')).not.toBeInTheDocument();
-    expect(vi.mocked(useMobileAuth)).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'signup-grant' }));
+    expect(screen.queryByRole('link', { name: SIGN_UP_COPY.signInLink })).not.toBeInTheDocument();
+    expect(vi.mocked(useMobileAuth)).toHaveBeenCalledTimes(1);
   });
 
   it('redirects to human onboarding when invite code is missing', async () => {

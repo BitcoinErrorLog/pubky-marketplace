@@ -532,7 +532,7 @@ describe('Header', () => {
       const testCases = [
         { path: ONBOARDING_ROUTES.HUMAN, expectedTitle: 'Create account' },
         { path: ONBOARDING_ROUTES.INSTALL, expectedTitle: 'Identity keys' },
-        { path: ONBOARDING_ROUTES.SCAN, expectedTitle: 'Use Pubky Ring' },
+        { path: ONBOARDING_ROUTES.SCAN, expectedTitle: 'Create your pubky' },
         { path: ONBOARDING_ROUTES.PUBKY, expectedTitle: 'Your pubky' },
         { path: ONBOARDING_ROUTES.BACKUP, expectedTitle: 'Backup' },
         { path: ONBOARDING_ROUTES.PROFILE, expectedTitle: 'Profile' },

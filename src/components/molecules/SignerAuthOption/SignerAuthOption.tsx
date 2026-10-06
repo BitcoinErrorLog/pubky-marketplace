@@ -11,22 +11,19 @@ export const BITKIT_IDENTITY_HINT =
   "New Bitkit users must create a Pubky identity in Bitkit's profile before scanning.";
 
 /**
- * Sign-up copy. Bitkit may scan the Pubky Ring sign-up QR, which creates the
- * Shop account and the Bitkit profile together, so sign-up must not say only
- * Ring can create a pubky. A failed authorize in Bitkit is a Bitkit bug
- * (bitkit-android#1398), so the copy asks for a retry, not another signer.
+ * Sign-up copy. The Pubky Ring create QR is the one sign-up QR: Pubky Ring and
+ * Bitkit both turn it into a new pubky and its homeserver account. Someone
+ * whose pubky already lives in Bitkit or Pubky Ring signs in instead (#49).
  */
 export const SIGN_UP_COPY = {
-  subtitleDesktop:
-    'Scan with Pubky Ring or Bitkit to create your pubky. Bitkit can also use the pubky it already holds.',
-  subtitleMobile: 'Tap Pubky Ring to create a new pubky, or Bitkit to use the pubky Bitkit already holds.',
-  ringHint: "Tap 'add pubky' in Pubky Ring and scan. Bitkit can scan this QR too.",
-  bitkitIdentityHint: 'For the pubky Bitkit already holds. No pubky in Bitkit yet? Scan the Pubky Ring QR with Bitkit.',
-  retryDesktop: 'If Bitkit shows “Authorization failed”, scan the QR again.',
-  retryMobile: 'If Bitkit shows “Authorization failed”, tap Authorize with Bitkit again.',
+  subtitleDesktop: 'Scan with Pubky Ring or Bitkit to create a new pubky.',
+  subtitleMobile: 'Tap the button to create a new pubky in Pubky Ring or Bitkit.',
+  hint: "In Pubky Ring, tap 'add pubky' and scan.",
+  existingPubky: 'Already have a pubky in Pubky Ring or Bitkit?',
+  signInLink: 'Sign in instead',
 } as const;
 
-/** Sign-in and sign-up copy for the two signers the Shop offers side by side. */
+/** Sign-in copy for the two signers the Shop offers side by side. */
 export const SIGNER_AUTH_COPY = {
   signIn: {
     ring: {
@@ -48,27 +45,18 @@ export const SIGNER_AUTH_COPY = {
       showRingLogo: false,
     },
   },
-  signUp: {
-    ring: {
-      name: 'Pubky Ring',
-      hint: SIGN_UP_COPY.ringHint,
-      identityHint: null,
-      copyLabel: 'Copy sign-up link',
-      reloadLabel: 'Reload sign-up QR code',
-      openingLabel: 'Opening Pubky Ring...',
-      showRingLogo: true,
-    },
-    bitkit: {
-      name: 'Bitkit',
-      hint: 'Scan with Bitkit.',
-      identityHint: SIGN_UP_COPY.bitkitIdentityHint,
-      copyLabel: 'Copy Bitkit sign-up link',
-      reloadLabel: 'Reload Bitkit sign-up QR code',
-      openingLabel: 'Opening Bitkit...',
-      showRingLogo: false,
-    },
-  },
-} as const satisfies Record<'signIn' | 'signUp', Record<'ring' | 'bitkit', SignerAuthCopy>>;
+} as const satisfies Record<'signIn', Record<'ring' | 'bitkit', SignerAuthCopy>>;
+
+/** The one sign-up QR, which either phone signer can scan. */
+export const SIGN_UP_SIGNER_COPY = {
+  name: 'Pubky Ring or Bitkit',
+  hint: SIGN_UP_COPY.hint,
+  identityHint: null,
+  copyLabel: 'Copy sign-up link',
+  reloadLabel: 'Reload sign-up QR code',
+  openingLabel: 'Opening signer...',
+  showRingLogo: false,
+} as const satisfies SignerAuthCopy;
 
 /** One signer's labelled QR in the side-by-side desktop layout. */
 export function SignerAuthOption({ copy, auth, onCopied, testId, disclosure = null }: SignerAuthOptionProps) {
