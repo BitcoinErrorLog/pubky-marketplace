@@ -1,8 +1,37 @@
 # Documentation
 
+Project documents for the Pubky Marketplace come first; the Shop client's standards, conventions and architectural decisions follow under [Client standards and architecture](#client-standards-and-architecture).
+
+## Shop launch
+
+Handoff readiness lives in these two docs; start with the team brief.
+
+- [Team brief](launch/shop-team-brief.md): repos, local setup, test and release rules, the current status, first tasks for each team, per-service release, deploy and rollback with known documentation gaps, and who to ask, for developers taking over the Shop.
+- [Beta launch and handoff plan](launch/shop-launch-plan.md): this week's deadlines and what's frozen, launch blockers, the two-week timeline, infrastructure options, risks and the open decisions with who makes each, for the [shop.pubky.app](https://shop.pubky.app) beta.
+
+## Single sign-on
+
+- [SSO proposal](sso/sso-proposal-for-team.md): the problem, the proposed delegated-grant model, phases, per-repo changes and asks for each Pubky team.
+- [SSO design](sso/pubky-sso-design.md): the design detail behind the proposal, with the code facts it rests on and the open questions for the Pubky core team.
+
+## Other folders
+
+- [marketplace-overview.md](marketplace-overview.md): every repository, branch and document behind the marketplace feature.
+- [spec-feedback/](spec-feedback/): technical briefs for upstream maintainers.
+- [contributions/](contributions/): PR triage.
+- [vibes/](vibes/) and [vrt/](vrt/): agent operations notes and visual-regression screenshots.
+
+## How to comment
+
+- **Questions, objections or answers to an open question:** [open an issue](https://github.com/pubky/pubky-marketplace/issues/new). Name the doc and section in the title, for example "SSO proposal §4 Q3: one bearer per grant".
+- **Line-level comments:** open a pull request against `master` that edits the doc, or comment on lines in any open PR touching it.
+- **Corrections and edits:** send a pull request with the change. Keep links between these docs relative so they work on GitHub and in clones.
+
+## Client standards and architecture
+
 Single source of truth for all project standards, conventions, and architectural decisions.
 
-## Quick Reference
+### Quick Reference
 
 | Working on...           | Read these docs                                                                   |
 | ----------------------- | --------------------------------------------------------------------------------- |
@@ -13,7 +42,7 @@ Single source of truth for all project standards, conventions, and architectural
 | Making commits          | `commit-message.md`                                                               |
 | Architectural decisions | `adr-guidelines.md`, `adr/`                                                       |
 
-## Documentation Files
+### Documentation Files
 
 | File                       | Description                                                                                           |
 | -------------------------- | ----------------------------------------------------------------------------------------------------- |
@@ -29,7 +58,7 @@ Single source of truth for all project standards, conventions, and architectural
 | `environment.md`           | Environment variable configuration                                                                    |
 | `adr-guidelines.md`        | When and how to write ADRs                                                                            |
 
-### Shop (marketplace)
+#### Shop (marketplace)
 
 | File                              | Description                                                                   |
 | --------------------------------- | ----------------------------------------------------------------------------- |
@@ -39,17 +68,17 @@ Single source of truth for all project standards, conventions, and architectural
 | `ecommerce/runbook-production.md` | Kill switch, rollback, Vercel domain moves, Railway restarts                  |
 | `ecommerce/status.md`             | What is real and what is simulated                                            |
 
-### Migrations
+#### Migrations
 
 | File                                     | Description                                                                                |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------ |
 | `migrations/2305-i18n-conflict-guide.md` | Resolving branch conflicts against the i18n removal (delete after the open-PR wave clears) |
 
-## Architecture Decision Records
+### Architecture Decision Records
 
 Stored in `adr/`. See `architecture.md` for the full index.
 
-## AI and Editor Workflows
+### AI and Editor Workflows
 
 This repository keeps documentation tool-agnostic, but some editor workflows are available for faster feedback loops.
 
@@ -57,7 +86,7 @@ This repository keeps documentation tool-agnostic, but some editor workflows are
 - Cross-tool AI entry point: see `../AGENTS.md`
 - Commit message format: see `commit-message.md`
 
-## Keeping Documentation Updated
+### Keeping Documentation Updated
 
 When making significant changes to:
 

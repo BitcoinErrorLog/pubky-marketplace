@@ -2,20 +2,25 @@
 
 # Pubky web app
 
-## This fork: Pubky Marketplace project
+## Pubky Marketplace
 
-This is `BitcoinErrorLog/pubky-app`, a fork of the official
-[`pubky/pubky-app`](https://github.com/pubky/pubky-app) that adds a full
-peer-to-peer **marketplace** on top of the social app. The work is
-deliberately isolated on BitcoinErrorLog forks (no upstream PRs) while the
-protocol shape settles. Release line: branch `release/shop-v0.6.8` (the
-repository default), live at [shop.pubky.app](https://shop.pubky.app). Payments
-there are real and go straight to the seller.
+`pubky/pubky-marketplace` holds the Shop web client, its documentation and
+the tester issue tracker. The client is built on the official
+[`pubky/pubky-app`](https://github.com/pubky/pubky-app) and adds a full
+peer-to-peer **marketplace** on top of the social app; its history includes
+the official app's history. Release line: branch `master` (the repository
+default), live at [shop.pubky.app](https://shop.pubky.app). Payments there are
+real and go straight to the seller.
 
 New to the Shop: [`docs/ecommerce/onboarding.md`](docs/ecommerce/onboarding.md).
 Releasing: [`docs/ecommerce/release.md`](docs/ecommerce/release.md).
+Project documents (launch plan, team brief, SSO, upstream briefs):
+[`docs/README.md`](docs/README.md), the
+[marketplace overview](docs/marketplace-overview.md) and
+[`SUMMARY.md`](SUMMARY.md). Report bugs and questions in
+[issues](https://github.com/pubky/pubky-marketplace/issues).
 
-**What this fork adds over the official app:**
+**What the Shop adds over the official app:**
 
 - **User-owned commerce catalog** — shops, listings (variants, shipping,
   auctions, digital goods), reviews, and drops are seller-signed records on
