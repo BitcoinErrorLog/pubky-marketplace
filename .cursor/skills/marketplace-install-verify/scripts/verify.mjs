@@ -689,7 +689,7 @@ async function sectionWiring() {
   // (LOCKS_SHARED_FROM) sends them to that environment's Paykit; the check names the route either way.
   const bitcoinRoute = (id, title, target, expectedKey, hint) => {
     if ([PAYKIT, get(expectedKey)].filter(Boolean).map(normalizeBase).includes(target)) return pass(id, title, target);
-    const detail = `Locks-gated Bitcoin goes to ${target}, not this stack’s Paykit ${PAYKIT}`;
+    const detail = `Locks-gated Bitcoin goes to ${target}, not this stack’s Paykit ${PAYKIT ?? "(PAYKIT_URL unset)"}`;
     const shared = get('LOCKS_SHARED_FROM');
     if (!shared) return fail(id, title, detail, `${hint}; if the Lock Server is shared from another environment by design, declare LOCKS_SHARED_FROM=<environment>`);
     const declared = `${detail} (declared: Lock Server shared from ${shared})`;
