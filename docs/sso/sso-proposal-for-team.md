@@ -224,7 +224,7 @@ The original auth spec ([`docs/AUTH.md`](https://github.com/pubky/pubky-core/blo
 | **The user's key in the browser for everyone** (Passport's Google mode) | <ul><li>Needs no protocol change.</li><li>But it abandons the cold-key model for Ring users.</li></ul> |
 | **Signer push:** Passport forwards each request to Ring | <ul><li>The phone must be online for every new session.</li><li>It needs push infrastructure.</li><li>It turns the cold key into a remote signing service.</li></ul> |
 
-**The agent's grant power is bounded and revocable as one unit.** It is still a smaller hot credential than what exists today: the cookie, which every site rides, and Passport's root key in browser storage. Scoped key seeds it holds are the exception: a leaked seed can't be revoked, only rotated away from (§2.9).
+**The agent's grant power is bounded and revocable as one unit.** It is still a smaller hot credential than what exists today: the cookie, which every site rides, and Passport's root key in browser storage. Scoped keys it would hold are the exception: a leaked key can't be revoked, only rotated away from (§2.9).
 
 ### 2.6 Prerequisite: several tabs on one grant
 
@@ -313,7 +313,7 @@ The exact format depends on core's answer to Q1.
 
 ### 2.9 Encryption keys beside the grant
 
-`/priv` is readable only by its owner's sessions, but it is stored in plaintext on the homeserver. Andrei and Sev's scoped keys let apps encrypt it with keys the operator never sees. The SDK work is in progress (K6). The design, as Andrei answered our questions on 2 Oct:
+`/priv` is readable only by its owner's sessions, but it is stored in plaintext on the homeserver. Andrei and Sev's scoped keys let apps encrypt it with keys the operator never sees. The SDK side is in draft as [pubky-homeserver#668](https://github.com/pubky/pubky-homeserver/pull/668) (K6). The design, as Andrei answered our questions on 2 Oct:
 
 | Question | Answer |
 |---|---|
@@ -323,12 +323,20 @@ The exact format depends on core's answer to Q1.
 | Delivery and delegation | Keys travel beside the grant, in the encrypted relay payload, outside the grant the homeserver stores. Passport agents receive scoped seeds and derive locally. No delegated grants are designed here |
 | Separate keys per purpose | Up to the caller. The SDK derives stable scoped keys. Apps use HKDF with their own versioned labels for separate encryption, HMAC or X25519 keys. No purpose API is planned. The root uses a dedicated namespace |
 
+**What the SDK draft settles (6 Oct):**
+
+- **Approvals are signed by the identity key.** The signer sends the grant and a key bundle together, signed by the user's key. The app checks that signature against the grant's issuer. Apps opt in per sign-in with the V1 approval format.
+- **Apps get file keys, not seeds.** The bundle keeps directory seeds inside it, and apps derive keys for file paths only. An app derives the file key of a fixed path it chooses, then its own HKDF purpose keys.
+- **Bundles can't be narrowed.** A holder derives file keys, but can't hand a narrower bundle to another app.
+- **Every scope in the grant gets a key,** including write-only scopes.
+- **Requested before merge:** the relay payload is encrypted only with the link's `client_secret`, so anyone who sees the QR or link could keep the keys. The fix seals the keys to an app-held key.
+
 **What this means for each party:**
 
-- **Signers (Ring, Bitkit, Passport):** derive and deliver the key only for scopes the grant covers with read access. Show "can decrypt your private data under …" as its own consent line, because it can't be taken back (R1, B1).
-- **The agent (P1):** holds scoped seeds only for `/priv` scopes the user approved for decryption, and derives child keys for apps locally. A leaked seed stays leaked, so the agent's small static origin and strict CSP matter more here.
-- **Apps:** wrap a random data key under an HKDF-derived key, rather than encrypting with the scoped key directly, so the data key can rotate. Keep encrypted paths stable. Treat grant revocation as access control, not key revocation.
-- **Core:** delegated grants (H1, Q1) are still open. The key work doesn't depend on them, since the agent derives from seeds it holds.
+- **Signers (Ring, Bitkit, Passport):** derive and deliver keys for the grant's scopes. We asked for app-selected key scopes so a write-only scope needn't carry a key. Show "can decrypt your private data under …" as its own consent line, because it can't be taken back (R1, B1).
+- **The agent (P1):** would hold a key bundle only for `/priv` scopes the user approved for decryption. Delivering keys to child apps is an open question (§4, Q12): the SDK draft can't narrow a bundle, and the agent can't sign a key approval. A leaked key stays leaked, so the agent's small static origin and strict CSP matter more here.
+- **Apps:** wrap a random data key under a key derived with HKDF from the file key of a fixed path, rather than encrypting with the scoped key directly, so the data key can rotate. Keep encrypted paths stable. Treat grant revocation as access control, not key revocation.
+- **Core:** delegated grants (H1, Q1) are still open. Child-app key delivery (Q12) depends on them, or on a per-app request to the signer.
 
 ---
 
@@ -389,13 +397,13 @@ None of them depends on Ring's grant auth being released. The Ring stopgap is a 
 | **H6** | **No cookie fallback (§2.6).** A request carrying `Authorization` ignores cookies; the SDK sends grant-session requests without browser credentials | S | Q3 |
 | K4 | SDK gaps #2614 works around: delete one abandoned delegated proof key by attempt; a structured "missing record" error; `list()` reports IndexedDB errors | S | — |
 | K3 | Agent request protocol spec: message types, versioning, origin rules, errors. Written with the Passport team | S | Q5 |
-| K6 | **Scoped keys (in progress, Andrei).** Stable keys derived from the root, scoped like capabilities; signer-side derivation and delivery beside the grant in the encrypted relay payload; app-side receipt (§2.9) | M | — |
+| K6 | **Scoped keys (draft: [pubky-homeserver#668](https://github.com/pubky/pubky-homeserver/pull/668), Andrei).** Stable keys derived from the root, scoped like capabilities; signer-side derivation and delivery beside the grant in an approval signed by the identity key; app-side file-key derivation (§2.9) | M | — |
 
 **Passport** ([pubky/pubky-passport](https://github.com/pubky/pubky-passport))
 
 | # | Change | Size | Depends on |
 |---|---|---|---|
-| **P1** | **The account agent.** <ul><li>A `postMessage` API, with `client_id` set from the verified origin.</li><li>Consent remembered per origin and scope set; a first-party allow-list.</li><li>Child-grant issuance and ceiling step-up.</li><li>Scoped seeds for approved `/priv` scopes only, with child keys derived locally and posted beside each child grant (§2.9).</li><li>A page listing the apps signed in on this browser, with revoke one or all.</li></ul> | L | H1, K1, K3; K6 for keys |
+| **P1** | **The account agent.** <ul><li>A `postMessage` API, with `client_id` set from the verified origin.</li><li>Consent remembered per origin and scope set; a first-party allow-list.</li><li>Child-grant issuance and ceiling step-up.</li><li>A key bundle for approved `/priv` scopes only. Delivering keys to child apps is open (§2.9, Q12).</li><li>A page listing the apps signed in on this browser, with revoke one or all.</li></ul> | L | H1, K1, K3; K6 for keys |
 | P2 | Ring-linked mode: hold an agent grant from Ring instead of the user's root key | M | P1 |
 
 **Ring** ([pubky/pubky-ring](https://github.com/pubky/pubky-ring)) and **Bitkit**
@@ -492,6 +500,7 @@ The beta opens about **15 Oct**. After that, each phase starts when its dependen
     - The handshake static-key check we asked for landed in `4eda7102` and `73345917` (3 Oct). Nothing remains asked of Paykit for SSO.
     - It shipped in the Paykit rc60–rc62 prereleases (3 Oct). rc60 pins pubky-noise at revision `42e00f22`, so [pubky-noise#39](https://github.com/pubky/pubky-noise/issues/39) no longer gates it.
 11. **Scoped keys (K6).** *Answered by Andrei, 2 Oct;* the answers are in §2.9.
+12. **Keys for child apps (K6, P1).** Key approvals are signed by the identity key, and a bundle can't be narrowed. Should the agent deliver keys through an agent-signed approval carrying a narrowed bundle (an SDK addition, tied to H1), or should each child app's key request go to the signer?
 
 ---
 

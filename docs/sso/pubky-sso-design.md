@@ -88,6 +88,12 @@ Identity is the user's key. Authorization is a grant: a statement signed by that
 - random data-key wrapping is optional and not implemented in the SDK;
 - no delegated grants are designed in this work.
 
+**The SDK draft ([pubky-homeserver#668](https://github.com/pubky/pubky-homeserver/pull/668), 6 Oct)** implements this, with three details that matter for the agent:
+
+- the signer sends an approval signed by the user's identity key, holding the grant and a key bundle. The app checks that signature against the grant's issuer, so only a holder of the root can produce one;
+- the bundle keeps directory seeds inside it, and apps derive keys for file paths only (`deriveEncryptionKey(path)`). Apps get file keys, not seeds;
+- a bundle can't be narrowed. Its holder can derive file keys, but can't hand a narrower bundle to another app.
+
 **Version skew.** Core `main` is 0.14.0. Both apps are on SDK 0.11.0. Upstream Paykit is on 0.12. Our fork is on 0.8.
 
 ## 2. Principles
@@ -140,7 +146,7 @@ Identity is the user's key. Authorization is a grant: a statement signed by that
 3. The agent records the browser-reported origin. It refuses if the client id doesn't match that origin.
 4. The agent has no grant yet. It shows "Sign in with Pubky": Ring (a QR, or a deep link on mobile), Bitkit, or Google.
 5. The signer shows a distinct screen: "Let this browser sign you in to apps, up to: *ceiling*. Expires *date*." **This is the one approval.**
-6. The agent signs the Shop's child grant and posts it to the Shop's relay channel. The Shop's existing `awaitApproval` exchanges it. If the grant covers a `/priv` scope the user approved for decryption, the agent derives that scope's key from its own scoped seed and puts it beside the grant in the same encrypted relay payload (K6).
+6. The agent signs the Shop's child grant and posts it to the Shop's relay channel. The Shop's existing `awaitApproval` exchanges it. If the grant covers a `/priv` scope the user approved for decryption, it should also deliver that scope's keys beside the grant (K6). The SDK draft ([pubky-homeserver#668](https://github.com/pubky/pubky-homeserver/pull/668)) can't do that yet: key approvals must be signed by the identity key, and the agent's bundle can't be narrowed. How the agent delivers keys to child apps is an open question (§7, Q12).
 7. The marketplace service accepts the same grant with a PoP addressed to the service. There is no second token and no dual post.
 
 ### Second app (pubky.app, same browser)
@@ -170,10 +176,10 @@ Identity is the user's key. Authorization is a grant: a statement signed by that
 ### Encryption keys beside the grant (K6)
 
 - **Derivation.** The signer, which holds the root, derives stable keys scoped to paths. Scope matching follows the capability rules: a file scope gets a key for that file only, and a directory scope gets a subtree seed for everything below it.
-- **Delivery.** The key travels beside the grant, in the relay payload that is already encrypted with the request's `client_secret`. It is never inside the grant JWS, which the homeserver stores.
-- **Rule.** An app receives a scope's key only if its grant covers that scope with read access, and only for scopes the user approved for decryption.
-- **Agent custody.** The Passport agent receives scoped seeds from the signer for the `/priv` scopes the user approved for decryption, and derives child keys for apps locally. The signer is not asked again per app.
-- **Purposes.** The SDK derives one stable key per scope and has no purpose labels. Each app derives separate encryption, HMAC or X25519 keys with HKDF and its own versioned labels. It wraps random data keys under them rather than encrypting with the scoped key directly, which keeps rotation possible.
+- **Delivery.** The key travels beside the grant, in a signed approval inside the relay payload. It is never inside the grant JWS, which the homeserver stores. Apps opt in per sign-in with the V1 approval format. In the SDK draft ([pubky-homeserver#668](https://github.com/pubky/pubky-homeserver/pull/668)), the payload is encrypted only with the request's `client_secret`, which travels in the QR or link. Sealing the keys to an app-held key was requested before merge.
+- **Rule.** We asked that an app receive a scope's key only if its grant covers that scope with read access, and only for scopes the user approved for decryption. The SDK draft delivers a key for every scope in the grant, including write-only scopes; app-selected key scopes were requested in review. Until then, apps keep their grants to the scopes they need.
+- **Agent custody.** Open (Q12). The agent can hold a key bundle for the `/priv` scopes the user approved for decryption and derive file keys from it. In the SDK draft, it can't pass keys on to child apps: approvals must be signed by the identity key, and bundles can't be narrowed. The options are an agent-signed approval that carries a narrowed bundle (an SDK addition that depends on H1), or sending each child app's key request to the signer.
+- **Purposes.** The SDK derives one stable key per file path and has no purpose labels. Each app derives the file key of a fixed path it chooses, then separate encryption, HMAC or X25519 keys from it with HKDF and its own versioned labels. It wraps random data keys under them rather than encrypting with the scoped key directly, which keeps rotation possible.
 - **Recovery.** The keys come back from the user's pubky backup. Data comes back only if its ciphertext survives at its original paths, so apps keep encrypted paths stable.
 - **What it doesn't do.** No delegated grants are designed in the key work. Delegation (H1) is still core's open item (§7, Q1).
 
@@ -198,7 +204,7 @@ Identity is the user's key. Authorization is a grant: a statement signed by that
 - **Script injected on the agent origin:**
   - The agent is a small static app with a strict CSP and no user content.
   - Grant power is capped by the ceiling and revocable as one unit.
-  - Confidentiality is not revocable. Scoped seeds the script reads stay leaked until the affected apps rotate their data keys. This is why the agent holds seeds only for scopes the user approved for decryption.
+  - Confidentiality is not revocable. Key bundles the script reads stay leaked until the affected apps rotate their data keys. This is why the agent would hold keys only for scopes the user approved for decryption (Q12).
   - That is a smaller hot credential than either thing it replaces: today's cookie, which every origin rides, and Passport's root key in browser storage.
 
 ### Browsers and mobile
@@ -301,8 +307,8 @@ Sizes describe technical scope, not time:
 | K1 | pubky-core SDK (Rust, JS, FFI, react-native-pubky) | <ul><li>Signer side: approve an agent-grant request and display its ceiling.</li><li>Delegate side: sign a child grant from a stored agent grant with a non-extractable key.</li><li>A helper to verify a grant plus a PoP with a custom audience, for services.</li></ul> | Pubky core | M |
 | K4 | pubky-core SDK (JS) | Gaps #2614 works around: delete one abandoned delegated proof key by attempt; a structured "missing record" error; `list()` reports IndexedDB errors | Pubky core | S |
 | K3 | pubky-core docs | The agent request protocol: message types, versioning, origin rules, errors | Pubky core with the Passport team | S |
-| K6 | pubky-core SDK (Rust, JS, FFI) | **Scoped keys (in progress, Andrei).** Stable keys derived from the root and scoped like capabilities (file key or subtree seed; `/pub/` and `/priv/` separate; dedicated root namespace). Signer side: derive and put the key beside the grant in the encrypted relay payload. App side: receive it. No purpose API; apps use HKDF with their own versioned labels | Pubky core | M |
-| P1 | pubky-passport | **The account agent.** <ul><li>A `postMessage` API, with the client id set from the verified origin.</li><li>Consent remembered per origin and scope set; a first-party allow-list.</li><li>Child-grant issuance and the step-up ceiling.</li><li>Scoped seeds from the signer for approved `/priv` scopes only; child keys derived locally and posted beside each child grant (K6).</li><li>A page listing the apps signed in on this browser, with revoke one or all.</li></ul> | Passport team | L |
+| K6 | pubky-core SDK (Rust, JS, FFI) | **Scoped keys (draft: [pubky-homeserver#668](https://github.com/pubky/pubky-homeserver/pull/668), Andrei).** Stable keys derived from the root and scoped like capabilities (file key or subtree seed; `/pub/` and `/priv/` separate; dedicated root namespace). Signer side: derive the keys and send them beside the grant in an approval signed by the identity key. App side: opt in with the V1 approval format, and derive file keys only. No purpose API; apps use HKDF with their own versioned labels. Requested before merge: seal the keys to an app-held key. Not covered: agent-issued key approvals (Q12) | Pubky core | M |
+| P1 | pubky-passport | **The account agent.** <ul><li>A `postMessage` API, with the client id set from the verified origin.</li><li>Consent remembered per origin and scope set; a first-party allow-list.</li><li>Child-grant issuance and the step-up ceiling.</li><li>A key bundle from the signer for approved `/priv` scopes only. Delivering keys to child apps is open (Q12): the SDK draft can't narrow a bundle or let the agent sign key approvals (K6).</li><li>A page listing the apps signed in on this browser, with revoke one or all.</li></ul> | Passport team | L |
 | P2 | pubky-passport | Ring-linked mode: hold an agent grant from Ring instead of a root key | Passport team | M |
 | R0 | pubky-ring | Release grant auth, already merged in [#360](https://github.com/pubky/pubky-ring/issues/360). It is a prerequisite for every Ring item below and for any Ring user signing in with grants. **In progress:** the release process has started | Ring team | S |
 | R1 | pubky-ring | <ul><li>Show the client id, marked "unverified" for QR requests, and the scopes in plain words. **Agreed** by the Ring team.</li><li>A distinct screen for agent grants, showing the ceiling and expiry (after H1).</li><li>A separate "can decrypt your private data under …" consent line whenever a request asks for scoped keys (K6). It is stronger than read access and can't be taken back.</li><li>The developer-only auto-auth never applies to them and can't ship reachable in release builds.</li></ul> | Ring team | M |
@@ -341,7 +347,7 @@ The code can't answer these. Each gates the item named.
 
    How does a parent's revocation reach mirrors?
 
-   Still open as of 2 Oct. The scoped-key work (K6) designs no delegated grants, and only assumes an agent that holds scoped seeds.
+   Still open as of 2 Oct. The scoped-key work (K6) designs no delegated grants. Its SDK draft has no agent-issued key approvals (Q12).
 2. **Cookie removal (H4).** In which version does `POST /session` go?
 3. **Several bearers per grant (H5, H6).** This question was first raised by vlada in #pubky-core on 21 Sep.
    - In which homeserver version will `replace_for_grant` keep several bearers per grant, and what bound will it use (we suggest 8, evicting the oldest)?
@@ -357,9 +363,10 @@ The code can't answer these. Each gates the item named.
     - scope matching follows grants, with file keys and subtree seeds, and never reaches a sibling path;
     - `/pub/` and `/priv/` are separate trees;
     - keys travel beside the grant in the encrypted relay payload;
-    - Passport agents receive scoped seeds and derive locally;
+    - Passport agents receive scoped seeds and derive locally (the SDK draft lets them derive file keys but not pass keys to child apps; see Q12);
     - revocation blocks future `/priv` retrieval but not downloaded keys, so cryptographic revocation needs rotation;
     - purposes stay with the caller, through HKDF;
     - the root uses a dedicated namespace.
 
     Still open: delegated grants (Q1), which this work doesn't design.
+12. **Keys for child apps (K6, P1).** In the SDK draft ([pubky-homeserver#668](https://github.com/pubky/pubky-homeserver/pull/668)), key approvals are signed by the identity key, and a key bundle can't be narrowed. How should the agent deliver scoped keys to a child app: an agent-signed approval carrying a narrowed bundle (an SDK addition, tied to H1), or a per-app request to the signer?
