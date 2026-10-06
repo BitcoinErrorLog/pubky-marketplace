@@ -1,0 +1,1 @@
+Address line 1 now suggests addresses from OpenStreetMap data (checkout, saved addresses and the seller pickup address) through the marketplace service, replacing the unused Google Places integration. The browser never contacts the geocoder, a caption credits OpenStreetMap, and manual entry always works.

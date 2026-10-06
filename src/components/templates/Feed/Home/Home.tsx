@@ -1,0 +1,35 @@
+'use client';
+import { TIMELINE_FEED_VARIANT } from '@/config/feed';
+import { useDefaultHomeReach } from '@/hooks/useDefaultHomeReach/useDefaultHomeReach';
+import { TaggedAsHeadline } from '@/molecules/TaggedAsHeadline/TaggedAsHeadline';
+import { AlertBackup } from '@/organisms/AlertBackup/AlertBackup';
+import { DialogWelcome } from '@/organisms/DialogWelcome/DialogWelcome';
+import { FeedNavigation } from '@/organisms/FeedNavigation/FeedNavigation';
+import { MarketplaceFollowedSellersShelf } from '@/organisms/Marketplace/MarketplaceFollowedSellersShelf';
+import { PostInput } from '@/organisms/PostInput/PostInput';
+import { POST_INPUT_VARIANT } from '@/organisms/PostInput/PostInput.constants';
+import { TimelineFeed } from '@/organisms/Timeline/Feed/TimelineFeed/TimelineFeed';
+
+/**
+ * Forward-navigation top-scroll (the `FORCE_FEED_SCROLL_TOP_KEY` flag) is set by
+ * feed nav entry points and consumed centrally in `(feeds)/layout.tsx`, which
+ * is the single owner of feed scroll positioning across the persistent layout.
+ */
+export function Home() {
+  useDefaultHomeReach();
+
+  return (
+    <>
+      <DialogWelcome />
+      <AlertBackup />
+      <FeedNavigation className="hidden lg:flex" />
+      <TimelineFeed variant={TIMELINE_FEED_VARIANT.HOME} persistentHeader={<TaggedAsHeadline />}>
+        <PostInput dataCy="home-post-input" variant={POST_INPUT_VARIANT.POST} />
+        {/* Dedicated marketplace module between composer and posts — listings
+            never enter the post stream itself. Renders nothing without
+            followed-seller listings or when the marketplace is unavailable. */}
+        <MarketplaceFollowedSellersShelf />
+      </TimelineFeed>
+    </>
+  );
+}

@@ -1,0 +1,9 @@
+---
+description: Data patterns - composite IDs, streams, TTL, pipes normalization
+globs: src/core/**/*
+alwaysApply: false
+---
+
+# Data Pattern Rules
+
+@docs/data-patterns.md

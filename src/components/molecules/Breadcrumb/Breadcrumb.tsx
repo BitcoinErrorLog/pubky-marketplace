@@ -1,0 +1,188 @@
+'use client';
+
+import * as React from 'react';
+import { cva } from 'class-variance-authority';
+// Shadcn-based Breadcrumb with custom variants
+import { ChevronDown, ChevronRight, MoreHorizontal } from 'lucide-react';
+import { Slot } from 'radix-ui';
+import { cn } from '@/libs/utils/utils';
+import type {
+  BreadcrumbEllipsisProps,
+  BreadcrumbItemProps,
+  BreadcrumbProps,
+  BreadcrumbSeparatorProps,
+} from './Breadcrumb.types';
+
+const breadcrumbVariants = cva('flex min-w-0 w-full max-w-full flex-nowrap items-center justify-end overflow-hidden', {
+  variants: {
+    size: {
+      sm: 'gap-1.5',
+      md: 'gap-2.5',
+    },
+  },
+  defaultVariants: {
+    size: 'md',
+  },
+});
+const breadcrumbItemVariants = cva('flex min-w-0 items-center justify-start gap-2.5', {
+  variants: {
+    variant: {
+      link: 'text-muted-foreground hover:text-foreground transition-colors cursor-pointer',
+      current: 'text-foreground',
+      ellipsis: 'text-muted-foreground',
+      dropdown: 'text-muted-foreground hover:text-foreground transition-colors cursor-pointer rounded overflow-hidden',
+    },
+  },
+  defaultVariants: {
+    variant: 'link',
+  },
+});
+
+// Separator size differs between sm (15px) and md (16px) per Figma specs
+const breadcrumbSeparatorVariants = cva('text-muted-foreground shrink-0', {
+  variants: {
+    size: {
+      sm: 'w-[15px] h-[15px]',
+      md: 'w-4 h-4',
+    },
+  },
+  defaultVariants: {
+    size: 'md',
+  },
+});
+
+// Main Breadcrumb container - based on Shadcn
+export const Breadcrumb = React.forwardRef<HTMLElement, BreadcrumbProps>(
+  ({ className, size, children, ...props }, ref) => (
+    <nav ref={ref} aria-label="breadcrumb" className={cn('flex w-full max-w-full min-w-0', className)} {...props}>
+      <ol
+        className={breadcrumbVariants({
+          size,
+        })}
+      >
+        {children}
+      </ol>
+    </nav>
+  ),
+);
+Breadcrumb.displayName = 'Breadcrumb';
+
+// BreadcrumbList - Shadcn primitive
+export const BreadcrumbList = React.forwardRef<HTMLOListElement, React.ComponentPropsWithoutRef<'ol'>>(
+  ({ className, ...props }, ref) => (
+    <ol
+      ref={ref}
+      className={cn(
+        'flex flex-wrap items-center gap-1.5 text-sm break-words text-muted-foreground sm:gap-2.5',
+        className,
+      )}
+      {...props}
+    />
+  ),
+);
+BreadcrumbList.displayName = 'BreadcrumbList';
+
+// BreadcrumbItem - Custom implementation with Shadcn base
+export const BreadcrumbItem = React.forwardRef<HTMLLIElement, BreadcrumbItemProps>(
+  ({ className, variant, children, href, dropdown, onClick, ...props }, ref) => {
+    const itemVariant = variant || (dropdown ? 'dropdown' : 'link');
+    const content = (
+      <>
+        <span className="block max-w-full truncate font-sans text-sm leading-5 font-bold">{children}</span>
+        {dropdown && <ChevronDown className="h-[15px] w-[15px]" />}
+      </>
+    );
+    return (
+      <li
+        ref={ref}
+        className={cn(
+          breadcrumbItemVariants({
+            variant: itemVariant,
+          }),
+          className,
+        )}
+        onClick={onClick}
+        {...props}
+      >
+        {href && !dropdown ? (
+          <a href={href} className="flex max-w-full min-w-0 items-center gap-1 overflow-hidden">
+            {content}
+          </a>
+        ) : (
+          <button type="button" className="flex max-w-full min-w-0 items-center gap-1 overflow-hidden">
+            {content}
+          </button>
+        )}
+      </li>
+    );
+  },
+);
+BreadcrumbItem.displayName = 'BreadcrumbItem';
+
+// BreadcrumbLink - Shadcn primitive
+export const BreadcrumbLink = React.forwardRef<
+  HTMLAnchorElement,
+  React.ComponentPropsWithoutRef<'a'> & {
+    asChild?: boolean;
+  }
+>(({ asChild, className, ...props }, ref) => {
+  const Comp = asChild ? Slot.Root : 'a';
+  return <Comp ref={ref} className={cn('transition-colors hover:text-foreground', className)} {...props} />;
+});
+BreadcrumbLink.displayName = 'BreadcrumbLink';
+
+// BreadcrumbSeparator - Custom implementation with Shadcn base
+export const BreadcrumbSeparator = React.forwardRef<HTMLLIElement, BreadcrumbSeparatorProps>(
+  ({ className, icon, size, ...props }, ref) => (
+    <li
+      ref={ref}
+      role="presentation"
+      aria-hidden="true"
+      className={cn(
+        breadcrumbSeparatorVariants({
+          size,
+        }),
+        className,
+      )}
+      {...props}
+    >
+      {icon || <ChevronRight className="h-full w-full" />}
+    </li>
+  ),
+);
+BreadcrumbSeparator.displayName = 'BreadcrumbSeparator';
+
+// BreadcrumbEllipsis - Shadcn primitive with custom styling
+export const BreadcrumbEllipsis = React.forwardRef<HTMLSpanElement, BreadcrumbEllipsisProps>(
+  ({ className, ...props }, ref) => (
+    <span
+      ref={ref}
+      role="presentation"
+      aria-hidden="true"
+      className={cn('flex h-9 w-9 items-center justify-center', className)}
+      {...props}
+    >
+      <MoreHorizontal className="h-4 w-4" />
+      <span className="sr-only">More</span>
+    </span>
+  ),
+);
+BreadcrumbEllipsis.displayName = 'BreadcrumbEllipsis';
+
+// BreadcrumbPage - Shadcn primitive
+export const BreadcrumbPage = React.forwardRef<HTMLSpanElement, React.ComponentPropsWithoutRef<'span'>>(
+  ({ className, ...props }, ref) => (
+    <span
+      ref={ref}
+      role="link"
+      aria-disabled="true"
+      aria-current="page"
+      className={cn('font-normal text-foreground', className)}
+      {...props}
+    />
+  ),
+);
+BreadcrumbPage.displayName = 'BreadcrumbPage';
+
+// Export variants for external use
+export { breadcrumbItemVariants, breadcrumbSeparatorVariants, breadcrumbVariants };

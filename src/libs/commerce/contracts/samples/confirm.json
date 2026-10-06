@@ -1,0 +1,293 @@
+{
+  "amount_mismatch": {
+    "request": {
+      "body": {
+        "confirmed_amount_sats": 51638
+      },
+      "headers_present": [
+        "authorization",
+        "content-type"
+      ],
+      "method": "POST",
+      "path": "/v0/orders/<uuid:1>/confirm-bitcoin-payment"
+    },
+    "response": {
+      "body": {
+        "error": {
+          "code": "INVALID_COMMAND",
+          "message": "The supplied transaction details do not match the observed payment.",
+          "reason": "confirmation_observation_mismatch"
+        },
+        "ok": false
+      },
+      "status": 422
+    }
+  },
+  "invalid_reason": {
+    "request": {
+      "body": {
+        "reason": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+      },
+      "headers_present": [
+        "authorization",
+        "content-type"
+      ],
+      "method": "POST",
+      "path": "/v0/orders/<uuid:1>/confirm-bitcoin-payment"
+    },
+    "response": {
+      "body": {
+        "error": {
+          "code": "INVALID_COMMAND",
+          "message": "The reason must be at most 500 characters.",
+          "reason": "invalid_reason"
+        },
+        "ok": false
+      },
+      "status": 422
+    }
+  },
+  "not_order_seller": {
+    "request": {
+      "body": {},
+      "headers_present": [
+        "authorization",
+        "content-type"
+      ],
+      "method": "POST",
+      "path": "/v0/orders/<uuid:1>/confirm-bitcoin-payment"
+    },
+    "response": {
+      "body": {
+        "error": {
+          "code": "UNAUTHORIZED",
+          "message": "Only the seller of this order's listing may perform this action.",
+          "reason": "not_order_seller"
+        },
+        "ok": false
+      },
+      "status": 403
+    }
+  },
+  "order_not_awaiting_confirmation": {
+    "request": {
+      "body": {},
+      "headers_present": [
+        "authorization",
+        "content-type"
+      ],
+      "method": "POST",
+      "path": "/v0/orders/<uuid:2>/confirm-bitcoin-payment"
+    },
+    "response": {
+      "body": {
+        "error": {
+          "code": "INVALID_STATE",
+          "message": "This order is not awaiting seller confirmation.",
+          "reason": "order_not_awaiting_confirmation"
+        },
+        "ok": false
+      },
+      "status": 409
+    }
+  },
+  "order_not_found": {
+    "request": {
+      "body": {},
+      "headers_present": [
+        "authorization",
+        "content-type"
+      ],
+      "method": "POST",
+      "path": "/v0/orders/<uuid:3>/confirm-bitcoin-payment"
+    },
+    "response": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "The order was not found.",
+          "reason": "order_not_found"
+        },
+        "ok": false
+      },
+      "status": 404
+    }
+  },
+  "replay": {
+    "request": {
+      "body": {
+        "reason": "checked in wallet"
+      },
+      "headers_present": [
+        "authorization",
+        "content-type"
+      ],
+      "method": "POST",
+      "path": "/v0/orders/<uuid:1>/confirm-bitcoin-payment"
+    },
+    "response": {
+      "body": {
+        "confirmation": {
+          "confirmation_basis": "seller_attestation",
+          "confirmation_source": "seller",
+          "confirmed_amount_sats": 51637,
+          "confirmed_at": "<timestamp:1>",
+          "confirmed_by_pubky": "<pubky:seller>",
+          "confirmed_reason": "checked in wallet",
+          "confirmed_txid": "9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c",
+          "order_id": "<uuid:1>",
+          "paykit_observation": {
+            "amount_matched": true,
+            "confirmations": 2,
+            "disappeared": false,
+            "observed_at": "<timestamp:1>",
+            "observed_sats": 51637,
+            "txid": "9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c"
+          }
+        },
+        "ok": true
+      },
+      "status": 200
+    }
+  },
+  "success": {
+    "request": {
+      "body": {
+        "reason": "checked in wallet"
+      },
+      "headers_present": [
+        "authorization",
+        "content-type"
+      ],
+      "method": "POST",
+      "path": "/v0/orders/<uuid:1>/confirm-bitcoin-payment"
+    },
+    "response": {
+      "body": {
+        "confirmation": {
+          "confirmation_basis": "seller_attestation",
+          "confirmation_source": "seller",
+          "confirmed_amount_sats": 51637,
+          "confirmed_at": "<timestamp:1>",
+          "confirmed_by_pubky": "<pubky:seller>",
+          "confirmed_reason": "checked in wallet",
+          "confirmed_txid": "9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c",
+          "order_id": "<uuid:1>",
+          "paykit_observation": {
+            "amount_matched": true,
+            "confirmations": 2,
+            "disappeared": false,
+            "observed_at": "<timestamp:1>",
+            "observed_sats": 51637,
+            "txid": "9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c"
+          }
+        },
+        "ok": true,
+        "order": {
+          "buyer_pubky": "<pubky:buyer>",
+          "cancellation_reason": null,
+          "created_at": "<timestamp:1>",
+          "delivery_assumed": false,
+          "drop_aggregate_id": null,
+          "edition": null,
+          "external_refund": null,
+          "fiat_checkout_url": null,
+          "fiat_transaction_ref": null,
+          "fiat_verification": null,
+          "first_revealed_at": null,
+          "fulfillment": "shipping",
+          "guarantee_policy_version": 1,
+          "hold_expires_at": null,
+          "id": "<uuid:1>",
+          "lines": [
+            {
+              "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "fulfillment": "shipping",
+              "listing_aggregate_id": "listing:<pubky:seller>_boots_01",
+              "listing_revision": 1,
+              "quantity": 1,
+              "subtotal": {
+                "amount_minor": 50000,
+                "currency": "SAT",
+                "exponent": 0
+              },
+              "title": "Marketplace item",
+              "unit_price": {
+                "amount_minor": 50000,
+                "currency": "SAT",
+                "exponent": 0
+              }
+            }
+          ],
+          "next_actor": "seller",
+          "paykit_activation_state": "active",
+          "paykit_observation": {
+            "amount_matched": true,
+            "confirmations": 2,
+            "disappeared": false,
+            "observed_at": "<timestamp:1>",
+            "observed_sats": 51637,
+            "txid": "9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c"
+          },
+          "paykit_request_reference": "<paykit-reference:1>",
+          "paykit_request_state": "confirmed",
+          "paykit_seller_confirmation_deadline": null,
+          "paykit_seller_confirmation_entered_at": null,
+          "paykit_total_sats": 51637,
+          "payment_id": "<uuid:4>",
+          "payment_method": "bitcoin",
+          "payment_reported_at": null,
+          "receipt_id": "<uuid:5>",
+          "return_request": null,
+          "reviews": [],
+          "revision": 3,
+          "seller_pubky": "<pubky:seller>",
+          "shipment": null,
+          "shipping": {
+            "amount_minor": 1200,
+            "currency": "SAT",
+            "exponent": 0
+          },
+          "state": "paid",
+          "stock_held": false,
+          "subtotal": {
+            "amount_minor": 50000,
+            "currency": "SAT",
+            "exponent": 0
+          },
+          "total": {
+            "amount_minor": 51637,
+            "currency": "SAT",
+            "exponent": 0
+          },
+          "updated_at": "<timestamp:1>"
+        }
+      },
+      "status": 200
+    }
+  },
+  "txid_mismatch": {
+    "request": {
+      "body": {
+        "txid": "9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c0"
+      },
+      "headers_present": [
+        "authorization",
+        "content-type"
+      ],
+      "method": "POST",
+      "path": "/v0/orders/<uuid:1>/confirm-bitcoin-payment"
+    },
+    "response": {
+      "body": {
+        "error": {
+          "code": "INVALID_COMMAND",
+          "message": "The supplied transaction details do not match the observed payment.",
+          "reason": "confirmation_observation_mismatch"
+        },
+        "ok": false
+      },
+      "status": 422
+    }
+  }
+}

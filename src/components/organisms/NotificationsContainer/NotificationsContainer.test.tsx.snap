@@ -1,0 +1,67 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`NotificationsContainer > matches snapshot 1`] = `
+<div>
+  <h5
+    class="leading-normal font-light text-muted-foreground lg:hidden"
+    data-testid="heading-5"
+  >
+    Notifications 
+  </h5>
+  <div
+    aria-label="Notification type"
+    class="flex flex-wrap gap-2"
+    role="tablist"
+  >
+    <button
+      aria-selected="true"
+      class="inline-flex items-center justify-center whitespace-nowrap text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*=\\"size-\\"])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/40 aria-invalid:border-destructive font-semibold cursor-pointer border shadow-xs bg-brand/16 text-brand hover:!bg-brand/30 border-brand h-10 gap-1 px-4 py-2 has-[>svg]:px-4 rounded-full"
+      data-slot="button"
+      data-variant="default"
+      role="tab"
+      type="button"
+    >
+      All
+       (
+      1
+      )
+    </button>
+    <button
+      aria-selected="false"
+      class="inline-flex items-center justify-center whitespace-nowrap text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*=\\"size-\\"])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/40 aria-invalid:border-destructive font-semibold cursor-pointer border shadow-xs bg-secondary text-secondary-foreground hover:bg-accent h-10 gap-1 px-4 py-2 has-[>svg]:px-4 rounded-full"
+      data-slot="button"
+      data-variant="secondary"
+      role="tab"
+      type="button"
+    >
+      Marketplace
+       (
+      0
+      )
+    </button>
+    <button
+      aria-selected="false"
+      class="inline-flex items-center justify-center whitespace-nowrap text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*=\\"size-\\"])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/40 aria-invalid:border-destructive font-semibold cursor-pointer border shadow-xs bg-secondary text-secondary-foreground hover:bg-accent h-10 gap-1 px-4 py-2 has-[>svg]:px-4 rounded-full"
+      data-slot="button"
+      data-variant="secondary"
+      role="tab"
+      type="button"
+    >
+      Social
+       (
+      1
+      )
+    </button>
+  </div>
+  <div
+    data-testid="notifications-list"
+  >
+    1
+     notifications
+  </div>
+  <div
+    class="h-10"
+    data-cy="notifications-sentinel"
+  />
+</div>
+`;

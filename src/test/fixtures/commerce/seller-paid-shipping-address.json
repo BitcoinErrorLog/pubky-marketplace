@@ -1,0 +1,12 @@
+{
+  "format": "plaintext_v1",
+  "address": {
+    "name": "Alice Buyer",
+    "line1": "1 Market Street",
+    "line2": "",
+    "city": "New York",
+    "region": "NY",
+    "postal_code": "10001",
+    "country_code": "US"
+  }
+}

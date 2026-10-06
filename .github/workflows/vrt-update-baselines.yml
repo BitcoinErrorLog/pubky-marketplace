@@ -1,0 +1,93 @@
+name: VRT Update Baselines
+description: Regenerates named Linux VRT baselines in the pinned Playwright image.
+
+on:
+  workflow_dispatch:
+    inputs:
+      files:
+        description: 'Space-separated VRT spec paths'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    name: Regenerate Linux baselines
+    if: github.ref_name != 'master' && github.ref_name != 'main'
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.60.0-noble
+      options: --user 1001 --shm-size=2g
+    timeout-minutes: 25
+    steps:
+      - name: Refuse protected branches
+        if: github.ref_name == 'master' || github.ref_name == 'main'
+        run: |
+          echo "Refusing to regenerate baselines on ${GITHUB_REF_NAME}." >&2
+          exit 1
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Regenerate named specs
+        env:
+          FILES: ${{ inputs.files }}
+          VRT_BROWSERS: chromium,firefox
+          PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+          CI: true
+        run: |
+          set -euo pipefail
+          if [ -z "${FILES// }" ]; then
+            echo "files input is empty" >&2
+            exit 1
+          fi
+          market=()
+          other=()
+          for spec in $FILES; do
+            case "$spec" in
+              src/test/vrt/marketplace/*) market+=("$spec") ;;
+              *) other+=("$spec") ;;
+            esac
+          done
+          if [ "${#market[@]}" -gt 0 ]; then
+            npx vitest run --project vrt-marketplace --update "${market[@]}"
+          fi
+          if [ "${#other[@]}" -gt 0 ]; then
+            npx vitest run --project vrt --update "${other[@]}"
+          fi
+          # shellcheck disable=SC2086
+          bash scripts/vrt-revert-outside.sh $FILES
+
+      - name: Commit Linux baselines
+        env:
+          FILES: ${{ inputs.files }}
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC2086
+          bash scripts/vrt-revert-outside.sh $FILES
+          find src/test/vrt -name '*-linux.png' -exec git add -- {} +
+          if git diff --cached --quiet; then
+            echo "No Linux baseline changes."
+            exit 0
+          fi
+          echo "Linux baselines:"
+          git diff --cached --name-only
+          git diff --cached --name-only | grep -v -- '-linux.png$' && exit 1 || true
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          HUSKY=0 git commit -m "test(vrt): regenerate Linux baselines"
+          git push

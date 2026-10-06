@@ -1,0 +1,6 @@
+{
+  "source": "pubky-common 0.11.0 Capabilities::try_from(requested) and .normalize(), the call marketplace-service verify_auth_token makes before it stores and returns a session's capabilities; captured 2026-10-01. pubky_app_signin is pubky/pubky-app dev b761c43 src/config/network.ts HOMESERVER_CAPABILITIES",
+  "requested": "/pub/pubky.app/:rw,/pub/paykit/:rw,/priv/pubky.app/:rw,/priv/social/:rw,/priv/app.locks/content/:r",
+  "service_normalized": "/pub/pubky.app/:rw,/pub/paykit/:rw,/priv/pubky.app/:rw,/priv/social/:rw,/priv/app.locks/content/:r",
+  "pubky_app_signin": "/pub/pubky.app/:rw,/priv/social/:rw,/priv/app.locks/content/:r"
+}

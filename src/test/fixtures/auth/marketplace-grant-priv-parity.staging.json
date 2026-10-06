@@ -1,0 +1,31 @@
+{
+  "source": "Staging homeserver, 2026-09-28: homegate ip_verification account (h3bfzgpj) approving pubky 0.11.0 PubkyGrantAuthFlow URLs through paykit-sdk 0.1.0-rc55 PubkySessionBootstrap::approve_auth, the path Bitkit master bde47ec0 calls; relay, secret and cpk values omitted",
+  "previous_request": {
+    "scheme": "pubkyauth:",
+    "host": "signin_grant",
+    "params": ["caps", "relay", "secret", "cid", "cpk"],
+    "caps": "/pub/pubky.app/marketplace-service/v1/:rw",
+    "cid": "marketplace.staging.shop.pubky.app",
+    "bitkit_shown": "/pub/pubky.app/marketplace-service/v1/:rw",
+    "homeserver_verified": "/pub/pubky.app/marketplace-service/v1/:rw"
+  },
+  "parity_request": {
+    "scheme": "pubkyauth:",
+    "host": "signin_grant",
+    "params": ["caps", "relay", "secret", "cid", "cpk"],
+    "caps": "/pub/pubky.app/marketplace-service/v1/:rw,/priv/pubky.app/:rw",
+    "cid": "marketplace.staging.shop.pubky.app",
+    "bitkit_shown": "/pub/pubky.app/marketplace-service/v1/:rw,/priv/pubky.app/:rw",
+    "homeserver_verified": "/pub/pubky.app/marketplace-service/v1/:rw,/priv/pubky.app/:rw",
+    "approved_while_previous_grant_live": true,
+    "previous_grant_live_after": true
+  },
+  "shop_signin_request": {
+    "scheme": "pubkyauth:",
+    "host": "signin_grant",
+    "params": ["caps", "relay", "secret", "cid", "cpk"],
+    "caps": "/pub/pubky.app/:rw,/pub/paykit/:rw,/priv/pubky.app/:rw",
+    "cid": "shop.pubky.app",
+    "homeserver_verified": "/pub/pubky.app/:rw,/pub/paykit/:rw,/priv/pubky.app/:rw"
+  }
+}

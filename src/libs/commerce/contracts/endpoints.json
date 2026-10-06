@@ -1,0 +1,100 @@
+[
+  {
+    "method": "POST",
+    "path": "/v0/orders/{id}/confirm-bitcoin-payment",
+    "reasons": [
+      "confirmation_observation_mismatch",
+      "confirmation_effects_failed",
+      "invalid_reason",
+      "not_order_seller",
+      "order_not_awaiting_confirmation",
+      "order_not_found"
+    ],
+    "request_schema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "confirmed_amount_sats": {
+          "default": null,
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "reason": {
+          "default": null,
+          "description": "Free-text seller note (bounded), recorded as `confirmed_reason`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "txid": {
+          "default": null,
+          "description": "Legacy optional fields: never read as facts. When present they must EQUAL the stored observation exactly, or the call is rejected with `confirmation_observation_mismatch` (Sol P1: the audit trail says what happened, not what the seller typed).",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "title": "ConfirmBitcoinPaymentBody",
+      "type": "object"
+    },
+    "required_headers": [
+      "Authorization"
+    ]
+  },
+  {
+    "method": "POST",
+    "path": "/v0/orders/{id}/bitcoin/resolve",
+    "reasons": [
+      "already_resolved",
+      "conflict",
+      "invalid_idempotency_key",
+      "invalid_outcome",
+      "invalid_reason",
+      "invalid_refund_reference",
+      "missing_pin",
+      "not_in_manual_review",
+      "not_order_seller",
+      "order_not_found",
+      "resolution_not_applicable",
+      "stock_unavailable"
+    ],
+    "request_schema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "external_refund_reference": {
+          "default": null,
+          "description": "Validated external refund reference; REQUIRED for `refunded`, forbidden otherwise (the payments CHECK mirrors this).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "outcome": {
+          "type": "string"
+        },
+        "reason": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "outcome"
+      ],
+      "title": "ResolveBitcoinPaymentBody",
+      "type": "object"
+    },
+    "required_headers": [
+      "Authorization",
+      "Idempotency-Key"
+    ]
+  }
+]

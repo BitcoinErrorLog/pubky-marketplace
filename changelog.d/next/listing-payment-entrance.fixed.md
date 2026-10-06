@@ -1,0 +1,1 @@
+Create listing now requires a payment method at the composer entrance. An unconfigured seller sees a setup step instead of the form, Seller Studio flags the precondition, and Publish still blocks if a method is later removed.

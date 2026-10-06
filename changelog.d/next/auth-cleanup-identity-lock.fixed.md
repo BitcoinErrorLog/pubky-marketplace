@@ -1,0 +1,1 @@
+Sign-out and identity-switch Dexie cleanup is keyed to the captured pubky and to `AUTH_PERSIST_KEY` (re-read inside the cross-tab `navigator.locks` finalization lock). Persist `setItem` refuses to overwrite a blob that already holds a different pubky, so a skipped Tab A restore cannot clobber Tab B's origin-scoped `franky` or auth blob.

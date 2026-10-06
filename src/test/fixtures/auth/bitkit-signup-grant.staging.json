@@ -1,0 +1,13 @@
+{
+  "source": "Staging homeserver, 2026-09-28: pubky 0.11.0 PubkyGrantAuthFlow sign-up URLs approved through paykit-sdk 0.1.0-rc55 PubkySessionBootstrap::approve_auth (the path Bitkit master bde47ec0 calls), for a key that had never signed up (xkodff6x) and for a homegate ip_verification account (g9j56m9c); relay, secret, st and cpk values omitted; every grant revoked after the run",
+  "scheme": "pubkyauth:",
+  "host": "signup_grant",
+  "params": ["caps", "relay", "secret", "hs", "st", "cid", "cpk"],
+  "caps": "/pub/pubky.app/:rw,/pub/paykit/:rw,/priv/pubky.app/:rw",
+  "cid": "shop.pubky.app",
+  "hs": "ufibwbmed6jeq9k4p583go95wofakh9fwpp4k734trq79pd9u1uy",
+  "bitkit_shown_kind": "SignUp",
+  "homeserver_verified": "/pub/pubky.app/:rw,/pub/paykit/:rw,/priv/pubky.app/:rw",
+  "new_identity_approved": true,
+  "existing_account_approved": true
+}

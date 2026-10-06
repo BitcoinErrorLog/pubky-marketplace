@@ -1,0 +1,1 @@
+Address forms (delivery addresses, checkout, pickup details) ask for the country first and start it at the country of the browser's language setting (for example en-GB gives GB), falling back to US; saved addresses keep their own country, and address suggestions follow the country chosen (pubky-marketplace #70).

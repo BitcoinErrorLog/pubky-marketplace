@@ -1,0 +1,186 @@
+# Environment Variables
+
+Configuration is split into two surfaces with different lifetimes:
+
+- **Build-time (`src/libs/env/env.ts`)**: build-intrinsic public values and server-only variables, validated with Zod at module load.
+- **Runtime (`src/libs/runtime-config/`)**: everything environment-specific or deployer-facing, read from `PUBKY_RUNTIME_*` env vars on the server and inlined into the HTML. Outside Vercel every route renders per request, so a single Docker image works everywhere; on Vercel, pages are prerendered at build time with the build's env, so a change takes effect only on the next deployment (see [How it works](#how-it-works)).
+
+## Build-time environment (`Env`)
+
+All build-time variables are validated in `src/libs/env/env.ts` using Zod schemas. This provides:
+
+- **Type safety**: All env vars are properly typed
+- **Validation**: Invalid values cause startup errors
+- **Defaults**: Sensible defaults where applicable
+- **Documentation**: Clear indication of what each variable does
+
+The schema is intentionally small:
+
+- **Build-intrinsic public values** (baked into the artifact by design): `NEXT_PUBLIC_DB_NAME`, `NEXT_PUBLIC_DB_VERSION`, `NEXT_PUBLIC_DEBUG_MODE`, `NEXT_PUBLIC_APP_VERSION`, the optional vibe-fork consumer pair `NEXT_PUBLIC_VIBE_SESSION_BRIDGE_ORIGIN` / `NEXT_PUBLIC_VIBE_ID`, and the optional social link-out origin `NEXT_PUBLIC_SOCIAL_HOST`.
+- **Server-only variables** (never exposed to the browser): `HOMESERVER_ADMIN_URL` / `HOMESERVER_ADMIN_PASSWORD` (dev/test signup tokens) and the Chatwoot support credentials (`BASE_URL_SUPPORT`, `SUPPORT_API_ACCESS_TOKEN`, `SUPPORT_ACCOUNT_ID`).
+- `NODE_ENV` / `VITEST`.
+
+### Vibe session consumer (optional)
+
+A pubky-app **fork** deployed as a vibe (`<slug>.vibes.pubky.app` or same-site `shop.pubky.app`) can sign in silently from the visitor's existing `pubky.app` session. These two values are baked into that fork's artifact (they are not runtime-configurable):
+
+| Variable                                 | Required | Meaning                                                                                                                                                                                                                                                                                                                   |
+| ---------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_VIBE_SESSION_BRIDGE_ORIGIN` | No       | Exact `https://` origin of the pubky-app that hosts `/session-bridge` (typically `https://pubky.app`). `http://localhost:<port>` is allowed only when `NODE_ENV !== 'production'`. Invalid values fail env parse. Consumer mode is **on** only when this is set. The Shop's production and staging builds leave it unset. |
+| `NEXT_PUBLIC_VIBE_ID`                    | No       | Vibe slug (e.g. `my-vibe`). Informational; not used as an origin check.                                                                                                                                                                                                                                                   |
+
+Canonical `pubky.app` leaves both unset. The first client pass always strips `#s=` from the URL, even when consumer mode is off. See [ADR 0029](adr/0029-vibe-session-consumer.md).
+
+### Social link-out (optional)
+
+`NEXT_PUBLIC_SOCIAL_HOST` hands the Shop's social surfaces to the canonical social app. It is baked into the artifact, so changing it needs a rebuild.
+
+| Variable                  | Required | Meaning                                                                                                                                                                                                                 |
+| ------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SOCIAL_HOST` | No       | Exact `https://` origin of the social app (`https://pubky.app`, or `https://staging.pubky.app` for staging). `http://localhost:<port>` is allowed only when `NODE_ENV !== 'production'`. Invalid values fail the build. |
+
+When unset (the default) nothing changes. When set:
+
+- `/home`, `/feed/*`, `/hot`, `/search`, `/who-to-follow`, `/post/*`, `/collections/*`, `/profile/*` and `/settings/*` 307-redirect to the same path and query on the social host (`src/libs/social-host/social-host.ts`, applied in `next.config.ts`). `/profile/notifications` goes to `/marketplace/notifications` instead.
+- The header and mobile footer show Marketplace, Messages and one Pubky link; the social search box is hidden; the account menu points at `/marketplace/notifications` and `/marketplace/settings`, which gains a sign-out card.
+- Every in-app "go home" (route guard, logo, end of onboarding, not-found fallbacks) goes to `/marketplace`, so a signed-in user is never sent to the social host, where the Shop session does not carry over.
+- Seller and reviewer names in the marketplace and messages link to the person's shop, with a small "Profile on Pubky" link beside them.
+
+The redirects are unconditional and carry no session. Until single sign-on exists, each site keeps its own sign-in: a user signed in to the Shop (Ring, Bitkit or any other session) arrives on the social host signed out unless they already signed in there, and signs in there separately. This is the accepted beta behaviour, and no Shop copy promises otherwise; keep the "Pubky" and "Profile on Pubky" link labels free of any claim that the user will be signed in.
+
+The build also fails when the value is one of the Shop's own origins (a leading `www.` on either side is ignored), because every social route would redirect to itself. Those origins are `PUBKY_RUNTIME_DEFAULT_URL` (only when set explicitly) and, on Vercel, `VERCEL_PROJECT_PRODUCTION_URL`, `VERCEL_BRANCH_URL` and `VERCEL_URL`.
+
+### Adding or Modifying Variables
+
+First decide which surface the value belongs to:
+
+- **Environment-specific or deployer-facing (public)** → it is runtime config. Add it to `src/libs/runtime-config/runtime-config.schema.ts` (schema + default + `PUBKY_RUNTIME_*` name) and expose a lazy getter from `src/libs/runtime-config/runtime-config.ts`. Do NOT add a `NEXT_PUBLIC_*` name for it.
+- **Build-intrinsic or server-only** → it belongs in `env.ts`. You MUST update **two places**:
+
+#### 1. Add to `envSchema`
+
+```typescript
+const envSchema = z.object({
+  // ... existing variables ...
+  MY_SERVER_ONLY_VAR: z.string().min(1).optional(),
+});
+```
+
+#### 2. Add to `parseEnv()`
+
+```typescript
+function parseEnv(): z.infer<typeof envSchema> {
+  const result = envSchema.safeParse({
+    // ... existing variables ...
+    MY_SERVER_ONLY_VAR: process.env.MY_SERVER_ONLY_VAR,
+  });
+}
+```
+
+#### Checklist
+
+- [ ] Added to `envSchema` with Zod validation
+- [ ] Added to `parseEnv()` safeParse object
+- [ ] Added to `.env.example` with documentation
+- [ ] Added to `.env` (local development)
+- [ ] Added tests if the variable has special parsing logic
+
+### Usage
+
+Import the validated environment instead of using `process.env` directly:
+
+```typescript
+import { Env } from '@/libs/env/env';
+
+const dbVersion = Env.NEXT_PUBLIC_DB_VERSION; // number
+const debugMode = Env.NEXT_PUBLIC_DEBUG_MODE; // boolean
+```
+
+## Runtime configuration (`PUBKY_RUNTIME_*`)
+
+All **environment-specific and deployer-facing public values** are configured through the server's environment rather than inlined into the client bundle, so a single Docker image can be promoted across staging / prod / testnet — and deployed by third parties against their own infrastructure — without rebuilding. See [ADR 0017](adr/0017-runtime-config-injection.md) and [ADR 0018](adr/0018-runtime-sentry-and-decoupled-source-maps.md).
+
+The contract has three tiers:
+
+- **Required (9 network values)**: `nexusUrl`, `cdnUrl`, `homeserver`, `homeserverUrl`, `homegateUrl`, `defaultHttpRelay`, `pkarrRelays`, `testnet`, `deployEnv`. (`deployEnv` — `PUBKY_RUNTIME_ENV`, `"production"` or `"staging"` — is the deploy's declared identity; it drives the staging homeserver sign-in guard (`isStagingHomeserverDeploy` in `@/config/network`), which is declared explicitly instead of inferred from network values so config drift can never silently disable it.) (`homeserverUrl` is the homeserver's HTTP base URL, used for invite-code verification — the homeserver pubkey has no resolvable HTTPS endpoint, see [pubky-core#410](https://github.com/pubky/pubky-core/issues/410).)
+- **Optional (5 Sentry values)**: `sentryDsn` (absent/empty disables Sentry entirely), `sentryEnvironment` (absent falls back to `NODE_ENV`), `sentryTracesSampleRate` / `sentryReplaysSessionSampleRate` / `sentryReplaysOnErrorSampleRate` (defaults `0.1` / `0.0` / `1.0`). A malformed value (bad DSN URL, rate outside `[0,1]`) fails loudly.
+- **Optional moderation identity**: `moderationId` must be a raw 52-character z-base-32 Pubky when set. In deployed environments, leaving it unset disables moderation-tag matching and the one-time default follow.
+- **Optional/defaulted public values**: operational polling and TTL settings, moderated tags, exchange-rate API, Prelude, Plausible, metadata/branding defaults, and external links. Missing values use the defaults in `src/libs/runtime-config/runtime-config.schema.ts`; malformed provided values still fail loudly.
+
+### Why a separate mechanism
+
+Next.js inlines every literal `process.env.NEXT_PUBLIC_*` reference at **build time** (even in server code). A value baked into the image cannot change per environment. To make these values runtime-configurable we read **non-`NEXT_PUBLIC_` env names** (`PUBKY_RUNTIME_*`) on the server when the HTML is rendered and inject them into it. Rendering happens per request outside Vercel and at build time on Vercel (below).
+
+### How it works
+
+- The server reads `PUBKY_RUNTIME_*` at boot (fail-fast in `src/instrumentation.ts`) and when it renders HTML, validates them, and memoizes the result (`src/libs/runtime-config/runtime-config.ts`).
+- When HTML is rendered depends on the platform (`renderPerRequestOutsideVercel` in `src/libs/runtime-config/render-mode.ts`, called from the root layout). **On Vercel** (`VERCEL=1`) pages are prerendered at build time, so the config inlined into them is the build's env: an env change on Vercel takes effect only with a new deployment, and promoting an older deployment brings back that deployment's config. **Everywhere else** (Docker images, the CI artifact `launch-e2e` starts, local builds and `npm run dev`) every route renders per request with the running server's env.
+- The validated config is serialized into a **raw inline `<script>`** (`window.__PUBKY_CONFIG__`) rendered first in `<body>` by `ContainerRoot`, so it executes during HTML parsing — before any app bundle (including `instrumentation-client.ts`) evaluates. It must stay a raw `<script>` element: App Router's `next/script` defers inline `beforeInteractive` content until after the main bundle's module scope runs.
+- App code reads values through lazy getters from `@/libs/runtime-config/runtime-config`, usually re-exported through concrete config modules such as `@/config/nexus`, `@/config/network`, `@/config/sync`, `@/config/moderation`, `@/config/metadata`, and `@/config/externalLinks`.
+- Schema, tiers, and defaults live in `src/libs/runtime-config/runtime-config.schema.ts`.
+
+```typescript
+import { getNexusUrl } from '@/config/nexus';
+import { getHomeserver, getTestnet } from '@/config/network';
+
+const url = getNexusUrl(); // resolved at call time
+```
+
+> Do NOT read `process.env.PUBKY_RUNTIME_*` directly, and do NOT invent new `NEXT_PUBLIC_*` names for runtime-configurable values — ESLint rules block both. Use the getters.
+
+### Strict (deployed) vs lenient (dev/test)
+
+- **Deployed (`NODE_ENV=production`, including staging), or `PUBKY_RUNTIME_CONFIG_REQUIRED=true`**: the nine required network `PUBKY_RUNTIME_*` values must ALL be set. Missing/invalid config throws **at boot** (no silent fallback to staging defaults).
+- **Local dev / tests**: the SAME `PUBKY_RUNTIME_*` names are read leniently — unset values resolve to the staging defaults in `runtime-config.schema.ts` (including `deployEnv: staging`, so the staging sign-in guard is active in plain local dev; set `PUBKY_RUNTIME_ENV=production` in `.env.local` to turn it off), including the staging moderation identity. Partial overrides (e.g. only `PUBKY_RUNTIME_NEXUS_URL=http://localhost:8080` in `.env.local`) layer over those defaults.
+- **Optional/defaulted tiers**: `PUBKY_RUNTIME_SENTRY_*` and the other deployer-facing public values can be set independently in any mode; malformed provided values fail loudly.
+
+`PUBKY_RUNTIME_MODERATION_ID` is intentionally different from the other app defaults in deployed mode: unset resolves to `undefined`, while a configured value must be a valid Pubky. This prevents a missing production setting from silently targeting the staging moderation account. Deployed startup emits a warning when it is unset so operators can distinguish an intentional disabled state from missing configuration.
+
+> Running a production build locally (`npm run build && npm run start`) runs as `NODE_ENV=production`, so it **requires** all nine network `PUBKY_RUNTIME_*` values. `npm run dev` does not — unset values use staging defaults. See the `PUBKY_RUNTIME_*` block in `.env.example`.
+
+### These are PUBLIC values
+
+`PUBKY_RUNTIME_*` are public (URLs, the homeserver public key, relay lists, the Sentry DSN) — they are exposed to the browser by design. They are **not secrets**; deployment tooling should not treat them as sensitive.
+
+### Running the public image (`docker run`)
+
+Copy-paste starting point for any deployer — nine required values plus the optional Sentry tier:
+
+```bash
+docker run -p 3000:3000 \
+  -e PUBKY_RUNTIME_NEXUS_URL=https://nexus.example.com \
+  -e PUBKY_RUNTIME_CDN_URL=https://nexus.example.com/static \
+  -e PUBKY_RUNTIME_HOMESERVER=<homeserver-pubkey> \
+  -e PUBKY_RUNTIME_HOMESERVER_URL=https://homeserver.example.com \
+  -e PUBKY_RUNTIME_HOMEGATE_URL=https://homegate.example.com \
+  -e PUBKY_RUNTIME_DEFAULT_HTTP_RELAY=https://httprelay.example.com/inbox \
+  -e PUBKY_RUNTIME_PKARR_RELAYS='["https://pkarr.example.com"]' \
+  -e PUBKY_RUNTIME_TESTNET=false \
+  -e PUBKY_RUNTIME_ENV=production \
+  -e PUBKY_RUNTIME_SENTRY_DSN=https://<key>@<org>.ingest.sentry.io/<project> \
+  -e PUBKY_RUNTIME_SENTRY_ENVIRONMENT=production \
+  pubky-app
+```
+
+Omit the `PUBKY_RUNTIME_SENTRY_*` lines to run without Sentry. Other public runtime values are optional/defaulted; set them only when you need to tune polling/TTL behavior, branding/metadata, analytics, moderation, Prelude, exchange rates, or external links. Note for Sentry users: the image ships without browser source maps (Debug IDs only) — see the source-maps section of [docs/sentry.md](sentry.md).
+
+### Homeserver mute list sync
+
+Cross-session mute alignment uses the `@synonymdev/pubky` homeserver **event stream** (SSE). Debouncing uses a fixed delay in [`src/config/mute-sync.ts`](src/config/mute-sync.ts) (`MUTE_SYNC_DEBOUNCE_MS`), not an environment variable.
+
+## Setting Variables
+
+1. **Development**: Create a `.env.local` file in the project root (both `Env` and `PUBKY_RUNTIME_*` values are honored)
+2. **Production**: Set environment variables in your deployment platform
+3. **Testing**: Variables are set in `src/config/test.ts`
+
+## Validation Errors
+
+If build-time environment validation fails, you'll see detailed error messages:
+
+```
+❌ Environment validation failed:
+  - NEXT_PUBLIC_DB_VERSION: Expected number, received string
+```
+
+If deployed runtime config is missing or invalid, the server exits at boot with the full list of required `PUBKY_RUNTIME_*` network variables.

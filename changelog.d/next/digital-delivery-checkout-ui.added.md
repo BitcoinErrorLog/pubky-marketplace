@@ -1,0 +1,1 @@
+At checkout, a digital item says how it arrives, a listing sold both ways can be switched between the physical copy and digital delivery, an item the seller emails asks for an email for delivery and says who sees it, and lines above Pay say when a digital order can still be cancelled.

@@ -1,0 +1,1 @@
+Publishing or editing a listing no longer fails with "Could not publish this listing" when optional fields are left empty (a blank region, a final sale, no item specifics). Shop's check of the saved record now treats an empty optional field the way the saved record does, as absent.

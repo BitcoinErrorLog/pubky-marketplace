@@ -1,0 +1,653 @@
+{
+  "buyer_awaiting_confirmation": {
+    "request": {
+      "body": null,
+      "headers_present": [
+        "authorization"
+      ],
+      "method": "GET",
+      "path": "/v1/orders/<uuid:1>"
+    },
+    "response": {
+      "body": {
+        "buyer_pubky": "<pubky:buyer>",
+        "cancellation_reason": null,
+        "created_at": "<timestamp:1>",
+        "delivery_assumed": false,
+        "drop_aggregate_id": null,
+        "edition": null,
+        "external_refund": null,
+        "fiat_checkout_url": null,
+        "fiat_transaction_ref": null,
+        "fiat_verification": null,
+        "first_revealed_at": null,
+        "fulfillment": "shipping",
+        "guarantee_policy_version": 1,
+        "hold_expires_at": "<timestamp:2>",
+        "id": "<uuid:1>",
+        "lines": [
+          {
+            "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "fulfillment": "shipping",
+            "listing_aggregate_id": "listing:<pubky:seller>_boots_01",
+            "listing_revision": 1,
+            "quantity": 1,
+            "subtotal": {
+              "amount_minor": 50000,
+              "currency": "SAT",
+              "exponent": 0
+            },
+            "title": "Marketplace item",
+            "unit_price": {
+              "amount_minor": 50000,
+              "currency": "SAT",
+              "exponent": 0
+            }
+          }
+        ],
+        "next_actor": "seller",
+        "paykit_activation_state": "active",
+        "paykit_request_reference": "<paykit-reference:1>",
+        "paykit_request_state": "awaiting_seller_confirmation",
+        "paykit_total_sats": 51637,
+        "payment": {
+          "adapter": "paykit",
+          "amount": {
+            "amount_minor": 51637,
+            "currency": "SAT",
+            "exponent": 0
+          },
+          "buyer_pubky": "<pubky:buyer>",
+          "confirmations": 0,
+          "created_at": "<timestamp:1>",
+          "id": "<uuid:2>",
+          "order_id": "<uuid:1>",
+          "resolution_basis": null,
+          "resolution_outcome": null,
+          "resolved_at": null,
+          "revision": 2,
+          "seller_pubky": "<pubky:seller>",
+          "state": "awaiting_entitlement",
+          "updated_at": "<timestamp:1>"
+        },
+        "payment_id": "<uuid:2>",
+        "payment_method": "bitcoin",
+        "payment_reported_at": null,
+        "pickup_terms_changed": false,
+        "receipt_id": null,
+        "return_request": null,
+        "reviews": [],
+        "revision": 2,
+        "seller_pubky": "<pubky:seller>",
+        "shipment": null,
+        "shipping": {
+          "amount_minor": 1200,
+          "currency": "SAT",
+          "exponent": 0
+        },
+        "state": "pending_payment",
+        "stock_held": true,
+        "subtotal": {
+          "amount_minor": 50000,
+          "currency": "SAT",
+          "exponent": 0
+        },
+        "total": {
+          "amount_minor": 51637,
+          "currency": "SAT",
+          "exponent": 0
+        },
+        "updated_at": "<timestamp:1>"
+      },
+      "status": 200
+    }
+  },
+  "buyer_manual_review_held": {
+    "request": {
+      "body": null,
+      "headers_present": [
+        "authorization"
+      ],
+      "method": "GET",
+      "path": "/v1/orders/<uuid:3>"
+    },
+    "response": {
+      "body": {
+        "buyer_pubky": "<pubky:buyer>",
+        "cancellation_reason": null,
+        "created_at": "<timestamp:1>",
+        "delivery_assumed": false,
+        "drop_aggregate_id": null,
+        "edition": null,
+        "external_refund": null,
+        "fiat_checkout_url": null,
+        "fiat_transaction_ref": null,
+        "fiat_verification": null,
+        "first_revealed_at": null,
+        "fulfillment": "shipping",
+        "guarantee_policy_version": 1,
+        "hold_expires_at": null,
+        "id": "<uuid:3>",
+        "lines": [
+          {
+            "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "fulfillment": "shipping",
+            "listing_aggregate_id": "listing:<pubky:seller>_boots_01",
+            "listing_revision": 1,
+            "quantity": 1,
+            "subtotal": {
+              "amount_minor": 50000,
+              "currency": "SAT",
+              "exponent": 0
+            },
+            "title": "Marketplace item",
+            "unit_price": {
+              "amount_minor": 50000,
+              "currency": "SAT",
+              "exponent": 0
+            }
+          }
+        ],
+        "next_actor": "seller",
+        "paykit_activation_state": "active",
+        "paykit_request_reference": "<paykit-reference:2>",
+        "paykit_request_state": "confirmed",
+        "paykit_total_sats": 51637,
+        "payment": {
+          "adapter": "paykit",
+          "amount": {
+            "amount_minor": 51637,
+            "currency": "SAT",
+            "exponent": 0
+          },
+          "buyer_pubky": "<pubky:buyer>",
+          "confirmations": 0,
+          "created_at": "<timestamp:1>",
+          "id": "<uuid:4>",
+          "order_id": "<uuid:3>",
+          "resolution_basis": null,
+          "resolution_outcome": null,
+          "resolved_at": null,
+          "revision": 3,
+          "seller_pubky": "<pubky:seller>",
+          "state": "manual_review",
+          "updated_at": "<timestamp:2>"
+        },
+        "payment_id": "<uuid:4>",
+        "payment_method": "bitcoin",
+        "payment_reported_at": null,
+        "pickup_terms_changed": false,
+        "receipt_id": null,
+        "return_request": null,
+        "reviews": [],
+        "revision": 2,
+        "seller_pubky": "<pubky:seller>",
+        "shipment": null,
+        "shipping": {
+          "amount_minor": 1200,
+          "currency": "SAT",
+          "exponent": 0
+        },
+        "state": "pending_payment",
+        "stock_held": true,
+        "subtotal": {
+          "amount_minor": 50000,
+          "currency": "SAT",
+          "exponent": 0
+        },
+        "total": {
+          "amount_minor": 51637,
+          "currency": "SAT",
+          "exponent": 0
+        },
+        "updated_at": "<timestamp:2>"
+      },
+      "status": 200
+    }
+  },
+  "buyer_manual_review_late": {
+    "request": {
+      "body": null,
+      "headers_present": [
+        "authorization"
+      ],
+      "method": "GET",
+      "path": "/v1/orders/<uuid:5>"
+    },
+    "response": {
+      "body": {
+        "buyer_pubky": "<pubky:buyer>",
+        "cancellation_reason": "payment window elapsed",
+        "created_at": "<timestamp:1>",
+        "delivery_assumed": false,
+        "drop_aggregate_id": null,
+        "edition": null,
+        "external_refund": null,
+        "fiat_checkout_url": null,
+        "fiat_transaction_ref": null,
+        "fiat_verification": null,
+        "first_revealed_at": null,
+        "fulfillment": "shipping",
+        "guarantee_policy_version": 1,
+        "hold_expires_at": null,
+        "id": "<uuid:5>",
+        "lines": [
+          {
+            "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "fulfillment": "shipping",
+            "listing_aggregate_id": "listing:<pubky:seller>_boots_01",
+            "listing_revision": 1,
+            "quantity": 1,
+            "subtotal": {
+              "amount_minor": 50000,
+              "currency": "SAT",
+              "exponent": 0
+            },
+            "title": "Marketplace item",
+            "unit_price": {
+              "amount_minor": 50000,
+              "currency": "SAT",
+              "exponent": 0
+            }
+          }
+        ],
+        "next_actor": "seller",
+        "paykit_activation_state": "active",
+        "paykit_request_reference": "<paykit-reference:3>",
+        "paykit_request_state": "confirmed",
+        "paykit_total_sats": 51637,
+        "payment": {
+          "adapter": "paykit",
+          "amount": {
+            "amount_minor": 51637,
+            "currency": "SAT",
+            "exponent": 0
+          },
+          "buyer_pubky": "<pubky:buyer>",
+          "confirmations": 0,
+          "created_at": "<timestamp:1>",
+          "id": "<uuid:6>",
+          "order_id": "<uuid:5>",
+          "resolution_basis": null,
+          "resolution_outcome": null,
+          "resolved_at": null,
+          "revision": 4,
+          "seller_pubky": "<pubky:seller>",
+          "state": "manual_review",
+          "updated_at": "<timestamp:3>"
+        },
+        "payment_id": "<uuid:6>",
+        "payment_method": "bitcoin",
+        "payment_reported_at": null,
+        "pickup_terms_changed": false,
+        "receipt_id": null,
+        "return_request": null,
+        "reviews": [],
+        "revision": 3,
+        "seller_pubky": "<pubky:seller>",
+        "shipment": null,
+        "shipping": {
+          "amount_minor": 1200,
+          "currency": "SAT",
+          "exponent": 0
+        },
+        "state": "cancelled",
+        "stock_held": false,
+        "subtotal": {
+          "amount_minor": 50000,
+          "currency": "SAT",
+          "exponent": 0
+        },
+        "total": {
+          "amount_minor": 51637,
+          "currency": "SAT",
+          "exponent": 0
+        },
+        "updated_at": "<timestamp:3>"
+      },
+      "status": 200
+    }
+  },
+  "seller_awaiting_confirmation": {
+    "request": {
+      "body": null,
+      "headers_present": [
+        "authorization"
+      ],
+      "method": "GET",
+      "path": "/v1/orders/<uuid:1>"
+    },
+    "response": {
+      "body": {
+        "buyer_pubky": "<pubky:buyer>",
+        "cancellation_reason": null,
+        "created_at": "<timestamp:1>",
+        "delivery_assumed": false,
+        "drop_aggregate_id": null,
+        "edition": null,
+        "external_refund": null,
+        "fiat_checkout_url": null,
+        "fiat_transaction_ref": null,
+        "fiat_verification": null,
+        "first_revealed_at": null,
+        "fulfillment": "shipping",
+        "guarantee_policy_version": 1,
+        "hold_expires_at": "<timestamp:2>",
+        "id": "<uuid:1>",
+        "lines": [
+          {
+            "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "fulfillment": "shipping",
+            "listing_aggregate_id": "listing:<pubky:seller>_boots_01",
+            "listing_revision": 1,
+            "quantity": 1,
+            "subtotal": {
+              "amount_minor": 50000,
+              "currency": "SAT",
+              "exponent": 0
+            },
+            "title": "Marketplace item",
+            "unit_price": {
+              "amount_minor": 50000,
+              "currency": "SAT",
+              "exponent": 0
+            }
+          }
+        ],
+        "next_actor": "seller",
+        "paykit_activation_state": "active",
+        "paykit_observation": {
+          "amount_matched": true,
+          "confirmations": 2,
+          "disappeared": false,
+          "observed_at": "<timestamp:1>",
+          "observed_sats": 51637,
+          "txid": "9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c"
+        },
+        "paykit_request_reference": "<paykit-reference:1>",
+        "paykit_request_state": "awaiting_seller_confirmation",
+        "paykit_seller_confirmation_deadline": "<timestamp:2>",
+        "paykit_seller_confirmation_entered_at": "<timestamp:1>",
+        "paykit_total_sats": 51637,
+        "payment": {
+          "adapter": "paykit",
+          "amount": {
+            "amount_minor": 51637,
+            "currency": "SAT",
+            "exponent": 0
+          },
+          "buyer_pubky": "<pubky:buyer>",
+          "confirmations": 0,
+          "created_at": "<timestamp:1>",
+          "id": "<uuid:2>",
+          "manual_review_entered_at": null,
+          "order_id": "<uuid:1>",
+          "resolution_basis": null,
+          "resolution_outcome": null,
+          "resolved_at": null,
+          "revision": 2,
+          "seller_pubky": "<pubky:seller>",
+          "state": "awaiting_entitlement",
+          "updated_at": "<timestamp:1>"
+        },
+        "payment_id": "<uuid:2>",
+        "payment_method": "bitcoin",
+        "payment_reported_at": null,
+        "pickup_terms_changed": false,
+        "receipt_id": null,
+        "return_request": null,
+        "reviews": [],
+        "revision": 2,
+        "seller_pubky": "<pubky:seller>",
+        "shipment": null,
+        "shipping": {
+          "amount_minor": 1200,
+          "currency": "SAT",
+          "exponent": 0
+        },
+        "state": "pending_payment",
+        "stock_held": true,
+        "subtotal": {
+          "amount_minor": 50000,
+          "currency": "SAT",
+          "exponent": 0
+        },
+        "total": {
+          "amount_minor": 51637,
+          "currency": "SAT",
+          "exponent": 0
+        },
+        "updated_at": "<timestamp:1>"
+      },
+      "status": 200
+    }
+  },
+  "seller_manual_review_held": {
+    "request": {
+      "body": null,
+      "headers_present": [
+        "authorization"
+      ],
+      "method": "GET",
+      "path": "/v1/orders/<uuid:3>"
+    },
+    "response": {
+      "body": {
+        "buyer_pubky": "<pubky:buyer>",
+        "cancellation_reason": null,
+        "created_at": "<timestamp:1>",
+        "delivery_assumed": false,
+        "drop_aggregate_id": null,
+        "edition": null,
+        "external_refund": null,
+        "fiat_checkout_url": null,
+        "fiat_transaction_ref": null,
+        "fiat_verification": null,
+        "first_revealed_at": null,
+        "fulfillment": "shipping",
+        "guarantee_policy_version": 1,
+        "hold_expires_at": null,
+        "id": "<uuid:3>",
+        "lines": [
+          {
+            "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "fulfillment": "shipping",
+            "listing_aggregate_id": "listing:<pubky:seller>_boots_01",
+            "listing_revision": 1,
+            "quantity": 1,
+            "subtotal": {
+              "amount_minor": 50000,
+              "currency": "SAT",
+              "exponent": 0
+            },
+            "title": "Marketplace item",
+            "unit_price": {
+              "amount_minor": 50000,
+              "currency": "SAT",
+              "exponent": 0
+            }
+          }
+        ],
+        "next_actor": "seller",
+        "paykit_activation_state": "active",
+        "paykit_observation": {
+          "amount_matched": true,
+          "confirmations": 2,
+          "disappeared": false,
+          "observed_at": "<timestamp:1>",
+          "observed_sats": 51637,
+          "txid": "9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c"
+        },
+        "paykit_request_reference": "<paykit-reference:2>",
+        "paykit_request_state": "confirmed",
+        "paykit_seller_confirmation_deadline": null,
+        "paykit_seller_confirmation_entered_at": null,
+        "paykit_total_sats": 51637,
+        "payment": {
+          "adapter": "paykit",
+          "amount": {
+            "amount_minor": 51637,
+            "currency": "SAT",
+            "exponent": 0
+          },
+          "buyer_pubky": "<pubky:buyer>",
+          "confirmations": 0,
+          "created_at": "<timestamp:1>",
+          "id": "<uuid:4>",
+          "manual_review_entered_at": "<timestamp:2>",
+          "order_id": "<uuid:3>",
+          "resolution_basis": null,
+          "resolution_outcome": null,
+          "resolved_at": null,
+          "revision": 3,
+          "seller_pubky": "<pubky:seller>",
+          "state": "manual_review",
+          "updated_at": "<timestamp:2>"
+        },
+        "payment_id": "<uuid:4>",
+        "payment_method": "bitcoin",
+        "payment_reported_at": null,
+        "pickup_terms_changed": false,
+        "receipt_id": null,
+        "return_request": null,
+        "reviews": [],
+        "revision": 2,
+        "seller_pubky": "<pubky:seller>",
+        "shipment": null,
+        "shipping": {
+          "amount_minor": 1200,
+          "currency": "SAT",
+          "exponent": 0
+        },
+        "state": "pending_payment",
+        "stock_held": true,
+        "subtotal": {
+          "amount_minor": 50000,
+          "currency": "SAT",
+          "exponent": 0
+        },
+        "total": {
+          "amount_minor": 51637,
+          "currency": "SAT",
+          "exponent": 0
+        },
+        "updated_at": "<timestamp:2>"
+      },
+      "status": 200
+    }
+  },
+  "seller_manual_review_late": {
+    "request": {
+      "body": null,
+      "headers_present": [
+        "authorization"
+      ],
+      "method": "GET",
+      "path": "/v1/orders/<uuid:5>"
+    },
+    "response": {
+      "body": {
+        "buyer_pubky": "<pubky:buyer>",
+        "cancellation_reason": "payment window elapsed",
+        "created_at": "<timestamp:1>",
+        "delivery_assumed": false,
+        "drop_aggregate_id": null,
+        "edition": null,
+        "external_refund": null,
+        "fiat_checkout_url": null,
+        "fiat_transaction_ref": null,
+        "fiat_verification": null,
+        "first_revealed_at": null,
+        "fulfillment": "shipping",
+        "guarantee_policy_version": 1,
+        "hold_expires_at": null,
+        "id": "<uuid:5>",
+        "lines": [
+          {
+            "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "fulfillment": "shipping",
+            "listing_aggregate_id": "listing:<pubky:seller>_boots_01",
+            "listing_revision": 1,
+            "quantity": 1,
+            "subtotal": {
+              "amount_minor": 50000,
+              "currency": "SAT",
+              "exponent": 0
+            },
+            "title": "Marketplace item",
+            "unit_price": {
+              "amount_minor": 50000,
+              "currency": "SAT",
+              "exponent": 0
+            }
+          }
+        ],
+        "next_actor": "seller",
+        "paykit_activation_state": "active",
+        "paykit_observation": {
+          "amount_matched": true,
+          "confirmations": 2,
+          "disappeared": false,
+          "observed_at": "<timestamp:3>",
+          "observed_sats": 51637,
+          "txid": "9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c"
+        },
+        "paykit_request_reference": "<paykit-reference:3>",
+        "paykit_request_state": "confirmed",
+        "paykit_seller_confirmation_deadline": null,
+        "paykit_seller_confirmation_entered_at": null,
+        "paykit_total_sats": 51637,
+        "payment": {
+          "adapter": "paykit",
+          "amount": {
+            "amount_minor": 51637,
+            "currency": "SAT",
+            "exponent": 0
+          },
+          "buyer_pubky": "<pubky:buyer>",
+          "confirmations": 0,
+          "created_at": "<timestamp:1>",
+          "id": "<uuid:6>",
+          "manual_review_entered_at": "<timestamp:3>",
+          "order_id": "<uuid:5>",
+          "resolution_basis": null,
+          "resolution_outcome": null,
+          "resolved_at": null,
+          "revision": 4,
+          "seller_pubky": "<pubky:seller>",
+          "state": "manual_review",
+          "updated_at": "<timestamp:3>"
+        },
+        "payment_id": "<uuid:6>",
+        "payment_method": "bitcoin",
+        "payment_reported_at": null,
+        "pickup_terms_changed": false,
+        "receipt_id": null,
+        "return_request": null,
+        "reviews": [],
+        "revision": 3,
+        "seller_pubky": "<pubky:seller>",
+        "shipment": null,
+        "shipping": {
+          "amount_minor": 1200,
+          "currency": "SAT",
+          "exponent": 0
+        },
+        "state": "cancelled",
+        "stock_held": false,
+        "subtotal": {
+          "amount_minor": 50000,
+          "currency": "SAT",
+          "exponent": 0
+        },
+        "total": {
+          "amount_minor": 51637,
+          "currency": "SAT",
+          "exponent": 0
+        },
+        "updated_at": "<timestamp:3>"
+      },
+      "status": 200
+    }
+  }
+}

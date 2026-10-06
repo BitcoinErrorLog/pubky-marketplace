@@ -1,0 +1,147 @@
+name: Development Task
+description: Internal development task (for team use)
+title: '[Task]: '
+labels: ['task']
+type: task
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Internal development task. Use this for refactoring, tech debt, infrastructure, etc.
+        
+        📚 **Reference our docs:**
+        - Architecture: `.cursor/docs/core-context.md`
+        - Components: `.cursor/docs/component-guidelines.md`
+        - ADRs: `.cursor/adr/`
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Task Description
+      description: What needs to be done?
+      placeholder: |
+        Refactor PostController to use the new naming convention from ADR-0001.
+        
+        Currently using `loadPost()`, should be `getOrFetchPost()`.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Affected Layer(s)
+      description: Which architectural layer(s) are affected?
+      multiple: true
+      options:
+        - UI / Components
+        - Hooks
+        - Controllers
+        - Coordinators
+        - Application
+        - Services (Local)
+        - Services (Homeserver)
+        - Services (Nexus)
+        - Services (Homegate)
+        - Services (Chatwoot)
+        - Services (Exchange Rate)
+        - Services (Next.js)
+        - Pipes
+        - Models
+        - Stores
+        - Database
+        - Config
+        - Libs / Utilities
+        - Runtime Config / Environment
+        - App / Routes
+        - Providers
+        - i18n
+        - PWA / Service Worker
+        - Tests
+        - CI / Tooling
+        - Documentation
+    validations:
+      required: false
+
+  - type: dropdown
+    id: domain
+    attributes:
+      label: Affected Domain(s)
+      description: Which domain(s) are affected?
+      multiple: true
+      options:
+        - Posts
+        - Collections
+        - Users
+        - Profile
+        - Auth
+        - Onboarding
+        - Notifications
+        - Feeds
+        - Hot
+        - Streams
+        - Tags
+        - Bookmarks
+        - Follows
+        - Mutes
+        - Moderation
+        - Files / Media
+        - Search
+        - Settings
+        - Homegate
+        - Bootstrap
+        - Copyright
+        - Feedback
+        - Report
+        - OG Metadata
+        - Migration
+        - TTL
+        - Share
+        - Cross-domain
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: How will we know this task is complete?
+      placeholder: |
+        - [ ] All `loadPost` calls renamed to `getOrFetchPost`
+        - [ ] Tests updated and passing
+        - [ ] No TypeScript errors
+        - [ ] PR review approved
+    validations:
+      required: false
+
+  - type: textarea
+    id: technical
+    attributes:
+      label: Technical Details
+      description: |
+        Implementation notes, affected files, related ADRs, etc.
+      placeholder: |
+        **Affected files:**
+        - src/core/controllers/PostController.ts
+        - src/core/posts/application/PostApplication.ts
+        
+        **Related ADRs:**
+        - ADR-0001: Local-First Writes (naming conventions)
+        
+        **Notes:**
+        - Need to update 15 call sites
+        - Consider creating a codemod
+    validations:
+      required: false
+
+  - type: textarea
+    id: testing
+    attributes:
+      label: Testing Strategy
+      description: How should this be tested?
+      placeholder: |
+        - [ ] Unit tests for renamed methods
+        - [ ] Integration tests for data flow
+        - [ ] Manual test: create/edit/delete post
+        - [ ] Check offline behavior
+    validations:
+      required: false

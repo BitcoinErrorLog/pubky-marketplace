@@ -1,0 +1,269 @@
+name: Build
+
+on:
+  merge_group:
+  push:
+    branches:
+      - 'release/**'
+      - main
+      - master
+  pull_request:
+    branches:
+      - '**' # Run on PRs targeting any branch
+  # Enable manual trigger
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Path filter is the `paths` job, not `on.pull_request.paths`.
+# A workflow skipped by a trigger path filter leaves the required check
+# `Check NextJS Build` Pending. A job skipped by `if` reports Success.
+# An unrelated pull request sets run=false and skips the build on purpose.
+# A failed or cancelled path filter must not skip it: the job runs and exits 1.
+# Push, merge_group, and workflow_dispatch always build.
+jobs:
+  paths:
+    name: Path filter
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.filter.outputs.run }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Match build paths
+        id: filter
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" != "pull_request" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "build paths match: true (not a pull request)"
+            exit 0
+          fi
+          git diff --name-only "$BASE_SHA" HEAD > "$RUNNER_TEMP/changed.txt"
+          run=false
+          while IFS= read -r file; do
+            [ -n "$file" ] || continue
+            case "$file" in
+              src/*|public/*|vendor/*|*.css|package.json|package-lock.json|next.config.ts|next.config.test.ts|postcss.config.mjs|tsconfig*.json|scripts/locks-sdk-smoke.mjs|scripts/paykit-wasm-smoke.mjs|scripts/ci-launch-e2e.sh|scripts/ci-launch-e2e-gate.sh|.github/workflows/build.yml)
+                run=true
+                break
+                ;;
+            esac
+          done < "$RUNNER_TEMP/changed.txt"
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+          echo "build paths match: $run"
+
+  build:
+    name: Check NextJS Build
+    needs: paths
+    if: always() && (needs.paths.result != 'success' || needs.paths.outputs.run == 'true')
+    runs-on: ubuntu-latest
+    # Last-10 median was 47 min because paykit-wasm-smoke held the event loop
+    # after "passed". Post-fix remainder is install (~40s) + next build (~3 min)
+    # + server smoke (~2s) ≈ 5 min; 10 min is 2× that, not 2× the hang.
+    timeout-minutes: 10
+
+    steps:
+      - name: Fail closed when the path filter did not succeed
+        if: needs.paths.result != 'success'
+        run: |
+          echo "Path filter result is ${{ needs.paths.result }}. Check NextJS Build fails closed."
+          exit 1
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+            nextjs-${{ runner.os }}-
+
+      - name: Smoke test vendored Locks SDK
+        run: node scripts/locks-sdk-smoke.mjs
+
+      - name: Smoke test vendored paykit-wasm messaging binding
+        run: node scripts/paykit-wasm-smoke.mjs
+
+      - name: Build prod
+        run: npm run build
+
+      - name: Smoke test production server
+        run: |
+          SERVER_LOG="$(mktemp)"
+
+          #PUBKY runtime variables
+          export PUBKY_RUNTIME_ENV="staging"
+          export PUBKY_RUNTIME_TESTNET="false"
+          export PUBKY_RUNTIME_HOMESERVER="ufibwbmed6jeq9k4p583go95wofakh9fwpp4k734trq79pd9u1uy"
+          export PUBKY_RUNTIME_HOMESERVER_URL="https://homeserver.staging.pubky.app"
+          export PUBKY_RUNTIME_NEXUS_URL="https://nexus.staging.pubky.app"
+          export PUBKY_RUNTIME_CDN_URL="https://nexus.staging.pubky.app/static"
+          export PUBKY_RUNTIME_HOMEGATE_URL="https://homegate.staging.pubky.app"
+          export PUBKY_RUNTIME_PKARR_RELAYS='["https://pkarr.pubky.app","https://pkarr.pubky.org"]'
+          export PUBKY_RUNTIME_DEFAULT_HTTP_RELAY="https://httprelay.staging.pubky.app/inbox"
+
+          npm run start > "$SERVER_LOG" 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+
+          PORT=3000
+          MAX_WAIT=120
+          WAIT_INTERVAL=2
+          ELAPSED=0
+
+          while ! curl -fsS "http://localhost:${PORT}/" > /dev/null; do
+            if ! kill -0 "$SERVER_PID" 2>/dev/null; then
+              echo "Production server exited unexpectedly (PID ${SERVER_PID})."
+              echo "--- server log ---"
+              cat "$SERVER_LOG"
+              exit 1
+            fi
+            if [ $ELAPSED -ge $MAX_WAIT ]; then
+              echo "Production server did not become ready within ${MAX_WAIT}s."
+              echo "--- server log ---"
+              cat "$SERVER_LOG"
+              exit 1
+            fi
+            echo "Waiting for http://localhost:${PORT}/ ... (${ELAPSED}s)"
+            sleep $WAIT_INTERVAL
+            ELAPSED=$((ELAPSED + WAIT_INTERVAL))
+          done
+
+          echo "Production server is ready."
+          SW_HEADERS="$(mktemp)"
+          curl -fsS -D "$SW_HEADERS" -o /tmp/launch-sw.js "http://localhost:${PORT}/sw.js"
+          if ! grep -qi 'content-type:.*javascript' "$SW_HEADERS"; then
+            echo "public/sw.js was not served as JavaScript"
+            cat "$SW_HEADERS"
+            exit 1
+          fi
+          test -s /tmp/launch-sw.js
+          test -s public/sw.js
+
+      - name: Upload Next build for launch-e2e
+        if: github.event_name == 'pull_request' && startsWith(github.base_ref, 'release/shop-')
+        uses: actions/upload-artifact@v4
+        with:
+          name: next-build
+          path: |
+            .next
+            !.next/cache
+            public/sw.js
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+
+  launch-e2e:
+    name: launch-e2e
+    needs: build
+    # Shop pull requests only. A push has no base_ref, so this job is skipped
+    # there even when Check NextJS Build ran. A job skipped by `if` is a
+    # successful required-check status (success, skipped, or neutral): it does
+    # not stay Pending. Unrelated pull requests skip the build, and this job
+    # skips with it for the same reason.
+    if: always() && needs.build.result == 'success' && github.event_name == 'pull_request' && startsWith(github.base_ref, 'release/shop-')
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.60.0-noble
+      options: --user 1001
+    # Subset ceiling is 8 min; first-run timeout is 2× that until a median exists.
+    timeout-minutes: 16
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Fork PRs never receive LAUNCH_E2E_SELLER_SECRET_HEX, so the suite cannot
+      # pass there. Skip with a notice. A same-repo PR with the secret missing
+      # fails this step and the job stays required.
+      - name: Decide whether launch-e2e can run
+        id: gate
+        env:
+          LAUNCH_E2E_SELLER_SECRET_HEX: ${{ secrets.LAUNCH_E2E_SELLER_SECRET_HEX }}
+          LAUNCH_E2E_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          LAUNCH_E2E_BASE_REPO: ${{ github.repository }}
+        run: bash scripts/ci-launch-e2e-gate.sh
+
+      - name: Setup Node.js
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        if: steps.gate.outputs.run == 'true'
+        run: npm ci
+
+      - name: Download Next build
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: next-build
+          path: next-build-artifact
+
+      - name: Place .next
+        if: steps.gate.outputs.run == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          ls -la next-build-artifact | head
+          if [ -d next-build-artifact/.next ]; then
+            mv next-build-artifact/.next .next
+          elif [ -f next-build-artifact/BUILD_ID ]; then
+            mv next-build-artifact .next
+          else
+            echo "Unexpected next-build artifact layout"
+            find next-build-artifact -maxdepth 3 | head -80
+            exit 1
+          fi
+          test -f .next/BUILD_ID
+          echo "BUILD_ID=$(cat .next/BUILD_ID)"
+          mkdir -p public
+          if [ -f next-build-artifact/public/sw.js ]; then
+            mv next-build-artifact/public/sw.js public/sw.js
+          fi
+          if [ ! -s public/sw.js ]; then
+            echo "next-build artifact has no public/sw.js; launch-e2e would serve HTML for /sw.js"
+            find next-build-artifact -maxdepth 3 | head -80
+            exit 1
+          fi
+
+      - name: Run launch-critical Chromium suite
+        if: steps.gate.outputs.run == 'true'
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+          LAUNCH_E2E_BASE_URL: http://127.0.0.1:3000
+          LAUNCH_E2E_SERVICE_URL: https://staging-api.pubky.app
+          LAUNCH_E2E_SELLER_SECRET_HEX: ${{ secrets.LAUNCH_E2E_SELLER_SECRET_HEX }}
+          LAUNCH_E2E_REQUIRE_SELLER_BOARD: '1'
+        run: bash scripts/ci-launch-e2e.sh
+
+      - name: Upload launch-e2e log
+        if: always() && steps.gate.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: launch-e2e-log
+          path: launch-e2e-results.json
+          if-no-files-found: ignore
+          retention-days: 7

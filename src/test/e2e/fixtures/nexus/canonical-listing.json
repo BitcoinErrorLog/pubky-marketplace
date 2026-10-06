@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "recordType": "listing",
+  "ownerPubky": "nkcct8tzquo8n4z5ysz9t963ye9kq1w7gb55aad1z4tmsgjjhmto",
+  "revision": 1,
+  "createdAt": "2026-09-10T11:37:53.443Z",
+  "updatedAt": "2026-09-10T11:37:53.443Z",
+  "listingId": "2b81df4f390b40e5b0aedabb89e76fa0",
+  "state": "active",
+  "title": "Launch E2E fixture listing",
+  "description": "Pinned catalog row for the required launch-e2e gate.",
+  "taxonomyVersion": 1,
+  "categoryId": "other",
+  "condition": "good",
+  "tags": ["launch", "fixture"],
+  "location": { "countryCode": "US", "region": "NY" },
+  "media": [],
+  "variants": [
+    {
+      "id": "variant_01",
+      "options": {},
+      "quantity": 1,
+      "mediaIds": [],
+      "enabled": true
+    }
+  ],
+  "sale": {
+    "format": "fixed_price",
+    "unitPrice": { "amountMinor": 5000, "currency": "USD", "exponent": 2 },
+    "acceptsOffers": false
+  },
+  "fulfillmentMethods": ["physical"],
+  "package": {
+    "weightGrams": 400,
+    "lengthMillimeters": 200,
+    "widthMillimeters": 150,
+    "heightMillimeters": 80
+  },
+  "shippingOptions": [
+    {
+      "id": "ship_01",
+      "pricing": "flat",
+      "label": "Standard shipping",
+      "price": { "amountMinor": 500, "currency": "USD", "exponent": 2 },
+      "estimatedMinDays": 3,
+      "estimatedMaxDays": 7
+    }
+  ],
+  "returnPolicy": {
+    "acceptsReturns": true,
+    "returnWindowDays": 30,
+    "buyerPaysReturnShipping": true
+  },
+  "adultOnly": false
+}

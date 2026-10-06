@@ -1,0 +1,1 @@
+Grant reconnect and inventory restore accept marketplace session ids created 17–20 September. Those ids are lowercase uuid text whose version and variant nibbles are not RFC 4122, and pairing was failing for accounts that still have one.

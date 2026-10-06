@@ -1,0 +1,1 @@
+Checkout asks a buyer with no Paykit wallet to connect Bitkit before a Bitcoin Pay, instead of failing with "The Paykit server is unavailable"; the service refusal for the same case now says to connect Bitkit.

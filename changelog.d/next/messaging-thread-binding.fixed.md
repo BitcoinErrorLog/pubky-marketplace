@@ -1,0 +1,1 @@
+Encrypted listing messages are only filed in a conversation between the sender and you. A message that names a thread with someone else is dropped, and messages stored that way before this release no longer appear in any thread, preview, or unread count.

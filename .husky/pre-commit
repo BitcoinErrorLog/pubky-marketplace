@@ -1,0 +1,25 @@
+#!/usr/bin/env sh
+
+echo "🔍 Running pre-commit checks..."
+
+echo "✨ Formatting and linting staged files..."
+if ! npx lint-staged; then
+  echo ""
+  echo "❌ Staged file checks failed!"
+  echo ""
+  echo "Please fix the reported issues, stage the changes, and commit again."
+  echo ""
+  exit 1
+fi
+
+echo "🧩 Running TypeScript (including tests)..."
+if ! npm run typecheck; then
+  echo ""
+  echo "❌ TypeScript check failed!"
+  echo ""
+  echo "Fix the reported errors (including in *.test.ts / *.test.tsx) and commit again."
+  echo ""
+  exit 1
+fi
+
+echo "✅ All pre-commit checks passed!"

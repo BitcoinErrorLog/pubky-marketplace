@@ -1,0 +1,1 @@
+A private conversation whose connection cannot finish on this device now says so and keeps every message and connection record. It no longer deletes messages the other person has not read yet or ends the conversation for both sides.

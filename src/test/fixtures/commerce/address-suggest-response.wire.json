@@ -1,0 +1,73 @@
+{
+  "suggestions": [
+    {
+      "id": "w664957911",
+      "primary": "42 Union Street",
+      "secondary": "New Bedford, Massachusetts 02740",
+      "precision": "street",
+      "address": {
+        "line1": "42 Union Street",
+        "city": "New Bedford",
+        "region": "Massachusetts",
+        "postal_code": "02740",
+        "country_code": "US"
+      }
+    },
+    {
+      "id": "w214672291",
+      "primary": "222 Union Street",
+      "secondary": "New Bedford Harbor Hotel · New Bedford, Massachusetts 02740",
+      "precision": "house",
+      "address": {
+        "line1": "222 Union Street",
+        "city": "New Bedford",
+        "region": "Massachusetts",
+        "postal_code": "02740",
+        "country_code": "US"
+      }
+    },
+    {
+      "id": "w214671109",
+      "primary": "1150 Purchase Street",
+      "secondary": "New Bedford Credit Union · New Bedford, Massachusetts 02740",
+      "precision": "house",
+      "address": {
+        "line1": "1150 Purchase Street",
+        "city": "New Bedford",
+        "region": "Massachusetts",
+        "postal_code": "02740",
+        "country_code": "US"
+      }
+    },
+    {
+      "id": "w11779545",
+      "primary": "Bedford Street",
+      "secondary": "Rahway, New Jersey 07065",
+      "precision": "street",
+      "address": {
+        "line1": "Bedford Street",
+        "city": "Rahway",
+        "region": "New Jersey",
+        "postal_code": "07065",
+        "country_code": "US"
+      }
+    },
+    {
+      "id": "n13196464531",
+      "primary": "42 Union Street",
+      "secondary": "New York, New York 11213",
+      "precision": "street",
+      "address": {
+        "line1": "42 Union Street",
+        "city": "New York",
+        "region": "New York",
+        "postal_code": "11213",
+        "country_code": "US"
+      }
+    }
+  ],
+  "attribution": {
+    "text": "© OpenStreetMap contributors",
+    "url": "https://www.openstreetmap.org/copyright"
+  }
+}

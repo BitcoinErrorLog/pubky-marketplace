@@ -1,0 +1,19 @@
+{
+  "receipt_attestation": {
+    "jws": "eyJhbGciOiJFZERTQSIsInR5cCI6InB1Ymt5LW9yZGVyLXJlY2VpcHQrdjEifQ.eyJ2IjoxLCJpc3MiOiI3amZnYWE5bnV0anlpeHppa2I3dGdtc2Y5Z2t3cTdpcXo0OTh6cjFuZDVpZzFmbmc0ZXN5IiwiYnV5ZXIiOiJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiIiwic2VsbGVyIjoic3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3NzcyIsIm9yZGVyIjoiMDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDA3IiwicmVjZWlwdCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwOSIsInRvdGFsX21pbm9yIjoxNDc5NiwiY3VycmVuY3kiOiJVU0QiLCJleHBvbmVudCI6MiwicGFpZF9hdCI6IjIwMjYtMDgtMTlUMjI6MDA6MDAuMDAwWiIsImlhdCI6MTc4NzE3NjgwMH0.P2JrANLJOP3Zm3U8NcQRXoIvnLzsRChMNC4U1jkpnElOjVHLgZ17enNRetI-cRHO0LSIZ1U9VQDJKfa3Dy7rDQ",
+    "claims": {
+      "v": 1,
+      "iss": "7jfgaa9nutjyixzikb7tgmsf9gkwq7iqz498zr1nd5ig1fng4esy",
+      "buyer": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "seller": "ssssssssssssssssssssssssssssssssssssssssssssssssssss",
+      "order": "00000000-0000-0000-0000-000000000007",
+      "receipt": "00000000-0000-0000-0000-000000000009",
+      "total_minor": 14796,
+      "currency": "USD",
+      "exponent": 2,
+      "paid_at": "2026-08-19T22:00:00.000Z",
+      "iat": 1787176800
+    }
+  },
+  "attestor_pubky": "7jfgaa9nutjyixzikb7tgmsf9gkwq7iqz498zr1nd5ig1fng4esy"
+}

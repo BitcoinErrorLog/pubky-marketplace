@@ -1,0 +1,9 @@
+---
+description: Core architecture rules - layer separation, dependencies, and anti-patterns
+globs: src/core/**/*
+alwaysApply: false
+---
+
+# Architecture Rules
+
+@docs/architecture.md

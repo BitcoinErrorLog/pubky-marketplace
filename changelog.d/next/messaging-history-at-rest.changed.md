@@ -1,0 +1,1 @@
+Private message history and messages waiting to be sent are now encrypted on this device; history saved by earlier versions is encrypted in place on the next load. Reload any other open Shop tab after updating: until it reloads, an older tab shows encrypted messages as empty and holds its queued messages.

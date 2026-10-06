@@ -1,0 +1,1111 @@
+{
+  "contract_version": 1,
+  "source": "marketplace-domain::state_machines",
+  "aggregates": [
+    {
+      "aggregate": "listing",
+      "states": [
+        "available",
+        "reserved",
+        "sold"
+      ],
+      "initial": "available",
+      "transitions": [
+        {
+          "from": "available",
+          "to": "reserved",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "inventory.reserve"
+            },
+            {
+              "trigger": "command",
+              "name": "checkout.create"
+            },
+            {
+              "trigger": "command",
+              "name": "offer.accept"
+            },
+            {
+              "trigger": "command",
+              "name": "auction.close"
+            }
+          ]
+        },
+        {
+          "from": "reserved",
+          "to": "available",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "reservation_expiry"
+            },
+            {
+              "trigger": "command",
+              "name": "order.cancel_request"
+            },
+            {
+              "trigger": "command",
+              "name": "order.cancel_approve"
+            }
+          ]
+        },
+        {
+          "from": "reserved",
+          "to": "sold",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "payment.sandbox_advance"
+            },
+            {
+              "trigger": "server",
+              "name": "payment_confirmation"
+            }
+          ]
+        },
+        {
+          "from": "sold",
+          "to": "available",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "order.cancel_approve"
+            },
+            {
+              "trigger": "command",
+              "name": "order.cancel_request"
+            }
+          ]
+        }
+      ],
+      "commands": [
+        "listing.register",
+        "listing.sync",
+        "inventory.reserve",
+        "checkout.create",
+        "offer.accept",
+        "auction.close"
+      ],
+      "unreachable_states": []
+    },
+    {
+      "aggregate": "reservation",
+      "states": [
+        "active",
+        "converted",
+        "released",
+        "expired"
+      ],
+      "initial": "active",
+      "transitions": [
+        {
+          "from": "active",
+          "to": "expired",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "reservation_expiry"
+            }
+          ]
+        },
+        {
+          "from": "active",
+          "to": "released",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "order.cancel_request"
+            },
+            {
+              "trigger": "command",
+              "name": "order.cancel_approve"
+            }
+          ]
+        },
+        {
+          "from": "active",
+          "to": "converted",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "payment.sandbox_advance"
+            },
+            {
+              "trigger": "server",
+              "name": "payment_confirmation"
+            }
+          ]
+        }
+      ],
+      "commands": [
+        "inventory.reserve"
+      ],
+      "unreachable_states": []
+    },
+    {
+      "aggregate": "offer",
+      "states": [
+        "pending",
+        "countered",
+        "accepted",
+        "rejected",
+        "withdrawn",
+        "expired"
+      ],
+      "initial": "pending",
+      "transitions": [
+        {
+          "from": "pending",
+          "to": "countered",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "offer.counter"
+            }
+          ]
+        },
+        {
+          "from": "pending",
+          "to": "accepted",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "offer.accept"
+            }
+          ]
+        },
+        {
+          "from": "pending",
+          "to": "rejected",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "offer.reject"
+            }
+          ]
+        },
+        {
+          "from": "pending",
+          "to": "withdrawn",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "offer.withdraw"
+            }
+          ]
+        },
+        {
+          "from": "pending",
+          "to": "expired",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "offer_expiry"
+            }
+          ]
+        },
+        {
+          "from": "countered",
+          "to": "countered",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "offer.counter"
+            }
+          ]
+        },
+        {
+          "from": "countered",
+          "to": "accepted",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "offer.accept"
+            }
+          ]
+        },
+        {
+          "from": "countered",
+          "to": "rejected",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "offer.reject"
+            }
+          ]
+        },
+        {
+          "from": "countered",
+          "to": "withdrawn",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "offer.withdraw"
+            }
+          ]
+        },
+        {
+          "from": "countered",
+          "to": "expired",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "offer_expiry"
+            }
+          ]
+        }
+      ],
+      "commands": [
+        "offer.create",
+        "offer.counter",
+        "offer.accept",
+        "offer.reject",
+        "offer.withdraw"
+      ],
+      "unreachable_states": []
+    },
+    {
+      "aggregate": "auction",
+      "states": [
+        "scheduled",
+        "active",
+        "sold",
+        "unsold",
+        "cancelled"
+      ],
+      "initial": "scheduled",
+      "transitions": [
+        {
+          "from": "scheduled",
+          "to": "active",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "auction_start"
+            }
+          ]
+        },
+        {
+          "from": "active",
+          "to": "sold",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "auction.close"
+            },
+            {
+              "trigger": "server",
+              "name": "auction_close"
+            }
+          ]
+        },
+        {
+          "from": "active",
+          "to": "unsold",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "auction.close"
+            },
+            {
+              "trigger": "server",
+              "name": "auction_close"
+            }
+          ]
+        }
+      ],
+      "commands": [
+        "listing.register",
+        "auction.place_bid",
+        "auction.close"
+      ],
+      "unreachable_states": [
+        "cancelled"
+      ]
+    },
+    {
+      "aggregate": "order",
+      "states": [
+        "pending_payment",
+        "paid",
+        "ready_for_pickup",
+        "processing",
+        "shipped",
+        "delivered",
+        "completed",
+        "cancel_requested",
+        "cancelled",
+        "return_requested",
+        "return_approved",
+        "return_received",
+        "refunded_external",
+        "closed"
+      ],
+      "initial": "pending_payment",
+      "transitions": [
+        {
+          "from": "pending_payment",
+          "to": "paid",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "payment.sandbox_advance"
+            },
+            {
+              "trigger": "server",
+              "name": "payment_confirmation"
+            }
+          ]
+        },
+        {
+          "from": "pending_payment",
+          "to": "cancelled",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "order.cancel_request"
+            },
+            {
+              "trigger": "server",
+              "name": "payment_window"
+            }
+          ]
+        },
+        {
+          "from": "paid",
+          "to": "shipped",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "fulfillment.ship"
+            }
+          ]
+        },
+        {
+          "from": "paid",
+          "to": "ready_for_pickup",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "fulfillment.mark_ready"
+            }
+          ]
+        },
+        {
+          "from": "paid",
+          "to": "delivered",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "fulfillment.confirm_pickup"
+            }
+          ]
+        },
+        {
+          "from": "ready_for_pickup",
+          "to": "delivered",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "fulfillment.confirm_pickup"
+            }
+          ]
+        },
+        {
+          "from": "ready_for_pickup",
+          "to": "cancel_requested",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "order.cancel_request"
+            }
+          ]
+        },
+        {
+          "from": "paid",
+          "to": "cancelled",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "order.cancel_request"
+            }
+          ]
+        },
+        {
+          "from": "ready_for_pickup",
+          "to": "cancelled",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "order.cancel_request"
+            }
+          ]
+        },
+        {
+          "from": "paid",
+          "to": "cancel_requested",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "order.cancel_request"
+            }
+          ]
+        },
+        {
+          "from": "processing",
+          "to": "shipped",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "fulfillment.ship"
+            }
+          ]
+        },
+        {
+          "from": "processing",
+          "to": "cancel_requested",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "order.cancel_request"
+            }
+          ]
+        },
+        {
+          "from": "cancel_requested",
+          "to": "cancelled",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "order.cancel_approve"
+            }
+          ]
+        },
+        {
+          "from": "shipped",
+          "to": "delivered",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "fulfillment.confirm_delivery"
+            },
+            {
+              "trigger": "server",
+              "name": "delivery_assume"
+            }
+          ]
+        },
+        {
+          "from": "delivered",
+          "to": "return_requested",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "return.request"
+            }
+          ]
+        },
+        {
+          "from": "delivered",
+          "to": "completed",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "review.create"
+            },
+            {
+              "trigger": "server",
+              "name": "order_auto_complete"
+            }
+          ]
+        },
+        {
+          "from": "completed",
+          "to": "return_requested",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "return.request"
+            }
+          ]
+        },
+        {
+          "from": "return_requested",
+          "to": "return_approved",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "return.approve"
+            }
+          ]
+        },
+        {
+          "from": "return_approved",
+          "to": "return_received",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "return.receive"
+            }
+          ]
+        },
+        {
+          "from": "return_received",
+          "to": "refunded_external",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "refund.record_external"
+            },
+            {
+              "trigger": "server",
+              "name": "paypal_refund"
+            }
+          ]
+        },
+        {
+          "from": "cancelled",
+          "to": "refunded_external",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "refund.record_external"
+            },
+            {
+              "trigger": "server",
+              "name": "paypal_refund"
+            }
+          ]
+        },
+        {
+          "from": "paid",
+          "to": "refunded_external",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "paypal_refund"
+            }
+          ]
+        },
+        {
+          "from": "ready_for_pickup",
+          "to": "refunded_external",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "paypal_refund"
+            }
+          ]
+        },
+        {
+          "from": "shipped",
+          "to": "refunded_external",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "paypal_refund"
+            }
+          ]
+        },
+        {
+          "from": "delivered",
+          "to": "refunded_external",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "paypal_refund"
+            }
+          ]
+        },
+        {
+          "from": "completed",
+          "to": "refunded_external",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "paypal_refund"
+            }
+          ]
+        },
+        {
+          "from": "cancel_requested",
+          "to": "refunded_external",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "paypal_refund"
+            }
+          ]
+        },
+        {
+          "from": "return_requested",
+          "to": "refunded_external",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "paypal_refund"
+            }
+          ]
+        },
+        {
+          "from": "return_approved",
+          "to": "refunded_external",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "paypal_refund"
+            }
+          ]
+        },
+        {
+          "from": "refunded_external",
+          "to": "paid",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "paypal_reversal_cancelled"
+            }
+          ]
+        },
+        {
+          "from": "refunded_external",
+          "to": "ready_for_pickup",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "paypal_reversal_cancelled"
+            }
+          ]
+        },
+        {
+          "from": "refunded_external",
+          "to": "shipped",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "paypal_reversal_cancelled"
+            }
+          ]
+        },
+        {
+          "from": "refunded_external",
+          "to": "delivered",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "paypal_reversal_cancelled"
+            }
+          ]
+        },
+        {
+          "from": "refunded_external",
+          "to": "completed",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "paypal_reversal_cancelled"
+            }
+          ]
+        },
+        {
+          "from": "refunded_external",
+          "to": "cancel_requested",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "paypal_reversal_cancelled"
+            }
+          ]
+        },
+        {
+          "from": "refunded_external",
+          "to": "cancelled",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "paypal_reversal_cancelled"
+            }
+          ]
+        },
+        {
+          "from": "refunded_external",
+          "to": "return_requested",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "paypal_reversal_cancelled"
+            }
+          ]
+        },
+        {
+          "from": "refunded_external",
+          "to": "return_approved",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "paypal_reversal_cancelled"
+            }
+          ]
+        },
+        {
+          "from": "refunded_external",
+          "to": "return_received",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "paypal_reversal_cancelled"
+            }
+          ]
+        },
+        {
+          "from": "cancelled",
+          "to": "paid",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "paykit_resolution"
+            }
+          ]
+        }
+      ],
+      "commands": [
+        "checkout.create",
+        "payment.sandbox_advance",
+        "order.cancel_request",
+        "order.cancel_approve",
+        "fulfillment.ship",
+        "fulfillment.confirm_delivery",
+        "fulfillment.mark_ready",
+        "fulfillment.confirm_pickup",
+        "return.request",
+        "return.approve",
+        "return.receive",
+        "refund.record_external",
+        "review.create",
+        "review.update"
+      ],
+      "unreachable_states": [
+        "processing",
+        "closed"
+      ]
+    },
+    {
+      "aggregate": "payment",
+      "states": [
+        "awaiting_entitlement",
+        "detected",
+        "confirmed",
+        "expired",
+        "manual_review"
+      ],
+      "initial": "awaiting_entitlement",
+      "transitions": [
+        {
+          "from": "awaiting_entitlement",
+          "to": "detected",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "payment.sandbox_advance"
+            }
+          ]
+        },
+        {
+          "from": "awaiting_entitlement",
+          "to": "confirmed",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "payment.sandbox_advance"
+            },
+            {
+              "trigger": "server",
+              "name": "locks_verification"
+            }
+          ]
+        },
+        {
+          "from": "awaiting_entitlement",
+          "to": "expired",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "payment.sandbox_advance"
+            },
+            {
+              "trigger": "server",
+              "name": "payment_window"
+            }
+          ]
+        },
+        {
+          "from": "awaiting_entitlement",
+          "to": "manual_review",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "payment.sandbox_advance"
+            },
+            {
+              "trigger": "server",
+              "name": "locks_verification"
+            }
+          ]
+        },
+        {
+          "from": "detected",
+          "to": "confirmed",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "payment.sandbox_advance"
+            }
+          ]
+        },
+        {
+          "from": "detected",
+          "to": "manual_review",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "payment.sandbox_advance"
+            }
+          ]
+        },
+        {
+          "from": "expired",
+          "to": "manual_review",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "locks_late_completion"
+            }
+          ]
+        },
+        {
+          "from": "manual_review",
+          "to": "confirmed",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "paykit_resolution"
+            }
+          ]
+        },
+        {
+          "from": "manual_review",
+          "to": "expired",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "paykit_resolution"
+            }
+          ]
+        }
+      ],
+      "commands": [
+        "payment.sandbox_advance",
+        "payment.register_locks"
+      ],
+      "unreachable_states": []
+    },
+    {
+      "aggregate": "return",
+      "states": [
+        "requested",
+        "approved",
+        "received",
+        "refunded"
+      ],
+      "initial": "requested",
+      "transitions": [
+        {
+          "from": "requested",
+          "to": "approved",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "return.approve"
+            }
+          ]
+        },
+        {
+          "from": "approved",
+          "to": "received",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "return.receive"
+            }
+          ]
+        },
+        {
+          "from": "received",
+          "to": "refunded",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "refund.record_external"
+            },
+            {
+              "trigger": "server",
+              "name": "paypal_refund"
+            }
+          ]
+        },
+        {
+          "from": "requested",
+          "to": "refunded",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "paypal_refund"
+            }
+          ]
+        },
+        {
+          "from": "approved",
+          "to": "refunded",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "paypal_refund"
+            }
+          ]
+        },
+        {
+          "from": "refunded",
+          "to": "requested",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "paypal_reversal_cancelled"
+            }
+          ]
+        },
+        {
+          "from": "refunded",
+          "to": "approved",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "paypal_reversal_cancelled"
+            }
+          ]
+        },
+        {
+          "from": "refunded",
+          "to": "received",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "paypal_reversal_cancelled"
+            }
+          ]
+        }
+      ],
+      "commands": [
+        "return.request",
+        "return.approve",
+        "return.receive",
+        "refund.record_external"
+      ],
+      "unreachable_states": []
+    },
+    {
+      "aggregate": "drop",
+      "states": [
+        "announced",
+        "live",
+        "ended_sold_out",
+        "ended_closed",
+        "ended_cancelled"
+      ],
+      "initial": "announced",
+      "transitions": [
+        {
+          "from": "announced",
+          "to": "live",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "inventory.reserve"
+            },
+            {
+              "trigger": "command",
+              "name": "checkout.create"
+            },
+            {
+              "trigger": "server",
+              "name": "drop_start"
+            }
+          ]
+        },
+        {
+          "from": "announced",
+          "to": "ended_closed",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "drop_end"
+            }
+          ]
+        },
+        {
+          "from": "live",
+          "to": "ended_closed",
+          "via": [
+            {
+              "trigger": "server",
+              "name": "drop_end"
+            }
+          ]
+        },
+        {
+          "from": "live",
+          "to": "ended_sold_out",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "payment.sandbox_advance"
+            },
+            {
+              "trigger": "server",
+              "name": "payment_confirmation"
+            }
+          ]
+        },
+        {
+          "from": "announced",
+          "to": "ended_cancelled",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "drop.cancel"
+            }
+          ]
+        },
+        {
+          "from": "live",
+          "to": "ended_cancelled",
+          "via": [
+            {
+              "trigger": "command",
+              "name": "drop.cancel"
+            }
+          ]
+        }
+      ],
+      "commands": [
+        "drop.sync",
+        "drop.cancel",
+        "drop.release_listings",
+        "inventory.reserve",
+        "checkout.create"
+      ],
+      "unreachable_states": []
+    }
+  ]
+}

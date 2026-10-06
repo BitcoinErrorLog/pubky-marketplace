@@ -1,0 +1,147 @@
+name: Build Pubky Docker Image
+
+on:
+  workflow_dispatch:
+    inputs:
+      latest:
+        description: 'Use latest tag'
+        required: false
+        default: false
+        type: boolean
+
+      platforms:
+        description: 'Platforms'
+        required: true
+        type: choice
+        options:
+          - linux/arm64/v8
+          - linux/arm64/v7
+          - linux/arm64
+          - linux/amd64
+
+      pr_number:
+        description: 'PR number (used for preview env)'
+        required: false
+        type: string
+
+      commit_sha:
+        description: 'Commit SHA to checkout'
+        required: false
+        type: string
+
+  workflow_call:
+    outputs:
+      image_tag:
+        description: 'Image tag'
+        value: ${{ jobs.check_image.outputs.image_tag }}
+      image_name:
+        description: 'Image name used for the build'
+        value: ${{ jobs.check_image.outputs.image_name }}
+    inputs:
+      latest:
+        description: 'Use latest tag'
+        required: false
+        default: false
+        type: boolean
+
+      platforms:
+        required: true
+        type: string
+
+      pr_number:
+        description: 'PR number (used for preview env)'
+        required: false
+        type: string
+
+      commit_sha:
+        description: 'Commit SHA to checkout'
+        required: false
+        type: string
+
+env:
+  registry: 'europe-west6-docker.pkg.dev/infra-464608/synonym-private-repo'
+
+jobs:
+  check_image:
+    name: Validate and rebuild Pubky App
+    # BitcoinErrorLog Shop previews are built and deployed by Vercel.
+    if: github.repository == 'pubky/pubky-app'
+    timeout-minutes: 6
+    outputs:
+      image_tag: ${{ steps.set_tag.outputs.image_tag }}
+      image_name: ${{ steps.set_tag.outputs.image_name }}
+      image_exists: ${{ steps.check_image.outputs.exists }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout this repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit_sha || github.sha }}
+
+      - name: Set HEAD commit hash
+        id: sha_tag
+        uses: pubky/ci-workflows/.github/actions/docker/get_head_commit_hash@main
+        with:
+          path: '.'
+
+      - name: Set Current Tag as Output
+        id: set_tag
+        run: |
+          echo image_tag=${{ steps.sha_tag.outputs.hash }} >> $GITHUB_OUTPUT
+          echo image_name=pubky-app >> $GITHUB_OUTPUT
+
+      - name: Login to registry
+        uses: pubky/ci-workflows/.github/actions/docker/registry_login@main
+        with:
+          registry: ${{ env.registry }}
+          gcp_service_account_key: ${{ secrets.GCR_JSON_KEY }}
+
+      - name: Check if image needs to be rebuild
+        uses: pubky/ci-workflows/.github/actions/docker/check_if_image_exists@main
+        id: check_image
+        with:
+          image: ${{ env.registry }}/${{ steps.set_tag.outputs.image_name }}
+          tag: ${{ steps.sha_tag.outputs.hash }}
+          arch: ${{ inputs.platforms }}
+
+  build_image:
+    name: Build and push image
+    needs: [check_image]
+    # BitcoinErrorLog Shop previews are built and deployed by Vercel.
+    if: github.repository == 'pubky/pubky-app' && needs.check_image.outputs.image_exists != 'true'
+    runs-on: ['ubuntu-latest']
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit_sha || github.sha }}
+
+      - name: Login to registry
+        uses: pubky/ci-workflows/.github/actions/docker/registry_login@main
+        with:
+          registry: ${{ env.registry }}
+          gcp_service_account_key: ${{ secrets.GCR_JSON_KEY }}
+
+      - name: Build and push image pubky-app
+        uses: pubky/ci-workflows/.github/actions/docker/build_and_push@main
+        with:
+          image: 'pubky-app'
+          context: '.'
+          registry: ${{ env.registry }}
+          platforms: ${{ inputs.platforms }}
+          latest: ${{ inputs.latest }}
+          # NOTE: network values (NEXUS_URL, CDN_URL, HOMESERVER, HOMESERVER_URL, HOMEGATE_URL,
+          # DEFAULT_HTTP_RELAY, PKARR_RELAYS, TESTNET) and Sentry values (SENTRY_DSN,
+          # SENTRY_ENVIRONMENT, SENTRY_*_SAMPLE_RATE) are intentionally NOT build args. They are
+          # supplied at container runtime as PUBKY_RUNTIME_* (see Dockerfile and
+          # src/libs/runtime-config). Sentry build args are optional and used only by the
+          # Dockerfile source-map upload step; public builds without them skip upload.
+          build_args: |
+            NEXT_PUBLIC_DB_VERSION=3
+            NEXT_PUBLIC_DB_NAME=franky
+            NEXT_PUBLIC_DEBUG_MODE=false
+            NEXT_PUBLIC_APP_VERSION=${{ github.sha }}
+            SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
+            SENTRY_ORG=synonym-52
+            SENTRY_PROJECT=pubky-app

@@ -1,0 +1,262 @@
+'use client';
+
+import { memo, useMemo, useState } from 'react';
+import { usePathname } from 'next/navigation';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { POST_ROUTES } from '@/app/routes';
+import { Button } from '@/atoms/Button/Button';
+import { Container } from '@/atoms/Container/Container';
+import { cn } from '@/libs/utils/utils';
+import { PostMentions } from '@/organisms/PostMentions/PostMentions';
+import { PostCodeBlock } from '../PostCodeBlock/PostCodeBlock';
+import { PostHashtags } from '../PostHashtags/PostHashtags';
+import { PostTextProps, RemarkAnchorProps } from './PostText.types';
+import {
+  formatStructuredPostBody,
+  remarkDisallowMarkdownLinks,
+  remarkExtractFirstParagraph,
+  remarkHashtags,
+  remarkMentions,
+  remarkPlaintextCodeblock,
+  remarkPlaintextTables,
+  STRUCTURED_POST_PREVIEW_LINES,
+  truncatePostPreviewText,
+} from './PostText.utils';
+
+/**
+ * Renders formatted text content with markdown, hashtags, mentions, and links.
+ *
+ * Used for:
+ * - Post content in feeds and post pages
+ * - User bio in profile popovers
+ *
+ * Features:
+ * - Markdown formatting (bold, italic, code, lists, etc.)
+ * - Hashtag parsing (#tag → clickable search link)
+ * - Mention parsing (pk:... or pubky... → clickable profile link)
+ * - URL detection and linking
+ * - Content truncation with in-place "Show more" on non-post pages
+ *
+ * Memoization prevents unnecessary re-renders when TTL refreshes update IndexedDB records
+ * without changes to the actual post content.
+ */
+export const PostText = memo(function PostText({ content, isArticle, onLinkClick, className }: PostTextProps) {
+  const pathname = usePathname();
+  const onPostPage = pathname.startsWith(POST_ROUTES.POST);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // A body that is one whole JSON object/array (bot or tool output) renders
+  // as a labeled structured block instead of a paragraph of braces — shown
+  // verbatim, never interpreted.
+  const structuredBody = useMemo(() => formatStructuredPostBody(content), [content]);
+
+  const contentTruncated =
+    !structuredBody && !isArticle && !onPostPage && !isExpanded ? truncatePostPreviewText(content) : null;
+  const showMoreButton = Boolean(contentTruncated);
+
+  const remarkPlugins = [
+    remarkGfm,
+    remarkPlaintextTables,
+    ...(isArticle ? (!onPostPage ? [remarkExtractFirstParagraph] : []) : [remarkDisallowMarkdownLinks]),
+    remarkPlaintextCodeblock,
+    remarkHashtags,
+    remarkMentions,
+  ];
+
+  // Memoize allowed elements array to avoid recreation on every render
+  const allowedElements = useMemo(
+    () => [
+      'em',
+      'strong',
+      'code',
+      'pre',
+      'a',
+      'p',
+      'br',
+      'ul',
+      'ol',
+      'li',
+      'del',
+      'blockquote',
+      'hr',
+      ...(isArticle ? ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] : []),
+    ],
+    [isArticle],
+  );
+
+  if (structuredBody) {
+    const lines = structuredBody.split('\n');
+    const collapsed = !onPostPage && !isExpanded && lines.length > STRUCTURED_POST_PREVIEW_LINES;
+    const visibleBody = collapsed ? `${lines.slice(0, STRUCTURED_POST_PREVIEW_LINES).join('\n')}\n…` : structuredBody;
+
+    return (
+      <Container data-cy="post-text" overrideDefaults className={cn('wrap-anywhere', className)}>
+        <Container overrideDefaults className="rounded-md border border-border bg-muted/30 px-3 py-2">
+          <span className="text-xs text-muted-foreground">Structured data</span>
+          <pre className="mt-1 overflow-x-auto font-mono text-sm leading-5 whitespace-pre-wrap text-secondary-foreground">
+            {visibleBody}
+          </pre>
+        </Container>
+        {collapsed && (
+          <Button
+            overrideDefaults
+            type="button"
+            aria-label="Show full structured post content"
+            className="mt-2 cursor-pointer text-brand transition-colors hover:text-brand/80"
+            onClick={(event) => {
+              event.stopPropagation();
+              setIsExpanded(true);
+            }}
+          >
+            Show more
+          </Button>
+        )}
+      </Container>
+    );
+  }
+
+  return (
+    <Container
+      data-cy="post-text"
+      overrideDefaults
+      className={cn(
+        'text-base leading-6 font-medium wrap-anywhere whitespace-pre-line text-secondary-foreground',
+        className,
+      )}
+    >
+      <Markdown
+        allowedElements={allowedElements}
+        unwrapDisallowed
+        remarkPlugins={remarkPlugins}
+        components={{
+          a(props: RemarkAnchorProps) {
+            const { children, className, 'data-type': dataType, node: _node, ref: _ref, ...rest } = props;
+
+            if (dataType === 'hashtag') return <PostHashtags {...props} />;
+            if (dataType === 'mention') return <PostMentions {...props} />;
+
+            return (
+              <a
+                {...rest}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => {
+                  e.stopPropagation();
+
+                  if (onLinkClick && rest.href) {
+                    onLinkClick(rest.href, e);
+                  }
+                }}
+                className={cn(className, 'cursor-pointer text-brand transition-colors hover:text-brand/80')}
+              >
+                {children}
+              </a>
+            );
+          },
+          blockquote(props) {
+            const { children, className, node: _node, ref: _ref, ...rest } = props;
+
+            return (
+              <blockquote {...rest} className={cn(className, 'border-l-4 border-foreground pl-4 whitespace-normal')}>
+                {children}
+              </blockquote>
+            );
+          },
+          ol(props) {
+            const { children, className, node: _node, ref: _ref, ...rest } = props;
+
+            return (
+              <ol {...rest} className={cn(className, 'list-inside list-decimal whitespace-normal')}>
+                {children}
+              </ol>
+            );
+          },
+          ul(props) {
+            const { children, className, node: _node, ref: _ref, ...rest } = props;
+
+            return (
+              <ul {...rest} className={cn(className, 'list-inside list-disc whitespace-normal')}>
+                {children}
+              </ul>
+            );
+          },
+          code(props) {
+            return <PostCodeBlock {...props} />;
+          },
+          h1(props) {
+            const { children, className, node: _node, ref: _ref, ...rest } = props;
+
+            return (
+              <h1 {...rest} className={cn(className, 'text-2xl leading-8 font-bold text-white')}>
+                {children}
+              </h1>
+            );
+          },
+          h2(props) {
+            const { children, className, node: _node, ref: _ref, ...rest } = props;
+
+            return (
+              <h2 {...rest} className={cn(className, 'text-xl leading-7 font-bold text-white')}>
+                {children}
+              </h2>
+            );
+          },
+          h3(props) {
+            const { children, className, node: _node, ref: _ref, ...rest } = props;
+
+            return (
+              <h3 {...rest} className={cn(className, 'text-lg leading-7 font-bold text-white')}>
+                {children}
+              </h3>
+            );
+          },
+          h4(props) {
+            const { children, className, node: _node, ref: _ref, ...rest } = props;
+
+            return (
+              <h4 {...rest} className={cn(className, 'text-[17px] leading-6 font-bold text-white')}>
+                {children}
+              </h4>
+            );
+          },
+          h5(props) {
+            const { children, className, node: _node, ref: _ref, ...rest } = props;
+
+            return (
+              <h5 {...rest} className={cn(className, 'text-[16.5px] leading-6 font-light text-muted-foreground')}>
+                {children}
+              </h5>
+            );
+          },
+          h6(props) {
+            const { children, className, node: _node, ref: _ref, ...rest } = props;
+
+            return (
+              <h6 {...rest} className={cn(className, 'text-[16.25px] leading-6 font-light text-muted-foreground')}>
+                {children}
+              </h6>
+            );
+          },
+        }}
+      >
+        {contentTruncated || content}
+      </Markdown>
+
+      {showMoreButton && (
+        <Button
+          overrideDefaults
+          type="button"
+          aria-label="Show full post content"
+          className="mt-4 cursor-pointer text-brand transition-colors hover:text-brand/80"
+          onClick={(event) => {
+            event.stopPropagation();
+            setIsExpanded(true);
+          }}
+        >
+          Show more
+        </Button>
+      )}
+    </Container>
+  );
+});

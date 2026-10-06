@@ -1,0 +1,359 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as vibeSessionAutoRestore from '@/libs/vibe-session/auto-restore';
+import * as vibeSessionConfig from '@/libs/vibe-session/config';
+import type { THomeserverSessionResult } from '@/services/homeserver/homeserver.types';
+import { asOpaque } from '@/test-utils/type-assertions';
+import { useAuthStore } from './auth.store';
+
+// Mock the logger
+vi.mock('@/libs/logger/logger', () => ({
+  Logger: {
+    info: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+describe('AuthStore', () => {
+  beforeEach(() => {
+    // Reset the real store to initial state before each test
+    useAuthStore.getState().reset();
+    vibeSessionAutoRestore.clearVibeSessionAutoRestoreSuppressed();
+    vi.clearAllMocks();
+  });
+
+  describe('Persistence Hydration', () => {
+    it('marks the store as hydrated when persisted storage cannot be read', async () => {
+      const originalStorage = useAuthStore.persist.getOptions().storage;
+      const failingStorage: NonNullable<typeof originalStorage> = {
+        getItem: async () => {
+          throw new Error('storage unavailable');
+        },
+        setItem: async () => undefined,
+        removeItem: async () => undefined,
+      };
+
+      useAuthStore.getState().setHasHydrated(false);
+      useAuthStore.persist.setOptions({ storage: failingStorage });
+
+      try {
+        await useAuthStore.persist.rehydrate();
+        expect(useAuthStore.getState().hasHydrated).toBe(true);
+        expect(useAuthStore.getState().isRestoringSession).toBe(false);
+      } finally {
+        useAuthStore.persist.setOptions({ storage: originalStorage });
+      }
+    });
+
+    it('sets isRestoringSession on rehydrate when consumer mode is on and no sessionExport', async () => {
+      const consumerSpy = vi.spyOn(vibeSessionConfig, 'isVibeSessionConsumerEnabled').mockReturnValue(true);
+      useAuthStore.getState().setHasHydrated(false);
+      useAuthStore.getState().setIsRestoringSession(false);
+
+      try {
+        await useAuthStore.persist.rehydrate();
+        expect(useAuthStore.getState().hasHydrated).toBe(true);
+        expect(useAuthStore.getState().isRestoringSession).toBe(true);
+        expect(useAuthStore.getState().sessionExport).toBeNull();
+      } finally {
+        consumerSpy.mockRestore();
+      }
+    });
+
+    it('does not set isRestoringSession on rehydrate when logout suppression is set and nothing is persisted', async () => {
+      const consumerSpy = vi.spyOn(vibeSessionConfig, 'isVibeSessionConsumerEnabled').mockReturnValue(true);
+      vibeSessionAutoRestore.suppressVibeSessionAutoRestore();
+      useAuthStore.getState().setHasHydrated(false);
+      useAuthStore.getState().setIsRestoringSession(false);
+
+      try {
+        await useAuthStore.persist.rehydrate();
+        expect(useAuthStore.getState().hasHydrated).toBe(true);
+        expect(useAuthStore.getState().isRestoringSession).toBe(false);
+        expect(useAuthStore.getState().sessionExport).toBeNull();
+      } finally {
+        consumerSpy.mockRestore();
+      }
+    });
+  });
+
+  describe('Grant sessions (Bitkit sign-in)', () => {
+    const grantSession = (exportSpy: () => string) =>
+      asOpaque<THomeserverSessionResult['session']>({
+        info: { publicKey: { z32: () => 'grant-pubky' } },
+        grant: {},
+        export: exportSpy,
+      });
+
+    it('persists the grant record id and never exports a grant session', () => {
+      const exportSpy = vi.fn(() => 'grant-export');
+
+      useAuthStore.getState().init({
+        session: grantSession(exportSpy),
+        currentUserPubky: 'grant-pubky',
+        hasProfile: null,
+        grantSessionRecordId: 'rec-1',
+      });
+
+      const state = useAuthStore.getState();
+      expect(exportSpy).not.toHaveBeenCalled();
+      expect(state.sessionExport).toBeNull();
+      expect(state.grantSessionRecordId).toBe('rec-1');
+      const persisted = JSON.parse(localStorage.getItem('auth-store') ?? '{}') as {
+        state?: { sessionExport?: unknown; grantSessionRecordId?: unknown };
+      };
+      expect(persisted.state?.sessionExport).toBeNull();
+      expect(persisted.state?.grantSessionRecordId).toBe('rec-1');
+    });
+
+    it('persists which signer approved a grant session, defaulting to Bitkit', () => {
+      useAuthStore.getState().init({
+        session: grantSession(vi.fn()),
+        currentUserPubky: 'grant-pubky',
+        hasProfile: null,
+        grantSessionRecordId: 'rec-1',
+        grantSigner: 'passport',
+      });
+      expect(useAuthStore.getState().grantSigner).toBe('passport');
+      const persisted = JSON.parse(localStorage.getItem('auth-store') ?? '{}') as { state?: { grantSigner?: unknown } };
+      expect(persisted.state?.grantSigner).toBe('passport');
+
+      useAuthStore.getState().init({
+        session: grantSession(vi.fn()),
+        currentUserPubky: 'grant-pubky',
+        hasProfile: null,
+        grantSessionRecordId: 'rec-2',
+      });
+      expect(useAuthStore.getState().grantSigner).toBe('bitkit');
+
+      useAuthStore.getState().reset();
+      expect(useAuthStore.getState().grantSigner).toBeNull();
+    });
+
+    it('bridge never carries grant session: a grant session leaves no export to hand off', () => {
+      useAuthStore.getState().setSession(grantSession(() => 'grant-export'));
+
+      expect(useAuthStore.getState().sessionExport).toBeNull();
+    });
+
+    it('a cookie session keeps its export and carries no grant record', () => {
+      const cookieSession = asOpaque<THomeserverSessionResult['session']>({
+        info: { publicKey: { z32: () => 'cookie-pubky' } },
+        grant: undefined,
+        export: () => 'cookie-export',
+      });
+
+      useAuthStore.getState().init({
+        session: cookieSession,
+        currentUserPubky: 'cookie-pubky',
+        hasProfile: null,
+        grantSessionRecordId: 'ignored',
+        grantSigner: 'passport',
+      });
+
+      expect(useAuthStore.getState().sessionExport).toBe('cookie-export');
+      expect(useAuthStore.getState().grantSessionRecordId).toBeNull();
+      expect(useAuthStore.getState().grantSigner).toBeNull();
+    });
+  });
+
+  describe('Authentication Management', () => {
+    it('should set currentUserPubky without affecting authentication state', () => {
+      const pubky = 'test-pubky-key';
+      const store = useAuthStore.getState();
+
+      // Set pubky - should not automatically set authenticated (no session)
+      store.setCurrentUserPubky(pubky);
+      expect(useAuthStore.getState().currentUserPubky).toBe(pubky);
+      expect(store.selectIsAuthenticated()).toBe(false);
+
+      // Add session - now authenticated is derived from session
+      const mockSession = {} as THomeserverSessionResult['session'];
+      store.setSession(mockSession);
+      expect(store.selectIsAuthenticated()).toBe(true);
+    });
+
+    it('should derive authentication state from session', () => {
+      const mockSession = {} as THomeserverSessionResult['session'];
+      const store = useAuthStore.getState();
+
+      // No session - not authenticated
+      expect(store.selectIsAuthenticated()).toBe(false);
+
+      // Set session - automatically authenticated
+      store.setSession(mockSession);
+      expect(useAuthStore.getState().session).toBe(mockSession);
+      expect(store.selectIsAuthenticated()).toBe(true);
+
+      // Add pubky - still authenticated
+      store.setCurrentUserPubky('test-pubky');
+      expect(store.selectIsAuthenticated()).toBe(true);
+    });
+
+    it('should clear session and authentication state together', () => {
+      const store = useAuthStore.getState();
+      const mockSession = {} as THomeserverSessionResult['session'];
+
+      // Set up authenticated state
+      store.setCurrentUserPubky('test-pubky');
+      store.setSession(mockSession);
+      expect(store.selectIsAuthenticated()).toBe(true);
+
+      // Clear session - authentication is automatically derived as false
+      store.setSession(null);
+      expect(useAuthStore.getState().session).toBeNull();
+      expect(store.selectIsAuthenticated()).toBe(false);
+      expect(useAuthStore.getState().currentUserPubky).toBe('test-pubky'); // Should remain
+    });
+
+    it('should derive authentication state from session presence', () => {
+      const store = useAuthStore.getState();
+      const mockSession = {} as THomeserverSessionResult['session'];
+
+      // Initially not authenticated
+      expect(store.selectIsAuthenticated()).toBe(false);
+
+      // Set session - authenticated
+      store.setSession(mockSession);
+      expect(store.selectIsAuthenticated()).toBe(true);
+
+      // Clear session - not authenticated
+      store.setSession(null);
+      expect(store.selectIsAuthenticated()).toBe(false);
+    });
+  });
+
+  describe('Init and deferred restore', () => {
+    it('clears vibe auto-restore suppression and sessionRestoreDeferred on init', () => {
+      vibeSessionAutoRestore.suppressVibeSessionAutoRestore();
+      useAuthStore.getState().setSessionRestoreDeferred(true);
+      const mockSession = {} as THomeserverSessionResult['session'];
+
+      useAuthStore.getState().init({
+        session: mockSession,
+        currentUserPubky: 'test-pubky',
+        hasProfile: true,
+      });
+
+      expect(vibeSessionAutoRestore.isVibeSessionAutoRestoreSuppressed()).toBe(false);
+      expect(useAuthStore.getState().sessionRestoreDeferred).toBe(false);
+      expect(useAuthStore.getState().session).toBe(mockSession);
+    });
+
+    it('does not persist sessionRestoreDeferred', () => {
+      expect(useAuthStore.getState().sessionRestoreDeferred).toBe(false);
+      useAuthStore.getState().setSessionRestoreDeferred(true);
+      expect(useAuthStore.getState().sessionRestoreDeferred).toBe(true);
+      const persisted = useAuthStore.persist.getOptions().partialize?.(useAuthStore.getState());
+      expect(persisted).not.toHaveProperty('sessionRestoreDeferred');
+    });
+  });
+
+  describe('Store Reset', () => {
+    it('should reset store to default state', () => {
+      const store = useAuthStore.getState();
+      const mockSession = {} as THomeserverSessionResult['session'];
+
+      // Set some state
+      store.setCurrentUserPubky('test-pubky');
+      store.setSession(mockSession);
+
+      // Verify state is set
+      expect(useAuthStore.getState().currentUserPubky).toBe('test-pubky');
+      expect(useAuthStore.getState().session).toBe(mockSession);
+      expect(store.selectIsAuthenticated()).toBe(true);
+      useAuthStore.getState().setSessionRestoreDeferred(true);
+
+      // Reset store
+      store.reset();
+
+      // Verify state is reset
+      expect(useAuthStore.getState().currentUserPubky).toBeNull();
+      expect(useAuthStore.getState().session).toBeNull();
+      expect(useAuthStore.getState().sessionRestoreDeferred).toBe(false);
+      expect(store.selectIsAuthenticated()).toBe(false);
+    });
+
+    it('preserves isRestoringSession across reset so restore cleanup cannot drop the loading flag', () => {
+      const store = useAuthStore.getState();
+      store.setIsRestoringSession(true);
+      store.reset();
+      expect(useAuthStore.getState().isRestoringSession).toBe(true);
+      store.setIsRestoringSession(false);
+      store.reset();
+      expect(useAuthStore.getState().isRestoringSession).toBe(false);
+    });
+  });
+
+  describe('Selectors', () => {
+    it('should return current user pubky when available', () => {
+      const store = useAuthStore.getState();
+      const testPubky = 'test-pubky-123';
+
+      // Set pubky
+      store.setCurrentUserPubky(testPubky);
+
+      // Use selector to get pubky
+      const selectedPubky = store.selectCurrentUserPubky();
+      expect(selectedPubky).toBe(testPubky);
+    });
+
+    it('should throw error when trying to select pubky when not available', () => {
+      const store = useAuthStore.getState();
+
+      // Ensure pubky is null
+      store.setCurrentUserPubky(null);
+
+      // Selector should throw error
+      expect(() => store.selectCurrentUserPubky()).toThrow(
+        'Current user pubky is not available. User may not be authenticated.',
+      );
+    });
+
+    it('should throw error when trying to select pubky from initial state', () => {
+      const store = useAuthStore.getState();
+
+      // Initial state should have null pubky
+      expect(useAuthStore.getState().currentUserPubky).toBeNull();
+
+      // Selector should throw error
+      expect(() => store.selectCurrentUserPubky()).toThrow(
+        'Current user pubky is not available. User may not be authenticated.',
+      );
+    });
+
+    it('should still throw error even when authenticated but pubky is null', () => {
+      const store = useAuthStore.getState();
+      const mockSession = {} as THomeserverSessionResult['session'];
+
+      // Set authenticated (via session) but no pubky (edge case)
+      store.setSession(mockSession);
+      store.setCurrentUserPubky(null);
+
+      // User is authenticated (has session) but no pubky
+      expect(store.selectIsAuthenticated()).toBe(true);
+
+      // Selector should still throw error
+      expect(() => store.selectCurrentUserPubky()).toThrow(
+        'Current user pubky is not available. User may not be authenticated.',
+      );
+    });
+
+    it('should compute authentication state based on session', () => {
+      const store = useAuthStore.getState();
+      const mockSession = {} as THomeserverSessionResult['session'];
+
+      // Initially not authenticated (no session)
+      expect(store.selectIsAuthenticated()).toBe(false);
+
+      // Set session - authenticated
+      store.setSession(mockSession);
+      expect(store.selectIsAuthenticated()).toBe(true);
+
+      // Clear session - not authenticated
+      store.setSession(null);
+      expect(store.selectIsAuthenticated()).toBe(false);
+    });
+  });
+});

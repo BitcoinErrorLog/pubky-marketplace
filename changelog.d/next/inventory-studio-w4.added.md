@@ -1,0 +1,1 @@
+Inventory Studio proof covers the ten seller screens at both viewports, a combined Dexie wipe of import and webhook tables, and a staging run of GET projection match, +1/−1 stock, 409, and a 3-row result CSV.

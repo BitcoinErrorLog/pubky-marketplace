@@ -1,0 +1,1 @@
+Seller studio drop status now restores a persisted marketplace session before the protected read, routes 401 to the seller session bootstrap instead of Status unavailable, and Retry actually refetches.

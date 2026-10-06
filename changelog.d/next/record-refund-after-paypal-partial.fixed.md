@@ -1,0 +1,1 @@
+After a PayPal partial refund on a received return or a cancelled order, the seller can record the rest and close the order. "Record refund" now stays available, says how much PayPal already refunded, and is prefilled with the amount PayPal has not refunded. Enter 0 to close the order at the PayPal amount.

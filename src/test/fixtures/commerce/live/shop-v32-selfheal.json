@@ -1,0 +1,71 @@
+{
+  "capturedAtUtc": "2026-09-13T19:25:28.663Z",
+  "source": "https://marketplace-service-production-ce23.up.railway.app",
+  "listing": {
+    "aggregate_id": "listing:yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy_item_32",
+    "seller_pubky": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+    "listing_id": "item_32",
+    "title": "Cutover test — do not buy",
+    "listing_revision": 1,
+    "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "server_revision": 3,
+    "state": "available",
+    "total_quantity": 1,
+    "available_quantity": 1,
+    "reserved_quantity": 0,
+    "sold_quantity": 0,
+    "unit_price": {
+      "amount_minor": 100,
+      "currency": "USD",
+      "exponent": 2
+    },
+    "shipping": {
+      "amount_minor": 100,
+      "currency": "USD",
+      "exponent": 2
+    },
+    "sale_format": "fixed_price",
+    "auction": null,
+    "fulfillment_methods": ["shipping"],
+    "updated_at": "2026-09-13T19:16:40.201Z"
+  },
+  "sync": {
+    "ok": true,
+    "version": 1,
+    "command_id": "00000000-0000-4000-8000-000000000932",
+    "aggregate_id": "listing:yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy_item_32",
+    "revision": 3,
+    "event_ids": [],
+    "result": {
+      "kind": "listing",
+      "listing": {
+        "aggregate_id": "listing:yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy_item_32",
+        "seller_pubky": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+        "listing_id": "item_32",
+        "title": "Cutover test — do not buy",
+        "listing_revision": 1,
+        "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "server_revision": 3,
+        "state": "available",
+        "total_quantity": 1,
+        "available_quantity": 1,
+        "reserved_quantity": 0,
+        "sold_quantity": 0,
+        "unit_price": {
+          "amount_minor": 100,
+          "currency": "USD",
+          "exponent": 2
+        },
+        "shipping": {
+          "amount_minor": 100,
+          "currency": "USD",
+          "exponent": 2
+        },
+        "sale_format": "fixed_price",
+        "auction": null,
+        "fulfillment_methods": ["shipping"],
+        "updated_at": "2026-09-13T19:16:40.201Z"
+      }
+    }
+  }
+}

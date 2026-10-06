@@ -1,0 +1,1 @@
+Opening a deleted listing now says "This listing was removed." instead of "This listing could not be loaded." The page treats the listing as removed when the seller's homeserver and the Nexus index both report it missing, or when the marketplace service reports a deletion; other failures keep the generic message.

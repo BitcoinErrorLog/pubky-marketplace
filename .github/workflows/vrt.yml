@@ -1,0 +1,57 @@
+name: Visual Regression Tests
+
+on:
+  push:
+    branches:
+      - master
+      - dev
+    # Not a required check, so a trigger path filter cannot leave one Pending.
+    paths-ignore:
+      - 'docs/**'
+      - 'payments-env/**'
+      - '**/*.md'
+  workflow_dispatch:
+
+jobs:
+  vrt:
+    name: VRT (Linux)
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.60.0-noble
+      # 64MB /dev/shm makes Chromium's font service abort (ENOSPC) when the
+      # vrt project opens every spec at once.
+      options: --user 1001 --shm-size=2g
+    timeout-minutes: 30
+    concurrency:
+      group: vrt-${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Linux visual regression tests
+        env:
+          VRT_BROWSERS: chromium,firefox,webkit
+          PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+          CI: true
+        run: npx vitest run --project vrt --project vrt-marketplace
+
+      - name: Upload VRT failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vrt-failures-linux
+          path: .vitest-attachments/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 14

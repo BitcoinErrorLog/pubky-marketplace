@@ -1,0 +1,1 @@
+The guest-to-signed-in session bridge no longer waits a full 15 seconds for a hidden iframe that never fires load. The iframe stays off-screen so the load event can fire, and the wait is bounded to the real load or a 3-second timeout.

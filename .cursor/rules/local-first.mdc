@@ -1,0 +1,9 @@
+---
+description: Local-first write patterns and controller naming conventions
+globs: src/core/**/*
+alwaysApply: false
+---
+
+# Local-First Rules
+
+@docs/local-first.md

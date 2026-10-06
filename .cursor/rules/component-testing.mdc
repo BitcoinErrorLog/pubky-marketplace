@@ -1,0 +1,9 @@
+---
+description: Writing unit tests and snapshot tests for UI component rendering
+globs: src/components/**/*.test.*
+alwaysApply: false
+---
+
+# Component Testing Rules
+
+@docs/component-testing.md

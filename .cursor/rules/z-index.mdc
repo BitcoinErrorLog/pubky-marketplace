@@ -1,0 +1,9 @@
+---
+description: Z-index layering conventions for consistent stacking
+globs: src/components/**/*
+alwaysApply: false
+---
+
+# Z-Index Rules
+
+@docs/z-index.md

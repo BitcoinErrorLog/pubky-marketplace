@@ -1,0 +1,415 @@
+{
+  "captureDate": "2026-09-11",
+  "source": "/tmp/marketplace-v23-canonical",
+  "provenance": {
+    "capturedAtUtc": "2026-09-11T13:00:05.111Z",
+    "sourceManifestSha256": "75bbbe4c5d3b4ae160589ffb25c3cbaf7df63b3ae1b07129887d891248455a42",
+    "nexusInventoryWholeFileSha256": "b899f0ca780dda0d226c7140b393818fd873f8acfb0006bd05d037d7d4ecc4b0",
+    "stableContentHashEncoding": "JSON.stringify(content) with UTF-8 bytes; equivalent to json.dumps(content, separators=(',', ':'), ensure_ascii=True) for this ASCII fixture",
+    "sources": {
+      "offer": {
+        "wholeFileSha256": "01bfd471185db06f79bb148df4009a946e51c09e8fa83d582e144bd4b8ae5439",
+        "contentSha256": "4a200919c86eb6450f2d6cc15d5adc2e25422d39f9911a6a5e21d04a025924d0"
+      },
+      "verify": {
+        "wholeFileSha256": "6dc57c5fed7da1914efe30600decc9e8030c2e8ca65b44725f32d163e75fdf48",
+        "contentSha256": "be1b2a4e6d02998cc446080eadf037bfc2bb2e5cc6ddfd0b540906323a84502e"
+      },
+      "casio": {
+        "wholeFileSha256": "4b4d25a821683373f0717ed0cd2457696c5b630802e36f9519b08b4cda50155c",
+        "contentSha256": "055c7270893b0fc45837b0b4235b82f4ed689c6a733330f059566145d0845171"
+      }
+    }
+  },
+  "nexus": [
+    {
+      "id": "c73b6be3ab4642539c69a797f9006dcb",
+      "uri": "pubky://nkcct8tzquo8n4z5ysz9t963ye9kq1w7gb55aad1z4tmsgjjhmto/pub/pubky.app/marketplace/v1/listings/c73b6be3ab4642539c69a797f9006dcb",
+      "owner_id": "nkcct8tzquo8n4z5ysz9t963ye9kq1w7gb55aad1z4tmsgjjhmto",
+      "indexed_at": 1789030226168,
+      "state": "active",
+      "title": "Offer Test",
+      "description": "headphones with a mic",
+      "category_id": "electronics",
+      "condition": "good",
+      "tags": ["offer", "test"],
+      "country_code": "BG",
+      "region": null,
+      "media_urls": [
+        "pubky://nkcct8tzquo8n4z5ysz9t963ye9kq1w7gb55aad1z4tmsgjjhmto/pub/pubky.app/marketplace/v1/media/69fa0a9d35b94245878912b63a011228"
+      ],
+      "sale_format": "fixed_price",
+      "price_amount_minor": 1000,
+      "price_currency": "USD",
+      "price_exponent": 2,
+      "auction_starts_at": null,
+      "auction_ends_at": null,
+      "auction_reserve_price_minor": null,
+      "auction_buy_now_price_minor": null,
+      "auction_minimum_increment_minor": null,
+      "fulfillment_methods": ["physical"],
+      "adult_only": false,
+      "created_at": "2026-09-10T08:50:26.451Z",
+      "updated_at": "2026-09-10T08:50:26.451Z",
+      "revision": 1,
+      "reputation": {
+        "avg": 5.0,
+        "count": 1,
+        "verified_count": 1
+      }
+    },
+    {
+      "id": "45b2aedff744407ea2d67c8069ed112e",
+      "uri": "pubky://nkcct8tzquo8n4z5ysz9t963ye9kq1w7gb55aad1z4tmsgjjhmto/pub/pubky.app/marketplace/v1/listings/45b2aedff744407ea2d67c8069ed112e",
+      "owner_id": "nkcct8tzquo8n4z5ysz9t963ye9kq1w7gb55aad1z4tmsgjjhmto",
+      "indexed_at": 1789030036101,
+      "state": "active",
+      "title": "Verify 10 Sep",
+      "description": "used, old and slow",
+      "category_id": "electronics",
+      "condition": "fair",
+      "tags": ["verify", "sep"],
+      "country_code": "BG",
+      "region": null,
+      "media_urls": [
+        "pubky://nkcct8tzquo8n4z5ysz9t963ye9kq1w7gb55aad1z4tmsgjjhmto/pub/pubky.app/marketplace/v1/media/f080c057c6144317b93f0b0be3997f6e"
+      ],
+      "sale_format": "fixed_price",
+      "price_amount_minor": 200,
+      "price_currency": "USD",
+      "price_exponent": 2,
+      "auction_starts_at": null,
+      "auction_ends_at": null,
+      "auction_reserve_price_minor": null,
+      "auction_buy_now_price_minor": null,
+      "auction_minimum_increment_minor": null,
+      "fulfillment_methods": ["physical"],
+      "adult_only": false,
+      "created_at": "2026-09-10T08:43:18.471Z",
+      "updated_at": "2026-09-10T08:47:16.408Z",
+      "revision": 3,
+      "reputation": {
+        "avg": 5.0,
+        "count": 1,
+        "verified_count": 1
+      }
+    },
+    {
+      "id": "aa2c8b308dbc47619793fe64dcefa9e8",
+      "uri": "pubky://nkcct8tzquo8n4z5ysz9t963ye9kq1w7gb55aad1z4tmsgjjhmto/pub/pubky.app/marketplace/v1/listings/aa2c8b308dbc47619793fe64dcefa9e8",
+      "owner_id": "nkcct8tzquo8n4z5ysz9t963ye9kq1w7gb55aad1z4tmsgjjhmto",
+      "indexed_at": 1788958245286,
+      "state": "active",
+      "title": "Casio AE-1200WHB-3BVDF Men's Watch",
+      "description": "Features:\n5 daily alarms and hourly chime - up to 5 alarms that sound every day at the set time, and an option for an hourly chime\nTextile strap\nPin buckle\nBattery life - 10 years\nLED backlight - LED diode illuminates the watch face\nPolymer case\nAcrylic glass\nAutomatic calendar - all days in different months and leap year corrections are adjusted automatically\n24/12 hour format\n24-hour stopwatch (1/100 sec.)\nCountdown timer - 24 hours (1 sec.) - the timer can count down up to 24 hours with an accuracy of 1 second\nMute - the ability to stop the sound emitted when pressing the buttons\nWater resistant (100 meters) - suitable for swimming\nWorld time - function for viewing local time in major cities around the world\n4 time zones - the local time in 4 different time zones is easily accessible, for quick viewing\nWeight: 39 g\nDimensions: 45.0mm x 42.1mm x 12.5mm (H x W x D)\nRelease Year: 2024\nWarranty: 2 years",
+      "category_id": "jewelry-watches-watches",
+      "condition": "good",
+      "tags": ["casio", "1200whb", "3bvdf", "men", "watch"],
+      "country_code": "BG",
+      "region": null,
+      "media_urls": [
+        "pubky://nkcct8tzquo8n4z5ysz9t963ye9kq1w7gb55aad1z4tmsgjjhmto/pub/pubky.app/marketplace/v1/media/1eca85d636c444bea2e9daea6a96b7d1"
+      ],
+      "sale_format": "fixed_price",
+      "price_amount_minor": 200,
+      "price_currency": "USD",
+      "price_exponent": 2,
+      "auction_starts_at": null,
+      "auction_ends_at": null,
+      "auction_reserve_price_minor": null,
+      "auction_buy_now_price_minor": null,
+      "auction_minimum_increment_minor": null,
+      "fulfillment_methods": ["physical"],
+      "adult_only": false,
+      "created_at": "2026-09-09T12:50:44.343Z",
+      "updated_at": "2026-09-09T12:50:44.343Z",
+      "revision": 1,
+      "reputation": {
+        "avg": 5.0,
+        "count": 1,
+        "verified_count": 1
+      },
+      "listing_reputation": {
+        "avg": 5.0,
+        "count": 1,
+        "verified_count": 1
+      }
+    }
+  ],
+  "canonical": [
+    {
+      "provenance": {
+        "utc": "2026-09-11T11:50:57.392Z",
+        "sourceUri": "pubky://nkcct8tzquo8n4z5ysz9t963ye9kq1w7gb55aad1z4tmsgjjhmto/pub/pubky.app/marketplace/v1/listings/45b2aedff744407ea2d67c8069ed112e",
+        "httpStatus": 200,
+        "revision": "unknown",
+        "contentSha256": "be1b2a4e6d02998cc446080eadf037bfc2bb2e5cc6ddfd0b540906323a84502e"
+      },
+      "record": {
+        "adultOnly": false,
+        "attributes": {
+          "brand": "Apple",
+          "color": ["black", "grey"]
+        },
+        "categoryId": "electronics",
+        "condition": "fair",
+        "createdAt": "2026-09-10T08:43:18.471Z",
+        "description": "used, old and slow",
+        "fulfillmentMethods": ["physical"],
+        "listingId": "45b2aedff744407ea2d67c8069ed112e",
+        "location": {
+          "countryCode": "BG",
+          "region": null
+        },
+        "media": [
+          {
+            "altText": "old ass iphone",
+            "byteSize": 44549,
+            "contentHash": "4994ed95238202a82e82c85b37be09145dcf62b1a5b4468092415285480f935f",
+            "height": 1280,
+            "id": "f080c057c6144317b93f0b0be3997f6e",
+            "mimeType": "image/jpeg",
+            "type": "image",
+            "url": "pubky://nkcct8tzquo8n4z5ysz9t963ye9kq1w7gb55aad1z4tmsgjjhmto/pub/pubky.app/marketplace/v1/media/f080c057c6144317b93f0b0be3997f6e",
+            "width": 720
+          }
+        ],
+        "ownerPubky": "nkcct8tzquo8n4z5ysz9t963ye9kq1w7gb55aad1z4tmsgjjhmto",
+        "package": {
+          "heightMillimeters": 10,
+          "lengthMillimeters": 220,
+          "weightGrams": 120,
+          "widthMillimeters": 120
+        },
+        "recordType": "listing",
+        "returnPolicy": {
+          "acceptsReturns": false,
+          "buyerPaysReturnShipping": true,
+          "returnWindowDays": null
+        },
+        "revision": 3,
+        "sale": {
+          "acceptsOffers": true,
+          "format": "fixed_price",
+          "unitPrice": {
+            "amountMinor": 200,
+            "currency": "USD",
+            "exponent": 2
+          }
+        },
+        "schemaVersion": 1,
+        "shippingOptions": [
+          {
+            "estimatedMaxDays": 7,
+            "estimatedMinDays": 3,
+            "id": "seller_flat_rate",
+            "label": "Seller shipping",
+            "price": {
+              "amountMinor": 300,
+              "currency": "USD",
+              "exponent": 2
+            },
+            "pricing": "flat"
+          }
+        ],
+        "state": "active",
+        "tags": ["verify", "sep"],
+        "taxonomyVersion": 2,
+        "title": "Verify 10 Sep",
+        "updatedAt": "2026-09-10T08:47:16.408Z",
+        "variants": [
+          {
+            "enabled": true,
+            "id": "variant_1",
+            "mediaIds": ["f080c057c6144317b93f0b0be3997f6e"],
+            "options": {},
+            "priceOverride": null,
+            "quantity": 1,
+            "sku": null
+          }
+        ]
+      }
+    },
+    {
+      "provenance": {
+        "utc": "2026-09-11T11:50:57.480Z",
+        "sourceUri": "pubky://nkcct8tzquo8n4z5ysz9t963ye9kq1w7gb55aad1z4tmsgjjhmto/pub/pubky.app/marketplace/v1/listings/aa2c8b308dbc47619793fe64dcefa9e8",
+        "httpStatus": 200,
+        "revision": "unknown",
+        "contentSha256": "055c7270893b0fc45837b0b4235b82f4ed689c6a733330f059566145d0845171"
+      },
+      "record": {
+        "adultOnly": false,
+        "attributes": {
+          "brand": "Casio",
+          "color": ["navy", "black"],
+          "material": "plastic"
+        },
+        "categoryId": "jewelry-watches-watches",
+        "condition": "good",
+        "createdAt": "2026-09-09T12:50:44.343Z",
+        "description": "Features:\n5 daily alarms and hourly chime - up to 5 alarms that sound every day at the set time, and an option for an hourly chime\nTextile strap\nPin buckle\nBattery life - 10 years\nLED backlight - LED diode illuminates the watch face\nPolymer case\nAcrylic glass\nAutomatic calendar - all days in different months and leap year corrections are adjusted automatically\n24/12 hour format\n24-hour stopwatch (1/100 sec.)\nCountdown timer - 24 hours (1 sec.) - the timer can count down up to 24 hours with an accuracy of 1 second\nMute - the ability to stop the sound emitted when pressing the buttons\nWater resistant (100 meters) - suitable for swimming\nWorld time - function for viewing local time in major cities around the world\n4 time zones - the local time in 4 different time zones is easily accessible, for quick viewing\nWeight: 39 g\nDimensions: 45.0mm x 42.1mm x 12.5mm (H x W x D)\nRelease Year: 2024\nWarranty: 2 years",
+        "fulfillmentMethods": ["physical"],
+        "listingId": "aa2c8b308dbc47619793fe64dcefa9e8",
+        "location": {
+          "countryCode": "BG",
+          "region": null
+        },
+        "media": [
+          {
+            "altText": "Casio AE-1200WHB-3BVDF",
+            "byteSize": 75657,
+            "contentHash": "c3ae92fee61a644ea5311bfdf7580b1052eec735d5856d733bf63e3197fcb9eb",
+            "height": 1280,
+            "id": "1eca85d636c444bea2e9daea6a96b7d1",
+            "mimeType": "image/jpeg",
+            "type": "image",
+            "url": "pubky://nkcct8tzquo8n4z5ysz9t963ye9kq1w7gb55aad1z4tmsgjjhmto/pub/pubky.app/marketplace/v1/media/1eca85d636c444bea2e9daea6a96b7d1",
+            "width": 720
+          }
+        ],
+        "ownerPubky": "nkcct8tzquo8n4z5ysz9t963ye9kq1w7gb55aad1z4tmsgjjhmto",
+        "package": {
+          "heightMillimeters": 200,
+          "lengthMillimeters": 300,
+          "weightGrams": 40,
+          "widthMillimeters": 200
+        },
+        "recordType": "listing",
+        "returnPolicy": {
+          "acceptsReturns": false,
+          "buyerPaysReturnShipping": true,
+          "returnWindowDays": null
+        },
+        "revision": 1,
+        "sale": {
+          "acceptsOffers": true,
+          "format": "fixed_price",
+          "unitPrice": {
+            "amountMinor": 200,
+            "currency": "USD",
+            "exponent": 2
+          }
+        },
+        "schemaVersion": 1,
+        "shippingOptions": [
+          {
+            "estimatedMaxDays": 7,
+            "estimatedMinDays": 3,
+            "id": "seller_flat_rate",
+            "label": "Seller shipping",
+            "price": {
+              "amountMinor": 1000,
+              "currency": "USD",
+              "exponent": 2
+            },
+            "pricing": "flat"
+          }
+        ],
+        "state": "active",
+        "tags": ["casio", "1200whb", "3bvdf", "men", "watch"],
+        "taxonomyVersion": 2,
+        "title": "Casio AE-1200WHB-3BVDF Men's Watch",
+        "updatedAt": "2026-09-09T12:50:44.343Z",
+        "variants": [
+          {
+            "enabled": true,
+            "id": "variant_1",
+            "mediaIds": ["1eca85d636c444bea2e9daea6a96b7d1"],
+            "options": {},
+            "priceOverride": null,
+            "quantity": 1,
+            "sku": null
+          }
+        ]
+      }
+    },
+    {
+      "provenance": {
+        "utc": "2026-09-11T11:50:57.117Z",
+        "sourceUri": "pubky://nkcct8tzquo8n4z5ysz9t963ye9kq1w7gb55aad1z4tmsgjjhmto/pub/pubky.app/marketplace/v1/listings/c73b6be3ab4642539c69a797f9006dcb",
+        "httpStatus": 200,
+        "revision": "unknown",
+        "contentSha256": "4a200919c86eb6450f2d6cc15d5adc2e25422d39f9911a6a5e21d04a025924d0"
+      },
+      "record": {
+        "adultOnly": false,
+        "attributes": {
+          "brand": "akg"
+        },
+        "categoryId": "electronics",
+        "condition": "good",
+        "createdAt": "2026-09-10T08:50:26.451Z",
+        "description": "headphones with a mic",
+        "fulfillmentMethods": ["physical"],
+        "listingId": "c73b6be3ab4642539c69a797f9006dcb",
+        "location": {
+          "countryCode": "BG",
+          "region": null
+        },
+        "media": [
+          {
+            "altText": "akg headphones",
+            "byteSize": 54658,
+            "contentHash": "fe1c90495659ced08e239697d4ae5dc0bb96f4bd95bc4abbbfde8b95de8132d0",
+            "height": 1280,
+            "id": "69fa0a9d35b94245878912b63a011228",
+            "mimeType": "image/jpeg",
+            "type": "image",
+            "url": "pubky://nkcct8tzquo8n4z5ysz9t963ye9kq1w7gb55aad1z4tmsgjjhmto/pub/pubky.app/marketplace/v1/media/69fa0a9d35b94245878912b63a011228",
+            "width": 720
+          }
+        ],
+        "ownerPubky": "nkcct8tzquo8n4z5ysz9t963ye9kq1w7gb55aad1z4tmsgjjhmto",
+        "package": {
+          "heightMillimeters": 50,
+          "lengthMillimeters": 100,
+          "weightGrams": 20,
+          "widthMillimeters": 50
+        },
+        "recordType": "listing",
+        "returnPolicy": {
+          "acceptsReturns": false,
+          "buyerPaysReturnShipping": true,
+          "returnWindowDays": null
+        },
+        "revision": 1,
+        "sale": {
+          "acceptsOffers": true,
+          "format": "fixed_price",
+          "unitPrice": {
+            "amountMinor": 1000,
+            "currency": "USD",
+            "exponent": 2
+          }
+        },
+        "schemaVersion": 1,
+        "shippingOptions": [
+          {
+            "estimatedMaxDays": 7,
+            "estimatedMinDays": 3,
+            "id": "seller_flat_rate",
+            "label": "Seller shipping",
+            "pricing": "free"
+          }
+        ],
+        "state": "active",
+        "tags": ["offer", "test"],
+        "taxonomyVersion": 2,
+        "title": "Offer Test",
+        "updatedAt": "2026-09-10T08:50:26.451Z",
+        "variants": [
+          {
+            "enabled": true,
+            "id": "variant_1",
+            "mediaIds": ["69fa0a9d35b94245878912b63a011228"],
+            "options": {},
+            "priceOverride": null,
+            "quantity": 1,
+            "sku": null
+          }
+        ]
+      }
+    }
+  ]
+}

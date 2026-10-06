@@ -1,0 +1,117 @@
+import { UserStreamApplication } from '@/application/stream/users/users';
+import type {
+  TGetOrFetchUsersParams,
+  TReadUserStreamChunkParams,
+  TReadUserStreamChunkResponse,
+} from '@/application/stream/users/users.types';
+import { NEXUS_USERS_PER_PAGE } from '@/config/nexus';
+import { useAuthStore } from '@/stores/auth/auth.store';
+
+/**
+ * Stream User Controller
+ *
+ * Handles user stream requests from the UI layer.
+ * Coordinates between application layer and manages background data fetching.
+ * Supports followers, following, friends, and other user stream types.
+ */
+export class StreamUserController {
+  private constructor() {}
+
+  /**
+   * Get or fetch a slice of a user stream (followers, following, friends, etc.)
+   *
+   * @param streamId - Composite user stream identifier (userId:reach) e.g., 'user123:followers'
+   * @param skip - Number of users to skip (for pagination)
+   * @param limit - Number of users to return
+   * @returns Next page of user IDs and pagination offset
+   */
+  static async getOrFetchStreamSlice({
+    streamId,
+    limit = NEXUS_USERS_PER_PAGE,
+    skip,
+    allowPartialCache,
+  }: TReadUserStreamChunkParams): Promise<TReadUserStreamChunkResponse> {
+    // selectCurrentUserPubky() throws an error when user is not authenticated;
+    // access currentUserPubky directly to get null instead (unauthenticated users can view profile followers/following)
+    const viewerId = useAuthStore.getState().currentUserPubky;
+
+    const {
+      nextPageIds,
+      cacheMissUserIds,
+      skip: nextSkip,
+      isExhausted,
+    } = await UserStreamApplication.getOrFetchStreamSlice({
+      streamId,
+      skip,
+      limit,
+      viewerId: viewerId ?? undefined,
+      ...(allowPartialCache !== undefined && { allowPartialCache }),
+    });
+
+    // Background fetch for missing users (non-blocking)
+    if (cacheMissUserIds.length > 0) {
+      // TODO: When TTL is implemented, we can return to void
+      await UserStreamApplication.fetchMissingUsersFromNexus({
+        cacheMissUserIds,
+        viewerId: viewerId ?? undefined,
+      });
+    }
+
+    return { nextPageIds, skip: nextSkip, isExhausted };
+  }
+
+  /**
+   * Refresh a slice of a user stream from Nexus and update the local cache.
+   *
+   * Always hits the network; the application layer still reads the cached stream so
+   * non-initial pages are merged/deduped with existing entries. Missing user details
+   * are hydrated as a follow-up, mirroring `getOrFetchStreamSlice`.
+   *
+   * Named `refresh*` rather than `fetch*` because the implementation consults local
+   * cache as a merge source — `fetch*` is reserved for network-only paths per
+   * `AGENTS.md`.
+   */
+  static async refreshStreamSlice({
+    streamId,
+    limit = NEXUS_USERS_PER_PAGE,
+    skip,
+  }: TReadUserStreamChunkParams): Promise<TReadUserStreamChunkResponse> {
+    const viewerId = useAuthStore.getState().currentUserPubky;
+
+    const {
+      nextPageIds,
+      cacheMissUserIds,
+      skip: nextSkip,
+      isExhausted,
+    } = await UserStreamApplication.refreshStreamSlice({
+      streamId,
+      skip,
+      limit,
+      viewerId: viewerId ?? undefined,
+    });
+
+    if (cacheMissUserIds.length > 0) {
+      await UserStreamApplication.fetchMissingUsersFromNexus({
+        cacheMissUserIds,
+        viewerId: viewerId ?? undefined,
+      });
+    }
+
+    return { nextPageIds, skip: nextSkip, isExhausted };
+  }
+
+  /**
+   * Ensures user details are cached for the given IDs.
+   * Checks local cache and fetches any missing users from Nexus.
+   *
+   * @param userIds - Array of user IDs to ensure are cached
+   */
+  static async getOrFetchUsers({ userIds }: Pick<TGetOrFetchUsersParams, 'userIds'>): Promise<void> {
+    const viewerId = useAuthStore.getState().currentUserPubky;
+
+    await UserStreamApplication.getOrFetchUsers({
+      userIds,
+      viewerId: viewerId ?? undefined,
+    });
+  }
+}

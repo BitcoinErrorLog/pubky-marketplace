@@ -1,0 +1,719 @@
+import { useRouter } from 'next/navigation';
+import { render, screen, waitFor } from '@testing-library/react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll/useInfiniteScroll';
+import { TimelinePosts } from './Posts';
+
+// Mock dependencies
+vi.mock('next/navigation');
+vi.mock('dexie-react-hooks');
+
+vi.mock('@/hooks/useInfiniteScroll/useInfiniteScroll', () => ({
+  useInfiniteScroll: vi.fn(),
+}));
+
+// Mock components
+vi.mock('@/atoms/Container/Container', () => {
+  return {
+    Container: ({ children, ...props }: { children?: React.ReactNode; [key: string]: unknown }) => (
+      <div data-testid="container" {...props}>
+        {children}
+      </div>
+    ),
+  };
+});
+
+vi.mock('@/molecules/Timeline/TimelineEndMessage', () => {
+  return {
+    TimelineEndMessage: () => <div data-testid="timeline-end-message">End of timeline</div>,
+  };
+});
+
+vi.mock('@/molecules/Timeline/TimelineError', () => {
+  return {
+    TimelineError: ({ message }: { message: string }) => <div data-testid="timeline-error">Error: {message}</div>,
+  };
+});
+
+vi.mock('@/molecules/Timeline/TimelineLoading', () => {
+  return {
+    TimelineLoading: () => <div data-testid="timeline-loading">Loading...</div>,
+  };
+});
+
+vi.mock('@/molecules/Timeline/TimelineLoadingMore', () => {
+  return {
+    TimelineLoadingMore: () => <div data-testid="timeline-loading-more">Loading more...</div>,
+  };
+});
+
+vi.mock('@/molecules/Timeline/TimelineStateWrapper/TimelineStateWrapper', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@/molecules/Timeline/TimelineStateWrapper/TimelineStateWrapper')>();
+  return {
+    ...actual,
+    TimelineStateWrapper: ({
+      loading,
+      error,
+      hasItems,
+      hasMore,
+      children,
+      emptyComponent,
+    }: {
+      loading: boolean;
+      error: string | null;
+      hasItems: boolean;
+      hasMore?: boolean;
+      children: React.ReactNode;
+      emptyComponent?: React.ReactNode;
+    }) => {
+      if (loading) return <div data-testid="timeline-loading">Loading...</div>;
+      if (error && !hasItems) return <div data-testid="timeline-initial-error">Error: {error}</div>;
+      if (!hasItems && hasMore)
+        return (
+          <>
+            <div data-testid="timeline-loading">Loading...</div>
+            {children}
+          </>
+        );
+      if (!hasItems) return <>{emptyComponent ?? <div data-testid="timeline-empty">No posts</div>}</>;
+      return <>{children}</>;
+    },
+  };
+});
+
+vi.mock('@/organisms/PostMain/PostMain', () => {
+  return {
+    PostMain: ({ postId, onClick, ...props }: { postId: string; onClick: () => void; [key: string]: unknown }) => (
+      <div data-testid={`post-${postId}`} onClick={onClick} {...props} />
+    ),
+  };
+});
+
+vi.mock('@/organisms/Timeline/PostReplies/PostReplies', () => {
+  return {
+    TimelinePostReplies: ({ postId }: { postId: string }) => <div data-testid={`replies-${postId}`} />,
+  };
+});
+
+const mockPush = vi.fn();
+const mockUseLiveQuery = vi.mocked(useLiveQuery);
+const mockUseRouter = vi.mocked(useRouter);
+const mockUseInfiniteScroll = vi.mocked(useInfiniteScroll);
+
+const mockPostIds = ['author1:post1', 'author2:post2', 'author3:post3'];
+describe('TimelinePosts', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    // Mock router
+    mockUseRouter.mockReturnValue({
+      push: mockPush,
+      back: vi.fn(),
+      forward: vi.fn(),
+      refresh: vi.fn(),
+      replace: vi.fn(),
+      prefetch: vi.fn(),
+    } as ReturnType<typeof useRouter>);
+
+    mockUseInfiniteScroll.mockReturnValue({
+      sentinelRef: vi.fn(),
+      isStalled: false,
+      resumeAutoLoad: vi.fn(),
+    });
+
+    // Mock useLiveQuery to return no replies by default
+    mockUseLiveQuery.mockReturnValue({ id: 'test', replies: 0, tags: 0, unique_tags: 0, reposts: 0 });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  describe('Loading States', () => {
+    it('should render loading state initially', async () => {
+      render(
+        <TimelinePosts
+          postIds={[]}
+          loading={true}
+          loadingMore={false}
+          error={null}
+          hasMore={true}
+          loadMore={vi.fn()}
+        />,
+      );
+
+      expect(screen.getByTestId('timeline-loading')).toBeInTheDocument();
+    });
+
+    it('should render posts after successful fetch', async () => {
+      render(
+        <TimelinePosts
+          postIds={mockPostIds}
+          loading={false}
+          loadingMore={false}
+          error={null}
+          hasMore={true}
+          loadMore={vi.fn()}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('timeline-loading')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('timeline-loading-more')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should show loading more indicator when paginating', async () => {
+      render(
+        <TimelinePosts
+          postIds={mockPostIds}
+          loading={false}
+          loadingMore={true}
+          error={null}
+          hasMore={true}
+          loadMore={vi.fn()}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('timeline-loading-more')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Empty States', () => {
+    it('keeps loading and the sentinel mounted when empty but hasMore (filtered stream region)', () => {
+      // Regression: a fully-filtered first load round returns zero visible posts with
+      // hasMore=true. Showing the empty state would unmount the infinite-scroll
+      // sentinel and stall the feed permanently ("No posts found" one round away
+      // from real posts). The wrapper must keep loading + children mounted instead.
+      render(
+        <TimelinePosts
+          postIds={[]}
+          loading={false}
+          loadingMore={false}
+          error={null}
+          hasMore={true}
+          loadMore={vi.fn()}
+        />,
+      );
+
+      expect(screen.queryByTestId('timeline-empty')).not.toBeInTheDocument();
+      expect(screen.getByTestId('timeline-loading')).toBeInTheDocument();
+      // Children mounted → the feed container (and with it the sentinel) exists.
+      expect(screen.getByRole('feed')).toBeInTheDocument();
+    });
+
+    it('should render empty state when no posts are returned', async () => {
+      render(
+        <TimelinePosts
+          postIds={[]}
+          loading={false}
+          loadingMore={false}
+          error={null}
+          hasMore={false}
+          loadMore={vi.fn()}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('timeline-empty')).toBeInTheDocument();
+        expect(screen.queryByTestId('timeline-loading')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('timeline-loading-more')).not.toBeInTheDocument();
+      });
+    });
+
+    it('renders a supplied empty state when no posts are returned', () => {
+      render(
+        <TimelinePosts
+          postIds={[]}
+          loading={false}
+          loadingMore={false}
+          error={null}
+          hasMore={false}
+          loadMore={vi.fn()}
+          emptyState={<div data-testid="custom-empty">Collection is empty</div>}
+        />,
+      );
+
+      expect(screen.getByTestId('custom-empty')).toBeInTheDocument();
+      expect(screen.queryByTestId('timeline-empty')).not.toBeInTheDocument();
+    });
+
+    it('renders the custom empty state followed by a trailing CTA', () => {
+      render(
+        <TimelinePosts
+          postIds={[]}
+          loading={false}
+          loadingMore={false}
+          error={null}
+          hasMore={false}
+          loadMore={vi.fn()}
+          emptyState={<div data-testid="custom-empty">Collection is empty</div>}
+          trailingSlot={<button data-testid="trailing-cta">Add content</button>}
+        />,
+      );
+
+      expect(screen.getByTestId('custom-empty')).toBeInTheDocument();
+      expect(screen.getByTestId('trailing-cta')).toBeInTheDocument();
+    });
+
+    it('should render end message when no more posts to load', async () => {
+      const fewPosts = ['author1:post1', 'author2:post2']; // Less than NEXUS_POSTS_PER_PAGE
+
+      render(
+        <TimelinePosts
+          postIds={fewPosts}
+          loading={false}
+          loadingMore={false}
+          error={null}
+          hasMore={false}
+          loadMore={vi.fn()}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('timeline-end-message')).toBeInTheDocument();
+        expect(screen.queryByTestId('timeline-loading')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('timeline-loading-more')).not.toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Error States', () => {
+    it('should render error state on initial fetch failure', async () => {
+      render(
+        <TimelinePosts
+          postIds={[]}
+          loading={false}
+          loadingMore={false}
+          error="Network error"
+          hasMore={false}
+          loadMore={vi.fn()}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('timeline-initial-error')).toBeInTheDocument();
+        expect(screen.getByText(/network error/i)).toBeInTheDocument();
+        expect(screen.queryByTestId('timeline-loading')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('timeline-loading-more')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should show error message when pagination fails', async () => {
+      render(
+        <TimelinePosts
+          postIds={mockPostIds}
+          loading={false}
+          loadingMore={false}
+          error="Pagination failed"
+          hasMore={false}
+          loadMore={vi.fn()}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('timeline-error')).toBeInTheDocument();
+        expect(screen.queryByTestId('timeline-loading')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('timeline-loading-more')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should stop loading more posts after pagination error', async () => {
+      render(
+        <TimelinePosts
+          postIds={mockPostIds}
+          loading={false}
+          loadingMore={false}
+          error="Pagination failed"
+          hasMore={false}
+          loadMore={vi.fn()}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('timeline-error')).toBeInTheDocument();
+        expect(screen.queryByTestId('timeline-loading-more')).not.toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Post Rendering', () => {
+    it('should render all fetched posts', async () => {
+      render(
+        <TimelinePosts
+          postIds={mockPostIds}
+          loading={false}
+          loadingMore={false}
+          error={null}
+          hasMore={true}
+          loadMore={vi.fn()}
+        />,
+      );
+
+      await waitFor(() => {
+        mockPostIds.forEach((postId) => {
+          expect(screen.getByTestId(`post-${postId}`)).toBeInTheDocument();
+        });
+      });
+    });
+
+    it('should render PostWithReplies for each post', async () => {
+      render(
+        <TimelinePosts
+          postIds={mockPostIds}
+          loading={false}
+          loadingMore={false}
+          error={null}
+          hasMore={true}
+          loadMore={vi.fn()}
+        />,
+      );
+
+      await waitFor(() => {
+        const postContainers = screen.getAllByTestId(/^post-/);
+        expect(postContainers).toHaveLength(mockPostIds.length);
+      });
+    });
+
+    it('should make all post cards individually tabbable', async () => {
+      render(
+        <TimelinePosts
+          postIds={mockPostIds}
+          loading={false}
+          loadingMore={false}
+          error={null}
+          hasMore={true}
+          loadMore={vi.fn()}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getAllByRole('article')).toHaveLength(mockPostIds.length);
+      });
+
+      const cards = screen.getAllByRole('article');
+      expect(cards[0]).toHaveAttribute('tabindex', '0');
+      expect(cards[1]).toHaveAttribute('tabindex', '0');
+      expect(cards[2]).toHaveAttribute('tabindex', '0');
+    });
+
+    it('should render posts with correct keys', async () => {
+      const { container } = render(
+        <TimelinePosts
+          postIds={mockPostIds}
+          loading={false}
+          loadingMore={false}
+          error={null}
+          hasMore={true}
+          loadMore={vi.fn()}
+        />,
+      );
+
+      await waitFor(() => {
+        const posts = container.querySelectorAll('[data-testid^="post-"]');
+        expect(posts).toHaveLength(mockPostIds.length);
+      });
+    });
+  });
+
+  describe('Pagination', () => {
+    it('should call loadMore when infinite scroll triggers', async () => {
+      const mockLoadMore = vi.fn();
+      render(
+        <TimelinePosts
+          postIds={mockPostIds}
+          loading={false}
+          loadingMore={false}
+          error={null}
+          hasMore={true}
+          loadMore={mockLoadMore}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('post-author1:post1')).toBeInTheDocument();
+      });
+
+      const { onLoadMore } = mockUseInfiniteScroll.mock.calls[0][0];
+      await onLoadMore();
+
+      expect(mockLoadMore).toHaveBeenCalled();
+    });
+
+    it('should show end message when hasMore is false', async () => {
+      render(
+        <TimelinePosts
+          postIds={mockPostIds}
+          loading={false}
+          loadingMore={false}
+          error={null}
+          hasMore={false}
+          loadMore={vi.fn()}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('timeline-end-message')).toBeInTheDocument();
+      });
+    });
+
+    it('should show loading more indicator when loadingMore is true', async () => {
+      render(
+        <TimelinePosts
+          postIds={mockPostIds}
+          loading={false}
+          loadingMore={true}
+          error={null}
+          hasMore={true}
+          loadMore={vi.fn()}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('timeline-loading-more')).toBeInTheDocument();
+      });
+    });
+
+    it('renders a trailing CTA after populated List posts without an end message', () => {
+      render(
+        <TimelinePosts
+          postIds={mockPostIds}
+          loading={false}
+          loadingMore={false}
+          error={null}
+          hasMore={false}
+          loadMore={vi.fn()}
+          trailingSlot={<button data-testid="trailing-cta">Add content</button>}
+          showEndMessage={false}
+        />,
+      );
+
+      expect(screen.getByTestId('trailing-cta')).toBeInTheDocument();
+      expect(screen.queryByTestId('timeline-end-message')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Stream Changes', () => {
+    it('should render posts with provided props', async () => {
+      render(
+        <TimelinePosts
+          postIds={mockPostIds}
+          loading={false}
+          loadingMore={false}
+          error={null}
+          hasMore={true}
+          loadMore={vi.fn()}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('post-author1:post1')).toBeInTheDocument();
+      });
+    });
+
+    it('should handle large number of posts in list', async () => {
+      const largePostCount = 2100;
+      const largePostIds = Array.from({ length: largePostCount }, (_, i) => `author${i + 1}:post${i + 1}`);
+      render(
+        <TimelinePosts
+          postIds={largePostIds}
+          loading={false}
+          loadingMore={false}
+          error={null}
+          hasMore={true}
+          loadMore={vi.fn()}
+        />,
+      );
+
+      await waitFor(() => {
+        const postContainers = screen.getAllByTestId(/^post-/);
+        expect(postContainers).toHaveLength(largePostCount);
+        expect(screen.getByTestId('post-author1:post1')).toBeInTheDocument();
+        expect(screen.getByTestId(`post-author${largePostCount}:post${largePostCount}`)).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Infinite scroll configuration', () => {
+    it('should configure infinite scroll with correct parameters', async () => {
+      render(
+        <TimelinePosts
+          postIds={mockPostIds}
+          loading={false}
+          loadingMore={false}
+          error={null}
+          hasMore={true}
+          loadMore={vi.fn()}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(mockUseInfiniteScroll).toHaveBeenCalledWith({
+          onLoadMore: expect.any(Function),
+          hasMore: expect.any(Boolean),
+          isLoading: expect.any(Boolean),
+          threshold: 3000,
+          debounceMs: 20,
+        });
+      });
+    });
+
+    it('should render sentinel element for infinite scroll', async () => {
+      mockUseInfiniteScroll.mockReturnValue({
+        sentinelRef: vi.fn(),
+        isStalled: false,
+        resumeAutoLoad: vi.fn(),
+      });
+
+      const { container } = render(
+        <TimelinePosts
+          postIds={mockPostIds}
+          loading={false}
+          loadingMore={false}
+          error={null}
+          hasMore={true}
+          loadMore={vi.fn()}
+        />,
+      );
+
+      await waitFor(() => {
+        const sentinel = container.querySelector('.h-5');
+        expect(sentinel).toBeInTheDocument();
+      });
+    });
+
+    it('should pass hasMore to infinite scroll hook', async () => {
+      render(
+        <TimelinePosts
+          postIds={mockPostIds}
+          loading={false}
+          loadingMore={false}
+          error={null}
+          hasMore={false}
+          loadMore={vi.fn()}
+        />,
+      );
+
+      await waitFor(() => {
+        const { hasMore } = mockUseInfiniteScroll.mock.calls[0][0];
+        expect(hasMore).toBe(false);
+      });
+    });
+
+    it('should pass loadingMore to infinite scroll hook', async () => {
+      render(
+        <TimelinePosts
+          postIds={mockPostIds}
+          loading={false}
+          loadingMore={true}
+          error={null}
+          hasMore={true}
+          loadMore={vi.fn()}
+        />,
+      );
+
+      await waitFor(() => {
+        const { isLoading } = mockUseInfiniteScroll.mock.calls[0][0];
+        expect(isLoading).toBe(true);
+      });
+    });
+  });
+});
+
+describe('TimelinePosts - Snapshots', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    // Mock router
+    mockUseRouter.mockReturnValue({
+      push: mockPush,
+      back: vi.fn(),
+      forward: vi.fn(),
+      refresh: vi.fn(),
+      replace: vi.fn(),
+      prefetch: vi.fn(),
+    } as ReturnType<typeof useRouter>);
+
+    mockUseInfiniteScroll.mockReturnValue({
+      sentinelRef: vi.fn(),
+      isStalled: false,
+      resumeAutoLoad: vi.fn(),
+    });
+
+    // Mock useLiveQuery
+    mockUseLiveQuery.mockReturnValue({ id: 'test', replies: 0, tags: 0, unique_tags: 0, reposts: 0 });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should match snapshot for loading state', () => {
+    const { container } = render(
+      <TimelinePosts postIds={[]} loading={true} loadingMore={false} error={null} hasMore={true} loadMore={vi.fn()} />,
+    );
+
+    expect(container).toMatchSnapshot();
+  });
+
+  it('should match snapshot for empty state', async () => {
+    const { container } = render(
+      <TimelinePosts
+        postIds={[]}
+        loading={false}
+        loadingMore={false}
+        error={null}
+        hasMore={false}
+        loadMore={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('timeline-empty')).toBeInTheDocument();
+    });
+
+    expect(container).toMatchSnapshot();
+  });
+
+  it('should match snapshot for error state', async () => {
+    const { container } = render(
+      <TimelinePosts
+        postIds={[]}
+        loading={false}
+        loadingMore={false}
+        error="Network error"
+        hasMore={false}
+        loadMore={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('timeline-initial-error')).toBeInTheDocument();
+    });
+
+    expect(container).toMatchSnapshot();
+  });
+
+  it('should match snapshot with posts', async () => {
+    const { container } = render(
+      <TimelinePosts
+        postIds={mockPostIds}
+        loading={false}
+        loadingMore={false}
+        error={null}
+        hasMore={true}
+        loadMore={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('timeline-loading')).not.toBeInTheDocument();
+    });
+
+    expect(container).toMatchSnapshot();
+  });
+});

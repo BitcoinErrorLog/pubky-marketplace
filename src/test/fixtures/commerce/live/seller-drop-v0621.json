@@ -1,0 +1,36 @@
+{
+  "captureDate": "2026-09-23",
+  "provenance": {
+    "capturedAtUtc": "2026-09-23T09:17:09Z",
+    "source": "production GET /v1/drops/{aggregate_id} from https://shop.pubky.app (Chromium, dpl_ANfAsVuXgbzVkjxDZRPZRjJehJon)",
+    "serviceRevision": "ea9e793",
+    "seat": "seller",
+    "identityRedaction": "pubky values truncated to 8 characters"
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "drop": {
+        "aggregate_id": "drop:n3pfudgx…_8e736368c8de496182eaf4af36b3a3c8",
+        "seller_pubky": "n3pfudgx…",
+        "drop_id": "8e736368c8de496182eaf4af36b3a3c8",
+        "record_revision": 1,
+        "revision": 5,
+        "state": "live",
+        "format": "fcfs",
+        "starts_at": "2026-09-23T08:35:00.000Z",
+        "ends_at": null,
+        "total_quantity": 1,
+        "per_buyer_limit": 1,
+        "remaining_quantity": 1,
+        "paid_quantity": 0,
+        "stock_display": "exact",
+        "listing_ids": ["461aabf9c07e42bbbd0e212dc85e4cd8"],
+        "created_at": "2026-09-23T08:40:19.443Z",
+        "updated_at": "2026-09-23T08:51:14.125Z",
+        "buyer_count": 0,
+        "server_time": "2026-09-23T09:17:09.589Z"
+      }
+    }
+  }
+}

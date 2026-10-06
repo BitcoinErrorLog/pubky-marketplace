@@ -1,0 +1,32 @@
+{
+  "record_status": "unavailable",
+  "record_uri": "pubky://yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy/pub/pubky.app/marketplace/v1/listings/0789dcfe82644b8bbdd3e559d0015356",
+  "projection": {
+    "aggregate_id": "listing:yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy_0789dcfe82644b8bbdd3e559d0015356",
+    "seller_pubky": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+    "listing_id": "0789dcfe82644b8bbdd3e559d0015356",
+    "title": "Cutover test — do not buy — Locks 1A proof",
+    "listing_revision": 1,
+    "content_hash": "d4cc5b1b66ce7733242b46b70cd25e86b1055fc0619461c02a24659b9e33eb31",
+    "server_revision": 1,
+    "state": "available",
+    "total_quantity": 1,
+    "available_quantity": 1,
+    "reserved_quantity": 0,
+    "sold_quantity": 0,
+    "unit_price": {
+      "amount_minor": 100,
+      "currency": "USD",
+      "exponent": 2
+    },
+    "shipping": {
+      "amount_minor": 0,
+      "currency": "USD",
+      "exponent": 2
+    },
+    "sale_format": "fixed_price",
+    "auction": null,
+    "fulfillment_methods": ["shipping"],
+    "updated_at": "2026-09-18T12:49:18.612Z"
+  }
+}

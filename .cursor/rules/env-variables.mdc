@@ -1,0 +1,9 @@
+---
+description: Environment variables configuration and validation rules
+globs: src/libs/env/env.ts
+alwaysApply: false
+---
+
+# Environment Variable Rules
+
+@docs/environment.md

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "recordType": "shop",
+  "ownerPubky": "nkcct8tzquo8n4z5ysz9t963ye9kq1w7gb55aad1z4tmsgjjhmto",
+  "revision": 1,
+  "createdAt": "2026-09-10T11:37:53.443Z",
+  "updatedAt": "2026-09-10T11:37:53.443Z",
+  "name": "Launch E2E fixture shop",
+  "bio": "Pinned shop record for the required launch-e2e gate.",
+  "location": { "countryCode": "US", "region": "NY" },
+  "shippingPolicy": "Ships within three business days.",
+  "returnPolicy": "Returns accepted within 30 days.",
+  "vacationMode": false
+}

@@ -1,0 +1,278 @@
+{
+  "colors": [
+    {
+      "label": "Black",
+      "value": "black"
+    },
+    {
+      "label": "Blue",
+      "value": "blue"
+    },
+    {
+      "label": "Brown",
+      "value": "brown"
+    },
+    {
+      "label": "Burgundy",
+      "value": "burgundy"
+    },
+    {
+      "label": "Cream",
+      "value": "cream"
+    },
+    {
+      "label": "Gold",
+      "value": "gold"
+    },
+    {
+      "label": "Green",
+      "value": "green"
+    },
+    {
+      "label": "Grey",
+      "value": "grey"
+    },
+    {
+      "label": "Khaki",
+      "value": "khaki"
+    },
+    {
+      "label": "Multi",
+      "value": "multi"
+    },
+    {
+      "label": "Navy",
+      "value": "navy"
+    },
+    {
+      "label": "Orange",
+      "value": "orange"
+    },
+    {
+      "label": "Pink",
+      "value": "pink"
+    },
+    {
+      "label": "Purple",
+      "value": "purple"
+    },
+    {
+      "label": "Red",
+      "value": "red"
+    },
+    {
+      "label": "Silver",
+      "value": "silver"
+    },
+    {
+      "label": "Tan",
+      "value": "tan"
+    },
+    {
+      "label": "White",
+      "value": "white"
+    },
+    {
+      "label": "Yellow",
+      "value": "yellow"
+    }
+  ],
+  "sources": [
+    {
+      "label": "Custom",
+      "value": "custom"
+    },
+    {
+      "label": "Deadstock",
+      "value": "deadstock"
+    },
+    {
+      "label": "Designer",
+      "value": "designer"
+    },
+    {
+      "label": "Handmade",
+      "value": "handmade"
+    },
+    {
+      "label": "Preloved",
+      "value": "preloved"
+    },
+    {
+      "label": "Repaired",
+      "value": "repaired"
+    },
+    {
+      "label": "Reworked / Upcycled",
+      "value": "reworked"
+    },
+    {
+      "label": "Vintage",
+      "value": "vintage"
+    }
+  ],
+  "ages": [
+    {
+      "label": "00s",
+      "value": "y2k"
+    },
+    {
+      "label": "50s",
+      "value": "50s"
+    },
+    {
+      "label": "60s",
+      "value": "60s"
+    },
+    {
+      "label": "70s",
+      "value": "70s"
+    },
+    {
+      "label": "80s",
+      "value": "80s"
+    },
+    {
+      "label": "90s",
+      "value": "90s"
+    },
+    {
+      "label": "Antique",
+      "value": "antique"
+    },
+    {
+      "label": "Modern",
+      "value": "modern"
+    }
+  ],
+  "styles": [
+    {
+      "label": "Avant Garde",
+      "value": "avant_garde"
+    },
+    {
+      "label": "Biker",
+      "value": "biker"
+    },
+    {
+      "label": "Boho",
+      "value": "boho"
+    },
+    {
+      "label": "Casual",
+      "value": "casual"
+    },
+    {
+      "label": "Coquette",
+      "value": "coquette"
+    },
+    {
+      "label": "Cosplay",
+      "value": "cosplay"
+    },
+    {
+      "label": "Costume",
+      "value": "costume"
+    },
+    {
+      "label": "Cottage",
+      "value": "cottage"
+    },
+    {
+      "label": "Emo",
+      "value": "emo"
+    },
+    {
+      "label": "Fairy",
+      "value": "fairy"
+    },
+    {
+      "label": "Futuristic",
+      "value": "futuristic"
+    },
+    {
+      "label": "Glam",
+      "value": "glam"
+    },
+    {
+      "label": "Gorpcore",
+      "value": "gorpcore"
+    },
+    {
+      "label": "Goth",
+      "value": "goth"
+    },
+    {
+      "label": "Grunge",
+      "value": "grunge"
+    },
+    {
+      "label": "Indie",
+      "value": "indie"
+    },
+    {
+      "label": "Kidcore",
+      "value": "kidcore"
+    },
+    {
+      "label": "Loungewear",
+      "value": "loungewear"
+    },
+    {
+      "label": "Minimalist",
+      "value": "minimalist"
+    },
+    {
+      "label": "Preppy",
+      "value": "preppy"
+    },
+    {
+      "label": "Punk",
+      "value": "punk"
+    },
+    {
+      "label": "Rave",
+      "value": "rave"
+    },
+    {
+      "label": "Regency",
+      "value": "regency"
+    },
+    {
+      "label": "Retro",
+      "value": "retro"
+    },
+    {
+      "label": "Skater",
+      "value": "skater"
+    },
+    {
+      "label": "Sportswear",
+      "value": "sportswear"
+    },
+    {
+      "label": "Streetwear",
+      "value": "streetwear"
+    },
+    {
+      "label": "Twee",
+      "value": "twee"
+    },
+    {
+      "label": "Utility",
+      "value": "techwear"
+    },
+    {
+      "label": "Western",
+      "value": "western"
+    },
+    {
+      "label": "Whimsygoth",
+      "value": "whimsygoth"
+    },
+    {
+      "label": "Y2K",
+      "value": "y2_k"
+    }
+  ]
+}

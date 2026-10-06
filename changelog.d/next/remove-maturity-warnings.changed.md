@@ -1,0 +1,1 @@
+Removed unsolicited production maturity and real-money warning banners from Shop checkout, orders, payment settings, and auth QR dialogs. Staging still shows the test-rails notice; checkout keeps a muted seller-direct helper; awaiting payment keeps the hold sentence.

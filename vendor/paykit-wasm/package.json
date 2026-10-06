@@ -1,0 +1,24 @@
+{
+  "name": "paykit-wasm",
+  "type": "module",
+  "collaborators": [
+    "johnc@synonym.to"
+  ],
+  "description": "Browser WASM binding for Paykit Encrypted Links and Payment Endpoints",
+  "version": "0.1.0-rc50",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pubky/paykit-rs"
+  },
+  "files": [
+    "paykit_wasm_bg.wasm",
+    "paykit_wasm.js",
+    "paykit_wasm.d.ts"
+  ],
+  "main": "paykit_wasm.js",
+  "types": "paykit_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

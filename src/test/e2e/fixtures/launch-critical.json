@@ -1,0 +1,25 @@
+{
+  "os": "linux",
+  "browser": "chromium",
+  "playwright": "1.60.0",
+  "serviceUrl": "https://staging-api.pubky.app",
+  "catalogHeading": "Find something rare.",
+  "forbiddenSandboxCopy": "Sandbox · no real funds",
+  "joinDialogHeading": "Join Pubky",
+  "listingCardSelector": "a[href*='/marketplace/listing/'][aria-label^='View ']",
+  "listingPath": "/marketplace/listing/nkcct8tzquo8n4z5ysz9t963ye9kq1w7gb55aad1z4tmsgjjhmto/2b81df4f390b40e5b0aedabb89e76fa0",
+  "listingTitle": "Launch E2E fixture listing",
+  "pages": [
+    { "id": "catalog", "path": "/marketplace" },
+    {
+      "id": "listing",
+      "path": "/marketplace/listing/nkcct8tzquo8n4z5ysz9t963ye9kq1w7gb55aad1z4tmsgjjhmto/2b81df4f390b40e5b0aedabb89e76fa0"
+    },
+    { "id": "cart-checkout", "path": "/marketplace/cart" },
+    { "id": "seller-compose", "path": "/marketplace/sell" },
+    { "id": "inventory", "path": "/marketplace/dashboard/inventory" }
+  ],
+  "axe": {
+    "failImpacts": ["critical", "serious"]
+  }
+}

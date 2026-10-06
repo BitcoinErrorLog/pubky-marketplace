@@ -1,0 +1,188 @@
+{
+  "schema_version": 1,
+  "kind": "seller_listing_export",
+  "seller_pubky": "7oboeqnfgtf5d6gohz1wao7rboe1q3ynexkbm5tmq4u49kxzej9y",
+  "listings": [
+    {
+      "record_uri": "pubky://7oboeqnfgtf5d6gohz1wao7rboe1q3ynexkbm5tmq4u49kxzej9y/pub/pubky.app/marketplace/v1/listings/w4i_mujp0ovw_a",
+      "record": {
+        "adultOnly": false,
+        "categoryId": "fashion-shoes-boots",
+        "condition": "good",
+        "createdAt": "2026-09-27T10:46:00.000Z",
+        "description": "Well cared for boots with light wear.",
+        "fulfillmentMethods": ["physical"],
+        "listingId": "w4i_mujp0ovw_a",
+        "location": {
+          "countryCode": "US",
+          "region": "NY"
+        },
+        "media": [
+          {
+            "altText": "w4i_mujp0ovw_a",
+            "byteSize": 10000,
+            "contentHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "height": 1600,
+            "id": "img_w4i_mujp0ovw_a",
+            "mimeType": "image/jpeg",
+            "type": "image",
+            "url": "pubky://7oboeqnfgtf5d6gohz1wao7rboe1q3ynexkbm5tmq4u49kxzej9y/pub/pubky.app/marketplace/v1/media/img_w4i_mujp0ovw_a",
+            "width": 1200
+          }
+        ],
+        "ownerPubky": "7oboeqnfgtf5d6gohz1wao7rboe1q3ynexkbm5tmq4u49kxzej9y",
+        "package": {
+          "heightMillimeters": 120,
+          "lengthMillimeters": 320,
+          "weightGrams": 800,
+          "widthMillimeters": 220
+        },
+        "recordType": "listing",
+        "returnPolicy": {
+          "acceptsReturns": true,
+          "buyerPaysReturnShipping": true,
+          "returnWindowDays": 30
+        },
+        "revision": 1,
+        "sale": {
+          "acceptsOffers": true,
+          "format": "fixed_price",
+          "unitPrice": {
+            "amountMinor": 12500,
+            "currency": "USD",
+            "exponent": 2
+          }
+        },
+        "schemaVersion": 1,
+        "shippingOptions": [
+          {
+            "estimatedMaxDays": 7,
+            "estimatedMinDays": 3,
+            "id": "ship_01",
+            "label": "Standard shipping",
+            "price": {
+              "amountMinor": 0,
+              "currency": "USD",
+              "exponent": 2
+            },
+            "pricing": "flat"
+          }
+        ],
+        "state": "active",
+        "tags": ["vintage"],
+        "taxonomyVersion": 1,
+        "title": "W4 import w4i_mujp0ovw_a",
+        "updatedAt": "2026-09-27T10:46:00.000Z",
+        "variants": [
+          {
+            "enabled": true,
+            "id": "var_w4i_mujp0ovw_a",
+            "mediaIds": ["img_w4i_mujp0ovw_a"],
+            "options": {
+              "option": "default"
+            },
+            "quantity": 1
+          }
+        ]
+      },
+      "record_bytes_base64": "[base64 2004]",
+      "record_sha256": "5498e2a5dd818d828f4b5f84f275a114227930618acc6a85a82a41293ba0f7f1",
+      "projection": {
+        "aggregate_id": "listing:7oboeqnfgtf5d6gohz1wao7rboe1q3ynexkbm5tmq4u49kxzej9y_w4i_mujp0ovw_a",
+        "seller_pubky": "7oboeqnfgtf5d6gohz1wao7rboe1q3ynexkbm5tmq4u49kxzej9y",
+        "listing_id": "w4i_mujp0ovw_a",
+        "title": "W4 import w4i_mujp0ovw_a",
+        "listing_revision": 1,
+        "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "server_revision": 2,
+        "state": "sold",
+        "total_quantity": 0,
+        "available_quantity": 0,
+        "reserved_quantity": 0,
+        "sold_quantity": 0,
+        "unit_price": {
+          "amount_minor": 12500,
+          "currency": "USD",
+          "exponent": 2
+        },
+        "shipping": {
+          "amount_minor": 1200,
+          "currency": "USD",
+          "exponent": 2
+        },
+        "sale_format": "fixed_price",
+        "auction": null,
+        "fulfillment_methods": ["shipping"],
+        "digital_delivery": null,
+        "updated_at": "2026-09-27T10:57:35.079Z"
+      }
+    },
+    {
+      "record_status": "unavailable",
+      "record_uri": "pubky://7oboeqnfgtf5d6gohz1wao7rboe1q3ynexkbm5tmq4u49kxzej9y/pub/pubky.app/marketplace/v1/listings/w4i_mujp0ovw_b",
+      "projection": {
+        "aggregate_id": "listing:7oboeqnfgtf5d6gohz1wao7rboe1q3ynexkbm5tmq4u49kxzej9y_w4i_mujp0ovw_b",
+        "seller_pubky": "7oboeqnfgtf5d6gohz1wao7rboe1q3ynexkbm5tmq4u49kxzej9y",
+        "listing_id": "w4i_mujp0ovw_b",
+        "title": "W4 import w4i_mujp0ovw_b",
+        "listing_revision": 1,
+        "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "server_revision": 2,
+        "state": "sold",
+        "total_quantity": 0,
+        "available_quantity": 0,
+        "reserved_quantity": 0,
+        "sold_quantity": 0,
+        "unit_price": {
+          "amount_minor": 12500,
+          "currency": "USD",
+          "exponent": 2
+        },
+        "shipping": {
+          "amount_minor": 1200,
+          "currency": "USD",
+          "exponent": 2
+        },
+        "sale_format": "fixed_price",
+        "auction": null,
+        "fulfillment_methods": ["shipping"],
+        "digital_delivery": null,
+        "updated_at": "2026-09-27T10:57:35.348Z"
+      }
+    },
+    {
+      "record_status": "unavailable",
+      "record_uri": "pubky://7oboeqnfgtf5d6gohz1wao7rboe1q3ynexkbm5tmq4u49kxzej9y/pub/pubky.app/marketplace/v1/listings/w4i_mujp0ovw_c",
+      "projection": {
+        "aggregate_id": "listing:7oboeqnfgtf5d6gohz1wao7rboe1q3ynexkbm5tmq4u49kxzej9y_w4i_mujp0ovw_c",
+        "seller_pubky": "7oboeqnfgtf5d6gohz1wao7rboe1q3ynexkbm5tmq4u49kxzej9y",
+        "listing_id": "w4i_mujp0ovw_c",
+        "title": "W4 import w4i_mujp0ovw_c",
+        "listing_revision": 1,
+        "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "server_revision": 2,
+        "state": "sold",
+        "total_quantity": 0,
+        "available_quantity": 0,
+        "reserved_quantity": 0,
+        "sold_quantity": 0,
+        "unit_price": {
+          "amount_minor": 12500,
+          "currency": "USD",
+          "exponent": 2
+        },
+        "shipping": {
+          "amount_minor": 1200,
+          "currency": "USD",
+          "exponent": 2
+        },
+        "sale_format": "fixed_price",
+        "auction": null,
+        "fulfillment_methods": ["shipping"],
+        "digital_delivery": null,
+        "updated_at": "2026-09-27T10:57:35.624Z"
+      }
+    }
+  ],
+  "next_cursor": null
+}

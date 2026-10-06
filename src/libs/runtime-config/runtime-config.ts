@@ -1,0 +1,262 @@
+import { PHASE_PRODUCTION_BUILD } from 'next/constants';
+import {
+  type CommerceAdapterMode,
+  type DeployEnv,
+  PUBKY_RUNTIME_ENV_NAMES,
+  type RuntimeConfig,
+  runtimeConfigValueSchema,
+  runtimeEnvInputSchema,
+  runtimeEnvInputSchemaWithDefaults,
+} from './runtime-config.schema';
+
+/**
+ * Server-injected synchronous runtime config.
+ *
+ * - Server: reads non-inlined `PUBKY_RUNTIME_*` env when the root layout renders (at build for
+ *   routes Vercel prerenders, per request everywhere else), validates, and memoizes.
+ *   The same memoized object is serialized into the HTML (see `serializeRuntimeConfig`).
+ * - Client: reads the injected `window.__PUBKY_CONFIG__`, validates, and memoizes.
+ * - dev/test: reads the same `PUBKY_RUNTIME_*` names leniently (honoring `.env.local` /
+ *   `src/config/test.ts` partial overrides), with staging defaults filling the gaps.
+ *
+ * This module must NOT import `Env` (keeps the import graph a leaf, avoids the env<->logger cycle).
+ */
+
+export const RUNTIME_CONFIG_WINDOW_KEY = '__PUBKY_CONFIG__';
+
+declare global {
+  interface Window {
+    [RUNTIME_CONFIG_WINDOW_KEY]?: unknown;
+  }
+}
+
+let memoizedConfig: RuntimeConfig | null = null;
+let didWarnModerationDisabled = false;
+
+const REQUIRED_NETWORK_ENV_MESSAGE =
+  'Set all required PUBKY_RUNTIME_* network variables: ' +
+  'PUBKY_RUNTIME_NEXUS_URL, PUBKY_RUNTIME_CDN_URL, PUBKY_RUNTIME_HOMESERVER, ' +
+  'PUBKY_RUNTIME_HOMESERVER_URL, PUBKY_RUNTIME_HOMEGATE_URL, PUBKY_RUNTIME_DEFAULT_HTTP_RELAY, ' +
+  'PUBKY_RUNTIME_PKARR_RELAYS, PUBKY_RUNTIME_TESTNET, and PUBKY_RUNTIME_ENV ' +
+  '("production" or "staging"). ' +
+  'Optional/defaulted PUBKY_RUNTIME_* values may be set independently.';
+
+/**
+ * Whether a valid runtime config MUST be present (fail loud instead of falling back).
+ * True for deployed environments (incl. staging, which runs NODE_ENV=production) and when
+ * explicitly opted in via PUBKY_RUNTIME_CONFIG_REQUIRED; never true under tests.
+ */
+function isRuntimeConfigRequired(): boolean {
+  if (process.env.NODE_ENV === 'test' || process.env.VITEST) return false;
+  return process.env.NODE_ENV === 'production' || process.env.PUBKY_RUNTIME_CONFIG_REQUIRED === 'true';
+}
+
+/**
+ * `next build` runs with NODE_ENV=production and imports modules for data collection. The
+ * resolver is only ever invoked at request time, but this guard ensures that even if it were
+ * reached during the build phase it would not throw.
+ */
+function isProductionBuildPhase(): boolean {
+  return process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD;
+}
+
+/**
+ * Vercel builds prerender static routes with the deployment's own env, and the
+ * inlined runtime config ships in that HTML, so the build must parse strictly:
+ * a missing variable fails the build instead of prerendering staging defaults.
+ * Other builds (CI, Docker, local) stay lenient and render every route per
+ * request (`render-mode.ts`), so their HTML carries the server's config.
+ */
+function isVercelBuild(): boolean {
+  return process.env.VERCEL === '1';
+}
+
+/** Collect the raw `PUBKY_RUNTIME_*` string values keyed by config field name. */
+function readRuntimeEnvInput(): Record<string, string | undefined> {
+  const input: Record<string, string | undefined> = {};
+  for (const key of Object.keys(PUBKY_RUNTIME_ENV_NAMES) as (keyof RuntimeConfig)[]) {
+    input[key] = process.env[PUBKY_RUNTIME_ENV_NAMES[key]];
+  }
+  return input;
+}
+
+/**
+ * dev/test parse: read `PUBKY_RUNTIME_*` through the defaulted schema, so local `.env.local`
+ * and test overrides are honored (partial values layer over staging defaults).
+ */
+function parseLenientConfig(): RuntimeConfig {
+  return runtimeEnvInputSchemaWithDefaults.parse(readRuntimeEnvInput());
+}
+
+/** Exported for unit tests; prefer `getRuntimeConfig()` in app code. */
+export function readServerConfig(): RuntimeConfig {
+  // Deployed/required mode: strict parse — ALL required network values must be set and valid.
+  // Partial deploy config fails loudly instead of silently resolving to staging defaults.
+  if (isRuntimeConfigRequired() && (!isProductionBuildPhase() || isVercelBuild())) {
+    const result = runtimeEnvInputSchema.safeParse(readRuntimeEnvInput());
+    if (!result.success) {
+      throw new Error(`Runtime config is incomplete or invalid. ${REQUIRED_NETWORK_ENV_MESSAGE}`, {
+        cause: result.error,
+      });
+    }
+    return result.data;
+  }
+
+  return parseLenientConfig();
+}
+
+/** Exported for unit tests; prefer `getRuntimeConfig()` in app code. */
+export function readClientConfig(): RuntimeConfig {
+  const injected = window[RUNTIME_CONFIG_WINDOW_KEY];
+  if (injected !== undefined) {
+    return runtimeConfigValueSchema.parse(injected);
+  }
+
+  if (isRuntimeConfigRequired()) {
+    throw new Error('Runtime config is required but window.__PUBKY_CONFIG__ was not injected.');
+  }
+
+  return parseLenientConfig();
+}
+
+/**
+ * Resolve the runtime config once per process (server) / page load (client), memoized.
+ * The same object is used for SSR reads and for the injected script (no double-read drift).
+ */
+export function getRuntimeConfig(): RuntimeConfig {
+  if (memoizedConfig) return memoizedConfig;
+  memoizedConfig = typeof window === 'undefined' ? readServerConfig() : readClientConfig();
+  return memoizedConfig;
+}
+
+/** Emit one deployed-startup warning when moderation is intentionally disabled by missing config. */
+export function warnIfModerationDisabled(config: RuntimeConfig): void {
+  if (didWarnModerationDisabled || !isRuntimeConfigRequired() || isProductionBuildPhase() || config.moderationId) {
+    return;
+  }
+
+  didWarnModerationDisabled = true;
+  console.warn(
+    '[runtime-config] PUBKY_RUNTIME_MODERATION_ID is unset; moderation matching and the default follow are disabled.',
+  );
+}
+
+/**
+ * Escape a JSON string for safe inlining inside an HTML <script> element.
+ * Neutralizes `<` (covers `</script>`) and the JS-invalid line separators U+2028/U+2029.
+ */
+export function escapeForInlineScript(json: string): string {
+  return json
+    .replace(/</g, '\\u003c')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
+
+/**
+ * Build the inline script body that publishes the resolved config to the browser.
+ * Called from the root layout whenever it renders (server only).
+ */
+export function serializeRuntimeConfig(): string {
+  const config = getRuntimeConfig();
+  const escaped = escapeForInlineScript(JSON.stringify(config));
+  return `window.${RUNTIME_CONFIG_WINDOW_KEY}=Object.freeze(${escaped});`;
+}
+
+/**
+ * Test-only: clear the memoized config so a test can re-resolve after changing env/window.
+ */
+export function resetRuntimeConfigForTests(): void {
+  memoizedConfig = null;
+  didWarnModerationDisabled = false;
+}
+
+// Lazy getters: read the resolved config at call time (never captured at module load).
+export const getNexusUrl = (): string => getRuntimeConfig().nexusUrl;
+export const getCdnUrl = (): string => getRuntimeConfig().cdnUrl;
+export const getHomeserver = (): string => getRuntimeConfig().homeserver;
+export const getHomeserverUrl = (): string => getRuntimeConfig().homeserverUrl;
+export const getHomegateUrl = (): string => getRuntimeConfig().homegateUrl;
+export const getDefaultHttpRelay = (): string => getRuntimeConfig().defaultHttpRelay;
+export const getPkarrRelays = (): string[] => getRuntimeConfig().pkarrRelays;
+export const getTestnet = (): boolean => getRuntimeConfig().testnet;
+export const getDeployEnv = (): DeployEnv => getRuntimeConfig().deployEnv;
+
+// Optional observability tier (absent DSN = Sentry disabled; rates fall back to schema defaults).
+export const getSentryDsn = (): string | undefined => getRuntimeConfig().sentryDsn;
+export const getSentryEnvironment = (): string | undefined => getRuntimeConfig().sentryEnvironment;
+export const getSentryTracesSampleRate = (): number => getRuntimeConfig().sentryTracesSampleRate;
+export const getSentryReplaysSessionSampleRate = (): number => getRuntimeConfig().sentryReplaysSessionSampleRate;
+export const getSentryReplaysOnErrorSampleRate = (): number => getRuntimeConfig().sentryReplaysOnErrorSampleRate;
+export const getNotificationPollIntervalMs = (): number => getRuntimeConfig().notificationPollIntervalMs;
+export const getNotificationPollOnStart = (): boolean => getRuntimeConfig().notificationPollOnStart;
+export const getNotificationRespectPageVisibility = (): boolean => getRuntimeConfig().notificationRespectPageVisibility;
+export const getStreamPollIntervalMs = (): number => getRuntimeConfig().streamPollIntervalMs;
+export const getStreamPollOnStart = (): boolean => getRuntimeConfig().streamPollOnStart;
+export const getStreamRespectPageVisibility = (): boolean => getRuntimeConfig().streamRespectPageVisibility;
+export const getStreamFetchLimit = (): number => getRuntimeConfig().streamFetchLimit;
+export const getStreamCacheMaxAgeMs = (): number => getRuntimeConfig().streamCacheMaxAgeMs;
+export const getMaxStreamTags = (): number => getRuntimeConfig().maxStreamTags;
+export const getTtlPostMs = (): number => getRuntimeConfig().ttlPostMs;
+export const getTtlUserMs = (): number => getRuntimeConfig().ttlUserMs;
+export const getTtlBatchIntervalMs = (): number => getRuntimeConfig().ttlBatchIntervalMs;
+export const getTtlPostMaxBatchSize = (): number => getRuntimeConfig().ttlPostMaxBatchSize;
+export const getTtlUserMaxBatchSize = (): number => getRuntimeConfig().ttlUserMaxBatchSize;
+export const getTtlRetryDelayMs = (): number => getRuntimeConfig().ttlRetryDelayMs;
+export const getModerationId = (): string | undefined => getRuntimeConfig().moderationId;
+export const getModeratedTags = (): string[] => getRuntimeConfig().moderatedTags;
+export const getExchangeRateApi = (): string => getRuntimeConfig().exchangeRateApi;
+export const getMarketplaceUrl = (): string => getRuntimeConfig().marketplaceUrl;
+/**
+ * Nexus base URL for marketplace/commerce index reads ONLY. Falls back to the
+ * main `nexusUrl` when `PUBKY_RUNTIME_MARKETPLACE_NEXUS_URL` is unset — the
+ * override exists because official Nexus deployments do not serve the
+ * marketplace index endpoints yet. Social surfaces must keep using
+ * `getNexusUrl`.
+ */
+export const getMarketplaceNexusUrl = (): string =>
+  getRuntimeConfig().marketplaceNexusUrl ?? getRuntimeConfig().nexusUrl;
+export const getLocksUrl = (): string => getRuntimeConfig().locksUrl;
+export const getPaykitSetupUrl = (): string => getRuntimeConfig().paykitSetupUrl;
+export const getPaykitSetupCreatorParam = (): boolean => getRuntimeConfig().paykitSetupCreatorParam;
+export const getCommerceAdapterMode = (): CommerceAdapterMode => getRuntimeConfig().commerceAdapterMode;
+export const getCommercePollIntervalMs = (): number => getRuntimeConfig().commercePollIntervalMs;
+export const getSingleApprovalSignIn = (): boolean => getRuntimeConfig().singleApprovalSignIn;
+export const getMarketplaceGrantFlowEnabled = (): boolean => getRuntimeConfig().marketplaceGrantFlowEnabled;
+export const getMarketplaceGrantPollMilliseconds = (): number => getRuntimeConfig().marketplaceGrantPollMilliseconds;
+export const getPassportSignInEnabled = (): boolean => getRuntimeConfig().passportSignIn;
+
+/** The Passport deployment whose Google sign-up lands on each deploy's homeserver. */
+const PASSPORT_ORIGIN_BY_DEPLOY_ENV: Record<DeployEnv, string> = {
+  production: 'https://passport.pubky.app',
+  staging: 'https://passport.staging.pubky.app',
+};
+
+/**
+ * Exact Pubky Passport origin: `PUBKY_RUNTIME_PASSPORT_URL` when set, else the
+ * Passport for this deploy's environment. Outcome messages are accepted from
+ * this origin only, so the value is reduced to scheme, host and port.
+ */
+export const getPassportOrigin = (): string =>
+  new URL(getRuntimeConfig().passportUrl ?? PASSPORT_ORIGIN_BY_DEPLOY_ENV[getRuntimeConfig().deployEnv]).origin;
+export const getPreludeSdkKey = (): string | undefined => getRuntimeConfig().preludeSdkKey;
+export const getPreludeSdkTimeoutMs = (): number => getRuntimeConfig().preludeSdkTimeoutMs;
+export const getPlausibleDomain = (): string | undefined => getRuntimeConfig().plausibleDomain;
+export const getPlausibleScriptUrl = (): string | undefined => getRuntimeConfig().plausibleScriptUrl;
+export const getPreviewImage = (): string => getRuntimeConfig().previewImage;
+export const getSiteName = (): string => getRuntimeConfig().siteName;
+export const getLocale = (): string => getRuntimeConfig().locale;
+export const getAuthor = (): string => getRuntimeConfig().author;
+export const getKeywords = (): string => getRuntimeConfig().keywords;
+export const getType = (): string => getRuntimeConfig().type;
+export const getCreator = (): string => getRuntimeConfig().creator;
+export const getDefaultUrl = (): string => getRuntimeConfig().defaultUrl;
+export const getPubkyRingUrl = (): string => getRuntimeConfig().pubkyRingUrl;
+export const getPubkyCoreUrl = (): string => getRuntimeConfig().pubkyCoreUrl;
+export const getNexusScoutUrl = (): string => getRuntimeConfig().nexusScoutUrl;
+export const getTwitterUrl = (): string => getRuntimeConfig().twitterUrl;
+export const getTwitterGetpubkyUrl = (): string => getRuntimeConfig().twitterGetpubkyUrl;
+export const getTelegramUrl = (): string => getRuntimeConfig().telegramUrl;
+export const getGithubUrl = (): string => getRuntimeConfig().githubUrl;
+export const getEmail = (): string => getRuntimeConfig().email;
+export const getAppStoreUrl = (): string => getRuntimeConfig().appStoreUrl;
+export const getPlayStoreUrl = (): string => getRuntimeConfig().playStoreUrl;

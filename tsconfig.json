@@ -1,0 +1,91 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/atoms/*": [
+        "./src/components/atoms/*"
+      ],
+      "@/molecules/*": [
+        "./src/components/molecules/*"
+      ],
+      "@/organisms/*": [
+        "./src/components/organisms/*"
+      ],
+      "@/templates/*": [
+        "./src/components/templates/*"
+      ],
+      "@/application/*": [
+        "./src/core/application/*"
+      ],
+      "@/controllers/*": [
+        "./src/core/controllers/*"
+      ],
+      "@/coordinators/*": [
+        "./src/core/coordinators/*"
+      ],
+      "@/database/*": [
+        "./src/core/database/*"
+      ],
+      "@/models/*": [
+        "./src/core/models/*"
+      ],
+      "@/services/*": [
+        "./src/core/services/*"
+      ],
+      "@/pipes/*": [
+        "./src/core/pipes/*"
+      ],
+      "@/stores/*": [
+        "./src/core/stores/*"
+      ],
+      "@/utils/*": [
+        "./src/core/utils/*"
+      ],
+      "@/hooks/*": [
+        "./src/hooks/*"
+      ],
+      "@/providers/*": [
+        "./src/providers/*"
+      ],
+      "@/libs/*": [
+        "./src/libs/*"
+      ],
+      "@/icons": [
+        "./src/libs/icons/icons.tsx"
+      ],
+      "@/*": [
+        "./src/*"
+      ]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "src/__tests__/page.test.jsx",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}

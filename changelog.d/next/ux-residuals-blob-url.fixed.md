@@ -1,0 +1,1 @@
+Marketplace photos fetched from another homeserver keep their object URL while the image is still on screen. The URL is revoked only after the image unmounts or is replaced, and the cache no longer needs it.

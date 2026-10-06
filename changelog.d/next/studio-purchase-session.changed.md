@@ -1,0 +1,1 @@
+Inventory Studio uses your purchase approval when it already covers stock edits, so a Bitkit sign-in can manage inventory without a Pubky Ring sign-in and most sellers skip the separate inventory approval.

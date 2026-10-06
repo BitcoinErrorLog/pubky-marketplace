@@ -1,0 +1,1 @@
+Saving pickup details after switching a listing to local pickup now persists the listing as pickup first, then the meeting point. If the meeting point fails, the listing is reverted to its previous fulfilment so buyers cannot place a pickup order with nowhere to meet.

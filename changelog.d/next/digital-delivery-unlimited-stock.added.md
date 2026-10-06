@@ -1,0 +1,1 @@
+Sellers can mark a digital-only listing's stock as Unlimited. Shop stores that as the quantity cap of 1,000,000, shows Unlimited on the listing, the seller dashboard, and inventory, and keeps a real number of copies for physical and mixed listings. Holds still reserve units of the cap.

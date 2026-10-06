@@ -1,0 +1,893 @@
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { EnrichedPostDetails } from '@/application/moderation/moderation.types';
+import { TagKind } from '@/application/tag/tag.types';
+import { COLLECTION_LAYOUT } from '@/config/collections';
+import { useBookmark } from '@/hooks/useBookmark/useBookmark';
+import { usePostCounts } from '@/hooks/usePostCounts/usePostCounts';
+import { usePostReplyRepostDialogs } from '@/hooks/usePostReplyRepostDialogs/usePostReplyRepostDialogs';
+import { useUserProfile } from '@/hooks/useUserProfile/useUserProfile';
+import { asOpaque } from '@/test-utils/type-assertions';
+import { CollectionHero } from './CollectionHero';
+import type { CollectionHeroProps } from './CollectionHero.types';
+
+// ---------------------------------------------------------------------------
+// Mocks
+// ---------------------------------------------------------------------------
+
+const mockUseAuthStore = vi.fn();
+const mockLocalCollections: Record<string, string | undefined> = {};
+vi.mock('@/hooks/useUserProfile/useUserProfile', () => ({
+  useUserProfile: vi.fn(),
+}));
+
+vi.mock('@/hooks/useBookmark/useBookmark', () => ({
+  useBookmark: vi.fn(),
+}));
+
+vi.mock('@/hooks/usePostCounts/usePostCounts', () => ({
+  usePostCounts: vi.fn(),
+}));
+
+vi.mock('@/hooks/usePostReplyRepostDialogs/usePostReplyRepostDialogs', () => ({
+  usePostReplyRepostDialogs: vi.fn(),
+}));
+
+const mockRequireAuth = vi.fn(<T,>(action: () => T) => action());
+vi.mock('@/hooks/useRequireAuth/useRequireAuth', () => ({
+  useRequireAuth: () => ({ requireAuth: mockRequireAuth }),
+}));
+
+const mockRouterReplace = vi.fn();
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ replace: mockRouterReplace, push: vi.fn(), back: vi.fn(), refresh: vi.fn() }),
+}));
+
+const mockDeleteState = vi.hoisted(() => ({
+  deletePost: vi.fn().mockResolvedValue(undefined),
+  isDeleting: false,
+}));
+const mockViewportState = vi.hoisted(() => ({
+  isMobile: false,
+}));
+const mockDeletePost = mockDeleteState.deletePost;
+vi.mock('@/hooks/useDeletePost/useDeletePost', () => ({
+  useDeletePost: () => ({ deletePost: mockDeleteState.deletePost, isDeleting: mockDeleteState.isDeleting }),
+}));
+vi.mock('@/hooks/useIsMobile/useIsMobile', () => ({
+  useIsMobile: () => mockViewportState.isMobile,
+}));
+
+vi.mock('@/molecules/DialogConfirmDelete/DialogConfirmDelete', () => ({
+  DialogConfirmDelete: ({
+    open,
+    onConfirm,
+    title,
+    description,
+  }: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    onConfirm: () => void;
+    title?: string;
+    description?: string;
+  }) =>
+    open ? (
+      <div data-testid="dialog-confirm-delete" data-title={title} data-description={description}>
+        <button data-testid="dialog-confirm-delete-btn" onClick={onConfirm}>
+          confirm delete
+        </button>
+      </div>
+    ) : null,
+}));
+
+const mockUnBlur = vi.fn();
+vi.mock('@/controllers/moderation/moderation', () => ({
+  ModerationController: {
+    unBlur: (...args: unknown[]) => mockUnBlur(...args),
+  },
+}));
+
+vi.mock('@/stores/auth/auth.store', () => ({
+  useAuthStore: (selector: (state: { currentUserPubky: string | null }) => unknown) => mockUseAuthStore(selector),
+}));
+
+vi.mock('@/stores/localFiles/localFiles.store', () => ({
+  useLocalFilesStore: (selector: (state: { collections: Record<string, string | undefined> }) => unknown) =>
+    selector({ collections: mockLocalCollections }),
+}));
+
+vi.mock('@/organisms/Collections/DialogEditCollection/DialogEditCollection', () => ({
+  DialogEditCollection: ({
+    open,
+    compositeCollectionId,
+  }: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    compositeCollectionId: string;
+  }) =>
+    open ? (
+      <div data-testid="edit-collection-dialog" data-collection-id={compositeCollectionId}>
+        edit collection dialog
+      </div>
+    ) : null,
+}));
+
+vi.mock('@/organisms/Collections/DialogAddContent/DialogAddContent', () => ({
+  DialogAddContent: ({
+    dataCy,
+    disabled,
+  }: {
+    dataCy?: string;
+    disabled?: boolean;
+    target?: { type: string; collectionId?: string };
+  }) => (
+    <button type="button" data-testid={dataCy ?? 'add-content-dialog'} aria-label="Add Post" disabled={disabled}>
+      Add Post
+    </button>
+  ),
+}));
+
+vi.mock('@/organisms/AvatarWithFallback/AvatarWithFallback', () => ({
+  AvatarWithFallback: ({
+    avatarUrl,
+    name,
+    fallbackSeed,
+    size,
+    alt,
+  }: {
+    avatarUrl?: string;
+    name: string;
+    fallbackSeed?: string;
+    size?: string;
+    alt?: string;
+  }) => (
+    <div
+      data-testid="avatar-with-fallback"
+      data-avatar-url={avatarUrl ?? ''}
+      data-name={name}
+      data-fallback-seed={fallbackSeed}
+      data-size={size}
+      data-alt={alt}
+    >
+      {name}
+    </div>
+  ),
+}));
+
+vi.mock('@/organisms/ClickableTagsList/ClickableTagsList', () => ({
+  ClickableTagsList: ({
+    taggedId,
+    taggedKind,
+    showAddButton,
+    maxVisibleTags,
+  }: {
+    taggedId: string;
+    taggedKind: TagKind;
+    showAddButton: boolean;
+    maxVisibleTags?: number;
+  }) => (
+    <div
+      data-testid="clickable-tags-list"
+      data-tagged-id={taggedId}
+      data-tagged-kind={String(taggedKind)}
+      data-show-add-button={String(showAddButton)}
+      data-max-visible-tags={maxVisibleTags}
+    />
+  ),
+}));
+
+vi.mock('@/organisms/PostTagsPanel/PostTagsPanel', () => ({
+  PostTagsPanel: ({
+    postId,
+    widthMode,
+    autoFocusInput,
+    enableLoadingSkeleton,
+    className,
+  }: {
+    postId: string;
+    widthMode: string;
+    autoFocusInput: boolean;
+    enableLoadingSkeleton: boolean;
+    className?: string;
+  }) => (
+    <div
+      data-testid="post-tags-panel"
+      data-auto-focus-input={String(autoFocusInput)}
+      data-enable-loading-skeleton={String(enableLoadingSkeleton)}
+      data-post-id={postId}
+      data-width-mode={widthMode}
+      className={className}
+    />
+  ),
+}));
+
+// ---------------------------------------------------------------------------
+// Fixtures + helpers
+// ---------------------------------------------------------------------------
+
+const AUTHOR_PUBKY = 'o1gg96ewuojmopcjbz8895478wdtxtzzber7aezq6ror5a91j7dy';
+const POST_ID = '0034BBBDFK83G';
+const COMPOSITE_ID = `${AUTHOR_PUBKY}:${POST_ID}`;
+const COVER_URL = 'https://example.com/cover.png';
+
+const COLLECTION_CONTENT = JSON.stringify({
+  name: 'Based Bitcoin',
+  description: 'A bit of Bitcoin purity amidst all of the madness.',
+  items: ['pubky://author/pub/pubky.app/posts/a', 'pubky://author/pub/pubky.app/posts/b'],
+  cover_image: COVER_URL,
+});
+
+const COLLECTION_CONTENT_NO_COVER = JSON.stringify({
+  name: 'Quiet collection',
+  description: null,
+  items: [],
+});
+
+const COLLECTION_CONTENT_ONE_ITEM = JSON.stringify({
+  name: 'Single item',
+  description: null,
+  items: ['pubky://author/pub/pubky.app/posts/only'],
+});
+
+const mockUseUserProfile = vi.mocked(useUserProfile);
+const mockUseBookmark = vi.mocked(useBookmark);
+const mockUsePostCounts = vi.mocked(usePostCounts);
+const mockUsePostReplyRepostDialogs = vi.mocked(usePostReplyRepostDialogs);
+
+let currentPostDetails: EnrichedPostDetails | null | undefined;
+
+function buildPostDetails(content: string, isBlurred = false): EnrichedPostDetails {
+  return asOpaque<EnrichedPostDetails>({
+    id: COMPOSITE_ID,
+    content,
+    kind: 'collection',
+    indexed_at: 0,
+    uri: '',
+    attachments: null,
+    is_moderated: isBlurred,
+    is_blurred: isBlurred,
+  });
+}
+
+function setAuthStore(currentUserPubky: string | null) {
+  mockUseAuthStore.mockImplementation((selector: (state: { currentUserPubky: string | null }) => unknown) =>
+    selector({ currentUserPubky }),
+  );
+}
+
+function setPostDetails(content: string | null, { isBlurred = false }: { isBlurred?: boolean } = {}) {
+  currentPostDetails = content ? buildPostDetails(content, isBlurred) : null;
+}
+
+function renderHero(overrides: Partial<CollectionHeroProps> = {}) {
+  const props: CollectionHeroProps = {
+    ...overrides,
+    authorPubky: overrides.authorPubky ?? AUTHOR_PUBKY,
+    postId: overrides.postId ?? POST_ID,
+    postDetails: 'postDetails' in overrides ? overrides.postDetails : currentPostDetails,
+    layout: overrides.layout ?? COLLECTION_LAYOUT.GRID,
+    onLayoutChange: overrides.onLayoutChange ?? vi.fn(),
+  };
+
+  return render(<CollectionHero {...props} />);
+}
+
+function setOwnerProfile(name: string | null, avatarUrl?: string) {
+  mockUseUserProfile.mockReturnValue({
+    profile: name
+      ? {
+          name,
+          bio: '',
+          publicKey: AUTHOR_PUBKY,
+          emoji: '🌴',
+          status: '',
+          avatarUrl,
+          link: '',
+          links: null,
+        }
+      : null,
+    isLoading: false,
+  });
+}
+
+function setBookmark({ isBookmarked = false, isLoading = false, isToggling = false } = {}) {
+  const toggle = vi.fn().mockResolvedValue(undefined);
+  mockUseBookmark.mockReturnValue({
+    isBookmarked,
+    isLoading,
+    isToggling,
+    toggle,
+  });
+  return toggle;
+}
+
+function setRepostDialogs() {
+  const openRepostDialog = vi.fn();
+  const openReplyDialog = vi.fn();
+  mockUsePostReplyRepostDialogs.mockReturnValue({
+    openRepostDialog,
+    openReplyDialog,
+    dialogs: <div data-testid="repost-dialogs" />,
+  });
+  return { openRepostDialog, openReplyDialog };
+}
+
+function setPostCounts(uniqueTags = 3) {
+  mockUsePostCounts.mockReturnValue({
+    postCounts: {
+      id: COMPOSITE_ID,
+      tags: 4,
+      unique_tags: uniqueTags,
+      reposts: 0,
+      replies: 0,
+    },
+    isLoading: false,
+  });
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockDeleteState.isDeleting = false;
+  mockViewportState.isMobile = false;
+  for (const key of Object.keys(mockLocalCollections)) delete mockLocalCollections[key];
+  setAuthStore(null);
+  setPostDetails(COLLECTION_CONTENT);
+  setOwnerProfile('Bitcoin Wizard', 'https://example.com/avatar.png');
+  setBookmark();
+  setPostCounts();
+  setRepostDialogs();
+});
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+describe('CollectionHero', () => {
+  it('renders title, description, item count, and owner avatar from the parsed envelope', () => {
+    renderHero();
+
+    expect(screen.getByText('Based Bitcoin')).toBeInTheDocument();
+    expect(screen.getByText('A bit of Bitcoin purity amidst all of the madness.')).toBeInTheDocument();
+    const countBadge = screen.getByLabelText('2 posts');
+    expect(countBadge).toBeInTheDocument(); // compact-formatted item count
+    expect(within(countBadge).getByText('posts', { exact: false })).toHaveClass('inline');
+    const avatar = screen.getByTestId('avatar-with-fallback');
+    expect(avatar).toHaveAttribute('data-name', 'Bitcoin Wizard');
+    expect(avatar).toHaveAttribute('data-avatar-url', 'https://example.com/avatar.png');
+    expect(avatar).toHaveAttribute('data-fallback-seed', AUTHOR_PUBKY);
+    expect(avatar).toHaveAttribute('data-size', 'sm');
+  });
+
+  it('links the owner avatar and name to the author profile', () => {
+    renderHero();
+
+    const profileHref = `/profile/${AUTHOR_PUBKY}`;
+    const profileLinks = screen.getAllByRole('link').filter((link) => link.getAttribute('href') === profileHref);
+    expect(profileLinks).toHaveLength(2);
+    expect(profileLinks[0]).toContainElement(screen.getByTestId('avatar-with-fallback'));
+    expect(profileLinks[1]).toHaveTextContent('Bitcoin Wizard');
+  });
+
+  it('wires ClickableTagsList to the composite id with POST kind and the add button enabled', () => {
+    renderHero();
+
+    const tags = screen.getByTestId('clickable-tags-list');
+    expect(tags).toHaveAttribute('data-tagged-id', COMPOSITE_ID);
+    expect(tags).toHaveAttribute('data-tagged-kind', String(TagKind.POST));
+    expect(tags).toHaveAttribute('data-show-add-button', 'true');
+    expect(tags).not.toHaveAttribute('data-max-visible-tags');
+    expect(screen.getByLabelText('Tag post (3)')).toBeInTheDocument();
+  });
+
+  it('toggles the editable tags panel from the tag CTA', () => {
+    const { container } = renderHero();
+
+    fireEvent.click(screen.getByLabelText('Tag post (3)'));
+
+    expect(screen.queryByTestId('clickable-tags-list')).not.toBeInTheDocument();
+    const panel = screen.getByTestId('post-tags-panel');
+    expect(panel).toHaveAttribute('data-post-id', COMPOSITE_ID);
+    expect(panel).toHaveAttribute('data-width-mode', 'fit');
+    expect(panel).toHaveAttribute('data-auto-focus-input', 'true');
+    expect(panel).toHaveAttribute('data-enable-loading-skeleton', 'false');
+    expect(container.querySelector('[data-cy="post-tags-expandable-row"]')).toHaveClass('items-end');
+    expect(screen.getByLabelText('Tag post (3)')).toHaveAttribute('aria-expanded', 'true');
+    expect(container.querySelector('[data-cy="post-tags-expandable-row-actions"]')).not.toBeInTheDocument();
+  });
+
+  it('omits the description block when the envelope description is empty / nullish', () => {
+    setPostDetails(COLLECTION_CONTENT_NO_COVER);
+
+    renderHero();
+
+    expect(screen.queryByText('A bit of Bitcoin purity amidst all of the madness.')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('0 posts')).toBeInTheDocument(); // empty items count still renders
+  });
+
+  it('renders the hero skeleton while post details have not loaded yet', () => {
+    renderHero({ postDetails: undefined });
+
+    expect(screen.getByTestId('collection-hero-skeleton')).toBeInTheDocument();
+    expect(screen.queryByText('Based Bitcoin')).not.toBeInTheDocument();
+  });
+
+  it('lets viewers temporarily switch the collection layout', async () => {
+    const onLayoutChange = vi.fn();
+    renderHero({ onLayoutChange });
+
+    fireEvent.pointerDown(screen.getByRole('button', { name: /Layout: Grid/ }), {
+      button: 0,
+      ctrlKey: false,
+    });
+
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'List' }));
+
+    expect(onLayoutChange).toHaveBeenCalledWith(COLLECTION_LAYOUT.LIST);
+  });
+
+  it('keeps the tag action last in the viewer action row', () => {
+    renderHero();
+
+    const layoutButton = screen.getByRole('button', { name: /Layout: Grid/ });
+    const tagButton = screen.getByLabelText('Tag post (3)');
+    expect(layoutButton.compareDocumentPosition(tagButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('hides the temporary layout override from the collection owner', () => {
+    setAuthStore(AUTHOR_PUBKY);
+
+    renderHero();
+
+    expect(screen.queryByRole('button', { name: /Layout: Grid/ })).not.toBeInTheDocument();
+  });
+
+  it('shows a skeleton (not the raw pubky) for the owner name while the profile is null', () => {
+    setOwnerProfile(null);
+
+    renderHero();
+
+    // The owner name is gated on the resolved profile: while it's null the hero
+    // renders a Skeleton rather than flashing the raw pubky as a visible name.
+    // The only element carrying the pubky text is the (always-present) avatar
+    // mock — there is no separate name <span> falling back to the raw pubky.
+    const matches = screen.getAllByText(AUTHOR_PUBKY);
+    expect(matches).toHaveLength(1);
+    expect(matches[0]).toHaveAttribute('data-testid', 'avatar-with-fallback');
+  });
+
+  describe('moderation — blurred state', () => {
+    it('renders the blurred placeholder instead of the hero when the collection is moderated', () => {
+      setPostDetails(COLLECTION_CONTENT, { isBlurred: true });
+
+      renderHero();
+
+      expect(screen.getByText('Collection content moderated.')).toBeInTheDocument();
+      expect(screen.queryByText('Based Bitcoin')).not.toBeInTheDocument();
+      // Action buttons belong to the real hero, not the placeholder.
+      expect(screen.queryByLabelText('Follow')).not.toBeInTheDocument();
+    });
+
+    it('unblurs (via the composite id) when the placeholder is clicked', () => {
+      setPostDetails(COLLECTION_CONTENT, { isBlurred: true });
+
+      renderHero();
+
+      fireEvent.click(screen.getByText('Collection content moderated.'));
+
+      expect(mockUnBlur).toHaveBeenCalledTimes(1);
+      expect(mockUnBlur).toHaveBeenCalledWith(COMPOSITE_ID);
+    });
+  });
+
+  describe('CTA — owner', () => {
+    it('renders Content / Share / Edit / Delete and no Follow / Unfollow', () => {
+      setAuthStore(AUTHOR_PUBKY);
+
+      renderHero();
+
+      expect(screen.getByLabelText('Add Post')).toBeInTheDocument();
+      expect(screen.getByTestId('collection-add-content')).toBeInTheDocument();
+      expect(screen.getByLabelText('Share')).toBeInTheDocument();
+      expect(screen.getByLabelText('Edit')).toBeInTheDocument();
+      expect(screen.getByLabelText('Delete')).toBeInTheDocument();
+      expect(screen.getByLabelText('Tag post (3)')).toBeInTheDocument();
+      expect(
+        screen.getByLabelText('Delete').compareDocumentPosition(screen.getByLabelText('Tag post (3)')) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(screen.getByText('Share', { selector: 'span' })).toHaveClass('hidden', 'lg:inline');
+      expect(screen.getByText('Edit', { selector: 'span' })).toHaveClass('hidden', 'lg:inline');
+      expect(screen.getByText('Delete', { selector: 'span' })).toHaveClass('hidden', 'lg:inline');
+      expect(screen.queryByLabelText('Follow')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Unfollow')).not.toBeInTheDocument();
+    });
+
+    it('does not toggle the bookmark when the owner clicks Edit or Delete', () => {
+      setAuthStore(AUTHOR_PUBKY);
+      const toggle = setBookmark({ isBookmarked: false });
+
+      renderHero();
+
+      fireEvent.click(screen.getByLabelText('Edit'));
+      fireEvent.click(screen.getByLabelText('Delete'));
+
+      expect(toggle).not.toHaveBeenCalled();
+    });
+
+    it('disables the Content action while collection delete is in flight', () => {
+      setAuthStore(AUTHOR_PUBKY);
+      mockDeleteState.isDeleting = true;
+
+      renderHero();
+
+      expect(screen.getByLabelText('Add Post')).toBeDisabled();
+      expect(screen.getByLabelText('Share')).toBeDisabled();
+      expect(screen.getByLabelText('Edit')).toBeDisabled();
+      expect(screen.getByLabelText('Delete')).toBeDisabled();
+    });
+
+    it('opens the DialogEditCollection (controlled, with the composite id) when the owner clicks Edit', () => {
+      setAuthStore(AUTHOR_PUBKY);
+
+      renderHero();
+
+      // Dialog is mounted but `open=false` until the user clicks Edit.
+      expect(screen.queryByTestId('edit-collection-dialog')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByLabelText('Edit'));
+
+      const dialog = screen.getByTestId('edit-collection-dialog');
+      expect(dialog).toBeInTheDocument();
+      expect(dialog).toHaveAttribute('data-collection-id', COMPOSITE_ID);
+    });
+
+    it("does not mount the DialogEditCollection for non-owners (the Edit button isn't shown either)", () => {
+      setAuthStore('some-other-user');
+
+      renderHero();
+
+      expect(screen.queryByLabelText('Edit')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('edit-collection-dialog')).not.toBeInTheDocument();
+    });
+
+    it('opens the repost dialog when the owner clicks Share', () => {
+      setAuthStore(AUTHOR_PUBKY);
+      const { openRepostDialog } = setRepostDialogs();
+
+      renderHero();
+
+      fireEvent.click(screen.getByLabelText('Share'));
+
+      expect(openRepostDialog).toHaveBeenCalledTimes(1);
+      expect(mockUsePostReplyRepostDialogs).toHaveBeenCalledWith(COMPOSITE_ID, {
+        title: 'Share Collection',
+        submitLabel: 'Share',
+        submitIcon: expect.anything(),
+        successToastTitle: "You've shared this collection",
+      });
+      expect(screen.getByTestId('repost-dialogs')).toBeInTheDocument();
+    });
+
+    describe('delete flow', () => {
+      it('opens the confirmation dialog with the collection-specific i18n namespace on Delete click', () => {
+        setAuthStore(AUTHOR_PUBKY);
+        renderHero();
+
+        // Dialog mounts in closed state.
+        expect(screen.queryByTestId('dialog-confirm-delete')).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByLabelText('Delete'));
+
+        const dialog = screen.getByTestId('dialog-confirm-delete');
+        expect(dialog).toBeInTheDocument();
+        // Must use the collection copy, not the generic delete-post copy.
+        expect(dialog).toHaveAttribute('data-title', 'Delete collection?');
+        expect(dialog).toHaveAttribute(
+          'data-description',
+          "Are you sure you want to delete 'Based Bitcoin'? People following this collection will no longer have access to it. Posts inside the collection will not be deleted.",
+        );
+      });
+
+      it('awaits deletePost then redirects to /collections via router.replace', async () => {
+        setAuthStore(AUTHOR_PUBKY);
+        mockDeletePost.mockClear();
+        mockRouterReplace.mockClear();
+        renderHero();
+
+        fireEvent.click(screen.getByLabelText('Delete'));
+        fireEvent.click(screen.getByTestId('dialog-confirm-delete-btn'));
+
+        // Await the microtask so the post-redirect chain settles.
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(mockDeletePost).toHaveBeenCalledTimes(1);
+        expect(mockDeletePost).toHaveBeenCalledWith(COMPOSITE_ID);
+        // Redirect must use `replace` (not `push`) so the back button skips
+        // the now-deleted collection page.
+        expect(mockRouterReplace).toHaveBeenCalledWith('/collections');
+      });
+
+      it('does not mount the confirm dialog for non-owners (Delete button absent)', () => {
+        setAuthStore('some-other-user');
+        renderHero();
+
+        expect(screen.queryByLabelText('Delete')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('dialog-confirm-delete')).not.toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('CTA — reorder', () => {
+    function buildReorderProps(overrides: Partial<NonNullable<CollectionHeroProps['reorder']>> = {}) {
+      return {
+        isActive: false,
+        isSaving: false,
+        onEnter: vi.fn(),
+        onSave: vi.fn(),
+        onCancel: vi.fn(),
+        ...overrides,
+      };
+    }
+
+    it('renders an enabled Reorder button between Share and Edit for owners of multi-item collections', () => {
+      setAuthStore(AUTHOR_PUBKY);
+      const reorder = buildReorderProps();
+
+      renderHero({ reorder });
+
+      const button = screen.getByLabelText('Reorder');
+      expect(button).toBeEnabled();
+      expect(
+        screen.getByLabelText('Share').compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(
+        button.compareDocumentPosition(screen.getByLabelText('Edit')) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      fireEvent.click(button);
+      expect(reorder.onEnter).toHaveBeenCalledTimes(1);
+    });
+
+    it('disables the Reorder button when the collection has fewer than two items', () => {
+      setAuthStore(AUTHOR_PUBKY);
+      setPostDetails(COLLECTION_CONTENT_ONE_ITEM);
+
+      renderHero({ reorder: buildReorderProps() });
+
+      expect(screen.getByLabelText('Reorder')).toBeDisabled();
+    });
+
+    it('disables the Reorder button while a delete is in flight', () => {
+      setAuthStore(AUTHOR_PUBKY);
+      mockDeleteState.isDeleting = true;
+
+      renderHero({ reorder: buildReorderProps() });
+
+      expect(screen.getByLabelText('Reorder')).toBeDisabled();
+    });
+
+    it('does not render reorder actions for non-owners', () => {
+      setAuthStore('some-other-user');
+
+      renderHero({ reorder: buildReorderProps() });
+
+      expect(screen.queryByLabelText('Reorder')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Save order')).not.toBeInTheDocument();
+    });
+
+    it('swaps Reorder for Save order + Cancel and disables every other action while active', () => {
+      setAuthStore(AUTHOR_PUBKY);
+      const reorder = buildReorderProps({ isActive: true });
+
+      renderHero({ reorder });
+
+      expect(screen.queryByLabelText('Reorder')).not.toBeInTheDocument();
+
+      const saveButton = screen.getByLabelText('Save order');
+      const cancelButton = screen.getByLabelText('Cancel');
+      expect(saveButton).toHaveAttribute('data-variant', 'default');
+      expect(cancelButton).toHaveAttribute('data-variant', 'destructive-soft');
+
+      fireEvent.click(saveButton);
+      fireEvent.click(cancelButton);
+      expect(reorder.onSave).toHaveBeenCalledTimes(1);
+      expect(reorder.onCancel).toHaveBeenCalledTimes(1);
+
+      expect(screen.getByLabelText('Add Post')).toBeDisabled();
+      expect(screen.getByLabelText('Share')).toBeDisabled();
+      expect(screen.getByLabelText('Edit')).toBeDisabled();
+      expect(screen.getByLabelText('Delete')).toBeDisabled();
+      expect(screen.getByLabelText('Tag post (3)')).toBeDisabled();
+    });
+
+    it('disables Save order and Cancel and swaps the check for a spinner while the commit is in flight', () => {
+      setAuthStore(AUTHOR_PUBKY);
+
+      renderHero({ reorder: buildReorderProps({ isActive: true, isSaving: true }) });
+
+      const saveButton = screen.getByLabelText('Save order');
+      expect(saveButton).toBeDisabled();
+      expect(screen.getByLabelText('Cancel')).toBeDisabled();
+      expect(saveButton.querySelector('.animate-spin')).not.toBeNull();
+      expect(saveButton.querySelector('.lucide-check')).toBeNull();
+    });
+  });
+
+  describe('CTA — non-owner', () => {
+    it('renders a Follow button when the post is not bookmarked', () => {
+      setAuthStore('some-other-user');
+      setBookmark({ isBookmarked: false });
+
+      renderHero();
+
+      expect(screen.getByLabelText('Follow')).toBeInTheDocument();
+      expect(screen.getByLabelText('Tag post (3)')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Unfollow')).not.toBeInTheDocument();
+    });
+
+    it('renders an Unfollow button when the post is already bookmarked', () => {
+      setAuthStore('some-other-user');
+      setBookmark({ isBookmarked: true });
+
+      renderHero();
+
+      expect(screen.getByLabelText('Unfollow')).toBeInTheDocument();
+    });
+
+    it('invokes the bookmark toggle once when clicked', () => {
+      setAuthStore('some-other-user');
+      const toggle = setBookmark({ isBookmarked: false });
+
+      renderHero();
+
+      fireEvent.click(screen.getByLabelText('Follow'));
+
+      expect(toggle).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not call toggle while a previous toggle is still in flight', () => {
+      setAuthStore('some-other-user');
+      const toggle = setBookmark({ isBookmarked: false, isToggling: true });
+
+      renderHero();
+
+      const button = screen.getByLabelText('Follow') as HTMLButtonElement;
+      expect(button).toBeDisabled();
+      fireEvent.click(button);
+      expect(toggle).not.toHaveBeenCalled();
+    });
+
+    it('disables Follow and ignores clicks while bookmark state is loading', () => {
+      setAuthStore('some-other-user');
+      const toggle = setBookmark({ isBookmarked: false, isLoading: true });
+
+      renderHero();
+
+      const button = screen.getByLabelText('Follow');
+      expect(button).toBeDisabled();
+      expect(button).toHaveAttribute('aria-busy', 'true');
+      fireEvent.click(button);
+      expect(toggle).not.toHaveBeenCalled();
+    });
+
+    it('opens the repost dialog when a non-owner clicks Share', () => {
+      setAuthStore('some-other-user');
+      const { openRepostDialog } = setRepostDialogs();
+
+      renderHero();
+
+      expect(screen.getByText('Share', { selector: 'span' })).toHaveClass('hidden', 'lg:inline');
+      fireEvent.click(screen.getByLabelText('Share'));
+
+      expect(mockRequireAuth).toHaveBeenCalledTimes(1);
+      expect(openRepostDialog).toHaveBeenCalledTimes(1);
+    });
+
+    it('prompts sign-in instead of toggling bookmark when a guest clicks Follow', () => {
+      setAuthStore(null);
+      const toggle = setBookmark({ isBookmarked: false });
+      mockRequireAuth.mockImplementation(<T,>(_action: () => T) => undefined as T);
+
+      renderHero();
+
+      fireEvent.click(screen.getByLabelText('Follow'));
+
+      expect(mockRequireAuth).toHaveBeenCalledTimes(1);
+      expect(toggle).not.toHaveBeenCalled();
+    });
+
+    it('prompts sign-in instead of opening the share dialog when a guest clicks Share', () => {
+      setAuthStore(null);
+      const { openRepostDialog } = setRepostDialogs();
+      mockRequireAuth.mockImplementation(<T,>(_action: () => T) => undefined as T);
+
+      renderHero();
+
+      fireEvent.click(screen.getByLabelText('Share'));
+
+      expect(mockRequireAuth).toHaveBeenCalledTimes(1);
+      expect(openRepostDialog).not.toHaveBeenCalled();
+    });
+  });
+
+  it('passes the collection-flavored toast copy to useBookmark', () => {
+    setAuthStore('some-other-user');
+
+    renderHero();
+
+    expect(mockUseBookmark).toHaveBeenCalledWith(
+      COMPOSITE_ID,
+      expect.objectContaining({
+        toastMessages: expect.objectContaining({ added: 'You are now following this collection.' }),
+      }),
+    );
+  });
+
+  describe('cover image', () => {
+    it('renders a background-image element when an absolute cover URL is present', () => {
+      const { container } = renderHero();
+
+      expect(container.querySelector(`[style*="${COVER_URL}"]`)).not.toBeNull();
+    });
+
+    it('does not render a cover background when the envelope has no cover_image', () => {
+      setPostDetails(COLLECTION_CONTENT_NO_COVER);
+
+      const { container } = renderHero();
+
+      expect(container.querySelector(`[style*="${COVER_URL}"]`)).toBeNull();
+    });
+
+    it('prefers a recently-uploaded blob URL from the local-files store over the envelope cover', () => {
+      mockLocalCollections[COMPOSITE_ID] = 'blob:mock-fresh-cover';
+
+      const { container } = renderHero();
+
+      expect(container.querySelector('[style*="blob:mock-fresh-cover"]')).not.toBeNull();
+      expect(container.querySelector(`[style*="${COVER_URL}"]`)).toBeNull();
+    });
+
+    it('renders the local blob cover even when the envelope has no cover_image', () => {
+      setPostDetails(COLLECTION_CONTENT_NO_COVER);
+      mockLocalCollections[COMPOSITE_ID] = 'blob:mock-fresh-cover';
+
+      const { container } = renderHero();
+
+      expect(container.querySelector('[style*="blob:mock-fresh-cover"]')).not.toBeNull();
+    });
+  });
+});
+
+describe('CollectionHero - Snapshots', () => {
+  it('matches the snapshot for the owner state', () => {
+    setAuthStore(AUTHOR_PUBKY);
+
+    const { container } = renderHero();
+    expect(container.firstChild).toMatchSnapshot();
+  });
+
+  it('matches the snapshot for the owner reorder-active state', () => {
+    setAuthStore(AUTHOR_PUBKY);
+
+    const { container } = renderHero({
+      reorder: { isActive: true, isSaving: false, onEnter: vi.fn(), onSave: vi.fn(), onCancel: vi.fn() },
+    });
+    expect(container.firstChild).toMatchSnapshot();
+  });
+
+  it('matches the snapshot for the non-owner Follow state', () => {
+    setAuthStore('viewer-pubky');
+    setBookmark({ isBookmarked: false });
+
+    const { container } = renderHero();
+    expect(container.firstChild).toMatchSnapshot();
+  });
+
+  it('matches the snapshot when no cover image and no description are set', () => {
+    setPostDetails(COLLECTION_CONTENT_NO_COVER);
+    setAuthStore('viewer-pubky');
+
+    const { container } = renderHero();
+    expect(container.firstChild).toMatchSnapshot();
+  });
+});

@@ -1,0 +1,2 @@
+Checkout shows a loading placeholder until the seller's payment methods load. It no longer says the seller hasn't set up a payment method for the first second before PayPal appears.
+If the seller's payment options can't be loaded (network error, server error or a 10-second timeout), Checkout says "Couldn't load payment options" with a Retry button, instead of saying the seller hasn't set up a payment method.

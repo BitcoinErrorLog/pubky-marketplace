@@ -1,0 +1,9 @@
+---
+description: Component development patterns - Shadcn first, atomic design, Figma parity
+globs: src/components/**/*
+alwaysApply: false
+---
+
+# Component Rules
+
+@docs/components.md

@@ -1,0 +1,1 @@
+Private conversations that cannot connect, messages that fail to send, and messaging sign-in checks now retry at growing intervals of up to ten minutes instead of every few seconds. Conversations that work keep updating normally.

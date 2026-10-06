@@ -1,0 +1,1 @@
+Marketplace approvals from Bitkit, and the Pubky Ring "Connect marketplace" QR, now also ask for the Shop's private data (`/priv/pubky.app/`), so those sessions qualify for the private data key without a second approval. The automations session list labels those purchase sessions "Purchase" instead of "CLI".

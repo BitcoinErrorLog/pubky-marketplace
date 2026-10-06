@@ -1,0 +1,1 @@
+When a reserved listing is held by the viewer’s own pending-payment order (`buyerPubky` vs the authenticated pubky, never a session id), the listing CTA is “Held for you · view your order” linking to that order.

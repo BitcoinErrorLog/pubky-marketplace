@@ -1,0 +1,1 @@
+Ended auctions with null or absent seller reserve extras (`lastReserveCommandId`, `reserveRecordRevision` 0) parse as a public listing with bidding closed. Live and scheduled auctions still require those extras.

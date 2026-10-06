@@ -1,0 +1,26 @@
+{
+  "receipt_attestation": {
+    "jws": "eyJhbGciOiJFZERTQSIsInR5cCI6InB1Ymt5LW9yZGVyLXJlY2VpcHQrdjIifQ.eyJ2IjoyLCJpc3MiOiI3amZnYWE5bnV0anlpeHppa2I3dGdtc2Y5Z2t3cTdpcXo0OTh6cjFuZDVpZzFmbmc0ZXN5IiwiYnV5ZXIiOiJobmhhYmpiamJqanh6YmNpZjdzdG1xaTlwNzZxdWJvbWJoc3VqZnJnZXprbWZncXlkbThvIiwic2VsbGVyIjoib2JoMzZ5bmk1Y3RneGFjNHd3aWN1YnhqOWhka3N4NWFxcm1zcWI4dW5kb2txcWVraHBmeSIsIm9yZGVyIjoiOTdjMmZmMTgtY2Y1NC00NzI3LWJiYzQtNDQ2M2RmNWM1MDg0IiwicmVjZWlwdCI6ImRlN2ZhNTgzLWJiYzMtNDE1ZC05NmM2LWQ2YTU0YTE4NTIyMSIsInNldHRsZW1lbnRfdG90YWwiOnsiYW1vdW50X21pbm9yIjo1MTYzNywiY3VycmVuY3kiOiJTQVQiLCJleHBvbmVudCI6MH0sIm1lcmNoYW5kaXNlX3RvdGFsIjp7ImFtb3VudF9taW5vciI6MTM3MDAsImN1cnJlbmN5IjoiVVNEIiwiZXhwb25lbnQiOjJ9LCJwYWlkX2F0IjoiMjAyNi0wOC0xOVQyMjowMDowMC4wMDBaIiwiaWF0IjoxNzg3MTc2ODAwfQ.ye_ruk8y-a8VABhG_9F4At3BA4U7yYzhP8cmDxJj7bUFQlwdM6LuWjY9M80ZN5XanczfWacJqn2cCaoFPM7wDA",
+    "claims": {
+      "v": 2,
+      "iss": "7jfgaa9nutjyixzikb7tgmsf9gkwq7iqz498zr1nd5ig1fng4esy",
+      "buyer": "hnhabjbjbjjxzbcif7stmqi9p76qubombhsujfrgezkmfgqydm8o",
+      "seller": "obh36yni5ctgxac4wwicubxj9hdksx5aqrmsqb8undokqqekhpfy",
+      "order": "97c2ff18-cf54-4727-bbc4-4463df5c5084",
+      "receipt": "de7fa583-bbc3-415d-96c6-d6a54a185221",
+      "settlement_total": {
+        "amount_minor": 51637,
+        "currency": "SAT",
+        "exponent": 0
+      },
+      "merchandise_total": {
+        "amount_minor": 13700,
+        "currency": "USD",
+        "exponent": 2
+      },
+      "paid_at": "2026-08-19T22:00:00.000Z",
+      "iat": 1787176800
+    }
+  },
+  "attestor_pubky": "7jfgaa9nutjyixzikb7tgmsf9gkwq7iqz498zr1nd5ig1fng4esy"
+}

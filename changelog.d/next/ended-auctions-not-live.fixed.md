@@ -1,0 +1,1 @@
+Auctions whose end time has passed no longer appear as open in the catalog grid, Hot, the followed-sellers shelf, the watchlist state label or link previews, even when the seller's record and the index still say active.

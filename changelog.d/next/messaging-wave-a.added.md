@@ -1,0 +1,1 @@
+Order cards now open the listing conversation for that order. `/marketplace/messages?conversation=` accepts only a listing conversation id for the signed-in participants, fail-closes otherwise, and never logs the raw id. Private-message copy is one plain sentence per state.

@@ -1,0 +1,709 @@
+{
+  "abandoned": {
+    "request": {
+      "body": {
+        "outcome": "abandoned",
+        "reason": "buyer unreachable"
+      },
+      "headers_present": [
+        "authorization",
+        "content-type",
+        "idempotency-key"
+      ],
+      "method": "POST",
+      "path": "/v0/orders/<uuid:1>/bitcoin/resolve"
+    },
+    "response": {
+      "body": {
+        "ok": true,
+        "order": {
+          "buyer_pubky": "<pubky:buyer>",
+          "cancellation_reason": "closed after manual review",
+          "created_at": "<timestamp:1>",
+          "delivery_assumed": false,
+          "drop_aggregate_id": null,
+          "edition": null,
+          "external_refund": null,
+          "fiat_checkout_url": null,
+          "fiat_transaction_ref": null,
+          "fiat_verification": null,
+          "first_revealed_at": null,
+          "fulfillment": "shipping",
+          "guarantee_policy_version": 1,
+          "hold_expires_at": null,
+          "id": "<uuid:1>",
+          "lines": [
+            {
+              "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "fulfillment": "shipping",
+              "listing_aggregate_id": "listing:<pubky:seller>_boots_01",
+              "listing_revision": 1,
+              "quantity": 1,
+              "subtotal": {
+                "amount_minor": 50000,
+                "currency": "SAT",
+                "exponent": 0
+              },
+              "title": "Marketplace item",
+              "unit_price": {
+                "amount_minor": 50000,
+                "currency": "SAT",
+                "exponent": 0
+              }
+            }
+          ],
+          "next_actor": null,
+          "paykit_activation_state": "active",
+          "paykit_observation": {
+            "amount_matched": true,
+            "confirmations": 2,
+            "disappeared": false,
+            "observed_at": "<timestamp:1>",
+            "observed_sats": 51637,
+            "txid": "9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c"
+          },
+          "paykit_request_reference": "<paykit-reference:1>",
+          "paykit_request_state": "confirmed",
+          "paykit_seller_confirmation_deadline": null,
+          "paykit_seller_confirmation_entered_at": null,
+          "paykit_total_sats": 51637,
+          "payment_id": "<uuid:2>",
+          "payment_method": "bitcoin",
+          "payment_reported_at": null,
+          "receipt_id": null,
+          "return_request": null,
+          "revision": 3,
+          "seller_pubky": "<pubky:seller>",
+          "shipment": null,
+          "shipping": {
+            "amount_minor": 1200,
+            "currency": "SAT",
+            "exponent": 0
+          },
+          "state": "cancelled",
+          "stock_held": false,
+          "subtotal": {
+            "amount_minor": 50000,
+            "currency": "SAT",
+            "exponent": 0
+          },
+          "total": {
+            "amount_minor": 51637,
+            "currency": "SAT",
+            "exponent": 0
+          },
+          "updated_at": "<timestamp:1>"
+        },
+        "resolution": {
+          "basis": "seller_attestation",
+          "order_id": "<uuid:1>",
+          "outcome": "abandoned",
+          "resolution_id": "<uuid:3>",
+          "resolved_at": "<timestamp:1>",
+          "resolved_by_pubky": "<pubky:seller>"
+        }
+      },
+      "status": 200
+    }
+  },
+  "already_resolved": {
+    "request": {
+      "body": {
+        "outcome": "abandoned"
+      },
+      "headers_present": [
+        "authorization",
+        "content-type",
+        "idempotency-key"
+      ],
+      "method": "POST",
+      "path": "/v0/orders/<uuid:4>/bitcoin/resolve"
+    },
+    "response": {
+      "body": {
+        "error": {
+          "code": "INVALID_STATE",
+          "message": "This order's payment was already resolved.",
+          "reason": "already_resolved"
+        },
+        "ok": false
+      },
+      "status": 409
+    }
+  },
+  "forbidden_refund_reference": {
+    "request": {
+      "body": {
+        "external_refund_reference": "tx-forbidden",
+        "outcome": "paid"
+      },
+      "headers_present": [
+        "authorization",
+        "content-type",
+        "idempotency-key"
+      ],
+      "method": "POST",
+      "path": "/v0/orders/<uuid:5>/bitcoin/resolve"
+    },
+    "response": {
+      "body": {
+        "error": {
+          "code": "INVALID_COMMAND",
+          "message": "Only a refunded resolution carries a refund reference.",
+          "reason": "invalid_refund_reference"
+        },
+        "ok": false
+      },
+      "status": 422
+    }
+  },
+  "invalid_outcome": {
+    "request": {
+      "body": {
+        "outcome": "chargeback"
+      },
+      "headers_present": [
+        "authorization",
+        "content-type",
+        "idempotency-key"
+      ],
+      "method": "POST",
+      "path": "/v0/orders/<uuid:5>/bitcoin/resolve"
+    },
+    "response": {
+      "body": {
+        "error": {
+          "code": "INVALID_COMMAND",
+          "message": "The outcome must be paid, refunded, or abandoned.",
+          "reason": "invalid_outcome"
+        },
+        "ok": false
+      },
+      "status": 422
+    }
+  },
+  "key_body_conflict": {
+    "request": {
+      "body": {
+        "outcome": "abandoned"
+      },
+      "headers_present": [
+        "authorization",
+        "content-type",
+        "idempotency-key"
+      ],
+      "method": "POST",
+      "path": "/v0/orders/<uuid:4>/bitcoin/resolve"
+    },
+    "response": {
+      "body": {
+        "error": {
+          "code": "IDEMPOTENCY_CONFLICT",
+          "message": "The Idempotency-Key was already used with a different resolution.",
+          "reason": "conflict"
+        },
+        "ok": false
+      },
+      "status": 409
+    }
+  },
+  "missing_pin": {
+    "request": {
+      "body": {
+        "outcome": "paid"
+      },
+      "headers_present": [
+        "authorization",
+        "content-type",
+        "idempotency-key"
+      ],
+      "method": "POST",
+      "path": "/v0/orders/<uuid:6>/bitcoin/resolve"
+    },
+    "response": {
+      "body": {
+        "error": {
+          "code": "INVALID_STATE",
+          "message": "This order has no pinned paykit stack to resolve against.",
+          "reason": "missing_pin"
+        },
+        "ok": false
+      },
+      "status": 409
+    }
+  },
+  "missing_refund_reference": {
+    "request": {
+      "body": {
+        "outcome": "refunded"
+      },
+      "headers_present": [
+        "authorization",
+        "content-type",
+        "idempotency-key"
+      ],
+      "method": "POST",
+      "path": "/v0/orders/<uuid:5>/bitcoin/resolve"
+    },
+    "response": {
+      "body": {
+        "error": {
+          "code": "INVALID_COMMAND",
+          "message": "A refunded resolution requires a valid external refund reference.",
+          "reason": "invalid_refund_reference"
+        },
+        "ok": false
+      },
+      "status": 422
+    }
+  },
+  "not_in_manual_review": {
+    "request": {
+      "body": {
+        "outcome": "paid"
+      },
+      "headers_present": [
+        "authorization",
+        "content-type",
+        "idempotency-key"
+      ],
+      "method": "POST",
+      "path": "/v0/orders/<uuid:7>/bitcoin/resolve"
+    },
+    "response": {
+      "body": {
+        "error": {
+          "code": "INVALID_STATE",
+          "message": "This order's payment is not awaiting manual resolution.",
+          "reason": "not_in_manual_review"
+        },
+        "ok": false
+      },
+      "status": 409
+    }
+  },
+  "not_order_seller": {
+    "request": {
+      "body": {
+        "outcome": "paid"
+      },
+      "headers_present": [
+        "authorization",
+        "content-type",
+        "idempotency-key"
+      ],
+      "method": "POST",
+      "path": "/v0/orders/<uuid:5>/bitcoin/resolve"
+    },
+    "response": {
+      "body": {
+        "error": {
+          "code": "UNAUTHORIZED",
+          "message": "Only the seller of this order's listing may perform this action.",
+          "reason": "not_order_seller"
+        },
+        "ok": false
+      },
+      "status": 403
+    }
+  },
+  "omitted_idempotency_key": {
+    "request": {
+      "body": {
+        "outcome": "paid"
+      },
+      "headers_present": [
+        "authorization",
+        "content-type"
+      ],
+      "method": "POST",
+      "path": "/v0/orders/<uuid:5>/bitcoin/resolve"
+    },
+    "response": {
+      "body": {
+        "error": {
+          "code": "INVALID_COMMAND",
+          "message": "The Idempotency-Key header must be a UUID.",
+          "reason": "invalid_idempotency_key"
+        },
+        "ok": false
+      },
+      "status": 422
+    }
+  },
+  "paid": {
+    "request": {
+      "body": {
+        "outcome": "paid",
+        "reason": "checked in wallet"
+      },
+      "headers_present": [
+        "authorization",
+        "content-type",
+        "idempotency-key"
+      ],
+      "method": "POST",
+      "path": "/v0/orders/<uuid:4>/bitcoin/resolve"
+    },
+    "response": {
+      "body": {
+        "ok": true,
+        "order": {
+          "buyer_pubky": "<pubky:buyer>",
+          "cancellation_reason": null,
+          "created_at": "<timestamp:1>",
+          "delivery_assumed": false,
+          "drop_aggregate_id": null,
+          "edition": null,
+          "external_refund": null,
+          "fiat_checkout_url": null,
+          "fiat_transaction_ref": null,
+          "fiat_verification": null,
+          "first_revealed_at": null,
+          "fulfillment": "shipping",
+          "guarantee_policy_version": 1,
+          "hold_expires_at": null,
+          "id": "<uuid:4>",
+          "lines": [
+            {
+              "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "fulfillment": "shipping",
+              "listing_aggregate_id": "listing:<pubky:seller>_boots_01",
+              "listing_revision": 1,
+              "quantity": 1,
+              "subtotal": {
+                "amount_minor": 50000,
+                "currency": "SAT",
+                "exponent": 0
+              },
+              "title": "Marketplace item",
+              "unit_price": {
+                "amount_minor": 50000,
+                "currency": "SAT",
+                "exponent": 0
+              }
+            }
+          ],
+          "next_actor": "seller",
+          "paykit_activation_state": "active",
+          "paykit_observation": {
+            "amount_matched": true,
+            "confirmations": 2,
+            "disappeared": false,
+            "observed_at": "<timestamp:1>",
+            "observed_sats": 51637,
+            "txid": "9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c"
+          },
+          "paykit_request_reference": "<paykit-reference:2>",
+          "paykit_request_state": "confirmed",
+          "paykit_seller_confirmation_deadline": null,
+          "paykit_seller_confirmation_entered_at": null,
+          "paykit_total_sats": 51637,
+          "payment_id": "<uuid:8>",
+          "payment_method": "bitcoin",
+          "payment_reported_at": null,
+          "receipt_id": "<uuid:9>",
+          "return_request": null,
+          "revision": 3,
+          "seller_pubky": "<pubky:seller>",
+          "shipment": null,
+          "shipping": {
+            "amount_minor": 1200,
+            "currency": "SAT",
+            "exponent": 0
+          },
+          "state": "paid",
+          "stock_held": false,
+          "subtotal": {
+            "amount_minor": 50000,
+            "currency": "SAT",
+            "exponent": 0
+          },
+          "total": {
+            "amount_minor": 51637,
+            "currency": "SAT",
+            "exponent": 0
+          },
+          "updated_at": "<timestamp:1>"
+        },
+        "resolution": {
+          "basis": "seller_attestation",
+          "order_id": "<uuid:4>",
+          "outcome": "paid",
+          "resolution_id": "<uuid:10>",
+          "resolved_at": "<timestamp:1>",
+          "resolved_by_pubky": "<pubky:seller>"
+        }
+      },
+      "status": 200
+    }
+  },
+  "refunded": {
+    "request": {
+      "body": {
+        "external_refund_reference": "tx-contract-refund",
+        "outcome": "refunded"
+      },
+      "headers_present": [
+        "authorization",
+        "content-type",
+        "idempotency-key"
+      ],
+      "method": "POST",
+      "path": "/v0/orders/<uuid:11>/bitcoin/resolve"
+    },
+    "response": {
+      "body": {
+        "ok": true,
+        "order": {
+          "buyer_pubky": "<pubky:buyer>",
+          "cancellation_reason": "refunded by the seller after manual review",
+          "created_at": "<timestamp:1>",
+          "delivery_assumed": false,
+          "drop_aggregate_id": null,
+          "edition": null,
+          "external_refund": {
+            "amount_minor": 51637,
+            "recorded_at": "<timestamp:1>",
+            "transaction_id": "tx-contract-refund"
+          },
+          "fiat_checkout_url": null,
+          "fiat_transaction_ref": null,
+          "fiat_verification": null,
+          "first_revealed_at": null,
+          "fulfillment": "shipping",
+          "guarantee_policy_version": 1,
+          "hold_expires_at": null,
+          "id": "<uuid:11>",
+          "lines": [
+            {
+              "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "fulfillment": "shipping",
+              "listing_aggregate_id": "listing:<pubky:seller>_boots_01",
+              "listing_revision": 1,
+              "quantity": 1,
+              "subtotal": {
+                "amount_minor": 50000,
+                "currency": "SAT",
+                "exponent": 0
+              },
+              "title": "Marketplace item",
+              "unit_price": {
+                "amount_minor": 50000,
+                "currency": "SAT",
+                "exponent": 0
+              }
+            }
+          ],
+          "next_actor": null,
+          "paykit_activation_state": "active",
+          "paykit_observation": {
+            "amount_matched": true,
+            "confirmations": 2,
+            "disappeared": false,
+            "observed_at": "<timestamp:1>",
+            "observed_sats": 51637,
+            "txid": "9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c"
+          },
+          "paykit_request_reference": "<paykit-reference:3>",
+          "paykit_request_state": "confirmed",
+          "paykit_seller_confirmation_deadline": null,
+          "paykit_seller_confirmation_entered_at": null,
+          "paykit_total_sats": 51637,
+          "payment_id": "<uuid:12>",
+          "payment_method": "bitcoin",
+          "payment_reported_at": null,
+          "receipt_id": null,
+          "return_request": null,
+          "revision": 4,
+          "seller_pubky": "<pubky:seller>",
+          "shipment": null,
+          "shipping": {
+            "amount_minor": 1200,
+            "currency": "SAT",
+            "exponent": 0
+          },
+          "state": "refunded_external",
+          "stock_held": false,
+          "subtotal": {
+            "amount_minor": 50000,
+            "currency": "SAT",
+            "exponent": 0
+          },
+          "total": {
+            "amount_minor": 51637,
+            "currency": "SAT",
+            "exponent": 0
+          },
+          "updated_at": "<timestamp:1>"
+        },
+        "resolution": {
+          "basis": "seller_attestation",
+          "order_id": "<uuid:11>",
+          "outcome": "refunded",
+          "resolution_id": "<uuid:13>",
+          "resolved_at": "<timestamp:1>",
+          "resolved_by_pubky": "<pubky:seller>"
+        }
+      },
+      "status": 200
+    }
+  },
+  "replay": {
+    "request": {
+      "body": {
+        "outcome": "paid",
+        "reason": "checked in wallet"
+      },
+      "headers_present": [
+        "authorization",
+        "content-type",
+        "idempotency-key"
+      ],
+      "method": "POST",
+      "path": "/v0/orders/<uuid:4>/bitcoin/resolve"
+    },
+    "response": {
+      "body": {
+        "ok": true,
+        "order": {
+          "buyer_pubky": "<pubky:buyer>",
+          "cancellation_reason": null,
+          "created_at": "<timestamp:1>",
+          "delivery_assumed": false,
+          "drop_aggregate_id": null,
+          "edition": null,
+          "external_refund": null,
+          "fiat_checkout_url": null,
+          "fiat_transaction_ref": null,
+          "fiat_verification": null,
+          "first_revealed_at": null,
+          "fulfillment": "shipping",
+          "guarantee_policy_version": 1,
+          "hold_expires_at": null,
+          "id": "<uuid:4>",
+          "lines": [
+            {
+              "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "fulfillment": "shipping",
+              "listing_aggregate_id": "listing:<pubky:seller>_boots_01",
+              "listing_revision": 1,
+              "quantity": 1,
+              "subtotal": {
+                "amount_minor": 50000,
+                "currency": "SAT",
+                "exponent": 0
+              },
+              "title": "Marketplace item",
+              "unit_price": {
+                "amount_minor": 50000,
+                "currency": "SAT",
+                "exponent": 0
+              }
+            }
+          ],
+          "next_actor": "seller",
+          "paykit_activation_state": "active",
+          "paykit_observation": {
+            "amount_matched": true,
+            "confirmations": 2,
+            "disappeared": false,
+            "observed_at": "<timestamp:1>",
+            "observed_sats": 51637,
+            "txid": "9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c9f2c"
+          },
+          "paykit_request_reference": "<paykit-reference:2>",
+          "paykit_request_state": "confirmed",
+          "paykit_seller_confirmation_deadline": null,
+          "paykit_seller_confirmation_entered_at": null,
+          "paykit_total_sats": 51637,
+          "payment_id": "<uuid:8>",
+          "payment_method": "bitcoin",
+          "payment_reported_at": null,
+          "receipt_id": "<uuid:9>",
+          "return_request": null,
+          "revision": 3,
+          "seller_pubky": "<pubky:seller>",
+          "shipment": null,
+          "shipping": {
+            "amount_minor": 1200,
+            "currency": "SAT",
+            "exponent": 0
+          },
+          "state": "paid",
+          "stock_held": false,
+          "subtotal": {
+            "amount_minor": 50000,
+            "currency": "SAT",
+            "exponent": 0
+          },
+          "total": {
+            "amount_minor": 51637,
+            "currency": "SAT",
+            "exponent": 0
+          },
+          "updated_at": "<timestamp:1>"
+        },
+        "resolution": {
+          "basis": "seller_attestation",
+          "order_id": "<uuid:4>",
+          "outcome": "paid",
+          "resolution_id": "<uuid:10>",
+          "resolved_at": "<timestamp:1>",
+          "resolved_by_pubky": "<pubky:seller>"
+        }
+      },
+      "status": 200
+    }
+  },
+  "resolution_not_applicable": {
+    "request": {
+      "body": {
+        "outcome": "paid"
+      },
+      "headers_present": [
+        "authorization",
+        "content-type",
+        "idempotency-key"
+      ],
+      "method": "POST",
+      "path": "/v0/orders/<uuid:14>/bitcoin/resolve"
+    },
+    "response": {
+      "body": {
+        "error": {
+          "code": "INVALID_STATE",
+          "message": "Bitcoin resolution applies only to bitcoin-bound orders.",
+          "reason": "resolution_not_applicable"
+        },
+        "ok": false
+      },
+      "status": 409
+    }
+  },
+  "stock_unavailable": {
+    "request": {
+      "body": {
+        "outcome": "paid"
+      },
+      "headers_present": [
+        "authorization",
+        "content-type",
+        "idempotency-key"
+      ],
+      "method": "POST",
+      "path": "/v0/orders/<uuid:15>/bitcoin/resolve"
+    },
+    "response": {
+      "body": {
+        "error": {
+          "code": "INSUFFICIENT_INVENTORY",
+          "message": "The order's inventory can no longer be reacquired; choose refunded or abandoned.",
+          "reason": "stock_unavailable"
+        },
+        "ok": false
+      },
+      "status": 409
+    }
+  }
+}

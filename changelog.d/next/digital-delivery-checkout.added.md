@@ -1,0 +1,1 @@
+Checkout sends digital items as digital orders: a cart with nothing to ship asks for no address, one seller's shipped and digital items start separate checkouts, an item the seller emails needs an email for delivery, and an item whose seller has not set delivery yet cannot be paid for.

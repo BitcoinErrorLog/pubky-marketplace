@@ -1,0 +1,1 @@
+Create profile no longer invents a random name. It prefills name, bio and links from an existing Pubky App or Bitkit profile, and leaves the name empty otherwise. When the homeserver account does not allow Pubky App data (Bitkit accounts created through Homegate), saving shows that reason instead of "Could not save profile".

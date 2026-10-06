@@ -1,0 +1,1 @@
+Publishing or editing a listing no longer reports "Could not publish this listing" when the homeserver has saved the record but is a moment slow to serve it back. Shop now waits briefly for it and, if it still has not appeared, says the listing was published with confirmation pending, so sellers do not post it again as a duplicate.

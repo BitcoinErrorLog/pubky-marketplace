@@ -1,0 +1,178 @@
+name: Marketplace VRT
+
+on:
+  pull_request:
+    branches:
+      - master
+      - 'release/shop-*'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Path filter is the `paths` job, not `on.pull_request.paths`.
+# A workflow skipped by a trigger path filter leaves the required check
+# `vrt-marketplace` Pending. A job skipped by `if` reports Success.
+# An unrelated pull request sets run=false and skips the job on purpose.
+# A failed or cancelled path filter must not skip it: the job runs and exits 1.
+# Patterns: src/**, public/** (rendered assets such as /images/*),
+# vendor/** (file: dependencies), **/*.css, and every file that changes how
+# a spec's imports resolve or render: package.json, package-lock.json,
+# .nvmrc, tsconfig*.json (path aliases, read by vite-tsconfig-paths),
+# vitest.config.*, vite.config.*, postcss.config.*, tailwind.config.*;
+# plus this workflow and the VRT scripts it runs.
+# scripts/ci-vrt-paths-test.sh runs this filter against sample changes.
+#
+# vrt-core runs the other Linux VRT project (`vrt`: feed, landing, messages,
+# onboarding) under the same filter. The default pre-push gate runs no VRT,
+# so these two jobs are the VRT gate for every Shop pull request.
+jobs:
+  paths:
+    name: Path filter
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.filter.outputs.run }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Match VRT paths
+        id: filter
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git diff --name-only "$BASE_SHA" HEAD > "$RUNNER_TEMP/changed.txt"
+          run=false
+          while IFS= read -r file; do
+            [ -n "$file" ] || continue
+            case "$file" in
+              src/*|public/*|vendor/*|*.css|package.json|package-lock.json|.nvmrc|tsconfig*.json|vitest.config.*|vite.config.*|postcss.config.*|tailwind.config.*|.github/workflows/vrt-marketplace.yml|scripts/ci-vrt-marketplace.sh|scripts/vrt-linux.sh|scripts/vrt-related.mjs|scripts/vrt-revert-outside.sh)
+                run=true
+                break
+                ;;
+            esac
+          done < "$RUNNER_TEMP/changed.txt"
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+          echo "vrt paths match: $run"
+
+  vrt-marketplace:
+    name: vrt-marketplace
+    needs: paths
+    if: always() && (needs.paths.result != 'success' || needs.paths.outputs.run == 'true')
+    runs-on: ubuntu-latest
+    # Same image as local Linux proof (`package-lock.json` playwright 1.60.0).
+    container:
+      image: mcr.microsoft.com/playwright:v1.60.0-noble
+      options: --user 1001 --shm-size=2g
+    # Non-container HEAD median 4m0s (run 35590590935). Containerized
+    # 9fb822a01 cancelled at 8m with tests still running (run 35593190722:
+    # ~1.5m setup, ~3m cold vite optimize, tests unfinished). Missing
+    # baselines run compare then --update. 25 min covers that second suite.
+    timeout-minutes: 25
+
+    steps:
+      - name: Fail closed when the path filter did not succeed
+        if: needs.paths.result != 'success'
+        run: |
+          echo "Path filter result is ${{ needs.paths.result }}. vrt-marketplace fails closed."
+          exit 1
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run marketplace visual regression tests
+        env:
+          VRT_BROWSERS: chromium,firefox
+          PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+          VRT_REPORT_DIR: ${{ github.workspace }}/.vrt-marketplace-ci
+        run: bash scripts/ci-vrt-marketplace.sh
+
+      - name: Upload newly recorded Linux baselines
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vrt-marketplace-linux-baselines
+          path: ${{ github.workspace }}/.vrt-marketplace-ci/new-linux-baselines/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload VRT report and attachments
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vrt-marketplace-report
+          path: |
+            ${{ github.workspace }}/.vrt-marketplace-ci/report.json
+            .vitest-attachments/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 14
+
+  vrt-core:
+    name: vrt-core
+    needs: paths
+    if: always() && (needs.paths.result != 'success' || needs.paths.outputs.run == 'true')
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.60.0-noble
+      options: --user 1001 --shm-size=2g
+    # Same budget as vrt-marketplace: setup, a cold vite optimize per browser,
+    # and 13 specs in each of two browsers.
+    timeout-minutes: 25
+
+    steps:
+      - name: Fail closed when the path filter did not succeed
+        if: needs.paths.result != 'success'
+        run: |
+          echo "Path filter result is ${{ needs.paths.result }}. vrt-core fails closed."
+          exit 1
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # One browser per run, as scripts/vrt-linux.sh does: two browsers in one
+      # Vitest process race on Vite's shared optimizer cache.
+      - name: Run vrt project (chromium)
+        env:
+          VRT_BROWSERS: chromium
+          PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+          CI: true
+        run: npx vitest run --project vrt
+
+      - name: Run vrt project (firefox)
+        env:
+          VRT_BROWSERS: firefox
+          PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+          CI: true
+        run: npx vitest run --project vrt
+
+      - name: Upload VRT attachments
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vrt-core-attachments
+          path: .vitest-attachments/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 14

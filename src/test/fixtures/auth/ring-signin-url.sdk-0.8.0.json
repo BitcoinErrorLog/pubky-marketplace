@@ -1,0 +1,7 @@
+{
+  "source": "@synonymdev/pubky 0.8.0 Pubky.startAuthFlow(CAPABILITIES, AuthFlowKind.signin(), relay), captured 2026-09-23; relay and secret values omitted",
+  "scheme": "pubkyauth:",
+  "host": "signin",
+  "params": ["caps", "relay", "secret"],
+  "caps": "/pub/pubky.app/:rw,/pub/paykit/:rw,/priv/pubky.app/:rw"
+}

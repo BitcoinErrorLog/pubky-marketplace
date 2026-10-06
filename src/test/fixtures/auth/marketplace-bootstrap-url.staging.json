@@ -1,0 +1,8 @@
+{
+  "source": "Staging marketplace-service createBootstrapFlow through the Shop BFF (pubky-marketplace-staging), captured 2026-09-23; relay, secret and cpk values omitted",
+  "scheme": "pubkyauth:",
+  "host": "signin_grant",
+  "params": ["caps", "relay", "secret", "cid", "cpk"],
+  "caps": "/pub/pubky.app/marketplace-service/v1/:rw",
+  "cid": "marketplace.staging.shop.pubky.app"
+}

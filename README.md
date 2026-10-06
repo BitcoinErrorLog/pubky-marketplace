@@ -1,46 +1,104 @@
-# Pubky Marketplace
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/pubky/pubky-app)
 
-Umbrella repository for the Pubky App marketplace project: the integration environment lives here, and this README maps every repository, branch, and document that makes up the feature. Everything is hosted under the `BitcoinErrorLog` GitHub org for now.
+# Pubky web app
 
-**Start with [SUMMARY.md](SUMMARY.md)** — the full feature summary with UI screenshots from the visual-regression suites and links to every repo and document.
+## Pubky Marketplace
 
-## Repository map
+`pubky/pubky-marketplace` holds the Shop web client, its documentation and
+the tester issue tracker. The client is built on the official
+[`pubky/pubky-app`](https://github.com/pubky/pubky-app) and adds a full
+peer-to-peer **marketplace** on top of the social app; its history includes
+the official app's history. Release line: branch `master` (the repository
+default), live at [shop.pubky.app](https://shop.pubky.app). Payments there are
+real and go straight to the seller.
 
-| Piece | Where | What it is |
-| --- | --- | --- |
-| Client (Pubky App) | [`BitcoinErrorLog/pubky-app`](https://github.com/BitcoinErrorLog/pubky-app), stacked branches `marketplace/pr1-docs` … `marketplace/pr44-watch-sync` and counting; `marketplace/pr25-ux` is the integration/deploy line, live at <https://shop.pubky.app> (Vercel) | Next.js app with the marketplace UI, local-first Dexie cache, commerce application layer, VRT suites, and E2E journeys. The original slice plan is `docs/ecommerce/pr-split.md` (now a historical record); `docs/ecommerce/status.md` on `marketplace/pr25-ux` is current truth. |
-| Transaction service | [`pubky/pubky-marketplace-service`](https://github.com/pubky/pubky-marketplace-service) | Rust + PostgreSQL event-sourced service: offers, auctions (proxy bidding, exactly-once close), orders, returns, disputes, moderation, notifications, role-scoped read projections, Pubky AuthToken auth, server-side Locks verification. Canonical state machines in `contracts/state-machines.json`. |
-| Specs fork | [`BitcoinErrorLog/pubky-app-specs`](https://github.com/BitcoinErrorLog/pubky-app-specs), branches `feat/marketplace-objects-0.6.x` and `marketplace-4-build` | Fork of `pubky/pubky-app-specs` adding the marketplace objects under `/pub/pubky.app/marketplace/v1/` (shop — now with the `transactionService` authority field —, listing, review, review responses, drops) plus the first `/priv/` records (cross-device watchlist, portable order receipts) and three offline-verifiable JWS attestation formats (purchase, order receipt, drop edition), released as `v0.6.2-marketplace.1`–`.8` and consumed by the client and Nexus. See the fork's `MARKETPLACE-FORK.md`. |
-| Nexus indexing | [`BitcoinErrorLog/pubky-nexus`](https://github.com/BitcoinErrorLog/pubky-nexus), branch `feat/marketplace-indexing` | Indexer support for marketplace shops/listings/reviews/drops: `/v0/stream/listings`, `/v0/stream/drops` (time-window buckets, estimates only), shop/listing/drop endpoints, auction terms, `sorting=ends_at`, community-tag aggregation, review indexing with offline attestation verification, and reputation aggregates. Deployed as a dedicated marketplace-indexing Nexus on Railway (`https://nexusd-production-7108.up.railway.app`, project `pubky-marketplace-nexus`; runbook in the branch's `docs/railway-deploy.md`), watching the official staging homeserver. The official shared Nexus deployments still carry none of this. Contract boundary: ADR 0028 in the app repo — the social endpoints answer social-vocabulary queries over opaque anchors and never grow commerce params; the marketplace endpoints are a separate contract that opens commerce records. One codebase/deployment today is ops topography, not design. |
-| Paykit Server fork | [`BitcoinErrorLog/paykit-server`](https://github.com/BitcoinErrorLog/paykit-server), branch `marketplace-rails` | Fork of `pubky/paykit-server` adding signed marketplace payment requests (the transaction service as a configured trusted signer via `marketplace.trusted_public_key`) and manual watch-only claims, deployed on the staging rails. |
-| Locks SDK (vendored) | inside `pubky-app` branches | `locks-sdk-wasm` built from `pubky/locks`; provenance (source commit, toolchain, checksums) in `docs/ecommerce/locks-sdk-provenance.md`. |
-| Paykit WASM binding | [`BitcoinErrorLog/paykit-rs-official`](https://github.com/BitcoinErrorLog/paykit-rs-official), branch `feat/wasm-binding` | Fork of the official `pubky/paykit-rs` with an experiment-grade browser WASM binding of the encrypted-link messaging surface — vendored into the client and powering the durable modes' end-to-end-encrypted messaging (19/19 three-engine browser e2e at vendored revision `0a6c6e4`). Not the deprecated legacy `BitcoinErrorLog/paykit-rs`, which shares no history with the official library. |
-| Payments environment | [`payments-env/`](payments-env/) in this repo | Composed Locks Server + Paykit Server + Bitcoin Core (regtest) + Electrum + Pubky testnet, with a re-runnable script proving the protocol-level payment leg end to end. See its own README. |
-| Deployed staging rails | [`pubky/pubky-payment-rails`](https://github.com/pubky/pubky-payment-rails) | Railway deployment (project `pubky-marketplace-staging`) of the pinned Lock Server + Paykit Server + regtest bitcoind + Fulcrum, plus the verification driver that proves live purchases against the deployed stack over the real staging Pubky network. |
-| Fiat verifier gateway | [`pubky/pubky-fiat-verifier`](https://github.com/pubky/pubky-fiat-verifier) | Rust payment verifier gateway sitting behind the Lock Server's single `[paykit] server_url` (staging is cut over to it): BTC criteria proxy verbatim to the real Paykit Server; `USD` criteria settle through Stripe **test-mode** and PayPal **sandbox** processors (hosted checkouts, webhook-as-hint / API-pull-as-truth, settlement-delay window) — both proven with live purchases on the deployed stack (2026-08-22). Proves Locks is payment-agnostic with zero upstream changes — design and execution record in `docs/ecommerce/fiat-rails-*.md` on the app branches. |
+New to the Shop: [`docs/ecommerce/onboarding.md`](docs/ecommerce/onboarding.md).
+Releasing: [`docs/ecommerce/release.md`](docs/ecommerce/release.md).
+Project documents (launch plan, team brief, SSO, upstream briefs):
+[`docs/README.md`](docs/README.md), the
+[marketplace overview](docs/marketplace-overview.md) and
+[`SUMMARY.md`](SUMMARY.md). Report bugs and questions in
+[issues](https://github.com/pubky/pubky-marketplace/issues).
 
-## Key documents
+**What the Shop adds over the official app:**
 
-- [`docs/spec-feedback/paykit-team-brief.md`](docs/spec-feedback/paykit-team-brief.md) — technical brief for `pubky/paykit-rs` and `pubky/paykit-server` maintainers: fork inventory, wallet-interop defects, what is theirs vs what we built around them.
-- [`docs/spec-feedback/bitkit-team-brief.md`](docs/spec-feedback/bitkit-team-brief.md) — technical brief for Bitkit and Pubky Ring maintainers: wallet-leg surface, issuer filters, Hypercolor handoff, identity-only Ring approvals.
-- [`docs/spec-feedback/locks-team-brief.md`](docs/spec-feedback/locks-team-brief.md) — technical brief for `pubky/locks` maintainers: clean pin (no fork), fiat-verifier seam, verifier-type misnomer, guarded-404 evidence, 500-vs-403 on homeserver write denial.
-- [`docs/spec-feedback/nexus-team-brief.md`](docs/spec-feedback/nexus-team-brief.md) — technical brief for `pubky/pubky-nexus` and `pubky/pubky-app-specs` maintainers: fork inventory, indexer-boundary question, open-world specs split, JOSE attestation typs, R1–R9 filing status.
-- [`docs/spec-feedback/pubky-core-team-brief.md`](docs/spec-feedback/pubky-core-team-brief.md) — technical brief for the pubky SDK / homeserver / Homegate / pkarr maintainers: eight vendored wasm and pkarr patches vs 0.11, `/priv` durability verdict, Homegate write-allowlist mechanism, signup-token friction.
-- [`docs/spec-feedback/ring-consent-upstream-proposal.md`](docs/spec-feedback/ring-consent-upstream-proposal.md) — upstream ask for `pubky/pubky-ring` (with a Bitkit appendix): reject empty/malformed capability strings at the signer, one capability-rendering spec for all three sheets, per-app grant memory vs global Auto Auth, audience-bound approval weighed against Shop's dual-present interim.
+- **User-owned commerce catalog** — shops, listings (variants, shipping,
+  auctions, digital goods), reviews, and drops are seller-signed records on
+  the seller's homeserver (specs fork `pubky-app-specs`
+  `0.6.2-marketplace.x`), indexed by a dedicated Nexus; portable by design.
+- **Durable transactions** — carts, checkout, offers/counteroffers, proxy-bid
+  auctions, orders, fulfillment, returns, and disputes run against a
+  separate Rust transaction service
+  ([`BitcoinErrorLog/pubky-marketplace-service`](https://github.com/BitcoinErrorLog/pubky-marketplace-service),
+  ADR 0019/0022): server-time deadlines, constraint-backed one-winner
+  concurrency, idempotent command envelopes.
+- **Real payments, out of band** — Bitcoin via Locks + Paykit (regtest,
+  proven end to end including a real Bitkit wallet swipe-to-pay), and
+  PayPal behind a payment-agnostic Locks fiat gateway. Card payments are
+  paused in the shop. The app never holds or moves funds, and says so.
+- **Drops** (ADR 0026) — timed, limited releases with server-enforced
+  schedules and caps, honest stock display, and attested edition numbers
+  ("7 of 100") that live in the buyer's own private receipt documents.
+- **Portable trust** — service-attested purchase attestations on public
+  reviews, reputation aggregates, and signed order receipts published to
+  the participants' own homeservers ("credible exit": operator death leaves
+  verifiable history).
+- **E2EE messaging & DMs** — listing chat and general direct messages over
+  Paykit Encrypted Links (Noise XX), vendored browser WASM binding; no
+  operator can read bodies.
+- **Watchlist with private cross-device sync** (`/priv` homeserver
+  documents), saved searches, device-honest alerts.
+- **Honesty architecture** — commerce modes fail closed
+  (`unavailable` by default), simulated states are labeled, redactions are
+  structural, and the client/service state machines are contract-locked in
+  CI.
 
-### On the `pubky-app` marketplace branches
+**Notable fixes made along the way:** a DM handshake bug where a persisted
+mid-handshake snapshot bound to a rotated counterparty key polled `pending`
+forever (`5b0174a4`), plus assorted deployed-rails defects surfaced by the
+live wallet-leg proof.
 
-- `docs/ecommerce/status.md` — what is real, simulated, or deferred; single source of truth for honesty about the feature.
-- `docs/ecommerce/RUNNING.md` — how to run the marketplace locally (durable mode and sandbox).
-- `docs/ecommerce/pr-split.md` — the stacked-PR plan and specs-upstreaming reconciliation notes.
-- `docs/ecommerce/upstream-integration.md` — pinned upstream commits (`pubky/locks`, `pubky/paykit-rs`, `pubky/paykit-server`) and API contracts.
-- `docs/ecommerce/service-auth.md` — Pubky AuthToken design for service authentication.
-- `docs/ecommerce/messaging/` — encrypted-transport evaluation, recommendation, and implementation record for private messaging (E2EE over Paykit Encrypted Links shipped in the durable modes; general DMs too).
-- `docs/ecommerce/trust-reputation-design.md` / `trust-reputation-plan.md` — attested public reviews and portable reputation (Phases 0–2 and the Phase 4 surfaces landed).
-- `docs/ecommerce/multi-operator.md` — per-shop transaction-service authorities (the `transactionService` shop field, the client's mismatch guard, and the routing plan).
-- `docs/ecommerce/drops-design.md` — the drops feature set (timed limited releases, editions, sealed pre-commitment, auditable raffles).
-- `docs/adr/0019`–`0026` — architectural decisions (transaction authority, public records, namespace, Rust service, DB migration, portable reputation, v2 namespace, drops).
+Start with [`docs/ecommerce/status.md`](docs/ecommerce/status.md) (what is
+real vs simulated, per mode, with a reproducible proof ledger) and ADRs
+0019–0029 in [`docs/adr/`](docs/adr/).
 
-## Status
+## Prerequisites
 
-Pre-production, deployed to staging: the client at <https://shop.pubky.app> (Vercel), the transaction service, payment rails (Bitcoin **regtest** only), fiat-verifier gateway, and marketplace-indexing Nexus on Railway. The full purchase path is proven live end to end — including the real Bitkit wallet leg (companion claim, in-app Payment Request, swipe-to-pay, on-chain confirmation, 2026-08-22) and hosted Stripe/PayPal test purchases through the Locks fiat gateway. Buyers and sellers keep signed portable order receipts (and drop edition proofs) on their own homeservers. Private messaging in the durable modes is real end-to-end encryption at experiment grade (sandbox mode stays plaintext and labeled). No independent security review has been performed — required before any real funds. `docs/ecommerce/status.md` on `marketplace/pr25-ux` in the app is authoritative on what works.
+- Node.js (see [.nvmrc](./.nvmrc) for the recommended version)
+
+## Getting Started
+
+First, install the dependencies and run the development server:
+
+```bash
+HUSKY=0 npm ci
+npm run dev
+```
+
+`HUSKY=0` keeps husky's `prepare` script from setting a repository-local
+`core.hooksPath`, which would replace your global git hooks.
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The marketplace is off unless you opt in; [`docs/ecommerce/RUNNING.md`](docs/ecommerce/RUNNING.md)
+runs it against the local sandbox service.
+
+## Environment Variables
+
+Copy the example environment file and adjust the values as needed:
+
+```bash
+cp .env.example .env
+```
+
+See [docs/environment.md](./docs/environment.md) for more details.
+
+## Common Workflows
+
+- Check architecture and coding conventions: [docs/README.md](./docs/README.md)
+- Run local code review workflow (Cursor): use `/review` (defined in `.cursor/skills/code-review/SKILL.md`)
+- Follow commit message format: [docs/commit-message.md](./docs/commit-message.md)
+
+## License
+
+This project is licensed under the MIT License.  
+See the [LICENSE](./LICENSE) file for more details.

@@ -1,0 +1,173 @@
+{
+  "captureDate": "2026-09-15",
+  "provenance": {
+    "capturedAtUtc": "2026-09-15",
+    "source": "production GET /v1/offers",
+    "serviceRevision": "664f78f",
+    "seat": "seller",
+    "identityRedaction": "pubky values truncated to 8 characters"
+  },
+  "offers": [
+    {
+      "id": "63070a9a-4520-4209-bec5-7ae87bf1930d",
+      "aggregate_id": "offer:63070a9a-4520-4209-bec5-7ae87bf1930d",
+      "listing_aggregate_id": "listing:n3pfudgx…_5734477e29b0464dbc7682b76e6f1d34",
+      "buyer_pubky": "tjtigrhb…",
+      "seller_pubky": "n3pfudgx…",
+      "revision": 1,
+      "state": "pending",
+      "offered_by": "tjtigrhb…",
+      "amount": {
+        "amount_minor": 100,
+        "currency": "USD",
+        "exponent": 2
+      },
+      "quantity": 1,
+      "message": "",
+      "history": [
+        {
+          "action": "created",
+          "amount": {
+            "currency": "USD",
+            "exponent": 2,
+            "amount_minor": 100
+          },
+          "message": "",
+          "quantity": 1,
+          "revision": 1,
+          "actor_pubky": "tjtigrhb…",
+          "occurred_at": "2026-09-15T15:41:29.787Z"
+        }
+      ],
+      "expires_at": "2026-09-16T15:41:29.787Z",
+      "created_at": "2026-09-15T15:41:29.787Z",
+      "updated_at": "2026-09-15T15:41:29.787Z",
+      "award": null
+    },
+    {
+      "id": "0b1efce4-1d80-4666-8a97-95c7887acc98",
+      "aggregate_id": "offer:0b1efce4-1d80-4666-8a97-95c7887acc98",
+      "listing_aggregate_id": "listing:n3pfudgx…_5734477e29b0464dbc7682b76e6f1d34",
+      "buyer_pubky": "tjtigrhb…",
+      "seller_pubky": "n3pfudgx…",
+      "revision": 1,
+      "state": "pending",
+      "offered_by": "tjtigrhb…",
+      "amount": {
+        "amount_minor": 100,
+        "currency": "USD",
+        "exponent": 2
+      },
+      "quantity": 1,
+      "message": "",
+      "history": [
+        {
+          "action": "created",
+          "amount": {
+            "currency": "USD",
+            "exponent": 2,
+            "amount_minor": 100
+          },
+          "message": "",
+          "quantity": 1,
+          "revision": 1,
+          "actor_pubky": "tjtigrhb…",
+          "occurred_at": "2026-09-15T15:39:45.142Z"
+        }
+      ],
+      "expires_at": "2026-09-16T15:39:45.142Z",
+      "created_at": "2026-09-15T15:39:45.142Z",
+      "updated_at": "2026-09-15T15:39:45.142Z",
+      "award": null
+    },
+    {
+      "id": "9ff7f42a-4380-4144-b7d6-3ac6ec7b4a56",
+      "aggregate_id": "offer:9ff7f42a-4380-4144-b7d6-3ac6ec7b4a56",
+      "listing_aggregate_id": "listing:n3pfudgx…_5734477e29b0464dbc7682b76e6f1d34",
+      "buyer_pubky": "tjtigrhb…",
+      "seller_pubky": "n3pfudgx…",
+      "revision": 3,
+      "state": "converted",
+      "offered_by": "tjtigrhb…",
+      "amount": {
+        "amount_minor": 100,
+        "currency": "USD",
+        "exponent": 2
+      },
+      "quantity": 1,
+      "message": "",
+      "history": [
+        {
+          "action": "created",
+          "amount": {
+            "currency": "USD",
+            "exponent": 2,
+            "amount_minor": 100
+          },
+          "message": "",
+          "quantity": 1,
+          "revision": 1,
+          "actor_pubky": "tjtigrhb…",
+          "occurred_at": "2026-09-15T09:26:17.675Z"
+        },
+        {
+          "action": "accepted",
+          "amount": {
+            "currency": "USD",
+            "exponent": 2,
+            "amount_minor": 100
+          },
+          "message": "",
+          "quantity": 1,
+          "revision": 2,
+          "actor_pubky": "n3pfudgx…",
+          "occurred_at": "2026-09-15T09:28:42.884Z"
+        }
+      ],
+      "expires_at": "2026-09-16T09:26:17.675Z",
+      "created_at": "2026-09-15T09:26:17.675Z",
+      "updated_at": "2026-09-15T09:37:40.084Z",
+      "award": {
+        "id": "bf50a192-3b30-46af-9c41-909b2bf7f784",
+        "state": "converted",
+        "listing": {
+          "aggregate_id": "listing:n3pfudgx…_5734477e29b0464dbc7682b76e6f1d34",
+          "seller_pubky": "n3pfudgx…",
+          "listing_id": "5734477e29b0464dbc7682b76e6f1d34",
+          "title": "Cutover test — do not buy",
+          "listing_revision": 1,
+          "listing_record_sha256": "645a42ca…e4bde96bea6b"
+        },
+        "variant": {
+          "id": "variant_1",
+          "sku": null,
+          "options": []
+        },
+        "unit_price": {
+          "amount_minor": 100,
+          "currency": "USD",
+          "exponent": 2
+        },
+        "subtotal": {
+          "amount_minor": 100,
+          "currency": "USD",
+          "exponent": 2
+        },
+        "shipping": {
+          "amount_minor": 100,
+          "currency": "USD",
+          "exponent": 2
+        },
+        "merchandise_total": {
+          "amount_minor": 200,
+          "currency": "USD",
+          "exponent": 2
+        },
+        "quantity": 1,
+        "accepted_at": "2026-09-15T09:28:42.884Z",
+        "convert_by": "2026-09-15T09:58:42.884Z",
+        "converted_order_id": "6f5c25fa-d5c2-4c74-ad2e-8884269e8796"
+      }
+    }
+  ]
+}

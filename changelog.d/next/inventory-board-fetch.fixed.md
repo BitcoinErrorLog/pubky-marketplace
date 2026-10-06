@@ -1,0 +1,1 @@
+Inventory Studio loads after grant: the shop client now binds `fetch` so Chromium can call the service, listings whose homeserver record is unavailable still appear from the service projection, and `@bitcoinerrorlog/pubky-shop@0.1.5` binds fetch in the SDK so the Shop does not rely on the wrapper bind alone.

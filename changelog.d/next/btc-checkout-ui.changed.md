@@ -1,0 +1,1 @@
+Bitcoin checkout says Payment seen once the transaction is broadcast and seen, counts the 24-hour seller-confirmation hold down as H:MM:SS, states the hold in plain words, and explains the payment code beside the amount breakdown.

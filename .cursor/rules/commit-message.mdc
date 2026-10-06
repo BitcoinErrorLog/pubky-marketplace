@@ -1,0 +1,8 @@
+---
+description: Enforce conventional commit message format
+alwaysApply: false
+---
+
+# Commit Message Rules
+
+@docs/commit-message.md

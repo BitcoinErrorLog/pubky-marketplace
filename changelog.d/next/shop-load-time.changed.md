@@ -1,0 +1,1 @@
+The marketplace loads much faster: repeat visits no longer wait behind an unused service-worker preload, the catalog page is cached for five minutes with seller shop names fetched in parallel, the first visit precaches only the app shell, and the promo banner no longer shifts the listings.

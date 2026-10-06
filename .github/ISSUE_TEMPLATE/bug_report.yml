@@ -1,0 +1,71 @@
+name: Bug Report
+description: Report a bug to help us improve
+title: '[Bug]: '
+labels: ['🐞 bug']
+type: bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! 🐛
+
+  - type: textarea
+    id: describe-bug
+    attributes:
+      label: Description
+      description: A clear description of what the bug is.
+      placeholder: |
+        What happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behaviour
+      description: What should happen instead?
+      placeholder: |
+        I expected...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce-bug
+    attributes:
+      label: Steps to Reproduce
+      description: How do you trigger this bug?
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots or a recording.
+      placeholder: |
+        Drag and drop images here, or paste a link to a video.
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console Log
+      description: |
+        Open browser DevTools (F12) → Console tab → Copy any error messages.
+      render: shell
+    validations:
+      required: false
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser & Version
+      description: What browser are you using?
+      placeholder: e.g. Chrome 120, Safari 17, Firefox 121
+    validations:
+      required: false

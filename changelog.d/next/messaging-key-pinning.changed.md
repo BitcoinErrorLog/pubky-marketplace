@@ -1,0 +1,1 @@
+Private messages now warn when a contact's messaging key changes and send nothing until you verify or accept the new key; the Shop also notices when another app or device replaced your own messaging key, publishes yours again, and tells you.

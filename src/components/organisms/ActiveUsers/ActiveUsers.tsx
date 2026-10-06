@@ -1,0 +1,76 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { UsersRound } from 'lucide-react';
+import { APP_ROUTES, getUserProfileUrl } from '@/app/routes';
+import { Typography } from '@/atoms/Typography/Typography';
+import { useFollowUser } from '@/hooks/useFollowUser/useFollowUser';
+import { useUserStream } from '@/hooks/useUserStream/useUserStream';
+import type { Pubky } from '@/models/models.types';
+import { UserStreamTypes } from '@/models/stream/user/userStream.types';
+import { SidebarSection } from '@/molecules/SidebarSection/SidebarSection';
+import { useAuthStore } from '@/stores/auth/auth.store';
+import { CompactUserListItemSkeleton } from '../CompactUserListItemSkeleton/CompactUserListItemSkeleton';
+import { UserListItem } from '../UserListItem/UserListItem';
+
+const USERS_LIMIT = 3;
+
+/**
+ * ActiveUsers
+ *
+ * Sidebar section showing active users (influencers) with their post/tag counts.
+ * Uses SidebarSection and UserListItem for consistent layout.
+ *
+ * Note: This is an Organism because it interacts with data hooks (useUserStream, useFollowUser).
+ */
+export function ActiveUsers() {
+  const router = useRouter();
+  const currentUserPubky = useAuthStore((state) => state.currentUserPubky);
+  const { users, isLoading: isStreamLoading } = useUserStream({
+    streamId: UserStreamTypes.TODAY_INFLUENCERS_ALL,
+    limit: USERS_LIMIT,
+    includeCounts: true,
+    includeRelationships: true,
+  });
+  const { toggleFollow, isUserLoading } = useFollowUser();
+  const handleUserClick = (pubky: Pubky) => {
+    router.push(getUserProfileUrl(pubky, currentUserPubky));
+  };
+  const handleFollowClick = async (userId: Pubky, isFollowing: boolean, displayName: string) => {
+    await toggleFollow(userId, isFollowing, displayName);
+  };
+  const handleSeeAll = () => {
+    router.push(`${APP_ROUTES.HOT}`);
+  };
+  return (
+    <SidebarSection
+      title={'Active users'}
+      footerIcon={UsersRound}
+      footerText={'See all'}
+      onFooterClick={handleSeeAll}
+      data-testid="active-users"
+    >
+      {isStreamLoading ? (
+        Array.from({
+          length: USERS_LIMIT,
+        }).map((_, index) => <CompactUserListItemSkeleton key={`active-users-skeleton-${index}`} />)
+      ) : users.length === 0 ? (
+        <Typography className="font-light text-muted-foreground">{'No users to show'}</Typography>
+      ) : (
+        users.map((user) => (
+          <UserListItem
+            key={user.id}
+            user={user}
+            variant="compact"
+            showStats
+            isLoading={isUserLoading(user.id)}
+            isStatusLoading={isStreamLoading}
+            isCurrentUser={currentUserPubky === user.id}
+            onUserClick={handleUserClick}
+            onFollowClick={handleFollowClick}
+          />
+        ))
+      )}
+    </SidebarSection>
+  );
+}

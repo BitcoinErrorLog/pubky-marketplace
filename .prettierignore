@@ -1,0 +1,80 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+
+# Coverage
+coverage/
+
+# Cache
+.eslintcache
+.turbo
+
+# macOS AppleDouble resource forks
+._*
+**/._*
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+.cursor/
+.claude/
+
+# AI generated files
+.ai-reviews/
+
+# Test snapshots (to avoid reformatting)
+**/__snapshots__/
+
+# Config files that should maintain their format
+.husky/
+
+# Public assets
+public/
+
+# Generated files
+next-env.d.ts
+.vercel/
+
+# Vendored verbatim from pubky-marketplace-service (emit-contracts output);
+# kept byte-identical so re-vendoring is a plain copy
+src/libs/commerce/contracts/endpoints.json
+src/libs/commerce/contracts/samples/confirm.json
+src/libs/commerce/contracts/samples/resolve.json
+src/libs/commerce/contracts/samples/projections.json
+src/libs/commerce/contracts/state-machines.json
+
+# Packed GeoNames US ZIP5 table (CC-BY 4.0); keep the compact one-line payload
+src/libs/commerce/data/us-zip5.json
+
+# Vendored verbatim wasm-pack output of the Pubky Locks browser SDK;
+# kept byte-identical to the recorded build (see docs/ecommerce/locks-sdk-provenance.md)
+vendor/locks-sdk-wasm/
+
+# Project documents and the payments environment keep their own formatting
+HANDOFF.md
+SUMMARY.md
+docs/contributions/
+docs/launch/
+docs/sso/
+docs/marketplace-overview.md
+docs/spec-feedback/*-team-brief.md
+docs/spec-feedback/ring-consent-upstream-proposal.md
+payments-env/
+
+# Vendored verbatim wasm-pack output of the paykit-wasm messaging binding;
+# kept byte-identical to the recorded build (see docs/ecommerce/paykit-wasm-provenance.md)
+vendor/paykit-wasm/
+
+tsconfig.json

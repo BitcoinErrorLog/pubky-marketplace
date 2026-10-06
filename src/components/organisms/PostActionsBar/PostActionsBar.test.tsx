@@ -1,0 +1,263 @@
+import { fireEvent, render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { PostActionsBar } from './PostActionsBar';
+
+// Mock hooks
+const mockUsePostCounts = vi.fn();
+const mockUsePostDetails = vi.fn();
+const mockUseBookmark = vi.fn();
+
+vi.mock('@/hooks/usePostCounts/usePostCounts', () => ({
+  usePostCounts: (postId: string) => mockUsePostCounts(postId),
+}));
+
+vi.mock('@/hooks/usePostDetails/usePostDetails', () => ({
+  usePostDetails: (postId: string) => mockUsePostDetails(postId),
+}));
+
+vi.mock('@/hooks/useBookmark/useBookmark', () => ({
+  useBookmark: (postId: string) => mockUseBookmark(postId),
+}));
+
+vi.mock('@/hooks/useRequireAuth/useRequireAuth', () => ({
+  useRequireAuth: () => ({
+    isAuthenticated: true,
+    requireAuth: <T,>(action: () => T) => action(),
+  }),
+}));
+
+// Use real libs - use actual implementations
+
+// Mock PostMenuActions
+vi.mock('@/organisms/PostMenuActions/PostMenuActions', () => {
+  return {
+    PostMenuActions: ({ postId, trigger }: { postId: string; trigger: React.ReactNode }) => (
+      <div data-testid="post-menu-actions" data-post-id={postId}>
+        {trigger}
+      </div>
+    ),
+  };
+});
+
+vi.mock('../PostSavePicker/PostSavePicker', () => {
+  return {
+    PostSavePicker: ({ postId }: { postId: string }) => (
+      <button aria-label="Save post" data-testid="post-save-picker" data-post-id={postId}>
+        Save
+      </button>
+    ),
+  };
+});
+
+// Minimal atoms used by PostActionsBar
+vi.mock('@/atoms/Button/Button', () => {
+  return {
+    Button: ({
+      children,
+      onClick,
+      className,
+      variant,
+      size,
+      style,
+      'aria-label': aria,
+    }: {
+      children: React.ReactNode;
+      onClick?: React.MouseEventHandler;
+      className?: string;
+      variant?: string;
+      size?: string;
+      style?: React.CSSProperties;
+      'aria-label'?: string;
+    }) => (
+      <button
+        onClick={onClick}
+        className={className}
+        data-variant={variant}
+        data-size={size}
+        style={style}
+        aria-label={aria}
+      >
+        {children}
+      </button>
+    ),
+  };
+});
+
+vi.mock('@/atoms/Container/Container', () => {
+  return {
+    Container: ({ children, className }: { children: React.ReactNode; className?: string }) => (
+      <div data-testid="actions-container" data-class-name={className}>
+        {children}
+      </div>
+    ),
+  };
+});
+
+vi.mock('@/atoms/Skeleton/Skeleton', () => {
+  return {
+    Skeleton: ({ className }: { className?: string }) => <div data-testid="skeleton" className={className} />,
+  };
+});
+
+vi.mock('@/atoms/Typography/Typography', () => {
+  return {
+    Typography: ({
+      children,
+      as: Tag = 'span',
+      className,
+    }: {
+      children: React.ReactNode;
+      as?: React.ElementType;
+      className?: string;
+      overrideDefaults?: boolean;
+    }) => (
+      <Tag data-testid="typography" className={className}>
+        {children}
+      </Tag>
+    ),
+  };
+});
+
+describe('PostActionsBar', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Default mock implementations
+    mockUseBookmark.mockReturnValue({
+      isBookmarked: false,
+      isLoading: false,
+      isToggling: false,
+      toggle: vi.fn(),
+    });
+    mockUsePostDetails.mockReturnValue({
+      postDetails: { kind: 'short' },
+      isLoading: false,
+    });
+  });
+
+  it('shows skeleton loading state while counts are not available', () => {
+    mockUsePostCounts.mockReturnValue({ postCounts: null, isLoading: true });
+
+    render(<PostActionsBar postId="post-1" />);
+    expect(screen.getAllByTestId('skeleton').length).toBeGreaterThan(0);
+  });
+
+  it('renders all action buttons with counts and aria labels', () => {
+    mockUsePostCounts.mockReturnValue({
+      postCounts: { tags: 3, unique_tags: 3, replies: 5, reposts: 2 },
+      isLoading: false,
+    });
+
+    render(<PostActionsBar postId="post-2" />);
+
+    expect(screen.getByRole('button', { name: 'Tag post (3)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reply to post (5)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Repost (2)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save post' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'More options' })).toBeInTheDocument();
+  });
+
+  it('invokes callbacks when buttons are clicked', () => {
+    mockUsePostCounts.mockReturnValue({
+      postCounts: { tags: 1, unique_tags: 1, replies: 1, reposts: 1 },
+      isLoading: false,
+    });
+
+    const onTagClick = vi.fn();
+    const onReplyClick = vi.fn();
+    const onRepostClick = vi.fn();
+
+    render(
+      <PostActionsBar
+        postId="post-3"
+        onTagClick={onTagClick}
+        onReplyClick={onReplyClick}
+        onRepostClick={onRepostClick}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tag post (1)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reply to post (1)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Repost (1)' }));
+
+    expect(onTagClick).toHaveBeenCalledTimes(1);
+    expect(onReplyClick).toHaveBeenCalledTimes(1);
+    expect(onRepostClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders the save picker for bookmark and collection saves', () => {
+    mockUsePostCounts.mockReturnValue({
+      postCounts: { tags: 1, unique_tags: 1, replies: 1, reposts: 1 },
+      isLoading: false,
+    });
+    render(<PostActionsBar postId="post-bookmark" />);
+
+    expect(screen.getByTestId('post-save-picker')).toHaveAttribute('data-post-id', 'post-bookmark');
+  });
+
+  it('hides the save picker for collection posts', () => {
+    mockUsePostCounts.mockReturnValue({
+      postCounts: { tags: 1, unique_tags: 1, replies: 1, reposts: 1 },
+      isLoading: false,
+    });
+    mockUsePostDetails.mockReturnValue({
+      postDetails: { kind: 'collection' },
+      isLoading: false,
+    });
+
+    render(<PostActionsBar postId="collection-author:collection-post" />);
+
+    expect(screen.queryByTestId('post-save-picker')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tag post (1)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'More options' })).toBeInTheDocument();
+  });
+
+  it('applies the visual variant classes to the action buttons', () => {
+    mockUsePostCounts.mockReturnValue({
+      postCounts: { tags: 2, unique_tags: 2, replies: 3, reposts: 4 },
+      isLoading: false,
+    });
+
+    render(<PostActionsBar postId="post-visual" variant="visual" />);
+
+    expect(screen.getByRole('button', { name: 'Tag post (2)' })).toHaveClass(
+      'border-white/10',
+      'bg-black/40',
+      'text-white',
+      'hover:border-white/30',
+      'hover:bg-black/70',
+    );
+    expect(screen.getAllByTestId('typography')[0]).toHaveClass('text-white/80');
+  });
+});
+
+describe('PostActionsBar - Snapshots', () => {
+  beforeEach(() => {
+    mockUseBookmark.mockReturnValue({
+      isBookmarked: false,
+      isLoading: false,
+      isToggling: false,
+      toggle: vi.fn(),
+    });
+    mockUsePostDetails.mockReturnValue({
+      postDetails: { kind: 'short' },
+      isLoading: false,
+    });
+  });
+
+  it('matches snapshot with counts', () => {
+    mockUsePostCounts.mockReturnValue({
+      postCounts: { tags: 7, unique_tags: 3, replies: 8, reposts: 9 },
+      isLoading: false,
+    });
+
+    const { container } = render(<PostActionsBar postId="post-4" className="extra" />);
+    expect(container.firstChild).toMatchSnapshot();
+  });
+
+  it('matches snapshot loading', () => {
+    mockUsePostCounts.mockReturnValue({ postCounts: null, isLoading: true });
+
+    const { container } = render(<PostActionsBar postId="post-5" />);
+    expect(container.firstChild).toMatchSnapshot();
+  });
+});

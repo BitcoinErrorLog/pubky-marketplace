@@ -1,0 +1,69 @@
+'use client';
+
+import { useState } from 'react';
+import { Button } from '@/atoms/Button/Button';
+import { Container } from '@/atoms/Container/Container';
+import { Heading } from '@/atoms/Heading/Heading';
+import { useAvatarUrl } from '@/hooks/useAvatarUrl/useAvatarUrl';
+import { useCurrentUserProfile } from '@/hooks/useCurrentUserProfile/useCurrentUserProfile';
+import { useRequireAuth } from '@/hooks/useRequireAuth/useRequireAuth';
+import { AvatarWithFallback } from '../AvatarWithFallback/AvatarWithFallback';
+import { DialogFeedback } from '../DialogFeedback/DialogFeedback';
+import { FeedbackCardSkeleton } from './FeedbackCard.skeleton';
+
+export function FeedbackCard() {
+  const { userDetails, currentUserPubky } = useCurrentUserProfile();
+  const { requireAuth } = useRequireAuth();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const avatarUrl = useAvatarUrl(userDetails);
+
+  if (userDetails === undefined) {
+    return <FeedbackCardSkeleton />;
+  }
+
+  const name = userDetails?.name || 'Your Name';
+
+  return (
+    <>
+      <Container
+        overrideDefaults={true}
+        data-testid="feedback-card"
+        className="flex w-full max-w-(--filter-bar-width) flex-col gap-2"
+      >
+        <Heading level={2} size="lg" className="font-light text-muted-foreground">
+          {'Feedback'}
+        </Heading>
+
+        <Container
+          overrideDefaults={true}
+          className="flex w-full min-w-0 cursor-pointer flex-col gap-4 rounded-lg border border-dashed border-input p-6"
+          onClick={() => requireAuth(() => setIsDialogOpen(true))}
+        >
+          <Container overrideDefaults={true} className="flex w-full min-w-0 items-center gap-2">
+            <Container
+              overrideDefaults={true}
+              className="flex size-12 shrink-0 items-center justify-center rounded-md p-2 shadow-xs"
+            >
+              <AvatarWithFallback
+                avatarUrl={avatarUrl}
+                name={name}
+                fallbackSeed={currentUserPubky || name}
+                className="h-12 w-12"
+                fallbackClassName="text-sm"
+              />
+            </Container>
+          </Container>
+
+          <Button
+            overrideDefaults
+            className="w-full cursor-pointer text-left text-base leading-normal font-medium wrap-break-word text-muted-foreground"
+          >
+            {'What do you think about Pubky?'}
+          </Button>
+        </Container>
+      </Container>
+
+      <DialogFeedback open={isDialogOpen} onOpenChange={setIsDialogOpen} />
+    </>
+  );
+}

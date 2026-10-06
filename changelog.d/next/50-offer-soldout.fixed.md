@@ -1,0 +1,1 @@
+A held fixed-price listing no longer maps offer.create `INSUFFICIENT_INVENTORY` to drop sold-out copy. The offer CTA is disabled with “Held while another buyer pays” (or “Held for you” when the viewer owns the hold).

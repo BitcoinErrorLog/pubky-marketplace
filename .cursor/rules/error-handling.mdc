@@ -1,0 +1,9 @@
+---
+description: Error handling conventions using AppError across all layers
+globs: src/core/**/*
+alwaysApply: false
+---
+
+# Error Handling Rules
+
+@docs/error-handling.md

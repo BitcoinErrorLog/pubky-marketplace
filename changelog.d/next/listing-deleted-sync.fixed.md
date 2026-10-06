@@ -1,0 +1,1 @@
+When a seller has deleted a listing, buyer pages and checkout now say "This listing was removed." instead of a generic failure. The marketplace service reports a deleted listing as a successful sync, which Shop previously rejected as an invalid response.

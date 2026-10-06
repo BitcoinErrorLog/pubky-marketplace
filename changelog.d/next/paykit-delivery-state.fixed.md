@@ -1,0 +1,1 @@
+A Bitcoin checkout no longer says the payment request was delivered when it was only sent to Paykit: it shows "Waiting for your wallet", then "Delivered to your wallet", and if the wallet never received it, "Your wallet didn't receive the request. In Bitkit, add the seller as a contact, then try again."

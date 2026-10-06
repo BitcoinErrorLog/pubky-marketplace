@@ -1,0 +1,1 @@
+Signing out of Shop in one tab, or opening the sign-in dialog in a signed-out tab, no longer deletes a newer sign-in, Seller Studio approval, Lock Server connection or messaging session another tab saved. Signing out still signs this browser out, and switching accounts removes what the previous account left.

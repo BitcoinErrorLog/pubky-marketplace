@@ -1,0 +1,82 @@
+'use client';
+
+import Image from 'next/image';
+import { Button } from '@/atoms/Button/Button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/atoms/Dialog/Dialog';
+import { Typography } from '@/atoms/Typography/Typography';
+
+/** Library illustration shown in the first-collection onboarding intro. */
+const COLLECTIONS_INTRO_IMAGE = '/images/collections-onboarding.webp';
+
+type DialogCollectionsIntroProps = {
+  /** Controlled open state, owned by `DialogNewCollection`. */
+  open: boolean;
+  /** Fires on close (X / Cancel / overlay) — never on Continue. */
+  onOpenChange: (open: boolean) => void;
+  /** Advances the flow from the intro to the collection form. */
+  onContinue: () => void;
+};
+
+/**
+ * First-run onboarding intro for Collections. Shown once a user with no
+ * collections of their own clicks "New Collection", ahead of the create form.
+ * Purely presentational: the gate (when to show) and the Continue → form
+ * transition are owned by `DialogNewCollection`.
+ */
+export function DialogCollectionsIntro({ open, onOpenChange, onContinue }: DialogCollectionsIntroProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-xl border-border bg-popover">
+        <DialogHeader>
+          <DialogTitle>{'Welcome to Collections'}</DialogTitle>
+        </DialogHeader>
+
+        <DialogDescription className="text-base text-secondary-foreground">
+          {
+            'Save posts worth keeping. Collect the best content from your network. Curate ideas, filter signal from noise, and share what matters.'
+          }
+        </DialogDescription>
+
+        {/* `loading="eager"` + `unoptimized` so the art shows the instant the modal
+            opens: `unoptimized` serves the raw 22KB webp directly instead of the
+            on-demand `/_next/image` optimizer (slow on first hit), and `eager` drops
+            the default lazy-loading so the fetch starts as soon as the modal mounts. */}
+        <Image
+          src={COLLECTIONS_INTRO_IMAGE}
+          alt={'Collections'}
+          width={192}
+          height={192}
+          loading="eager"
+          unoptimized
+          className="mx-auto size-48"
+        />
+
+        <Typography size="sm" className="font-normal text-muted-foreground">
+          {'Please note: collections are public and discoverable.'}
+        </Typography>
+
+        <DialogFooter>
+          <Button size="lg" onClick={onContinue} className="order-1 sm:order-2" data-cy="collections-intro-continue">
+            {'Continue'}
+          </Button>
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={() => onOpenChange(false)}
+            className="order-2 sm:order-1"
+            data-cy="collections-intro-cancel"
+          >
+            {'Cancel'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
