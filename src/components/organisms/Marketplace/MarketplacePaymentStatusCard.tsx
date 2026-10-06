@@ -29,18 +29,24 @@ import {
 } from '@/hooks/useMarketplaceSellerPaymentReview/useMarketplaceSellerPaymentReviewForm';
 import { useNowMs } from '@/hooks/useNowMs/useNowMs';
 import {
-  BITCOIN_WALLET_DELIVERED_COPY,
+  BITCOIN_WALLET_SENT_COPY,
   BITCOIN_WALLET_WAITING_COPY,
+  bitcoinPaidConfirmation,
   bitcoinSeenBadgeLabel,
   buyerBitcoinReviewCopy,
   buyerBitcoinWalletCopy,
   holdCountdownCopy,
+  PAYMENT_CONFIRMED_ON_CHAIN_LABEL,
   PAYMENT_SEEN_HOLD_COPY,
+  PAYMENT_SELLER_CONFIRMED_LABEL,
+  SELLER_CONFIRMED_BEFORE_CHAIN_BUYER_COPY,
+  SELLER_CONFIRMED_BEFORE_CHAIN_SELLER_COPY,
   sellerBitcoinConfirmPrompt,
   sellerConfirmsByCopy,
 } from '@/libs/commerce/bitcoin-buyer-status';
 import {
   CHECKOUT_HOLD_COPY,
+  formatOrderInstant,
   holderBoundCopy,
   holderUnboundCopy,
   isHoldExpiredNoLateMoney,
@@ -204,8 +210,15 @@ export function MarketplacePaymentStatusCard({
 
   const seenBadge =
     visibleStatus === 'awaiting_entitlement' && !isTerminal ? bitcoinSeenBadgeLabel(order, payment) : null;
+  const paidBitcoin = bitcoinPaidConfirmation(order, payment);
+  const paidBitcoinBadge = paidBitcoin
+    ? paidBitcoin.sellerConfirmed
+      ? PAYMENT_SELLER_CONFIRMED_LABEL
+      : PAYMENT_CONFIRMED_ON_CHAIN_LABEL
+    : null;
   const visibleStatusLabel =
     seenBadge ??
+    paidBitcoinBadge ??
     (isTerminal && visibleStatus === 'awaiting_entitlement'
       ? order.state === 'cancelled'
         ? 'Order cancelled'
@@ -216,6 +229,11 @@ export function MarketplacePaymentStatusCard({
     <div className="grid min-w-0 gap-3 rounded-xl border p-4" data-surface="marketplace-payment-status-card">
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant={visibleStatus === 'confirmed' ? 'default' : 'outline'}>{visibleStatusLabel}</Badge>
+        {paidBitcoin?.sellerConfirmed && paidBitcoin.onChain && (
+          <Badge variant="secondary" data-testid="bitcoin-on-chain-badge">
+            {PAYMENT_CONFIRMED_ON_CHAIN_LABEL}
+          </Badge>
+        )}
         {payment.adapter === 'locks' && <Badge variant="secondary">Locks/Paykit</Badge>}
         {order.paymentMethod === 'bitcoin' && <Badge variant="secondary">₿ Bitcoin</Badge>}
         {order.paymentMethod === 'paypal' && <Badge variant="secondary">PayPal</Badge>}
@@ -239,6 +257,15 @@ export function MarketplacePaymentStatusCard({
           className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-200"
         >
           Staging environment — test rails, no real funds move
+        </Typography>
+      )}
+      {paidBitcoin?.sellerConfirmed && !paidBitcoin.onChain && (
+        <Typography
+          as="p"
+          className="min-w-0 text-sm break-words whitespace-normal text-muted-foreground"
+          data-testid="bitcoin-seller-confirmed-before-chain"
+        >
+          {isBuyer ? SELLER_CONFIRMED_BEFORE_CHAIN_BUYER_COPY : SELLER_CONFIRMED_BEFORE_CHAIN_SELLER_COPY}
         </Typography>
       )}
       {visibleStatus === 'confirmed' && order.fiatVerification === 'gateway-notified' && (
@@ -681,9 +708,7 @@ function BuyerBitcoinPaymentProgress({ order, payment }: { order: MarketplaceOrd
       ) : (
         <div className="flex items-center gap-2 text-sm text-muted-foreground" data-testid="paykit-delivery-status">
           <LoaderCircle className="size-4 animate-spin" />
-          {progress.text === BITCOIN_WALLET_DELIVERED_COPY
-            ? BITCOIN_WALLET_DELIVERED_COPY
-            : BITCOIN_WALLET_WAITING_COPY}
+          {progress.text === BITCOIN_WALLET_SENT_COPY ? BITCOIN_WALLET_SENT_COPY : BITCOIN_WALLET_WAITING_COPY}
         </div>
       )}
     </div>
@@ -707,6 +732,8 @@ function SellerBitcoinConfirmationReview({
   error: string | null;
   onConfirm: () => void;
 }) {
+  const nowMs = useNowMs(formatOrderInstant(deadline) !== null);
+  const countdown = holdCountdownCopy(deadline, nowMs);
   return (
     <section
       className="grid gap-3 rounded-xl border border-amber-500/40 bg-amber-500/5 p-4"
@@ -730,8 +757,19 @@ function SellerBitcoinConfirmationReview({
           <ReviewFact label="Confirmations" value={observation.confirmations} />
           <ReviewFact label="Amount matched" value={formatBooleanFact(observation.amountMatched)} />
           <ReviewFact label="Payment disappeared" value={formatBooleanFact(observation.disappeared)} />
-          <ReviewFact label="Observed at" value={observation.observedAt} />
-          <ReviewFact label="Seller confirmation deadline" value={deadline ?? 'Not provided'} />
+          <ReviewFact label="Observed at" value={formatOrderInstant(observation.observedAt)} />
+          <div data-testid="seller-bitcoin-confirm-deadline">
+            <dt className="text-muted-foreground">Confirm by</dt>
+            <dd className="break-words">
+              {formatOrderInstant(deadline) ?? 'Not provided'}
+              {countdown ? (
+                <>
+                  {' · '}
+                  <span className="font-medium text-foreground tabular-nums">{countdown}</span>
+                </>
+              ) : null}
+            </dd>
+          </div>
         </dl>
       )}
       <Controller

@@ -1,15 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import {
   BITCOIN_BUYER_STATUS_TABLE,
-  BITCOIN_WALLET_DELIVERED_COPY,
+  BITCOIN_WALLET_SENT_COPY,
   bitcoinConfirmationExists,
+  bitcoinPaidConfirmation,
   bitcoinSeenBadgeLabel,
   buyerBitcoinWalletCopy,
   buyerCheckoutBadgeLabel,
   buyerCheckoutProgressCopy,
   holdCountdownCopy,
+  paidOrderHeadline,
+  PAYMENT_CONFIRMED_ON_CHAIN_COPY,
   PAYMENT_CONFIRMED_ON_CHAIN_LABEL,
   PAYMENT_SEEN_LABEL,
+  SELLER_CONFIRMED_ON_CHAIN_COPY,
+  SELLER_CONFIRMED_PAYMENT_COPY,
   sellerBitcoinConfirmPrompt,
   sellerBitcoinDecision,
 } from './bitcoin-buyer-status';
@@ -111,9 +116,69 @@ describe('bitcoin buyer status', () => {
   it('tells a buyer who already broadcast that the page follows the transaction', () => {
     const unpaid = { ...seenOrder, paykitRequestState: 'pending' as const };
     const wallet = buyerBitcoinWalletCopy(unpaid, { state: 'awaiting_entitlement' });
-    expect(wallet).toEqual({ kind: 'pay', text: BITCOIN_WALLET_DELIVERED_COPY });
+    expect(wallet).toEqual({ kind: 'pay', text: BITCOIN_WALLET_SENT_COPY });
     expect(wallet.text).toMatch(
       /already sent the payment, this page updates as soon as the marketplace sees the transaction/,
     );
+  });
+
+  it('says the request was sent, never delivered, because Paykit cannot see the wallet accept it', () => {
+    const unpaid = { ...seenOrder, paykitRequestState: 'pending' as const };
+    const wallet = buyerBitcoinWalletCopy(unpaid, { state: 'awaiting_entitlement' });
+    expect(wallet.text).toMatch(/^Sent to your wallet\. Open Bitkit to pay\./);
+    expect(wallet.text).toMatch(/check that the seller is one of your Bitkit contacts/);
+    expect(wallet.text).not.toMatch(/[Dd]elivered/);
+  });
+
+  describe('paid order confirmation', () => {
+    const paidOrder = {
+      ...seenOrder,
+      paykitRequestState: 'confirmed' as const,
+      paykitSellerConfirmationDeadline: null,
+    };
+
+    it('names the seller and records no chain confirmation for a seller confirm at 0 confirmations', () => {
+      const payment = { state: 'confirmed', confirmations: 0 };
+      expect(bitcoinPaidConfirmation(paidOrder, payment)).toEqual({ sellerConfirmed: true, onChain: false });
+      expect(bitcoinConfirmationExists(paidOrder, payment)).toBe(false);
+      expect(paidOrderHeadline(paidOrder, payment)).toBe(SELLER_CONFIRMED_PAYMENT_COPY);
+      expect(paidOrderHeadline(paidOrder, payment)).not.toMatch(/on-chain/);
+    });
+
+    it('adds the chain state when a confirmation was recorded', () => {
+      const payment = { state: 'confirmed', confirmations: 2 };
+      expect(bitcoinPaidConfirmation(paidOrder, payment)).toEqual({ sellerConfirmed: true, onChain: true });
+      expect(paidOrderHeadline(paidOrder, payment)).toBe(SELLER_CONFIRMED_ON_CHAIN_COPY);
+    });
+
+    it.each(['late_settlement', 'amount_mismatch'] as const)(
+      'treats a resolved %s review as a chain observation the seller accepted',
+      (reviewReason) => {
+        const payment = { state: 'confirmed', confirmations: 0, reviewReason, resolutionOutcome: 'paid' };
+        expect(bitcoinPaidConfirmation(paidOrder, payment)).toEqual({ sellerConfirmed: true, onChain: true });
+      },
+    );
+
+    it.each([null, 'unpinned_legacy', 'refund_required'] as const)(
+      'does not count a resolved review with reason %s as on-chain',
+      (reviewReason) => {
+        const payment = { state: 'confirmed', confirmations: 0, reviewReason, resolutionOutcome: 'paid' };
+        expect(bitcoinPaidConfirmation(paidOrder, payment)).toEqual({ sellerConfirmed: true, onChain: false });
+      },
+    );
+
+    it('credits the chain, not the seller, for late money that completed the order', () => {
+      const late = { ...paidOrder, cancellationReason: 'payment window elapsed' };
+      const payment = { state: 'confirmed', confirmations: 0 };
+      expect(bitcoinPaidConfirmation(late, payment)).toEqual({ sellerConfirmed: false, onChain: true });
+      expect(paidOrderHeadline(late, payment)).toBe(PAYMENT_CONFIRMED_ON_CHAIN_COPY);
+    });
+
+    it('is null before payment and on other rails', () => {
+      expect(bitcoinPaidConfirmation(paidOrder, { state: 'awaiting_entitlement' })).toBeNull();
+      expect(bitcoinPaidConfirmation({ paymentMethod: 'paypal' }, { state: 'confirmed' })).toBeNull();
+      expect(paidOrderHeadline({ paymentMethod: 'paypal' }, { state: 'confirmed' })).toBe('Payment confirmed.');
+      expect(paidOrderHeadline(paidOrder, null)).toBe('Payment confirmed.');
+    });
   });
 });

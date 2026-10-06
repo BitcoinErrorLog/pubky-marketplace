@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MARKETPLACE_DELIVERY_ADDRESS_DISCLOSURE } from '@/config/commerce-copy';
 import { CommerceController } from '@/controllers/commerce/commerce';
+import { createOrderFixture, createPaymentFixture } from '@/test/fixtures/commerce/orders';
 import { setHeavySuiteBudgets } from '@/test-utils/load-budget';
 import { MarketplaceCheckout } from './MarketplaceCheckout';
 
@@ -17,6 +18,7 @@ beforeAll(() => {
 
 const view = vi.hoisted(() => ({
   items: [] as unknown[],
+  orders: [] as unknown[],
   isLoading: false,
   adapterMode: 'sandbox' as string,
   deployEnv: 'production' as 'production' | 'staging' | undefined,
@@ -225,7 +227,7 @@ vi.mock('@/hooks/useMarketplaceCheckout/useMarketplaceCheckout', async () => {
 
 vi.mock('@/hooks/useMarketplaceOrders/useMarketplaceOrders', () => ({
   useMarketplaceOrders: () => ({
-    orders: [],
+    orders: view.orders,
     isLoading: false,
     error: null,
     needsSession: false,
@@ -286,6 +288,10 @@ vi.mock('@/organisms/Marketplace/MarketplaceIndicativePrice', () => ({
     money.currency === 'USD' ? <span>≈ ₿137,000</span> : null,
 }));
 
+vi.mock('@/organisms/Marketplace/MarketplacePaymentStatusCard', () => ({
+  MarketplacePaymentStatusCard: () => null,
+}));
+
 vi.mock('@/organisms/ContentLayout/ContentLayout', () => ({
   ContentLayout: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
@@ -305,6 +311,7 @@ vi.mock('@/hooks/useMarketplaceSellerSummary/useMarketplaceSellerSummary', () =>
 }));
 
 function resetCheckoutView() {
+  view.orders = [];
   checkoutActions.pay.mockClear();
   checkoutActions.setFulfillmentChoice.mockReset();
   checkoutActions.remove.mockClear();
@@ -604,6 +611,46 @@ describe('MarketplaceCheckout', () => {
     render(<MarketplaceCheckout />);
 
     expect(screen.getByText('Nothing to check out')).toBeInTheDocument();
+  });
+
+  describe('paid order headline', () => {
+    afterEach(() => {
+      window.location.hash = '';
+    });
+
+    const showPaidOrder = (overrides: { paymentMethod: 'bitcoin' | 'paypal'; confirmations: number }) => {
+      const payment = createPaymentFixture('confirmed', {
+        adapter: overrides.paymentMethod === 'bitcoin' ? 'paykit' : 'paypal',
+        confirmations: overrides.confirmations,
+      });
+      const order = createOrderFixture('paid', {
+        paymentId: payment.id,
+        paymentMethod: overrides.paymentMethod,
+        paykitRequestState: overrides.paymentMethod === 'bitcoin' ? 'confirmed' : null,
+      });
+      view.orders = [{ order, payment }];
+      window.location.hash = `#${order.id}`;
+      render(<MarketplaceCheckout />);
+    };
+
+    it('names the seller for a Bitcoin order the seller confirmed before any chain confirmation', () => {
+      showPaidOrder({ paymentMethod: 'bitcoin', confirmations: 0 });
+      expect(screen.getByTestId('marketplace-checkout-paid-headline')).toHaveTextContent(
+        /^Seller confirmed payment\.$/,
+      );
+    });
+
+    it('adds the on-chain state once a confirmation was recorded', () => {
+      showPaidOrder({ paymentMethod: 'bitcoin', confirmations: 1 });
+      expect(screen.getByTestId('marketplace-checkout-paid-headline')).toHaveTextContent(
+        'Seller confirmed payment. Confirmed on-chain.',
+      );
+    });
+
+    it('keeps the generic line for PayPal', () => {
+      showPaidOrder({ paymentMethod: 'paypal', confirmations: 0 });
+      expect(screen.getByTestId('marketplace-checkout-paid-headline')).toHaveTextContent(/^Payment confirmed\.$/);
+    });
   });
 });
 
