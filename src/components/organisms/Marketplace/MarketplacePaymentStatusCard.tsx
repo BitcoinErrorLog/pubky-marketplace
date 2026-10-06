@@ -56,6 +56,7 @@ import {
   UNBOUND_BACK_CANCEL_REASON,
 } from '@/libs/commerce/checkout-hold';
 import { MARKETPLACE_FAILURE_MESSAGES } from '@/libs/commerce/failure-messages';
+import { LOCKS_ADMISSION_COPY, locksAdmissionFailureCopy } from '@/libs/commerce/locks-lifecycle';
 import { type BuyerVisiblePaymentStatus, buyerVisiblePaymentStatus } from '@/libs/commerce/locks-payment';
 import type { CommerceDigitalLock } from '@/libs/commerce/marketplace-records';
 import { buildMarketplaceOrderAggregateId } from '@/libs/commerce/transaction-commands';
@@ -588,8 +589,8 @@ export function MarketplacePaymentStatusCard({
       {isLocksPaykit && isBuyer && isAwaiting && digitalLock && locks.correlation && !locks.correlation.registered && (
         <div className="grid gap-2">
           <Typography as="p" className="text-sm text-muted-foreground">
-            The payment request was created but its registration with the marketplace did not complete. Retry the
-            registration — the same request is reused, nothing is charged twice.
+            The payment request didn&rsquo;t finish registering with the marketplace. Retry — the same request is
+            reused, so nothing is charged twice.
           </Typography>
           <Button
             variant="secondary"
@@ -601,20 +602,48 @@ export function MarketplacePaymentStatusCard({
           </Button>
         </div>
       )}
-      {isLocksPaykit && isBuyer && isAwaiting && locks.correlation?.registered && (
-        <div className="grid gap-2">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <LoaderCircle className="size-4 animate-spin" />
-            Payment request sent. Check your wallet for the private Paykit request; this page updates once the
-            marketplace independently verifies the payment.
+      {isLocksPaykit &&
+        isBuyer &&
+        isAwaiting &&
+        locks.correlation?.registered &&
+        (locks.admission?.kind === 'failed' ? (
+          <Typography
+            as="p"
+            role="alert"
+            className="flex items-center gap-2 text-sm text-amber-300"
+            data-testid="locks-admission-failed"
+          >
+            <FileWarning className="size-4 shrink-0" />
+            {locksAdmissionFailureCopy(locks.admission.failure)}
+          </Typography>
+        ) : (
+          <div className="grid gap-2">
+            {locks.admission?.kind === 'in_flight' && locks.admission.readerWalletSetupNeeded && (
+              <div
+                role="status"
+                className="grid gap-1 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3"
+                data-testid="locks-reader-wallet-setup"
+              >
+                <Typography as="p" className="text-sm font-semibold">
+                  {LOCKS_ADMISSION_COPY.walletSetupTitle}
+                </Typography>
+                <Typography as="p" className="text-sm text-muted-foreground">
+                  {LOCKS_ADMISSION_COPY.walletSetupBody}
+                </Typography>
+              </div>
+            )}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <LoaderCircle className="size-4 animate-spin" />
+              Payment request sent. Check your wallet for the private Paykit request; this page updates once the
+              marketplace independently verifies the payment.
+            </div>
+            {locks.pollExhausted && (
+              <Button variant="secondary" size="sm" className="w-fit rounded-full" onClick={locks.resumePolling}>
+                Keep checking
+              </Button>
+            )}
           </div>
-          {locks.pollExhausted && (
-            <Button variant="secondary" size="sm" className="w-fit rounded-full" onClick={locks.resumePolling}>
-              Keep checking
-            </Button>
-          )}
-        </div>
-      )}
+        ))}
 
       {/* Digital delivery after server-side confirmation. */}
       {isLocksPaykit && isBuyer && visibleStatus === 'confirmed' && locks.correlation && (

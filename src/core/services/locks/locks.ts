@@ -49,6 +49,10 @@ const lifecycleSchema = z.object({
   started_at: z.string().nullable(),
   completed_at: z.string().nullable(),
   failure_message: z.string().nullable(),
+  // Lock Servers with durable invoice admission (pubky/locks#72) add these;
+  // older ones omit them, so both stay optional.
+  status_message: z.string().nullable().optional(),
+  terminal_reason: z.string().nullable().optional(),
 });
 
 const accessCredentialSchema = z.object({
@@ -172,6 +176,20 @@ export class LocksGatewayService {
       creator: withPubkyPrefix(creatorPubky),
       bundle_id: bundleId,
     });
+  }
+
+  /**
+   * {@link lookupVerification}, but `null` when the Lock Server holds no task
+   * for the handle (`404 verification_task_not_found`): the submit never
+   * reached it, so the same bundle id can be submitted without a second task.
+   */
+  static async findVerification(creatorPubky: string, bundleId: string): Promise<LocksVerificationLifecycle | null> {
+    const url = `${getLocksUrl()}/verification-task-lookups`;
+    return await this.postLifecycle(
+      url,
+      { creator: withPubkyPrefix(creatorPubky), bundle_id: bundleId },
+      { notFoundAsNull: true },
+    );
   }
 
   static async issueAccessCredential(creatorPubky: string, bundleId: string): Promise<LocksAccessCredential> {
@@ -330,7 +348,17 @@ export class LocksGatewayService {
     return url.toString();
   }
 
-  private static async postLifecycle(url: string, body: Record<string, unknown>): Promise<LocksVerificationLifecycle> {
+  private static async postLifecycle(url: string, body: Record<string, unknown>): Promise<LocksVerificationLifecycle>;
+  private static async postLifecycle(
+    url: string,
+    body: Record<string, unknown>,
+    options: { notFoundAsNull: true },
+  ): Promise<LocksVerificationLifecycle | null>;
+  private static async postLifecycle(
+    url: string,
+    body: Record<string, unknown>,
+    options?: { notFoundAsNull: true },
+  ): Promise<LocksVerificationLifecycle | null> {
     const response = await safeFetch(
       url,
       {
@@ -341,6 +369,7 @@ export class LocksGatewayService {
       ErrorService.Locks,
       'postLifecycle',
     );
+    if (options?.notFoundAsNull && response.status === 404) return null;
     if (!response.ok) throw httpResponseToError(response, ErrorService.Locks, 'postLifecycle', url);
     const raw = await parseResponseOrThrow<unknown>(response, ErrorService.Locks, 'postLifecycle', url);
     const parsed = lifecycleSchema.safeParse(raw);

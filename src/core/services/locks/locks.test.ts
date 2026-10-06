@@ -120,6 +120,44 @@ describe('LocksGatewayService', () => {
     expect(vi.mocked(fetch).mock.calls.flatMap((call) => String(call[0]))).not.toContain(BUNDLE_ID);
   });
 
+  it('reads the durable-admission lifecycle fields (pubky/locks#72) and stays compatible without them', async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        jsonResponse({ ...lifecycle(), status_message: 'Reader wallet setup needed', terminal_reason: null }),
+      )
+      .mockResolvedValueOnce(jsonResponse(lifecycle()));
+
+    await expect(LocksGatewayService.lookupVerification(CREATOR, BUNDLE_ID)).resolves.toMatchObject({
+      status: 'pending',
+      status_message: 'Reader wallet setup needed',
+      terminal_reason: null,
+    });
+    const legacy = await LocksGatewayService.lookupVerification(CREATOR, BUNDLE_ID);
+    expect(legacy.status).toBe('pending');
+    expect(legacy.status_message).toBeUndefined();
+  });
+
+  it('finds a task by handle and reads 404 verification_task_not_found as no task', async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(jsonResponse(lifecycle()))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: { code: 'verification_task_not_found' } }), {
+          status: 404,
+          headers: { 'content-type': 'application/json' },
+        }),
+      )
+      .mockResolvedValueOnce(new Response('{}', { status: 500, headers: { 'content-type': 'application/json' } }));
+
+    await expect(LocksGatewayService.findVerification(CREATOR, BUNDLE_ID)).resolves.toMatchObject({
+      status: 'pending',
+    });
+    await expect(LocksGatewayService.findVerification(CREATOR, BUNDLE_ID)).resolves.toBeNull();
+    await expect(LocksGatewayService.findVerification(CREATOR, BUNDLE_ID)).rejects.toMatchObject({ name: 'AppError' });
+    expect(
+      vi.mocked(fetch).mock.calls.every((call) => call[0] === 'https://locks.example.com/verification-task-lookups'),
+    ).toBe(true);
+  });
+
   it('rejects malformed lifecycle and credential responses as INVALID_RESPONSE', async () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(jsonResponse({ ...lifecycle(), status: 'not-a-status' }))

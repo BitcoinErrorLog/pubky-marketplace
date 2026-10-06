@@ -46,6 +46,7 @@ import {
   newDigitalDeliverableId,
   openDigitalDeliverable,
 } from '@/libs/commerce/digital-file';
+import { locksAdmissionView } from '@/libs/commerce/locks-lifecycle';
 import { lockPolicyCreator, toBareLockResource } from '@/libs/commerce/locks-payment';
 import {
   assertReserveFreePublicRecord,
@@ -1498,18 +1499,21 @@ export class CommerceApplication {
 
     const existing = await LocalCommerceService.getLocksCorrelation(buyerPubky, payment.id);
     let bundleId = existing?.bundle_id;
-    if (!existing) {
-      bundleId = await LocksGatewayService.generateBundleId();
+    const submit = async (id: string) => {
       await LocksGatewayService.submitPaykitProof({
         creatorPubky: creator,
         readerPubky: buyerPubky,
-        bundleId,
+        bundleId: id,
         lockResource: digitalLock.policyUri,
         criterionId: digitalLock.criterionId,
       });
-      // Persist BEFORE registration: the bundle id is the buyer's only handle
-      // on the upstream lifecycle, so losing it between the two steps would
-      // orphan the payment request.
+    };
+    if (!existing) {
+      bundleId = await LocksGatewayService.generateBundleId();
+      // Persist BEFORE the submit: the bundle id is the buyer's only handle on
+      // the upstream lifecycle. A Lock Server with durable invoice admission
+      // (pubky/locks#72) keeps the task even when its response is lost, so a
+      // retry must find that task again rather than mint a second one.
       await LocalCommerceService.upsertLocksCorrelation({
         owner_id: buyerPubky,
         payment_id: payment.id,
@@ -1525,6 +1529,14 @@ export class CommerceApplication {
         created_at: Date.now(),
         updated_at: Date.now(),
       });
+      await submit(bundleId);
+    } else if (!existing.registered) {
+      // An unregistered correlation may predate a submit that never reached the
+      // Lock Server. Look the task up: if it exists the buyer keeps polling it,
+      // and only a missing task is submitted, with the same bundle id. A
+      // submitted bundle is never submitted again.
+      const task = await LocksGatewayService.findVerification(creator, existing.bundle_id);
+      if (!task) await submit(existing.bundle_id);
     }
 
     const response = await MarketplaceGatewayService.execute(buyerPubky, {
@@ -1622,6 +1634,18 @@ export class CommerceApplication {
 
   static async lookupLocksVerification(creatorPubky: string, bundleId: string) {
     return await LocksGatewayService.lookupVerification(creatorPubky, bundleId);
+  }
+
+  /**
+   * The buyer's view of the Lock Server task behind a Locks payment: wallet
+   * setup in progress, a terminal admission failure, or neither. `null` when
+   * no correlation is stored or the Lock Server holds no task for it.
+   */
+  static async getMarketplaceLocksAdmission(buyerPubky: string, paymentId: string) {
+    const correlation = await LocalCommerceService.getLocksCorrelation(buyerPubky, paymentId);
+    if (!correlation) return null;
+    const lifecycle = await LocksGatewayService.findVerification(correlation.seller_pubky, correlation.bundle_id);
+    return lifecycle ? locksAdmissionView(lifecycle) : null;
   }
 
   static async issueLocksAccessCredential(creatorPubky: string, bundleId: string) {

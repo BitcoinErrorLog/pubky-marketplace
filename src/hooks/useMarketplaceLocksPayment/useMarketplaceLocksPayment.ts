@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { getCommerceAdapterMode, getCommercePollIntervalMs, isLocksPaykitCommerceMode } from '@/config/commerce';
 import { CommerceController } from '@/controllers/commerce/commerce';
 import { MARKETPLACE_FAILURE_MESSAGES, marketplaceFailureMessage } from '@/libs/commerce/failure-messages';
+import type { LocksAdmissionView } from '@/libs/commerce/locks-lifecycle';
 import type { CommerceDigitalLock } from '@/libs/commerce/marketplace-records';
 import { isMarketplaceRevisionConflict } from '@/libs/commerce/transaction-commands';
 import type { CommerceLocksCorrelationModelSchema } from '@/models/commerce/commerce.schema';
@@ -33,6 +34,11 @@ export interface MarketplaceLocksDelivery {
  *   service via `payment.register_locks`, sourcing `expected_revision` from a
  *   freshly-read payment projection. A revision conflict refetches and asks
  *   the user to retry — never a blind resubmit.
+ * - While the request is in flight the hook also polls the Lock Server task
+ *   (`verification-task-lookups`) for the buyer-facing admission state:
+ *   "Reader wallet setup needed" while the reader's Paykit wallet is set up,
+ *   or a terminal admission failure. It only reads: the bundle is never
+ *   submitted again, whatever the task says (pubky/locks#72).
  * - Status polling reads the order projection back from the transaction
  *   service. THE CLIENT NEVER ADVANCES THE PAYMENT: the service's worker
  *   independently verifies the Locks lifecycle and confirms exactly once.
@@ -67,6 +73,7 @@ export function useMarketplaceLocksPayment({
   // Bumped by resumePolling to restart a bounded poll that reached its limit.
   const [pollEpoch, setPollEpoch] = useState(0);
   const [pollExhausted, setPollExhausted] = useState(false);
+  const [admission, setAdmission] = useState<LocksAdmissionView | null>(null);
   const deliveryRef = useRef<MarketplaceLocksDelivery | null>(null);
 
   const loadCorrelation = useCallback(async () => {
@@ -110,6 +117,53 @@ export function useMarketplaceLocksPayment({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, payment?.id, payment?.state, correlation?.id, correlation?.window_expires_at, pollEpoch]);
+
+  // Bounded polling of the Lock Server task while the request is in flight.
+  // It stops at the first terminal answer and never resubmits the bundle.
+  useEffect(() => {
+    if (!enabled || !payment || !correlation?.registered) {
+      setAdmission(null);
+      return;
+    }
+    if (payment.state !== 'awaiting_entitlement' && payment.state !== 'detected') return;
+    const boundAt = correlation.window_expires_at
+      ? Date.parse(correlation.window_expires_at) + 60_000
+      : Date.now() + LOCKS_POLL_FALLBACK_BOUND_MS;
+    let active = true;
+    let timer: number | undefined;
+    const read = async () => {
+      try {
+        const next = await CommerceController.getMarketplaceLocksAdmission(payment.id);
+        if (!active) return;
+        setAdmission(next);
+        if (next && next.kind !== 'in_flight') window.clearInterval(timer);
+      } catch {
+        // The order projection stays the source of payment progress.
+      }
+    };
+    void read();
+    timer = window.setInterval(() => {
+      if (!active) return;
+      if (Date.now() > boundAt) {
+        window.clearInterval(timer);
+        return;
+      }
+      void read();
+    }, getCommercePollIntervalMs());
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    enabled,
+    payment?.id,
+    payment?.state,
+    correlation?.id,
+    correlation?.registered,
+    correlation?.window_expires_at,
+    pollEpoch,
+  ]);
 
   useEffect(() => {
     deliveryRef.current = delivery;
@@ -194,6 +248,7 @@ export function useMarketplaceLocksPayment({
     delivery,
     error,
     pollExhausted,
+    admission,
     start,
     unlock,
     resumePolling,
