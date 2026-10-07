@@ -54,7 +54,7 @@ vi.mock('@/hooks/useMarketplaceNavAttention/useMarketplaceNavAttention', () => (
   useMarketplaceNavAttention: () => 0,
 }));
 vi.mock('@/hooks/useMessagesUnread/useMessagesUnread', () => ({
-  useMessagesUnread: () => 1,
+  useMessagesUnread: ({ enabled = true } = {}) => (enabled ? 1 : 0),
 }));
 
 const NAV_FRAME_TESTID = 'social-linkout-nav-frame';
@@ -144,5 +144,32 @@ describe('Social link-out nav — visual regression', () => {
     );
     await expect.element(screen.getByRole('button', { name: 'Join Pubky' })).toBeInTheDocument();
     await expect(screen.getByTestId(NAV_FRAME_TESTID)).toMatchScreenshot('social-linkout-footer-guest-mobile');
+  });
+
+  it.each([
+    { width: 320, signedIn: true },
+    { width: 320, signedIn: false },
+    { width: 375, signedIn: true },
+    { width: 375, signedIn: false },
+    { width: 390, signedIn: true },
+    { width: 390, signedIn: false },
+  ])('fits 44px footer targets at $width px (signed in: $signedIn)', async ({ width, signedIn }) => {
+    viewer.pubky = signedIn ? VRT_USER_PUBKY : null;
+    const screen = await renderForVRT(
+      <FooterFrame>
+        <MobileFooter />
+      </FooterFrame>,
+      { viewport: { width, height: VRT_VIEWPORT_MOBILE.height }, disableHover: true },
+    );
+    const frame = screen.getByTestId(NAV_FRAME_TESTID).element();
+    const targets = Array.from(frame.querySelectorAll('a, button'));
+    expect(targets).toHaveLength(7);
+    for (const target of targets) {
+      const rect = target.getBoundingClientRect();
+      expect(rect.width).toBeGreaterThanOrEqual(44);
+      expect(rect.height).toBeGreaterThanOrEqual(44);
+      expect(rect.left).toBeGreaterThanOrEqual(0);
+      expect(rect.right).toBeLessThanOrEqual(width);
+    }
   });
 });

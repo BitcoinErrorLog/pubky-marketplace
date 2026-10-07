@@ -1,11 +1,22 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { Bell, HandCoins, Heart, LayoutDashboard, MessageCircle, ReceiptText, ShoppingCart, Store } from 'lucide-react';
+import {
+  Bell,
+  HandCoins,
+  Heart,
+  LayoutDashboard,
+  MessageCircle,
+  ReceiptText,
+  Settings,
+  ShoppingCart,
+  Store,
+} from 'lucide-react';
 import { APP_ROUTES, MARKETPLACE_ROUTES } from '@/app/routes';
 import { Badge } from '@/atoms/Badge/Badge';
 import { Link } from '@/atoms/Link/Link';
 import { Typography } from '@/atoms/Typography/Typography';
+import { isSocialLinkOutEnabled } from '@/config/social';
 import { useMarketplaceActivityUnread } from '@/hooks/useMarketplaceActivityUnread/useMarketplaceActivityUnread';
 import { useMarketplaceCartCount } from '@/hooks/useMarketplaceCartCount/useMarketplaceCartCount';
 import { useMarketplaceOrdersAttention } from '@/hooks/useMarketplaceOrdersAttention/useMarketplaceOrdersAttention';
@@ -20,7 +31,7 @@ type MarketplaceSectionItem = {
   activePrefixes?: readonly string[];
 };
 
-const ITEMS: readonly MarketplaceSectionItem[] = [
+const getItems = (socialLinkOut: boolean): readonly MarketplaceSectionItem[] => [
   {
     label: 'Marketplace',
     href: APP_ROUTES.MARKETPLACE,
@@ -52,10 +63,11 @@ const ITEMS: readonly MarketplaceSectionItem[] = [
       MARKETPLACE_ROUTES.DASHBOARD,
       MARKETPLACE_ROUTES.SELL,
       MARKETPLACE_ROUTES.MY_SHOP,
-      MARKETPLACE_ROUTES.SETTINGS,
+      ...(!socialLinkOut ? [MARKETPLACE_ROUTES.SETTINGS] : []),
     ],
   },
-] as const;
+  ...(socialLinkOut ? [{ label: 'Shop settings', href: MARKETPLACE_ROUTES.SETTINGS, icon: Settings }] : []),
+];
 
 export function MarketplaceSectionNav({
   onNavigate,
@@ -65,8 +77,9 @@ export function MarketplaceSectionNav({
   className?: string;
 }) {
   const pathname = usePathname();
+  const socialLinkOut = isSocialLinkOutEnabled();
   const cartCount = useMarketplaceCartCount();
-  const messagesCount = useMessagesUnread();
+  const messagesCount = useMessagesUnread({ enabled: socialLinkOut });
   const activityUnreadCount = useMarketplaceActivityUnread();
   const ordersAttentionCount = useMarketplaceOrdersAttention();
 
@@ -78,7 +91,7 @@ export function MarketplaceSectionNav({
       className={cn('mb-6 w-full', className)}
     >
       <div className="flex w-full flex-wrap">
-        {ITEMS.map(({ label, href, icon: Icon, badge, activePrefixes }) => {
+        {getItems(socialLinkOut).map(({ label, href, icon: Icon, badge, activePrefixes }) => {
           const prefixes = activePrefixes ?? [href];
           const active =
             typeof pathname === 'string' &&

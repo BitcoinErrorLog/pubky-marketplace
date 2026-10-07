@@ -16,18 +16,19 @@ import { useMessagingStore } from '@/stores/messaging/messaging.store';
  * reality but can never invent it. Hydrates once per sign-in/enable change;
  * afterwards the controller keeps the store fact fresh on every
  * sync/receive/mark-read.
+ * Disable on navigation surfaces without a Messages badge to skip hydration.
  */
-export function useMessagesUnread(): number {
+export function useMessagesUnread({ enabled = true }: { enabled?: boolean } = {}): number {
   const currentUserPubky = useAuthStore((state) => state.currentUserPubky);
   const enabledPubky = useMessagingStore((state) => state.enabledPubky);
   const unreadConversations = useMessagingStore((state) => state.unreadConversations);
 
   useEffect(() => {
-    if (!currentUserPubky) return;
+    if (!enabled || !currentUserPubky) return;
     MessagingController.refreshUnreadCount().catch((error) => {
       Logger.warn('Failed to hydrate the local unread message count', { error });
     });
-  }, [currentUserPubky, enabledPubky]);
+  }, [currentUserPubky, enabledPubky, enabled]);
 
-  return unreadConversations;
+  return enabled ? unreadConversations : 0;
 }

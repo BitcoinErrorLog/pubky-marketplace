@@ -291,7 +291,7 @@ export function HeaderNavigationButtons({
   const { markCollectionsNavSeen } = useCollectionsNavDiscovery();
   // Honest badge: conversations on THIS device whose last received message
   // postdates the local read checkpoint — never a server-claimed count.
-  const unreadMessages = useMessagesUnread();
+  const unreadMessages = useMessagesUnread({ enabled: !isSocialLinkOutEnabled() });
   const marketplaceCartCount = useMarketplaceCartCount();
   const marketplaceAttention = useMarketplaceNavAttention();
   const counterString = counter > 21 ? '21+' : counter.toString();

@@ -51,6 +51,7 @@ vi.mock('@/controllers/commerce/commerce', () => ({
     isOwnPaykitAccountClaimed: vi.fn(),
     putMyPaymentConfig: vi.fn(),
     beginMarketplaceSessionConnect: vi.fn(),
+    hasFullHomeserverGrant: vi.fn(() => false),
     createLocksFrontendSession: vi.fn(),
   },
 }));
@@ -941,6 +942,17 @@ describe('MarketplacePaymentSettings', () => {
 
       const card = screen.getByTestId('marketplace-sign-out-card');
       expect(within(card).getByRole('button', { name: 'Sign out' })).toBeEnabled();
+    } finally {
+      setSocialHost(undefined);
+    }
+  });
+
+  it('lets a buyer sign out without a marketplace purchase session or seller payment setup', () => {
+    setSocialHost('https://pubky.app');
+    useCommerceStore.setState({ marketplaceSession: null });
+    try {
+      render(<MarketplacePaymentSettings />);
+      expect(screen.getByRole('button', { name: 'Sign out' })).toBeEnabled();
     } finally {
       setSocialHost(undefined);
     }

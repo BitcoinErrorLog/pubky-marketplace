@@ -1,12 +1,13 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MarketplaceSectionNav } from '@/organisms/Marketplace/MarketplaceSectionNav';
+import { setSocialHost } from '@/test-utils/social-host';
 import { expectVrtSurface, renderForVRT } from '@/test-utils/vrt';
 import { VRT_VIEWPORT_DESKTOP, VRT_VIEWPORT_MOBILE } from '@/test-utils/vrt.viewports';
 
-const state = vi.hoisted(() => ({ activityCount: 2 }));
+const state = vi.hoisted(() => ({ activityCount: 2, pathname: '/marketplace/offers' }));
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/marketplace/offers',
+  usePathname: () => state.pathname,
   useRouter: () => ({ push: vi.fn() }),
 }));
 
@@ -23,6 +24,14 @@ vi.mock('@/hooks/useRequireAuth/useRequireAuth', () => ({
 }));
 
 describe('Marketplace section navigation — visual regression', () => {
+  beforeEach(() => {
+    state.activityCount = 2;
+    state.pathname = '/marketplace/offers';
+    setSocialHost(undefined);
+  });
+
+  afterEach(() => setSocialHost(undefined));
+
   it('renders the active offers section and badges on desktop', async () => {
     await renderForVRT(
       <div className="w-full max-w-5xl p-6">
@@ -58,5 +67,26 @@ describe('Marketplace section navigation — visual regression', () => {
     expect(() => expectVrtSurface('wrong-marketplace-section-nav')).toThrow(
       'no production [data-surface="wrong-marketplace-section-nav"] root is mounted',
     );
+  });
+
+  it.each([
+    { name: 'desktop', viewport: VRT_VIEWPORT_DESKTOP },
+    { name: 'mobile', viewport: VRT_VIEWPORT_MOBILE },
+  ])('keeps Shop settings local and distinct from Seller studio on $name', async ({ name, viewport }) => {
+    setSocialHost('https://pubky.app');
+    state.pathname = '/marketplace/settings/addresses';
+    const screen = await renderForVRT(
+      <div className="w-full max-w-5xl p-4">
+        <MarketplaceSectionNav />
+      </div>,
+      { viewport, disableHover: true },
+    );
+
+    await expect
+      .element(screen.getByRole('link', { name: 'Shop settings' }))
+      .toHaveAttribute('href', '/marketplace/settings');
+    await expect.element(screen.getByRole('link', { name: 'Shop settings' })).toHaveAttribute('aria-current', 'page');
+    await expect.element(screen.getByRole('link', { name: 'Seller studio' })).not.toHaveAttribute('aria-current');
+    await expect(expectVrtSurface('marketplace-section-nav')).toMatchScreenshot(`section-nav-shop-settings-${name}`);
   });
 });
