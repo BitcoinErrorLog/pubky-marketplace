@@ -48,10 +48,11 @@ A cookie session is set by the homeserver on its own host (`homeserver.pubky.app
 **Where things stand:**
 
 - pubky.app `main` still signs Ring users in with cookies (`signinCookie`, `startCookieAuthFlow`). Its grant migration is draft PR [pubky/pubky-app#2614](https://github.com/pubky/pubky-app/issues/2614), by vlada; §2.7 covers how it fits.
-- The Shop signs Ring users in with cookies too. It uses grants only for Bitkit (and, in the beta, Passport).
-- **Released Ring supports cookie auth only.**
-  - Ring's grant auth is merged ([pubky/pubky-ring#360](https://github.com/pubky/pubky-ring/issues/360), 3 Sep).
-  - It isn't in the latest release, [v1.19](https://github.com/pubky/pubky-ring/releases/tag/v1.19) (4 Sep), and is still to be released.
+- The Shop signs Ring users in with cookies too. It uses grants only for Bitkit (and, in the beta, Passport). Since [pubky-marketplace#94](https://github.com/pubky/pubky-marketplace/pull/94) (merged, next Shop release), a purchase approval after sign-in is a `signin_grant` link, which needs Ring 2.0 or later, or Bitkit. A Ring 1.19 sign-in already creates the purchase session, and accounts created with the Ring sign-up QR need one sign-in with Ring.
+- **Ring grant auth ships from v2.0.**
+  - Ring's grant auth ([pubky/pubky-ring#360](https://github.com/pubky/pubky-ring/issues/360), merged 3 Sep) is first released in [v2.0](https://github.com/pubky/pubky-ring/releases/tag/v2.0) (5 Oct), which also adds grant management ([#369](https://github.com/pubky/pubky-ring/pull/369)).
+  - [v1.19](https://github.com/pubky/pubky-ring/releases/tag/v1.19) (4 Sep) supports cookie auth only, on Android and iOS ("v1.19 did not ship with grant auth", [#375](https://github.com/pubky/pubky-ring/issues/375)). Its Android build carries a pre-0.10 native library that rejects grant deep links. Users on v1.19 must update before an app drops cookie sign-in.
+  - v2.0 is on Android only so far; it isn't on the iOS App Store yet (James, 7 Oct). Until it is, every iOS Ring user runs 1.19.
   - Ring itself works as designed. The problems below come from the shared cookie and from the messaging library.
 
 ### 1.2 The Shop and pubky.app overwrite each other's scopes
@@ -328,13 +329,13 @@ The exact format depends on core's answer to Q1.
 - **Approvals are signed by the identity key.** The signer sends the grant and a key bundle together, signed by the user's key. The app checks that signature against the grant's issuer. Apps opt in per sign-in with the V1 approval format.
 - **Apps get file keys, not seeds.** The bundle keeps directory seeds inside it, and apps derive keys for file paths only. An app derives the file key of a fixed path it chooses, then its own HKDF purpose keys.
 - **Bundles can't be narrowed.** A holder derives file keys, but can't hand a narrower bundle to another app.
-- **Every scope in the grant gets a key,** including write-only scopes.
-- **Requested before merge:** the relay payload is encrypted only with the link's `client_secret`, so anyone who sees the QR or link could keep the keys. The fix seals the keys to an app-held key.
+- **Explicit `e` permission (7 Oct, [#668](https://github.com/pubky/pubky-homeserver/pull/668#issuecomment-6035403798)).** Keys are delivered only for scopes that carry the new `e` action. `r` and `w` no longer deliver keys, and `e` grants no storage access (`/pub/chat/:rwe` = storage plus keys, `/pub/chat/:e` = keys only). Signers may approve storage while declining `e`. Upgrade order: the homeserver first (older homeservers reject grants that carry `e`), then apps and signers together (older signers fail closed on `:rwe`, and approvals from the earlier draft are rejected on restore).
+- **Link secret: fixed (6 Oct).** The approval is sealed with HPKE to an app-held recipient key (`ek=`), so a leaked QR or link can't open the keys.
 
 **What this means for each party:**
 
-- **Signers (Ring, Bitkit, Passport):** derive and deliver keys for the grant's scopes. We asked for app-selected key scopes so a write-only scope needn't carry a key. Show "can decrypt your private data under …" as its own consent line, because it can't be taken back (R1, B1).
-- **The agent (P1):** would hold a key bundle only for `/priv` scopes the user approved for decryption. Delivering keys to child apps is an open question (§4, Q12): the SDK draft can't narrow a bundle, and the agent can't sign a key approval. A leaked key stays leaked, so the agent's small static origin and strict CSP matter more here.
+- **Signers (Ring, Bitkit, Passport):** derive and deliver keys only for scopes with `e`. Show "Encrypt and decrypt content" as its own consent line for each `e` scope, apart from storage access, and let the user decline it, because keys can't be taken back (R1, B1).
+- **The agent (P1):** would hold a key bundle only for `/priv` scopes the user approved for decryption. Delivering keys to child apps is deferred to a later `v2` (§4, Q12; Andrei, 7 Oct); until then each child app asks the signer: the SDK draft can't narrow a bundle, and the agent can't sign a key approval. A leaked key stays leaked, so the agent's small static origin and strict CSP matter more here.
 - **Apps:** wrap a random data key under a key derived with HKDF from the file key of a fixed path, rather than encrypting with the scoped key directly, so the data key can rotate. Keep encrypted paths stable. Treat grant revocation as access control, not key revocation.
 - **Core:** delegated grants (H1, Q1) are still open. Child-app key delivery (Q12) depends on them, or on a per-app request to the signer.
 
@@ -411,9 +412,9 @@ None of them depends on Ring's grant auth being released. The Ring stopgap is a 
 | # | Change | Size | Depends on |
 |---|---|---|---|
 | R0 | **Release grant auth**, already merged in [#360](https://github.com/pubky/pubky-ring/issues/360). Every Ring user's move off cookies depends on it (F1 for Ring users, A1), and so do R1 and R2. **In progress:** the release process has started | S | — |
-| R1 | Ring consent: <ul><li>show `client_id`, marked "unverified" for QR requests, and the scopes in plain words. **Agreed** by the Ring team;</li><li>a distinct agent-grant screen showing the ceiling and expiry (§2.8);</li><li>a separate "can decrypt" consent line when a request asks for scoped keys (§2.9);</li><li>the developer-only auto-auth never applies to it and can't ship reachable in release builds.</li></ul> | M | K1 for the agent screen; K6 for keys |
+| R1 | Ring consent: <ul><li>show `client_id`, marked "unverified" for QR requests, and the scopes in plain words. **Agreed** by the Ring team;</li><li>a distinct agent-grant screen showing the ceiling and expiry (§2.8);</li><li>a separate "Encrypt and decrypt content" consent line for each `e` scope, which the user can decline while approving storage, and parsing of `e` in deep links (§2.9);</li><li>the developer-only auto-auth never applies to it and can't ship reachable in release builds.</li></ul> | M | K1 for the agent screen; K6 for keys |
 | R2 | Ring sessions screen: list grants with per-grant revoke. **Exists** as draft [pubky-ring#369](https://github.com/pubky/pubky-ring/issues/369) ("Authorized Apps"), waiting on [pubky-core-ffi#37](https://github.com/pubky/pubky-core-ffi/issues/37), [react-native-pubky#42](https://github.com/pubky/react-native-pubky/issues/42), [#43](https://github.com/pubky/react-native-pubky/issues/43) and the next react-native-pubky release. After H1: group by browser, and revoke a whole browser | S after #369 | #369's dependencies; H1 for grouping |
-| B1 | Bitkit: R1's consent changes, plus scoped-key derivation and delivery, on [bitkit-android](https://github.com/synonymdev/bitkit-android) and [bitkit-ios](https://github.com/synonymdev/bitkit-ios) | S–M | K1; K6 for keys |
+| B1 | Bitkit: R1's consent changes (including the `e` line and declining it), plus scoped-key derivation and delivery for `e` scopes, on [bitkit-android](https://github.com/synonymdev/bitkit-android) and [bitkit-ios](https://github.com/synonymdev/bitkit-ios) | S–M | K1; K6 for keys |
 
 **Paykit** ([pubky/paykit-rs](https://github.com/pubky/paykit-rs)): answered by Ben on 2 Oct (Q10)
 
