@@ -8,6 +8,7 @@ import { useCurrentUserProfile } from '@/hooks/useCurrentUserProfile/useCurrentU
 import { useKeyboardOffset } from '@/hooks/useKeyboardOffset/useKeyboardOffset';
 import { useMarketplaceCartCount } from '@/hooks/useMarketplaceCartCount/useMarketplaceCartCount';
 import { useMarketplaceNavAttention } from '@/hooks/useMarketplaceNavAttention/useMarketplaceNavAttention';
+import { useMessagesUnread } from '@/hooks/useMessagesUnread/useMessagesUnread';
 import { setSocialHost } from '@/test-utils/social-host';
 import { MobileFooter } from './MobileFooter';
 
@@ -623,6 +624,7 @@ describe('MobileFooter', () => {
 
       expect(screen.queryByRole('link', { name: 'Pubky' })).not.toBeInTheDocument();
       expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/home');
+      expect(useMessagesUnread).toHaveBeenCalledWith({ enabled: true });
     });
 
     it('shows global App links and local Shop, with the App profile in the same tab', () => {
@@ -644,6 +646,7 @@ describe('MobileFooter', () => {
         expect(screen.getByRole('link', { name: 'Search' })).not.toHaveAttribute('target');
         expect(screen.getByRole('link', { name: 'Profile' })).not.toHaveAttribute('target');
         expect(screen.queryByRole('button', { name: 'Account menu' })).not.toBeInTheDocument();
+        expect(useMessagesUnread).toHaveBeenCalledWith({ enabled: false });
       } finally {
         adapterMode.mockRestore();
       }

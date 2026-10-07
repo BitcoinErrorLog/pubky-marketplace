@@ -68,11 +68,12 @@ export function MobileFooter({ className }: MobileFooterProps) {
   const setShowSignInDialog = useAuthStore((state) => state.setShowSignInDialog);
   const { isPublicExploreRoute } = usePublicRoute();
   const { userDetails, currentUserPubky } = useCurrentUserProfile();
+  const socialHostUrl = getSocialHostUrl('/');
   // Social unread plus marketplace unread — one badge for the whole surface.
   const unreadNotifications = useNotificationStore((state) => state.selectTotalUnread());
   // Honest device-local unread: conversations whose last received message
   // postdates the local read checkpoint.
-  const unreadMessages = useMessagesUnread();
+  const unreadMessages = useMessagesUnread({ enabled: !socialHostUrl });
   const marketplaceCartCount = useMarketplaceCartCount();
   const marketplaceAttention = useMarketplaceNavAttention();
   const accountUnread = unreadNotifications + unreadMessages;
@@ -87,7 +88,6 @@ export function MobileFooter({ className }: MobileFooterProps) {
       ? FileController.getAvatarUrl(currentUserPubky, userDetails.indexed_at)
       : undefined);
   const avatarName = userDetails?.name || 'U';
-  const socialHostUrl = getSocialHostUrl('/');
   // Marketplace stays out of primary navigation until the commerce adapter is
   // explicitly configured; production defaults to 'unavailable' (ADR 0019).
   const marketplaceNavItems: FooterNavItem[] =
@@ -141,6 +141,7 @@ export function MobileFooter({ className }: MobileFooterProps) {
       overrideDefaults
       className={cn(
         'fixed bottom-0 z-40 w-full overflow-x-auto bg-gradient-to-t from-background via-background/95 to-transparent px-3 py-4 transition-transform duration-75 lg:hidden',
+        socialHostUrl && 'px-1 min-[360px]:px-3',
         className,
       )}
       style={
@@ -185,7 +186,9 @@ export function MobileFooter({ className }: MobileFooterProps) {
                 handleFeedNavClick(event, { isActive: itemIsActive, smoothScrollWhenActive: true });
               }}
               className={cn(
-                socialHostUrl ? 'shrink-0 rounded-full p-2 transition-all sm:p-3' : 'rounded-full p-3 transition-all',
+                socialHostUrl
+                  ? 'flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full p-2 transition-all sm:p-3'
+                  : 'rounded-full p-3 transition-all',
                 itemBadgeCount > 0 && 'relative inline-flex',
                 itemIsActive ? 'bg-secondary' : 'border border-border bg-white/5 backdrop-blur-sm hover:bg-white/10',
               )}
@@ -213,7 +216,7 @@ export function MobileFooter({ className }: MobileFooterProps) {
             href={getSocialHostUrl(APP_ROUTES.PROFILE)!}
             aria-label="Profile"
             data-cy="footer-nav-profile-btn"
-            className="shrink-0 rounded-full"
+            className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full"
           >
             <AvatarWithFallback
               avatarUrl={avatarUrl}
@@ -304,7 +307,7 @@ export function MobileFooter({ className }: MobileFooterProps) {
             size="icon"
             className={cn(
               'items-center justify-center border bg-white/5',
-              socialHostUrl ? 'size-10 sm:size-12' : 'size-12',
+              socialHostUrl ? 'size-11 shrink-0 sm:size-12' : 'size-12',
             )}
             aria-label="Join Pubky"
             onClick={() => setShowSignInDialog(true)}
