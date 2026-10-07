@@ -20,11 +20,11 @@ import { marketplaceApprovalDisclosure } from '@/services/marketplace/marketplac
 
 /**
  * Shown when a grant-link approval lapses unapproved. The usual cause is the
- * wrong app: Bitkit or a Pubky Ring older than 1.19 cannot approve it, and a
+ * wrong app: a Pubky Ring older than 2.0 cannot approve it, and a
  * signer that cannot parse the link never answers, so the Shop only sees it expire.
  */
 export const GRANT_APPROVAL_SIGNER_HINT =
-  'Approve with the app that holds this pubky: Pubky Ring 1.19 or later, or Bitkit.';
+  'Approve with the app that holds this pubky: Pubky Ring 2.0 or later, or Bitkit.';
 
 /**
  * The in-app UX for establishing a marketplace transaction-service session

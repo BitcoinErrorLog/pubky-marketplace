@@ -351,7 +351,7 @@ export function useMarketplaceSessionConnect(
     }
 
     // With the grant flow on, every signed-in purchase approval is a
-    // `signin_grant` link, which Bitkit and Pubky Ring 1.19+ both approve.
+    // `signin_grant` link, which Bitkit and Pubky Ring 2.0+ both approve.
     // Bitkit rejects the Ring AuthToken link, so no Shop session falls back to
     // it. The browser bootstrap needs only a session that can write its own
     // homeserver (the proof document), so it serves Ring cookie sessions too.
