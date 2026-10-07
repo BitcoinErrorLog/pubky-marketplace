@@ -10,9 +10,8 @@ import { HeaderSignIn } from '@/molecules/HeaderSignIn/HeaderSignIn';
 import { MobileFooter } from '@/molecules/MobileFooter/MobileFooter';
 import { useNotificationStore } from '@/stores/notification/notification.store';
 
-// The Shop nav with social link-out on (NEXT_PUBLIC_SOCIAL_HOST set): Marketplace,
-// Messages and one Pubky link, no social search, account entries pointing at
-// the Shop. The link-out-off header is pinned by NotificationBadge.vrt.
+// Shared primary navigation with social link-out enabled. Social destinations and
+// Search open the App; Shop stays local. Link-out-off is pinned by NotificationBadge.vrt.
 
 const VRT_USER_PUBKY = vi.hoisted(() => 'v'.repeat(52));
 const viewer = vi.hoisted(() => ({ pubky: 'v'.repeat(52) as string | null }));
@@ -92,7 +91,7 @@ describe('Social link-out nav — visual regression', () => {
     useNotificationStore.getState().reset();
   });
 
-  it('renders the signed-in header with Marketplace, Messages and Pubky at desktop viewport', async () => {
+  it('renders the signed-in header with global App items and Shop at desktop viewport', async () => {
     useNotificationStore.getState().setMarketplaceUnread(3);
 
     const screen = await renderForVRT(
@@ -101,15 +100,15 @@ describe('Social link-out nav — visual regression', () => {
       </HeaderFrame>,
       { viewport: VRT_VIEWPORT_DESKTOP, disableHover: true },
     );
-    await expect.element(screen.getByRole('link', { name: 'Pubky' })).toHaveAttribute('href', 'https://pubky.app/');
+    await expect.element(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('href', 'https://pubky.app/home');
     expect(document.querySelector('[data-cy="header-nav-profile-btn"]')).toHaveAttribute(
       'href',
-      '/marketplace/notifications',
+      'https://pubky.app/profile',
     );
     await expect(screen.getByTestId(NAV_FRAME_TESTID)).toMatchScreenshot('social-linkout-header-signed-in-desktop');
   });
 
-  it('renders the guest header with Marketplace, Messages and Pubky at desktop viewport', async () => {
+  it('renders the guest header with global App items and Shop at desktop viewport', async () => {
     viewer.pubky = null;
 
     const screen = await renderForVRT(
@@ -118,23 +117,23 @@ describe('Social link-out nav — visual regression', () => {
       </HeaderFrame>,
       { viewport: VRT_VIEWPORT_DESKTOP, disableHover: true },
     );
-    await expect.element(screen.getByRole('link', { name: 'Pubky' })).toHaveAttribute('href', 'https://pubky.app/');
+    await expect.element(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('href', 'https://pubky.app/home');
     await expect(screen.getByTestId(NAV_FRAME_TESTID)).toMatchScreenshot('social-linkout-header-guest-desktop');
   });
 
-  it('renders the signed-in mobile footer with Marketplace and Pubky at mobile viewport', async () => {
+  it('renders the signed-in mobile footer with global App items and Shop at mobile viewport', async () => {
     const screen = await renderForVRT(
       <FooterFrame>
         <MobileFooter />
       </FooterFrame>,
       { viewport: VRT_VIEWPORT_MOBILE, disableHover: true },
     );
-    await expect.element(screen.getByRole('link', { name: 'Pubky' })).toHaveAttribute('href', 'https://pubky.app/');
-    await expect.element(screen.getByRole('button', { name: 'Account menu' })).toBeInTheDocument();
+    await expect.element(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('href', 'https://pubky.app/home');
+    await expect.element(screen.getByRole('link', { name: 'Profile' })).toBeInTheDocument();
     await expect(screen.getByTestId(NAV_FRAME_TESTID)).toMatchScreenshot('social-linkout-footer-signed-in-mobile');
   });
 
-  it('renders the guest mobile footer with Marketplace, Pubky and Join at mobile viewport', async () => {
+  it('renders the guest mobile footer with global App items, Shop and Join at mobile viewport', async () => {
     viewer.pubky = null;
 
     const screen = await renderForVRT(

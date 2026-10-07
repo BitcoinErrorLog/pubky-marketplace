@@ -184,3 +184,7 @@ If build-time environment validation fails, you'll see detailed error messages:
 ```
 
 If deployed runtime config is missing or invalid, the server exits at boot with the full list of required `PUBKY_RUNTIME_*` network variables.
+
+### Shared App/Shop navigation
+
+With `NEXT_PUBLIC_SOCIAL_HOST` set, global Home, Hot, Collections, Settings, Profile and Search open their corresponding social App routes in the same tab. Search is a link; it does not query the Shop Nexus for social results. The Shop item and marketplace section navigation stay local. Product search remains in the marketplace catalog. Without this variable, the existing integrated navigation remains. The regular App needs its own Shop navigation link for the return trip.

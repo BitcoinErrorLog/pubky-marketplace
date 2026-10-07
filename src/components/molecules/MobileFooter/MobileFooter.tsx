@@ -15,7 +15,7 @@ import {
   UserRound,
   UserRoundPlus,
 } from 'lucide-react';
-import { APP_ROUTES, isNavItemActive, MARKETPLACE_ROUTES, PROFILE_ROUTES, SETTINGS_ROUTES } from '@/app/routes';
+import { APP_ROUTES, isNavItemActive, PROFILE_ROUTES, SETTINGS_ROUTES } from '@/app/routes';
 import { Badge } from '@/atoms/Badge/Badge';
 import { Button } from '@/atoms/Button/Button';
 import { Container } from '@/atoms/Container/Container';
@@ -36,7 +36,6 @@ import { useMarketplaceCartCount } from '@/hooks/useMarketplaceCartCount/useMark
 import { useMarketplaceNavAttention } from '@/hooks/useMarketplaceNavAttention/useMarketplaceNavAttention';
 import { useMessagesUnread } from '@/hooks/useMessagesUnread/useMessagesUnread';
 import { usePublicRoute } from '@/hooks/usePublicRoute/usePublicRoute';
-import { PubkyIcon } from '@/icons';
 import { marketplaceNavAccessibleName } from '@/libs/commerce/marketplace-attention';
 import { handleFeedNavClick } from '@/libs/utils/feedScrollTop';
 import { cn } from '@/libs/utils/utils';
@@ -98,7 +97,7 @@ export function MobileFooter({ className }: MobileFooterProps) {
             href: APP_ROUTES.MARKETPLACE,
             activePrefix: APP_ROUTES.MARKETPLACE,
             icon: Store,
-            label: 'Marketplace',
+            label: socialHostUrl ? 'Shop' : 'Marketplace',
           },
         ]
       : [];
@@ -128,17 +127,9 @@ export function MobileFooter({ className }: MobileFooterProps) {
       label: 'Collections',
     },
   ];
-  // Social link-out keeps only the Shop's own surfaces; the social host gets one link after them.
-  const navItems = socialHostUrl ? marketplaceNavItems : socialNavItems;
-  const accountMenu = socialHostUrl
-    ? {
-        notifications: MARKETPLACE_ROUTES.NOTIFICATIONS,
-        settings: MARKETPLACE_ROUTES.SETTINGS,
-      }
-    : {
-        notifications: APP_ROUTES.PROFILE,
-        settings: SETTINGS_ROUTES.ACCOUNT,
-      };
+  const navItems = socialHostUrl
+    ? [...socialNavItems, { href: SETTINGS_ROUTES.ACCOUNT, icon: Settings, label: 'Settings' }]
+    : socialNavItems;
   // Hide footer for guests only on non-explore routes. Core explore and dynamic public
   // routes (/home, /post/..., /profile/...) use the public explore footer.
   if (!isAuthenticated && !isPublicExploreRoute) {
@@ -166,7 +157,8 @@ export function MobileFooter({ className }: MobileFooterProps) {
       >
         {navItems.map((item) => {
           const Icon = item.icon;
-          const itemIsActive = isNavItemActive(pathname, item);
+          const externalHref = item.href === APP_ROUTES.MARKETPLACE ? null : getSocialHostUrl(item.href);
+          const itemIsActive = !externalHref && isNavItemActive(pathname, item);
           const isCollectionsItem = item.href === APP_ROUTES.COLLECTIONS;
           const itemBadgeCount = item.href === APP_ROUTES.MARKETPLACE ? marketplaceCartCount + marketplaceAttention : 0;
           const marketplaceLabel =
@@ -176,7 +168,7 @@ export function MobileFooter({ className }: MobileFooterProps) {
           return (
             <Link
               key={item.href}
-              href={item.href}
+              href={externalHref ?? item.href}
               prefetch={false}
               aria-label={
                 marketplaceLabel ??
@@ -185,6 +177,7 @@ export function MobileFooter({ className }: MobileFooterProps) {
                   : item.label)
               }
               onClick={(event) => {
+                if (externalHref) return;
                 if (isAuthenticated && isCollectionsItem) {
                   markCollectionsNavSeen();
                 }
@@ -192,7 +185,7 @@ export function MobileFooter({ className }: MobileFooterProps) {
                 handleFeedNavClick(event, { isActive: itemIsActive, smoothScrollWhenActive: true });
               }}
               className={cn(
-                'rounded-full p-3 transition-all',
+                socialHostUrl ? 'shrink-0 rounded-full p-2 transition-all sm:p-3' : 'rounded-full p-3 transition-all',
                 itemBadgeCount > 0 && 'relative inline-flex',
                 itemIsActive ? 'bg-secondary' : 'border border-border bg-white/5 backdrop-blur-sm hover:bg-white/10',
               )}
@@ -215,17 +208,23 @@ export function MobileFooter({ className }: MobileFooterProps) {
             </Link>
           );
         })}
-        {socialHostUrl ? (
+        {isAuthenticated && socialHostUrl ? (
           <a
-            href={socialHostUrl}
-            aria-label="Pubky"
-            data-cy="footer-pubky-btn"
-            className="rounded-full border border-border bg-white/5 p-3 backdrop-blur-sm transition-all hover:bg-white/10"
+            href={getSocialHostUrl(APP_ROUTES.PROFILE)!}
+            aria-label="Profile"
+            data-cy="footer-nav-profile-btn"
+            className="shrink-0 rounded-full"
           >
-            <PubkyIcon className="h-6 w-6" />
+            <AvatarWithFallback
+              avatarUrl={avatarUrl}
+              name={avatarName}
+              fallbackSeed={currentUserPubky || avatarName}
+              size="lg"
+              className="h-10 w-10 cursor-pointer sm:h-12 sm:w-12"
+              alt="Profile"
+            />
           </a>
-        ) : null}
-        {isAuthenticated ? (
+        ) : isAuthenticated ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -261,16 +260,14 @@ export function MobileFooter({ className }: MobileFooterProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="top" align="end" sideOffset={12} className="w-72 p-2">
-              {socialHostUrl ? null : (
-                <DropdownMenuItem asChild>
-                  <Link href={PROFILE_ROUTES.PROFILE_PAGE} className="min-h-12 gap-2 px-4 py-2 text-sm font-medium">
-                    <UserRound className="size-5 shrink-0" aria-hidden="true" />
-                    Profile
-                  </Link>
-                </DropdownMenuItem>
-              )}
               <DropdownMenuItem asChild>
-                <Link href={accountMenu.notifications} className="min-h-12 gap-2 px-4 py-2 text-sm font-medium">
+                <Link href={PROFILE_ROUTES.PROFILE_PAGE} className="min-h-12 gap-2 px-4 py-2 text-sm font-medium">
+                  <UserRound className="size-5 shrink-0" aria-hidden="true" />
+                  Profile
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={APP_ROUTES.PROFILE} className="min-h-12 gap-2 px-4 py-2 text-sm font-medium">
                   <Bell className="size-5 shrink-0" aria-hidden="true" />
                   <span className="flex-1">Notifications</span>
                   {unreadNotifications > 0 && (
@@ -287,16 +284,14 @@ export function MobileFooter({ className }: MobileFooterProps) {
                   )}
                 </Link>
               </DropdownMenuItem>
-              {socialHostUrl ? null : (
-                <DropdownMenuItem asChild>
-                  <Link href={PROFILE_ROUTES.POSTS} className="min-h-12 gap-2 px-4 py-2 text-sm font-medium">
-                    <FileText className="size-5 shrink-0" aria-hidden="true" />
-                    My posts
-                  </Link>
-                </DropdownMenuItem>
-              )}
               <DropdownMenuItem asChild>
-                <Link href={accountMenu.settings} className="min-h-12 gap-2 px-4 py-2 text-sm font-medium">
+                <Link href={PROFILE_ROUTES.POSTS} className="min-h-12 gap-2 px-4 py-2 text-sm font-medium">
+                  <FileText className="size-5 shrink-0" aria-hidden="true" />
+                  My posts
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={SETTINGS_ROUTES.ACCOUNT} className="min-h-12 gap-2 px-4 py-2 text-sm font-medium">
                   <Settings className="size-5 shrink-0" aria-hidden="true" />
                   Settings
                 </Link>
@@ -307,7 +302,10 @@ export function MobileFooter({ className }: MobileFooterProps) {
           <Button
             variant="secondary"
             size="icon"
-            className="size-12 items-center justify-center border bg-white/5"
+            className={cn(
+              'items-center justify-center border bg-white/5',
+              socialHostUrl ? 'size-10 sm:size-12' : 'size-12',
+            )}
             aria-label="Join Pubky"
             onClick={() => setShowSignInDialog(true)}
           >

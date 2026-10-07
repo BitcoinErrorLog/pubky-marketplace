@@ -9,13 +9,14 @@ import { Typography } from '@/atoms/Typography/Typography';
 import { useMarketplaceActivityUnread } from '@/hooks/useMarketplaceActivityUnread/useMarketplaceActivityUnread';
 import { useMarketplaceCartCount } from '@/hooks/useMarketplaceCartCount/useMarketplaceCartCount';
 import { useMarketplaceOrdersAttention } from '@/hooks/useMarketplaceOrdersAttention/useMarketplaceOrdersAttention';
+import { useMessagesUnread } from '@/hooks/useMessagesUnread/useMessagesUnread';
 import { cn } from '@/libs/utils/utils';
 
 type MarketplaceSectionItem = {
   label: string;
   href: string;
   icon: typeof MessageCircle;
-  badge?: 'cart' | 'activity' | 'orders';
+  badge?: 'cart' | 'activity' | 'orders' | 'messages';
   activePrefixes?: readonly string[];
 };
 
@@ -31,7 +32,7 @@ const ITEMS: readonly MarketplaceSectionItem[] = [
       MARKETPLACE_ROUTES.DROPS,
     ],
   },
-  { label: 'Messages', href: MARKETPLACE_ROUTES.MESSAGES, icon: MessageCircle },
+  { label: 'Messages', href: MARKETPLACE_ROUTES.MESSAGES, icon: MessageCircle, badge: 'messages' },
   { label: 'Offers', href: MARKETPLACE_ROUTES.OFFERS, icon: HandCoins },
   { label: 'Watchlist', href: MARKETPLACE_ROUTES.WATCHLIST, icon: Heart },
   {
@@ -65,6 +66,7 @@ export function MarketplaceSectionNav({
 }) {
   const pathname = usePathname();
   const cartCount = useMarketplaceCartCount();
+  const messagesCount = useMessagesUnread();
   const activityUnreadCount = useMarketplaceActivityUnread();
   const ordersAttentionCount = useMarketplaceOrdersAttention();
 
@@ -91,9 +93,17 @@ export function MarketplaceSectionNav({
                 ? activityUnreadCount
                 : badge === 'orders'
                   ? ordersAttentionCount
-                  : 0;
+                  : badge === 'messages'
+                    ? messagesCount
+                    : 0;
           const badgeNoun =
-            badge === 'cart' ? 'cart items' : badge === 'orders' ? 'orders needing you' : 'activity needing you';
+            badge === 'cart'
+              ? 'cart items'
+              : badge === 'orders'
+                ? 'orders needing you'
+                : badge === 'messages'
+                  ? 'unread messages'
+                  : 'activity needing you';
           return (
             <Link
               key={label}

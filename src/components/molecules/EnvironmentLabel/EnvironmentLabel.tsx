@@ -17,7 +17,5 @@ export function EnvironmentLabel() {
 
   if (!label) return null;
 
-  return (
-    <span className="absolute top-full left-7 text-xs tracking-[1.2px] whitespace-nowrap text-brand">{label}</span>
-  );
+  return <span className="block w-max shrink-0 text-xs tracking-wide whitespace-nowrap text-brand">{label}</span>;
 }

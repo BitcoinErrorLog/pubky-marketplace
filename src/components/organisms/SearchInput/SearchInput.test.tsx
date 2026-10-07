@@ -6,6 +6,7 @@ import { useSearchInput } from '@/hooks/useSearchInput/useSearchInput';
 import { useTagSearch } from '@/hooks/useTagSearch/useTagSearch';
 import type { Pubky } from '@/models/models.types';
 import { useSearchStore } from '@/stores/search/search.store';
+import { setSocialHost } from '@/test-utils/social-host';
 import { SearchInput } from './SearchInput';
 
 // Mock next/navigation
@@ -281,6 +282,21 @@ describe('SearchInput', () => {
       addUser: mockAddUser,
       addTag: mockAddTag,
     });
+  });
+
+  it('links to App Search without mounting local social search hooks', () => {
+    setSocialHost('https://staging.pubky.app');
+    try {
+      render(<SearchInput />);
+      expect(screen.getByRole('link', { name: 'Search' })).toHaveAttribute('href', 'https://staging.pubky.app/search');
+      expect(screen.getByRole('link', { name: 'Search' })).not.toHaveAttribute('target');
+      expect(useHotTags).not.toHaveBeenCalled();
+      expect(useSearchAutocomplete).not.toHaveBeenCalled();
+      expect(useSearchInput).not.toHaveBeenCalled();
+      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    } finally {
+      setSocialHost(undefined);
+    }
   });
 
   describe('Rendering', () => {

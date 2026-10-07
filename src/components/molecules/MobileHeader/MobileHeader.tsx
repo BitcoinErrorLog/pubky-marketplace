@@ -61,7 +61,7 @@ export function MobileHeader({
           ) : null}
         </SideSlot>
 
-        <div className="relative">
+        <div className="flex shrink-0 flex-col items-center gap-1">
           <Logo />
           <EnvironmentLabel />
         </div>

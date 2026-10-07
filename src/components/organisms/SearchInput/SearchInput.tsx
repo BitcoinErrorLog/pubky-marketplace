@@ -2,8 +2,11 @@
 
 import { Suspense, useEffect } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { Search } from 'lucide-react';
 import { APP_ROUTES, getUserProfileUrl } from '@/app/routes';
 import { Container } from '@/atoms/Container/Container';
+import { SEARCH_CLOSED_STYLE } from '@/config/search';
+import { getSocialHostUrl } from '@/config/social';
 import { CLICKABLE_TAGS_DEFAULT_MAX_LENGTH } from '@/config/tags';
 import { useHotTags } from '@/hooks/useHotTags/useHotTags';
 import { useIsMobile } from '@/hooks/useIsMobile/useIsMobile';
@@ -34,7 +37,29 @@ function SearchInputUrlTagsSync() {
   return null;
 }
 
-export function SearchInput({ autoFocus = false }: SearchInputProps) {
+export function SearchInput(props: SearchInputProps) {
+  const socialSearchUrl = getSocialHostUrl(APP_ROUTES.SEARCH);
+  if (socialSearchUrl) {
+    return (
+      <a
+        href={socialSearchUrl}
+        aria-label="Search"
+        data-cy="header-search"
+        className="flex h-12 min-w-0 flex-1 items-center gap-3 rounded-full border border-border px-6 py-3 text-base font-medium text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        style={SEARCH_CLOSED_STYLE}
+      >
+        <span className="min-w-20 flex-1">Search</span>
+        <span className="-mr-2 flex size-8 shrink-0 items-center justify-center" aria-hidden="true">
+          <Search className="size-4" />
+        </span>
+      </a>
+    );
+  }
+  return <LocalSearchInput {...props} />;
+}
+
+// Mount social search hooks only when the social app is served on this origin.
+function LocalSearchInput({ autoFocus = false }: SearchInputProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { addTagToSearch, removeTagFromSearch, activeTags, isReadOnly } = useTagSearch();

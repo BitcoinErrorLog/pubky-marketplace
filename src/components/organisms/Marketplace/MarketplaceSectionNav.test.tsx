@@ -24,6 +24,8 @@ vi.mock('@/hooks/useMarketplaceOrdersAttention/useMarketplaceOrdersAttention', (
   useMarketplaceOrdersAttention: () => state.ordersCount,
 }));
 
+vi.mock('@/hooks/useMessagesUnread/useMessagesUnread', () => ({ useMessagesUnread: () => 4 }));
+
 describe('MarketplaceSectionNav', () => {
   beforeEach(() => {
     state.pathname = '/marketplace/offers';
@@ -38,6 +40,12 @@ describe('MarketplaceSectionNav', () => {
     expect(screen.getByRole('link', { name: 'Marketplace' })).not.toHaveAttribute('aria-current');
     expect(screen.getByTestId('marketplace-section-nav-cart-badge')).toHaveTextContent('3');
     expect(screen.getByTestId('marketplace-section-nav-activity-badge')).toHaveTextContent('21+');
+  });
+
+  it('keeps unread messages visible in the Shop section navigation', () => {
+    render(<MarketplaceSectionNav />);
+    expect(screen.getByTestId('marketplace-section-nav-messages-badge')).toHaveTextContent('4');
+    expect(screen.getByLabelText('4 unread messages')).toBeInTheDocument();
   });
 
   it('badges orders that still need the signed-in identity', () => {
