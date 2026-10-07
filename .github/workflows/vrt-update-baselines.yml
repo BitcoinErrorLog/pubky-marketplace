@@ -1,5 +1,5 @@
 name: VRT Update Baselines
-# Regenerates named Linux VRT baselines in the pinned Playwright image.
+description: Regenerates named Linux VRT baselines in the pinned Playwright image.
 
 on:
   workflow_dispatch:
@@ -21,9 +21,6 @@ jobs:
       image: mcr.microsoft.com/playwright:v1.60.0-noble
       options: --user 1001 --shm-size=2g
     timeout-minutes: 25
-    defaults:
-      run:
-        shell: bash
     steps:
       - name: Refuse protected branches
         if: github.ref_name == 'master' || github.ref_name == 'main'
