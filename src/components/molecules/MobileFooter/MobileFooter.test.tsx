@@ -625,52 +625,38 @@ describe('MobileFooter', () => {
       expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/home');
     });
 
-    it('keeps Marketplace and adds one plain Pubky link when on', () => {
+    it('shows global App links and local Shop, with the App profile in the same tab', () => {
       setSocialHost('https://pubky.app');
       const adapterMode = vi.spyOn(commerceConfig, 'getCommerceAdapterMode').mockReturnValue('sandbox');
       try {
+        vi.mocked(usePathname).mockReturnValue('/marketplace/listing/example');
         render(<MobileFooter />);
-
-        const links = screen.getAllByRole('link');
-        expect(links.map((link) => link.getAttribute('href'))).toEqual(['/marketplace', 'https://pubky.app/']);
-        const pubkyLink = screen.getByRole('link', { name: 'Pubky' });
-        expect(pubkyLink.tagName).toBe('A');
-        expect(pubkyLink).not.toHaveAttribute('target');
-        expect(document.querySelector('.lucide-house')).toBeNull();
-        expect(document.querySelector('.lucide-search')).toBeNull();
-        expect(document.querySelector('.lucide-flame')).toBeNull();
-        expect(document.querySelector('.lucide-library')).toBeNull();
+        expect(screen.getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
+          'https://pubky.app/home',
+          'https://pubky.app/search',
+          'https://pubky.app/hot',
+          '/marketplace',
+          'https://pubky.app/collections',
+          'https://pubky.app/settings/account',
+          'https://pubky.app/profile',
+        ]);
+        expect(screen.getByRole('link', { name: 'Shop' })).toHaveClass('bg-secondary');
+        expect(screen.getByRole('link', { name: 'Search' })).not.toHaveAttribute('target');
+        expect(screen.getByRole('link', { name: 'Profile' })).not.toHaveAttribute('target');
+        expect(screen.queryByRole('button', { name: 'Account menu' })).not.toBeInTheDocument();
       } finally {
         adapterMode.mockRestore();
       }
     });
 
-    it('points the account menu at Shop notifications and settings when on', () => {
-      setSocialHost('https://pubky.app');
-      render(<MobileFooter />);
-
-      fireEvent.pointerDown(screen.getByRole('button', { name: 'Account menu' }), { button: 0, ctrlKey: false });
-
-      expect(screen.getByRole('menuitem', { name: 'Notifications' })).toHaveAttribute(
-        'href',
-        '/marketplace/notifications',
-      );
-      expect(screen.getByRole('menuitem', { name: 'Messages' })).toHaveAttribute('href', '/messages');
-      expect(screen.getByRole('menuitem', { name: 'Settings' })).toHaveAttribute('href', '/marketplace/settings');
-      expect(screen.queryByRole('menuitem', { name: 'Profile' })).not.toBeInTheDocument();
-      expect(screen.queryByRole('menuitem', { name: 'My posts' })).not.toBeInTheDocument();
-    });
-
-    it('gives guests the Pubky link next to Join when on', () => {
+    it('lets guests navigate to App Search and Settings without signing into Shop', () => {
       setSocialHost('https://staging.pubky.app');
       mockCurrentUserPubky = null;
       mockIsCoreExploreRoute = true;
-
       render(<MobileFooter />);
-
-      expect(screen.getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
-        'https://staging.pubky.app/',
-      ]);
+      expect(screen.getByRole('link', { name: 'Search' })).toHaveAttribute('href', 'https://staging.pubky.app/search');
+      fireEvent.click(screen.getByRole('link', { name: 'Settings' }));
+      expect(collectionsDiscoveryMock.setShowSignInDialog).not.toHaveBeenCalled();
       expect(screen.getByRole('button', { name: 'Join Pubky' })).toBeInTheDocument();
     });
   });

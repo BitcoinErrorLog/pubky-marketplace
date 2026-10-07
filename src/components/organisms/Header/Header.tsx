@@ -101,7 +101,7 @@ function StagingLogo({
   onClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
 }) {
   return (
-    <div className="relative">
+    <div className="flex shrink-0 flex-col items-center gap-1">
       <Logo noLink={noLink} onClick={onClick} />
       <EnvironmentLabel />
     </div>

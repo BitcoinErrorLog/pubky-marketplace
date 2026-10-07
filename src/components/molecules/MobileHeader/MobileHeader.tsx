@@ -61,7 +61,8 @@ export function MobileHeader({
           ) : null}
         </SideSlot>
 
-        <div className="relative">
+        {/* Logo + label fit the 48px row that mobile sticky offsets rely on. */}
+        <div className="flex shrink-0 flex-col items-center">
           <Logo />
           <EnvironmentLabel />
         </div>

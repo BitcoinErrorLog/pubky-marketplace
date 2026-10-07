@@ -2,6 +2,7 @@
 /* eslint-disable simple-import-sort/imports */
 import { createMarketplaceVrtAuthStore } from '@/test/mocks/marketplace-vrt';
 import { describe, expect, it, vi } from 'vitest';
+import { userEvent } from 'vitest/browser';
 import { renderForVRT, VRT_ROOT_TESTID } from '@/test-utils/vrt';
 import { VRT_VIEWPORT_DESKTOP, VRT_VIEWPORT_MOBILE } from '@/test-utils/vrt.viewports';
 import { Dialog, DialogContent } from '@/atoms/Dialog/Dialog';
@@ -230,6 +231,11 @@ async function renderOpenDropdown(mobile: boolean, disableHover: boolean) {
     requireElement('[data-testid="search-suggestions"]');
     requireElement('[data-testid="marketplace-section-nav"]');
   });
+  if (disableHover) {
+    // The header restores pointer-events:auto below the VRT wrapper, so park
+    // the shared browser cursor away from tags before static captures.
+    await userEvent.unhover(document.body, { position: { x: 0, y: 0 }, force: true });
+  }
   return screen;
 }
 

@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Flame, Home, Library, MessageCircle, Settings, Store, UserRoundPlus } from 'lucide-react';
-import { APP_ROUTES, isCoreExploreRoute, isNavItemActive, MARKETPLACE_ROUTES, SETTINGS_ROUTES } from '@/app/routes';
+import { APP_ROUTES, isCoreExploreRoute, isNavItemActive, SETTINGS_ROUTES } from '@/app/routes';
 import { Badge } from '@/atoms/Badge/Badge';
 import { Button } from '@/atoms/Button/Button';
 import { Container } from '@/atoms/Container/Container';
@@ -18,7 +18,7 @@ import { useMarketplaceCartCount } from '@/hooks/useMarketplaceCartCount/useMark
 import { useMarketplaceNavAttention } from '@/hooks/useMarketplaceNavAttention/useMarketplaceNavAttention';
 import { useMessagesUnread } from '@/hooks/useMessagesUnread/useMessagesUnread';
 import { useRequireAuth } from '@/hooks/useRequireAuth/useRequireAuth';
-import { Github2, PubkyIcon, Telegram, XTwitter } from '@/icons';
+import { Github2, Telegram, XTwitter } from '@/icons';
 import { marketplaceNavAccessibleName } from '@/libs/commerce/marketplace-attention';
 import { handleFeedNavClick } from '@/libs/utils/feedScrollTop';
 import { cn } from '@/libs/utils/utils';
@@ -129,19 +129,6 @@ const messagesNavItem: NavigationItemConfig = {
   activePrefix: APP_ROUTES.MESSAGES,
 };
 
-/** Social link-out nav: the Shop's own surfaces plus one link to the social host. */
-const getLinkOutNavigationItems = (socialHostUrl: string): NavigationItemConfig[] => [
-  ...(isMarketplaceNavEnabled() ? [marketplaceNavItem] : []),
-  messagesNavItem,
-  {
-    href: socialHostUrl,
-    icon: PubkyIcon,
-    label: 'Pubky',
-    dataCy: 'header-pubky-btn',
-    external: true,
-  },
-];
-
 const getSocialNavigationItems = (): NavigationItemConfig[] => [
   {
     href: APP_ROUTES.HOME,
@@ -174,8 +161,16 @@ const getSocialNavigationItems = (): NavigationItemConfig[] => [
   },
 ];
 const getNavigationItems = (): NavigationItemConfig[] => {
-  const socialHostUrl = getSocialHostUrl('/');
-  return socialHostUrl ? getLinkOutNavigationItems(socialHostUrl) : getSocialNavigationItems();
+  const items = getSocialNavigationItems();
+  if (!isSocialLinkOutEnabled()) return items;
+  // Shop messages remain in the marketplace section nav. Global items mirror Pubky App.
+  return items
+    .filter((item) => item.href !== APP_ROUTES.MESSAGES)
+    .map((item) =>
+      item.href === APP_ROUTES.MARKETPLACE
+        ? { ...item, label: 'Shop' }
+        : { ...item, href: getSocialHostUrl(item.href)!, external: true, isFeedRoute: false },
+    );
 };
 
 type NavigationButtonProps = {
@@ -300,7 +295,7 @@ export function HeaderNavigationButtons({
   const marketplaceCartCount = useMarketplaceCartCount();
   const marketplaceAttention = useMarketplaceNavAttention();
   const counterString = counter > 21 ? '21+' : counter.toString();
-  const profileHref = isSocialLinkOutEnabled() ? MARKETPLACE_ROUTES.NOTIFICATIONS : APP_ROUTES.PROFILE;
+  const profileHref = getSocialHostUrl(APP_ROUTES.PROFILE) ?? APP_ROUTES.PROFILE;
   return (
     <Container className={cn('hidden w-auto flex-row items-center justify-start gap-3 lg:flex', className)}>
       {getNavigationItems().map((item) => {
@@ -331,7 +326,7 @@ export function HeaderNavigationButtons({
         );
       })}
 
-      <Link data-cy="header-nav-profile-btn" className="relative" href={profileHref}>
+      <Link data-cy="header-nav-profile-btn" className="relative" href={profileHref} target="_self">
         <AvatarWithFallback
           avatarUrl={avatarImage}
           name={avatarName}
@@ -340,7 +335,7 @@ export function HeaderNavigationButtons({
           className="cursor-pointer"
           alt={'Profile'}
         />
-        {counter > 0 && (
+        {!isSocialLinkOutEnabled() && counter > 0 && (
           <Badge
             data-cy="header-notification-counter"
             className="absolute right-0 bottom-0 h-5 w-5 rounded-full bg-brand shadow-sm"
@@ -363,7 +358,7 @@ type HeaderExploreNavigationButtonsProps = {
 
 export function HeaderExploreNavigationButtons({
   className,
-  showSearch = !isSocialLinkOutEnabled(),
+  showSearch = true,
 }: HeaderExploreNavigationButtonsProps = {}) {
   const pathname = usePathname();
   const router = useRouter();
