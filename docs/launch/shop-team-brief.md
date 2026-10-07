@@ -147,7 +147,12 @@ Launch blockers, deadlines and open decisions are in the launch plan (top sectio
 - **Known gaps,** detailed in launch plan §3 and §5:
   - **Permissions overwrite.** The two sites' cookie sign-ins overwrite each other's permissions. The stopgap: Ring sign-in requests both sites' scopes (D5, shipped in v0.6.45).
   - **Messaging needs a Ring cookie session.** The vendored `paykit-wasm` supports only cookie sessions, so Bitkit and Passport users get no messaging, and Ring can't move to grants yet. This stays until the MLS cutover (chat plan E1), which is what brings messaging to Passport and Bitkit users. Paykit won't ship a browser package, so there is no Paykit-side fix to wait for.
-  - **Released Ring signs in with cookies only.** Ring's grant auth is merged ([pubky-ring#360](https://github.com/pubky/pubky-ring/issues/360)) but isn't in the latest release, [v1.19](https://github.com/pubky/pubky-ring/releases/tag/v1.19). Every Ring sign-in on the Shop is therefore a cookie sign-in. The beta stopgaps don't depend on Ring grants.
+  - **Ring's grant auth ships from v2.0, on Android only so far.** [v2.0](https://github.com/pubky/pubky-ring/releases/tag/v2.0) (5 Oct) is the first release with grant auth on either platform ([pubky-ring#375](https://github.com/pubky/pubky-ring/issues/375)). It isn't on the iOS App Store yet, so iOS users run [v1.19](https://github.com/pubky/pubky-ring/releases/tag/v1.19), which signs in with cookies only. Every Ring sign-in on the Shop is a cookie sign-in, and the beta stopgaps don't depend on Ring grants.
+  - **Purchase approval needs Ring 2.0 or later, or Bitkit, after [#94](https://github.com/pubky/pubky-marketplace/pull/94).**
+    - With the grant flow on, the purchase approval is a `signin_grant` link.
+    - Ring 1.19 still signs in, and that sign-in also creates the purchase session, so buying works right after a Ring sign-in.
+    - Accounts created with the Ring sign-up QR need one sign-in with Ring.
+    - The real fix is Ring 2.0 shipping on iOS. No Shop workaround is planned.
   - **No single sign-on with pubky.app.**
     - The target design is **delegated grants through a Passport agent**: [pubky-sso-design.md](../sso/pubky-sso-design.md), team version [sso-proposal-for-team.md](../sso/sso-proposal-for-team.md), summary in launch plan §3.
       - The signer approves once per browser.
@@ -183,7 +188,7 @@ Each owning team assigns the people behind these roles: the Shop team its Shop l
 8. Work through the launch-blocking list in launch plan §5 with QA, including the cross-site sign-in matrix.
 9. Start on SSO prerequisites with the upstream teams, using the [team proposal](../sso/sso-proposal-for-team.md):
    - **Core:** several bearers per grant and no cookie fallback (SSO-H5, H6) first.
-   - **Ring:** the grant-auth release is in progress (SSO-R0), the client id and scopes on the approval screen are agreed, and the grant list is [#369](https://github.com/pubky/pubky-ring/issues/369).
+   - **Ring:** grant auth shipped on Android in v2.0 (SSO-R0), and the iOS release is pending. The client id and scopes on the approval screen are agreed, and the grant list is [#369](https://github.com/pubky/pubky-ring/issues/369), also in v2.0.
    - **pubky.app:** review [#2614](https://github.com/pubky/pubky-app/issues/2614).
    - **Paykit:** nothing for SSO. The storage interface and WASM package (SSO-Y1, Y2) are withdrawn.
 

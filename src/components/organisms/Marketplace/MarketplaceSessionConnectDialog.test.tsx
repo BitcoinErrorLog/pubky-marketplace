@@ -175,7 +175,7 @@ describe('MarketplaceSessionConnectDialog', () => {
 
     expect(screen.getByTestId('grant-approval-signer-hint')).toHaveTextContent(GRANT_APPROVAL_SIGNER_HINT);
     expect(GRANT_APPROVAL_SIGNER_HINT).toBe(
-      'Approve with the app that holds this pubky: Pubky Ring 1.19 or later, or Bitkit.',
+      'Approve with the app that holds this pubky: Pubky Ring 2.0 or later, or Bitkit.',
     );
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
   });

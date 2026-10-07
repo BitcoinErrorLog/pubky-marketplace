@@ -48,7 +48,7 @@ Where a row says "team to assign", the owning team names the person.
    - pubky.app's half is [#2614](https://github.com/pubky/pubky-app/issues/2614).
    - **It has a hard prerequisite that is not in the beta path.** The Shop's messaging library (`paykit-wasm`) works only with cookie sessions, so the Shop can't move Ring users to grants yet.
    - Until messaging runs on the app's grant session, there is no full SSO for Ring users. That arrives with SSO-E1: the Shop on the shared pubky-chat library (MLS), per the [chat plan](https://github.com/pubky/pubky-chat/blob/main/docs/chat-unification-plan.md). The Paykit asks (SSO-Y1, Y2) are withdrawn (Ben, 2 Oct).
-   - Ring's grant sign-in is also merged but not yet released ([pubky-ring#360](https://github.com/pubky/pubky-ring/issues/360); not in v1.19), so Ring users can't be moved to grants until Ring ships it.
+   - Ring's grant auth shipped in [v2.0](https://github.com/pubky/pubky-ring/releases/tag/v2.0) (5 Oct), on Android only so far; the iOS release is pending. [v1.19](https://github.com/pubky/pubky-ring/releases/tag/v1.19) has no grant auth on either platform ([pubky-ring#375](https://github.com/pubky/pubky-ring/issues/375)). Ring users can't be moved to grants until Ring 2.0 is on both platforms.
    - The beta stopgaps don't depend on it:
      - D5 is a Ring cookie sign-in;
      - F4 is Passport's own grant flow;
@@ -128,11 +128,15 @@ Where a row says "team to assign", the owning team names the person.
   - Ordinary login asks only for `/pub/pubky.app/:rw`. Locks steps up to `/priv/social/:rw,/priv/locks.app/:r`.
   - It is gated on three things: several bearers per grant, no cookie fallback, and shipped Ring grant builds.
   - It is the pubky.app half of the target design (SSO-A1).
-- **Ring's grant sign-in is merged but not released.**
-  - It merged to `main` on 3 Sep in [pubky-ring#360](https://github.com/pubky/pubky-ring/issues/360).
-  - The latest release, [v1.19](https://github.com/pubky/pubky-ring/releases/tag/v1.19) (4 Sep), doesn't list it. Ring's developer confirms grant auth is "still to be released, not in v1.19".
-  - The v1.19 tag's source does contain the merge, so ask Ring which release actually turns it on.
-  - Released Ring supports cookie auth only. Grant sign-in through Ring is unavailable to users until that release.
+- **Ring's grant auth ships from v2.0, on Android only so far.**
+  - [v2.0](https://github.com/pubky/pubky-ring/releases/tag/v2.0) (5 Oct) is the first Ring release that approves `signin_grant`, on either platform. Ring's developer confirmed this on [pubky-ring#375](https://github.com/pubky/pubky-ring/issues/375), and the v1.19 Android APK has no `signin_grant` parser. Grant auth merged to `main` on 3 Sep in [pubky-ring#360](https://github.com/pubky/pubky-ring/issues/360).
+  - Ring 2.0 is not yet on the iOS App Store (James, 7 Oct). Every iOS Ring user today runs 1.19.
+  - [v1.19](https://github.com/pubky/pubky-ring/releases/tag/v1.19) (4 Sep) signs in with cookie auth only.
+- **Shop purchase approval needs Ring 2.0 or later, or Bitkit, after [#94](https://github.com/pubky/pubky-marketplace/pull/94).**
+  - #94 (merged 6 Oct, ships with the next Shop release) makes every signed-in purchase approval a `signin_grant` link while the grant flow is on, as it is in production. That is the link Bitkit accepts. The dialog says it needs "Pubky Ring 2.0 or later, or Bitkit". Ring 2.0 is Android only today; iOS is pending.
+  - Ring 1.19 still signs in. With single approval on (production), that sign-in also creates the purchase session, so a Ring 1.19 user can buy straight after signing in. If that session later expires or is refused, signing in with Ring again restores it.
+  - Accounts created with the Ring sign-up QR start without a purchase session. On Ring 1.19 they need one sign-in with Ring.
+  - The real fix is Ring 2.0 shipping on iOS. No Shop workaround is planned.
 - **The Shop's messaging library only works with cookie sessions, and it is ours.**
   - The vendored `paykit-wasm` 0.1.0-rc50 exists only in our fork [BitcoinErrorLog/paykit-rs-official](https://github.com/BitcoinErrorLog/paykit-rs-official) (`paykit-wasm/`).
   - It is built on pubky 0.8, and its session API is `restoreSession` and `resumeSessionFromCookie` (`paykit-wasm/src/session.rs`).
@@ -146,6 +150,7 @@ Where a row says "team to assign", the owning team names the person.
 - **The transaction service authenticates separately today.**
   - Ring cookie sessions post the same `AuthToken` to the homeserver and the service.
   - Grant sessions (Bitkit, Passport) approve a second grant for the service at the first purchase.
+  - A Ring cookie session that needs a new purchase approval gets the same grant link (#94), which only Ring 2.0 or later, or Bitkit, approves.
   - The target design removes both: the service accepts the Shop's own grant (SSO-F3).
 
 ### Target SSO design: delegated grants through a Passport agent
@@ -187,7 +192,7 @@ Item IDs prefixed **SSO-** are the change list in [sso-proposal-for-team.md §3.
 |---|---|---|---|---|
 | SSO-H5 | **Several bearers per grant.** `replace_for_grant` keeps up to a small bound (suggest 8) instead of deleting the previous bearer. Gates #2614 and the Shop | Pubky core | S | No |
 | SSO-H6 | **No cookie fallback.** A request carrying `Authorization` ignores cookies; the SDK omits browser credentials for grant sessions | Pubky core | S | No |
-| SSO-R0 | Ring release with grant auth ([#360](https://github.com/pubky/pubky-ring/issues/360) merged; [#375](https://github.com/pubky/pubky-ring/issues/375) Android library). **In progress:** release process started | Ring team | S | No |
+| SSO-R0 | Ring release with grant auth ([#360](https://github.com/pubky/pubky-ring/issues/360), [#375](https://github.com/pubky/pubky-ring/issues/375)). **Shipped on Android** in [v2.0](https://github.com/pubky/pubky-ring/releases/tag/v2.0) (5 Oct). **iOS pending:** v2.0 is not yet on the App Store, and v1.19 has no grant auth | Ring team | S | No |
 | SSO-A1 | pubky.app on grants: [#2614](https://github.com/pubky/pubky-app/issues/2614), client id set to the origin host | pubky-app maintainers (vlada) | M | No |
 | SSO-H1, K1, K3, K4 | Delegable grants: `d` action, child-grant verification, cascade revocation, SDK signer and delegate APIs, agent protocol spec, SDK gaps | Pubky core | L + M + S + S | No |
 | SSO-P1, P2 | Passport as the account agent, plus a Ring-linked mode | Passport team | L + M | No |
