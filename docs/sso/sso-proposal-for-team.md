@@ -441,7 +441,7 @@ A custom-message API is not needed either, and scope narrowing is dropped becaus
 |---|---|---|---|
 | F1 | One sign-in path through the agent for every signer. Remove the cookie path, the session bridge (`src/libs/vibe-session/*`), the `AuthToken` dual post, the scope union and the Bitkit-only branch, after a dead-code check | M | P1 |
 | E1 | Replaces F2: Shop messaging moves to the shared pubky-chat library (MLS) on the app's own grant session ([chat plan](https://github.com/pubky/pubky-chat/blob/main/docs/chat-unification-plan.md)) | L | pubky-chat Phase 2 |
-| F3 | The marketplace service and our Lock Server fork accept the app's grant plus a PoP addressed to the service, requiring the service's capability; the `AuthToken` route is removed | M | K1, H3 |
+| F3 | The marketplace service and our Lock Server fork accept the app's grant plus a PoP addressed to the service, requiring the service's capability; the `AuthToken` route is removed. **Update 8 Oct:** [pubky-homeserver#680](https://github.com/pubky/pubky-homeserver/issues/680) supplies this: a grant session signs service-chosen JSON (audience, challenge) with its client key, and the service verifies grant plus proof offline. The inbox server uses it; the marketplace service and Locks can adopt the same bundle | M | K1, H3 |
 | F4 | Retire `paykit-wasm` in [BitcoinErrorLog/paykit-rs-official](https://github.com/BitcoinErrorLog/paykit-rs-official) | S | E1 |
 
 ### 3.4 Suggested order and timeline
@@ -487,10 +487,10 @@ The beta opens about **15 Oct**. After that, each phase starts when its dependen
    - In which homeserver version will `replace_for_grant` keep several bearers per grant, and what bound will it use (we suggest 8, evicting the oldest)?
    - Will the same release make a request that carries `Authorization` ignore cookies?
 4. **Services as relying parties (gates H3, F3).**
-   - May a service authenticate a user by accepting the app's grant plus a PoP whose audience is the service?
+   - May a service authenticate a user by accepting the app's grant plus a PoP whose audience is the service? **Update 8 Oct:** yes, in [#680](https://github.com/pubky/pubky-homeserver/issues/680) (custom PoP with offline verification); the service still builds its own session and checks.
    - What is the naming convention for a capability that names a service?
    - Which revocation check should services use: an introspection endpoint, a re-check interval, or a public status lookup?
-5. **`client_id` (gates K3, R1).** Will core define `client_id` as the verified web origin (or verified app-link domain) and add a field marking it verified? What should a signer display when it isn't verified?
+5. **`client_id` (gates K3, R1).** Will core define `client_id` as the verified web origin (or verified app-link domain) and add a field marking it verified? What should a signer display when it isn't verified? **Update 8 Oct:** Severin on #680: `client_id` "is basically meaningless at this stage of Pubky as any app can supply any client_id" ([comment](https://github.com/pubky/pubky-homeserver/pull/680#discussion_r4216482234); the reviewer's P1 to verify it was [withdrawn](https://github.com/pubky/pubky-homeserver/pull/680#discussion_r4216632057)). Nothing in this plan may rely on `client_id` for authorization; services authorize on `iss`, `caps` and the PoP, and `client_id` stays display-only until core verifies it.
 6. **Lifetimes.** Is the SDK's 2-year default grant lifetime intended? Should the homeserver enforce a shorter maximum for agent grants, and if so, how long?
 7. **Grant management (gates R2).** Ring's grant list ([#369](https://github.com/pubky/pubky-ring/issues/369)) waits on [pubky-core-ffi#37](https://github.com/pubky/pubky-core-ffi/issues/37) and react-native-pubky [#42](https://github.com/pubky/react-native-pubky/issues/42) and [#43](https://github.com/pubky/react-native-pubky/issues/43). When will those release? Is a revoke-all endpoint planned?
 8. **Ring auto-auth.** *Answered by the Ring team:* it is a developer setting, off by default. Remaining ask: keep it unreachable in release builds, and never apply it to agent grants.
