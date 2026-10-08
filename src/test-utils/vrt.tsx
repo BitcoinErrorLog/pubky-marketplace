@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
-import { page, userEvent } from 'vitest/browser';
+import { commands, page, userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 import { TooltipProvider } from '@/atoms/Tooltip/Tooltip';
 import { TOOLTIP_DELAY_MS } from '@/config/ui';
@@ -89,7 +89,11 @@ async function prepareVrtSurfaceCapture(marker: HTMLElement) {
     // beyond that iframe's viewport, even when the element itself is taller.
     root.style.height = 'auto';
     root.style.overflow = 'visible';
-    await page.viewport(root.clientWidth, Math.ceil(marker.getBoundingClientRect().bottom));
+    const viewport = { width: root.clientWidth, height: Math.ceil(marker.getBoundingClientRect().bottom) };
+    // Growing only the iframe makes Vitest shrink it to fit the original
+    // browser window. Grow both so tall pages retain readable, full-size pixels.
+    await commands.resizeVrtBrowser(viewport);
+    await page.viewport(viewport.width, viewport.height);
   }
   // Playwright's element screenshot scrolls tall elements into view before
   // capturing them. Firefox can choose a middle scroll position for a surface
@@ -134,6 +138,8 @@ function VRTProviders({ children, viewport, queryClient, disableHover }: VRTProv
 }
 
 export async function renderForVRT(ui: ReactNode, options: RenderForVRTOptions) {
+  // A full-surface capture may have enlarged the browser in the previous scene.
+  await commands.resizeVrtBrowser();
   await page.viewport(options.viewport.width, options.viewport.height);
   // Time is already frozen (and the formatting time zone pinned to UTC) by
   // `vrt.setup.ts` before any app module loads — see its "Time determinism"
