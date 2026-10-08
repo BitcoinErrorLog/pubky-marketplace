@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PULSE_CONSENT_KEY, setPulseConsent } from '@/libs/observability/pulse-consent';
+import { setSocialHost } from '@/test-utils/social-host';
 import { PulseConsentBanner, PulseConsentSettings } from './PulseConsent';
 
 const config = vi.hoisted(() => ({ key: 'pulse_client_test' as string | undefined, testnet: false }));
@@ -21,6 +22,7 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   localStorage.clear();
+  setSocialHost(undefined);
 });
 
 describe('Pulse consent', () => {
@@ -85,6 +87,32 @@ describe('Pulse consent', () => {
     expect(localStorage.getItem(PULSE_CONSENT_KEY)).toBe('accepted');
     fireEvent.click(screen.getByRole('switch', { name: 'Pubky Pulse analytics' }));
     expect(localStorage.getItem(PULSE_CONSENT_KEY)).toBe('declined');
+  });
+
+  it('points to Settings only while Settings stays on this site', () => {
+    render(<PulseConsentBanner />);
+    const banner = screen.getByRole('region', { name: 'Pubky Pulse analytics consent' });
+    expect(banner).toHaveTextContent('change your choice anytime in Pulse analytics or Settings → Privacy and Safety.');
+    cleanup();
+
+    // Link-out sends /settings/* to the social host, whose switch does not govern this site's consent.
+    setSocialHost('https://pubky.app');
+    render(<PulseConsentBanner />);
+    const linkOutBanner = screen.getByRole('region', { name: 'Pubky Pulse analytics consent' });
+    expect(linkOutBanner).toHaveTextContent('change your choice anytime in Pulse analytics.');
+    expect(linkOutBanner).not.toHaveTextContent('Settings');
+  });
+
+  it('keeps the banner and its reopen button above the mobile footer until it hides at lg', () => {
+    render(<PulseConsentBanner />);
+    expect(screen.getByRole('region', { name: 'Pubky Pulse analytics consent' })).toHaveClass(
+      'bottom-24',
+      'lg:bottom-4',
+    );
+    expect(screen.getByRole('region', { name: 'Pubky Pulse analytics consent' })).not.toHaveClass('sm:bottom-4');
+    fireEvent.click(screen.getByRole('button', { name: 'Decline' }));
+    expect(screen.getByRole('button', { name: 'Pulse analytics' })).toHaveClass('bottom-24', 'lg:bottom-4');
+    expect(screen.getByRole('button', { name: 'Pulse analytics' })).not.toHaveClass('sm:bottom-4');
   });
 
   it('updates settings when another tab withdraws', () => {

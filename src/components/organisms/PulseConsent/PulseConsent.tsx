@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/atoms/Button/Button';
 import { Typography } from '@/atoms/Typography/Typography';
+import { isSocialLinkOutEnabled } from '@/config/social';
 import { usePulseConsent } from '@/hooks/usePulseConsent/usePulseConsent';
 import { SettingsSwitchItem } from '@/molecules/Settings/SettingsSwitchItem/SettingsSwitchItem';
 
@@ -22,7 +23,7 @@ export function PulseConsentBanner() {
       <Button
         variant="secondary"
         size="sm"
-        className="fixed bottom-24 left-4 z-40 text-xs sm:bottom-4"
+        className="fixed bottom-24 left-4 z-40 text-xs lg:bottom-4"
         onClick={() => setOpen(true)}
       >
         Pulse analytics
@@ -30,10 +31,13 @@ export function PulseConsentBanner() {
     );
   }
 
+  // With link-out on, /settings/* opens the social host, whose switch governs that site's consent, not this one's.
+  const changeChoiceInSettings = isSocialLinkOutEnabled() ? '' : ' or Settings → Privacy and Safety';
+
   return (
     <section
       aria-label="Pubky Pulse analytics consent"
-      className="fixed inset-x-4 bottom-24 z-50 mx-auto flex max-w-2xl flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-lg sm:bottom-4 sm:p-6"
+      className="fixed inset-x-4 bottom-24 z-50 mx-auto flex max-w-2xl flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-lg sm:p-6 lg:bottom-4"
     >
       <div className="space-y-2">
         <Typography as="h2" size="lg" className="font-semibold">
@@ -43,8 +47,7 @@ export function PulseConsentBanner() {
           {CONSENT_DESCRIPTION}
         </Typography>
         <Typography size="sm" className="text-muted-foreground">
-          Optional, and this choice covers Pubky Pulse only. You can use Pubky with Pulse off, and change your choice
-          anytime in Pulse analytics or Settings → Privacy and Safety.
+          {`Optional, and this choice covers Pubky Pulse only. You can use Pubky with Pulse off, and change your choice anytime in Pulse analytics${changeChoiceInSettings}.`}
         </Typography>
       </div>
       {saveFailed && (
