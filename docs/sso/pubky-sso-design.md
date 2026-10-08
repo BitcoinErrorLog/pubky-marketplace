@@ -122,6 +122,8 @@ Identity is the user's key. Authorization is a grant: a statement signed by that
 
 ## 4. Target architecture
 
+**Update 8 Oct.** Severin's objection to the delegable child grants below: grant sessions are built to be non-extractable from browsers, and a grant that can mint further grants "basically invites hackers". He has asked Marcos and tomos for a design that balances this. tomos's draft [pubky-homeserver#681](https://github.com/pubky/pubky-homeserver/pull/681) is that candidate: a *session agent* page on a dedicated same-site origin holds the one grant session, and allowlisted first-party apps (pubky.app, the Shop) embed it in a hidden iframe and receive bearers over `postMessage`; the grant and PoP key never leave the agent. It is option B1 (one `client_id`, the union of capabilities, one session-list entry), with per-app grants possible later behind the same app-facing API. The Shop follows whichever the homeserver team adopts, and delegation stays only as the open option for third-party apps, if at all. Our questions to tomos are on [#681](https://github.com/pubky/pubky-homeserver/pull/681#issuecomment-6057868388): the Shop's future Synonym-hosted origin (same-site or not), how `e` keys from #668 reach apps through the agent, and who hosts the agent page. Sections 4–5 below describe the delegation design as proposed; read H1, K1 and K3 as superseded by #681 if it lands.
+
 **Parts.**
 
 - The **signer** issues an **agent grant** to the agent's non-extractable key.
@@ -322,7 +324,7 @@ Sizes describe technical scope, not time:
 | A2 | pubky/pubky-app | Get the grant from the agent instead of directly from Ring. Lock Server sign-in moves to the grant. Recovery-phrase and file logins move to Passport | pubky-app maintainers | S–M |
 | F1 | BitcoinErrorLog/pubky-app (Shop) | One sign-in path through the agent for every signer. Delete the cookie path, the session bridge (`src/libs/vibe-session/*`), the `AuthToken` dual post, the scope union and the Bitkit-only branch, after a workspace-wide dead-code check | us | M |
 | E1 | BitcoinErrorLog/pubky-app (Shop) | Replaces F2. Shop messaging moves to the shared pubky-chat library (MLS) on the app's own grant session; see the [chat plan](https://github.com/pubky/pubky-chat/blob/main/docs/chat-unification-plan.md). Retire the vendored `paykit-wasm` | us | L |
-| F3 | BitcoinErrorLog marketplace service and Lock Server fork | Accept the Shop's grant plus a PoP addressed to the service, requiring the service's capability. Remove the `AuthToken` route | us | M |
+| F3 | BitcoinErrorLog marketplace service and Lock Server fork | Accept the Shop's grant plus a PoP addressed to the service, requiring the service's capability. Remove the `AuthToken` route. **Update 8 Oct:** [pubky-homeserver#680](https://github.com/pubky/pubky-homeserver/issues/680) (Severin, merge hoped 9 Oct) is this mechanism: `create_custom_pop(data)` signs service-chosen JSON (audience, challenge) with the grant's client key and returns grant plus proof, and `verify_custom_grant_pop` checks it offline. The inbox server uses it; the marketplace service and Locks can adopt the same bundle for F3 | us | M |
 | F4 | BitcoinErrorLog/paykit-rs-official | Retire `paykit-wasm` after E1 | us | S |
 
 **Order.**
@@ -342,7 +344,7 @@ Sizes describe technical scope, not time:
 
 The code can't answer these. Each gates the item named.
 
-1. **Delegation shape (H1, K1).** Will core accept one-level delegable grants? Which form?
+1. **Delegation shape (H1, K1).** Will core accept one-level delegable grants? Which form? **Update 8 Oct:** Severin objects (non-extractable sessions; delegation invites attackers), and tomos's session agent ([#681](https://github.com/pubky/pubky-homeserver/pull/681)) is the proposed alternative; see §4.
    - Child grants signed by the delegate's key, carrying the parent: verifiable offline by services and mirrors.
    - A child the homeserver records at the agent's request: no new token format, but only valid where it was recorded.
 
@@ -354,7 +356,7 @@ The code can't answer these. Each gates the item named.
    - In which homeserver version will `replace_for_grant` keep several bearers per grant, and what bound will it use (we suggest 8, evicting the oldest)?
    - Will the same release make a request that carries `Authorization` ignore cookies?
 4. **Services as relying parties (H3, F3).** Is it endorsed for a service to accept a grant with a PoP addressed to itself? What is the convention for a capability that names a service? How should a service learn of revocation: an introspection endpoint, a short re-check interval, or a public status lookup?
-5. **What `client_id` means.** Will core define it as the verified web origin, or a verified app-link domain, and add a field marking it as verified? What should signers display when it isn't?
+5. **What `client_id` means.** Will core define it as the verified web origin, or a verified app-link domain, and add a field marking it as verified? What should signers display when it isn't? **Update 8 Oct:** Severin on #680: `client_id` "is basically meaningless at this stage of Pubky as any app can supply any client_id" ([comment](https://github.com/pubky/pubky-homeserver/pull/680#discussion_r4216482234); the reviewer's P1 to verify it was [withdrawn](https://github.com/pubky/pubky-homeserver/pull/680#discussion_r4216632057) on that basis). So nothing in the Shop's SSO plan may rely on `client_id` for authorization: services authorize on the grant's `iss`, `caps` and the PoP, and `client_id` is display-only until core verifies it.
 6. **Lifetimes.** Is the 2-year default intended? Should agent grants have a shorter maximum enforced by the homeserver?
 7. **Grant management.** Ring's grant list ([#369](https://github.com/pubky/pubky-ring/issues/369)) waits on [pubky-core-ffi#37](https://github.com/pubky/pubky-core-ffi/issues/37) and react-native-pubky [#42](https://github.com/pubky/react-native-pubky/issues/42) and [#43](https://github.com/pubky/react-native-pubky/issues/43). When will those release? Is a revoke-all endpoint planned?
 8. **Ring auto-auth.** Answered by the Ring team: it is a developer setting. Remaining ask: keep it unreachable in release builds.

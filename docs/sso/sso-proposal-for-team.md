@@ -144,6 +144,8 @@ The Shop's marketplace service can't see the homeserver cookie, so it authentica
 
 ### 2.2 What changes in the protocol
 
+**Update 8 Oct.** Severin's answer to the delegation below: grant sessions are built to be non-extractable from browsers, and a grant that can issue further grants "basically invites hackers". He has asked Marcos and tomos for a design that balances this, and tomos's draft [pubky-homeserver#681](https://github.com/pubky/pubky-homeserver/pull/681) is the candidate: a session agent on a dedicated same-site origin holds the one grant session, allowlisted first-party apps embed it in a hidden iframe and get bearers over `postMessage`, and the grant and PoP key never leave the agent (option B1: one `client_id`, the union of capabilities; per-app grants possible later). The Shop will follow whichever the homeserver team adopts; delegable grants remain only as the open option for third-party apps, if at all. Our questions to tomos are on [#681](https://github.com/pubky/pubky-homeserver/pull/681#issuecomment-6057868388). Items 1–3 below and H1, K1 and K3 describe the delegation design as originally proposed.
+
 1. **A `d` (delegate) capability action.** For example, `/pub/pubky.app/:rwd` means "may grant `rw` under `/pub/pubky.app/` to another key". The `d` scopes of the agent's grant form its **ceiling**.
 2. **Child grants.** The agent signs a grant for an app's key. The homeserver accepts it only if all of these hold:
    - it is signed by the parent grant's `cnf` key;
@@ -439,7 +441,7 @@ A custom-message API is not needed either, and scope narrowing is dropped becaus
 |---|---|---|---|
 | F1 | One sign-in path through the agent for every signer. Remove the cookie path, the session bridge (`src/libs/vibe-session/*`), the `AuthToken` dual post, the scope union and the Bitkit-only branch, after a dead-code check | M | P1 |
 | E1 | Replaces F2: Shop messaging moves to the shared pubky-chat library (MLS) on the app's own grant session ([chat plan](https://github.com/pubky/pubky-chat/blob/main/docs/chat-unification-plan.md)) | L | pubky-chat Phase 2 |
-| F3 | The marketplace service and our Lock Server fork accept the app's grant plus a PoP addressed to the service, requiring the service's capability; the `AuthToken` route is removed | M | K1, H3 |
+| F3 | The marketplace service and our Lock Server fork accept the app's grant plus a PoP addressed to the service, requiring the service's capability; the `AuthToken` route is removed. **Update 8 Oct:** [pubky-homeserver#680](https://github.com/pubky/pubky-homeserver/issues/680) supplies this: a grant session signs service-chosen JSON (audience, challenge) with its client key, and the service verifies grant plus proof offline. The inbox server uses it; the marketplace service and Locks can adopt the same bundle | M | K1, H3 |
 | F4 | Retire `paykit-wasm` in [BitcoinErrorLog/paykit-rs-official](https://github.com/BitcoinErrorLog/paykit-rs-official) | S | E1 |
 
 ### 3.4 Suggested order and timeline
@@ -476,7 +478,7 @@ The beta opens about **15 Oct**. After that, each phase starts when its dependen
 
 ## 4. Open questions for the Pubky core team
 
-1. **Delegation (gates H1, K1).** Will core accept one-level delegable grants, with a `d` action, child grants signed by the parent grant's `cnf` key, and cascade revocation?
+1. **Delegation (gates H1, K1).** Will core accept one-level delegable grants, with a `d` action, child grants signed by the parent grant's `cnf` key, and cascade revocation? **Update 8 Oct:** Severin's answer is no as proposed (see §2.2); the session agent in [#681](https://github.com/pubky/pubky-homeserver/pull/681) is the alternative under discussion.
    - If yes, which form: (a) child grants that carry the parent and can be verified offline by services and mirrors, or (b) children the homeserver records at the agent's request?
    - How should a parent's revocation reach mirrors?
    - Still open as of 2 Oct. The scoped-key work (K6) designs no delegated grants.
@@ -485,10 +487,10 @@ The beta opens about **15 Oct**. After that, each phase starts when its dependen
    - In which homeserver version will `replace_for_grant` keep several bearers per grant, and what bound will it use (we suggest 8, evicting the oldest)?
    - Will the same release make a request that carries `Authorization` ignore cookies?
 4. **Services as relying parties (gates H3, F3).**
-   - May a service authenticate a user by accepting the app's grant plus a PoP whose audience is the service?
+   - May a service authenticate a user by accepting the app's grant plus a PoP whose audience is the service? **Update 8 Oct:** yes, in [#680](https://github.com/pubky/pubky-homeserver/issues/680) (custom PoP with offline verification); the service still builds its own session and checks.
    - What is the naming convention for a capability that names a service?
    - Which revocation check should services use: an introspection endpoint, a re-check interval, or a public status lookup?
-5. **`client_id` (gates K3, R1).** Will core define `client_id` as the verified web origin (or verified app-link domain) and add a field marking it verified? What should a signer display when it isn't verified?
+5. **`client_id` (gates K3, R1).** Will core define `client_id` as the verified web origin (or verified app-link domain) and add a field marking it verified? What should a signer display when it isn't verified? **Update 8 Oct:** Severin on #680: `client_id` "is basically meaningless at this stage of Pubky as any app can supply any client_id" ([comment](https://github.com/pubky/pubky-homeserver/pull/680#discussion_r4216482234); the reviewer's P1 to verify it was [withdrawn](https://github.com/pubky/pubky-homeserver/pull/680#discussion_r4216632057)). Nothing in this plan may rely on `client_id` for authorization; services authorize on `iss`, `caps` and the PoP, and `client_id` stays display-only until core verifies it.
 6. **Lifetimes.** Is the SDK's 2-year default grant lifetime intended? Should the homeserver enforce a shorter maximum for agent grants, and if so, how long?
 7. **Grant management (gates R2).** Ring's grant list ([#369](https://github.com/pubky/pubky-ring/issues/369)) waits on [pubky-core-ffi#37](https://github.com/pubky/pubky-core-ffi/issues/37) and react-native-pubky [#42](https://github.com/pubky/react-native-pubky/issues/42) and [#43](https://github.com/pubky/react-native-pubky/issues/43). When will those release? Is a revoke-all endpoint planned?
 8. **Ring auto-auth.** *Answered by the Ring team:* it is a developer setting, off by default. Remaining ask: keep it unreachable in release builds, and never apply it to agent grants.
