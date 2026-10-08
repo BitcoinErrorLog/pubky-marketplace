@@ -18,7 +18,7 @@ exports[`HumanSelection > matches snapshot 1`] = `
       </span>
     </h1>
     <h2
-      class="text-xl leading-normal font-light text-muted-foreground lg:text-2xl"
+      class="text-xl leading-normal font-medium text-muted-foreground lg:text-2xl"
     >
       Verify quickly using your phone number or a small payment. Or use an
        
