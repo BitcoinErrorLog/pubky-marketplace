@@ -317,6 +317,11 @@ export function MarketplacePaymentStatusCard({
             : 'The marketplace payment window elapsed before a verified payment arrived, so this checkout was not completed. A payment verified after expiry is reconciled manually — never silently applied or discarded.'}
         </Typography>
       )}
+      {visibleStatus === 'expired' && expiredNoLateMoney && isBuyer && order.paymentMethod === 'bitcoin' && (
+        <Typography as="p" className="text-sm text-muted-foreground" data-testid="bitcoin-pending-payment-note">
+          {CHECKOUT_HOLD_COPY.pendingBitcoinPaymentBuyer}
+        </Typography>
+      )}
       {visibleStatus === 'expired' &&
         isBuyer &&
         order.paymentMethod === 'bitcoin' &&
