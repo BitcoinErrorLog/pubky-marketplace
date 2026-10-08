@@ -13,7 +13,7 @@ import {
   marketplaceFailureMessage,
 } from '@/libs/commerce/failure-messages';
 import type { CommerceShopRecord } from '@/libs/commerce/marketplace-records';
-import { HOMESERVER_WRITE_SCOPE_REMEDY, isHomeserverWriteScopeError } from '@/libs/error/error.utils';
+import { hasHttpStatus, HOMESERVER_WRITE_SCOPE_REMEDY, isHomeserverWriteScopeError } from '@/libs/error/error.utils';
 import { stripImageMetadata } from '@/libs/image/stripImageMetadata';
 import { toast } from '@/molecules/Toaster/use-toast';
 import { useAuthStore } from '@/stores/auth/auth.store';
@@ -153,6 +153,8 @@ export function useMarketplaceShopSettings() {
   // the read-modify-write (open-world records, social/v1 alignment).
   const [existingRecord, setExistingRecord] = useState<CommerceShopRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const avatar = useShopImageSlot(IMAGE_MAX_RAW_SIZE);
   const banner = useShopImageSlot(IMAGE_MAX_RAW_SIZE);
@@ -167,16 +169,20 @@ export function useMarketplaceShopSettings() {
   useEffect(() => {
     if (!currentUserPubky) return;
     let active = true;
-    // Network-first so a seller on a fresh device edits their published shop
-    // instead of unknowingly starting a competing revision-1 record; the
-    // local cache remains the fallback when the homeserver is unreachable.
-    CommerceController.getOrFetchShop(currentUserPubky)
+    setIsLoading(true);
+    setLoadError(false);
+    // Refresh published settings and their cache, preserving unpublished local
+    // edits so a failed save can be retried without losing the seller's changes.
+    CommerceController.refreshShop(currentUserPubky)
       .then((record) => (active ? hydrate(record) : undefined))
-      .catch(async () => {
+      .catch(async (error: unknown) => {
         const cached = await CommerceController.getShop(currentUserPubky).catch(() => null);
         if (!active) return;
         if (cached) hydrate(cached.record);
-        else setIsLoading(false);
+        // A failed read is not evidence of an absent shop. Cached settings
+        // may still be displayed, but saving waits for a successful refresh.
+        setLoadError(!hasHttpStatus(error, 404));
+        setIsLoading(false);
       });
 
     function hydrate(record: CommerceShopRecord) {
@@ -200,10 +206,10 @@ export function useMarketplaceShopSettings() {
     return () => {
       active = false;
     };
-  }, [currentUserPubky, form, setAvatarExisting, setBannerExisting]);
+  }, [currentUserPubky, form, setAvatarExisting, setBannerExisting, loadAttempt]);
 
   const submit = async () => {
-    if (!currentUserPubky) return false;
+    if (!currentUserPubky || isLoading || loadError || isSaving) return false;
     let succeeded = false;
     setIsSaving(true);
     await form.handleSubmit(async (data) => {
@@ -280,6 +286,8 @@ export function useMarketplaceShopSettings() {
     form,
     revision,
     isLoading,
+    loadError,
+    reload: () => setLoadAttempt((attempt) => attempt + 1),
     /** True while images upload and the record publishes; the form disables its controls. */
     isSaving,
     /** True once an owner-signed shop record exists (locally cached or just saved). */

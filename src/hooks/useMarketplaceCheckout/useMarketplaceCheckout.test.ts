@@ -670,6 +670,7 @@ describe('useMarketplaceCheckout', () => {
   });
 
   it('pays by creating then binding, and cancels leftovers when bind fails', async () => {
+    config.mode = 'locks-paykit';
     const orderId = '018f47d2-6a27-7c23-a49d-000000001200';
     vi.mocked(CommerceController.commitCreateMarketplaceCheckout).mockResolvedValue({
       ok: true,
@@ -748,7 +749,7 @@ describe('useMarketplaceCheckout', () => {
     expect(vi.mocked(CommerceController.bindPaymentMethod).mock.calls.length).toBe(bindsBefore + 1);
   });
 
-  it('skips bind in sandbox when Pay has no method, then stays on checkout', async () => {
+  it.each([null, 'bitcoin', 'paypal'] as const)('skips durable binding in sandbox with method %s', async (method) => {
     const orderId = '018f47d2-6a27-7c23-a49d-000000001201';
     config.mode = 'sandbox';
     vi.mocked(CommerceController.commitCreateMarketplaceCheckout).mockResolvedValue({
@@ -773,7 +774,7 @@ describe('useMarketplaceCheckout', () => {
 
     let paid: Awaited<ReturnType<typeof result.current.pay>> | null = null;
     await act(async () => {
-      paid = await result.current.pay(null);
+      paid = await result.current.pay(method);
     });
 
     expect(paid).toEqual({ ok: true, orderIds: [orderId], boundOrders: [] });
