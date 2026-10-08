@@ -44,19 +44,19 @@ Identity is the user's key. Authorization is a grant: a statement signed by that
   - It stays in draft until three gates pass:
     1. The deployed homeserver allows several bearers per grant.
     2. A failed bearer can't fall back to an ambient cookie. SDK 0.11 sends browser credentials, so another app's broad cookie could still authorize the request.
-    3. Ring Android and iOS builds that ship grant auth exist. Ring [v2.0](https://github.com/pubky/pubky-ring/releases/tag/v2.0) (5 Oct) is the first; v1.19 on Android shipped a pre-0.10 native library that rejects grant deep links ([#375](https://github.com/pubky/pubky-ring/issues/375)). Whether v2.0's Android build carries the 0.10+ library hasn't been checked on a device.
+    3. Ring Android and iOS builds that ship grant auth exist. Met: Ring [v2.0](https://github.com/pubky/pubky-ring/releases/tag/v2.0) (5 Oct) is out on Android and iOS (James, 7 Oct). v1.19 on Android shipped a pre-0.10 native library that rejects grant deep links ([#375](https://github.com/pubky/pubky-ring/issues/375)); its users update.
 - **The Shop:**
   - Ring users get a cookie with `/pub/pubky.app/:rw,/pub/paykit/:rw,/priv/pubky.app/:rw`.
   - Bitkit users get a grant session (`client_id` `shop.pubky.app`, non-extractable key).
   - The marketplace service authenticates a legacy `AuthToken`, whose bytes are posted to both the homeserver and the service ([`single-approval.md`](https://github.com/BitcoinErrorLog/pubky-app/blob/release/shop-v0.6.8/docs/ecommerce/single-approval.md)).
-  - A purchase approval after sign-in is a `signin_grant` link since [pubky-marketplace#94](https://github.com/pubky/pubky-marketplace/pull/94) (merged, next Shop release), whichever way the user signed in. It needs Ring 2.0 or later, or Bitkit. A Ring 1.19 sign-in already creates the purchase session, so those users buy without it. Accounts created with the Ring sign-up QR need one sign-in with Ring.
+  - A purchase approval after sign-in is a `signin_grant` link since [pubky-marketplace#94](https://github.com/pubky/pubky-marketplace/pull/94) (merged, next Shop release), whichever way the user signed in. It needs Ring 2.0 or later, or Bitkit; Ring 1.19 users just need to update. A Ring 1.19 sign-in already creates the purchase session, so those users can still buy straight after signing in. Accounts created with the Ring sign-up QR need one sign-in with Ring.
 
 **The signers.**
 
 - **Ring's grant auth is released in v2.0.**
   - Ring approves `signin_grant` from [v2.0](https://github.com/pubky/pubky-ring/releases/tag/v2.0) (5 Oct), which contains [pubky-ring#360](https://github.com/pubky/pubky-ring/issues/360) (merged 3 Sep) and adds grant management ([#369](https://github.com/pubky/pubky-ring/pull/369)).
   - [v1.19](https://github.com/pubky/pubky-ring/releases/tag/v1.19) (4 Sep) signs in with cookie auth only, on Android and iOS ("v1.19 did not ship with grant auth", [#375](https://github.com/pubky/pubky-ring/issues/375)).
-  - v2.0 is on Android only so far; it isn't on the iOS App Store yet (James, 7 Oct). Until it is, every iOS Ring user runs 1.19.
+  - v2.0 is out on Android and iOS (James, 7 Oct). Users on 1.19 just need to update.
   - Its consent title shows `x-source`, which the app declares; `client_id` is not displayed at all (`screens/ConfirmAuth.tsx`).
   - Its auto-auth setting approves every request with no screen (`utils/actions/authAction.ts`).
     - It is a developer setting: off by default, in a hidden settings section opened by double-tapping the header.

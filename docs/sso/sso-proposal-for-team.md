@@ -48,11 +48,11 @@ A cookie session is set by the homeserver on its own host (`homeserver.pubky.app
 **Where things stand:**
 
 - pubky.app `main` still signs Ring users in with cookies (`signinCookie`, `startCookieAuthFlow`). Its grant migration is draft PR [pubky/pubky-app#2614](https://github.com/pubky/pubky-app/issues/2614), by vlada; §2.7 covers how it fits.
-- The Shop signs Ring users in with cookies too. It uses grants only for Bitkit (and, in the beta, Passport). Since [pubky-marketplace#94](https://github.com/pubky/pubky-marketplace/pull/94) (merged, next Shop release), a purchase approval after sign-in is a `signin_grant` link, which needs Ring 2.0 or later, or Bitkit. A Ring 1.19 sign-in already creates the purchase session, and accounts created with the Ring sign-up QR need one sign-in with Ring.
+- The Shop signs Ring users in with cookies too. It uses grants only for Bitkit (and, in the beta, Passport). Since [pubky-marketplace#94](https://github.com/pubky/pubky-marketplace/pull/94) (merged, next Shop release), a purchase approval after sign-in is a `signin_grant` link, which needs Ring 2.0 or later, or Bitkit (Ring 1.19 users just need to update). A Ring 1.19 sign-in already creates the purchase session, and accounts created with the Ring sign-up QR need one sign-in with Ring.
 - **Ring grant auth ships from v2.0.**
   - Ring's grant auth ([pubky/pubky-ring#360](https://github.com/pubky/pubky-ring/issues/360), merged 3 Sep) is first released in [v2.0](https://github.com/pubky/pubky-ring/releases/tag/v2.0) (5 Oct), which also adds grant management ([#369](https://github.com/pubky/pubky-ring/pull/369)).
   - [v1.19](https://github.com/pubky/pubky-ring/releases/tag/v1.19) (4 Sep) supports cookie auth only, on Android and iOS ("v1.19 did not ship with grant auth", [#375](https://github.com/pubky/pubky-ring/issues/375)). Its Android build carries a pre-0.10 native library that rejects grant deep links. Users on v1.19 must update before an app drops cookie sign-in.
-  - v2.0 is on Android only so far; it isn't on the iOS App Store yet (James, 7 Oct). Until it is, every iOS Ring user runs 1.19.
+  - v2.0 is out on Android and iOS (James, 7 Oct).
   - Ring itself works as designed. The problems below come from the shared cookie and from the messaging library.
 
 ### 1.2 The Shop and pubky.app overwrite each other's scopes
