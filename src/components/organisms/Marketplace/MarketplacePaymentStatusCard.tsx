@@ -185,6 +185,7 @@ export function MarketplacePaymentStatusCard({
   const buyerWallet = useBuyerPaykitWallet(currentUserPubky, bitcoinBindOffered);
   const bitcoinWalletUnsupported = bitcoinBindOffered && buyerWallet.state === 'unsupported';
   const bitcoinWalletUnverified = bitcoinBindOffered && buyerWallet.state === 'unverified';
+  const bitcoinWalletChecking = bitcoinBindOffered && buyerWallet.state === 'checking';
   const sellerReview = useMarketplaceSellerPaymentReviewForm(order.id, onPaymentChanged);
   const [paypalTransactionRef, setPaypalTransactionRef] = useState('');
   const [isReleasingHold, setIsReleasingHold] = useState(false);
@@ -439,7 +440,10 @@ export function MarketplacePaymentStatusCard({
                     size="sm"
                     className="rounded-full"
                     disabled={
-                      methodPayment.pendingAction !== null || bitcoinWalletUnsupported || bitcoinWalletUnverified
+                      methodPayment.pendingAction !== null ||
+                      bitcoinWalletChecking ||
+                      bitcoinWalletUnsupported ||
+                      bitcoinWalletUnverified
                     }
                     onClick={() => void methodPayment.bind('bitcoin')}
                   >
@@ -459,6 +463,11 @@ export function MarketplacePaymentStatusCard({
                   </Button>
                 )}
               </div>
+              {bitcoinWalletChecking && (
+                <Typography as="p" aria-live="polite" className="text-xs text-muted-foreground">
+                  Checking your Bitcoin wallet…
+                </Typography>
+              )}
               {bitcoinWalletUnsupported && (
                 <div
                   role="alert"

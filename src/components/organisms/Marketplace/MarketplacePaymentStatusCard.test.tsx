@@ -14,7 +14,7 @@ import { MarketplacePaymentStatusCard } from './MarketplacePaymentStatusCard';
 const runtime = vi.hoisted(() => ({ deployEnv: 'production' as 'production' | 'staging' | undefined }));
 const auth = vi.hoisted(() => ({ currentUserPubky: 's'.repeat(52) }));
 const buyerWallet = vi.hoisted(() => ({
-  state: 'payable' as 'payable' | 'not_payable' | 'unsupported' | 'unverified' | 'unknown',
+  state: 'payable' as 'checking' | 'payable' | 'not_payable' | 'unsupported' | 'unverified' | 'unknown',
   calls: [] as { buyerPubky: string | null; enabled: boolean }[],
   recheck: vi.fn(),
 }));
@@ -475,7 +475,7 @@ describe('MarketplacePaymentStatusCard', () => {
     expect(buyerWallet.recheck).toHaveBeenCalledTimes(1);
   });
 
-  it('leaves Bitcoin open on the method picker for a payable or unchecked wallet', () => {
+  it('holds Bitcoin on the method picker while checking, then leaves it open for a payable or unchecked wallet', () => {
     vi.mocked(useMarketplaceOrderPayment).mockReturnValue({
       availableMethods: ['bitcoin', 'paypal'],
       bitcoinOfferUnavailable: false,
@@ -493,8 +493,16 @@ describe('MarketplacePaymentStatusCard', () => {
       advancePayment: async () => false,
       onPaymentChanged: () => {},
     };
+    buyerWallet.state = 'checking';
     const { rerender } = render(<MarketplacePaymentStatusCard {...props} isBuyer />);
+    expect(screen.getByRole('button', { name: /Bitcoin/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /PayPal/ })).toBeEnabled();
+    expect(screen.getByText('Checking your Bitcoin wallet…')).toBeInTheDocument();
+
+    buyerWallet.state = 'payable';
+    rerender(<MarketplacePaymentStatusCard {...props} isBuyer />);
     expect(screen.getByRole('button', { name: /Bitcoin/ })).toBeEnabled();
+    expect(screen.queryByText('Checking your Bitcoin wallet…')).not.toBeInTheDocument();
     expect(screen.queryByTestId('order-payment-bitkit-unsupported')).not.toBeInTheDocument();
 
     buyerWallet.state = 'unknown';
