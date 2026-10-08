@@ -83,12 +83,16 @@ function AddressFieldsScene({
 describe('Marketplace address fields — visual regression', () => {
   it('renders idle US fields labelled State and ZIP', async () => {
     await renderForVRT(<AddressFieldsScene provider={null} />, { viewport: VRT_VIEWPORT_DESKTOP });
-    await expect(await expectVrtSurface('marketplace-address-fields')).toMatchScreenshot('address-fields-us-idle-desktop');
+    await expect(await expectVrtSurface('marketplace-address-fields')).toMatchScreenshot(
+      'address-fields-us-idle-desktop',
+    );
   });
 
   it('renders the OpenStreetMap credit when suggestions are on', async () => {
     await renderForVRT(<AddressFieldsScene provider={mockProvider} />, { viewport: VRT_VIEWPORT_DESKTOP });
-    await expect(await expectVrtSurface('marketplace-address-fields')).toMatchScreenshot('address-fields-us-credit-desktop');
+    await expect(await expectVrtSurface('marketplace-address-fields')).toMatchScreenshot(
+      'address-fields-us-credit-desktop',
+    );
   });
 
   it('renders the manual-entry notice when suggestions are unavailable', async () => {
@@ -105,7 +109,9 @@ describe('Marketplace address fields — visual regression', () => {
     await renderForVRT(<AddressFieldsScene provider={null} countryCode="GB" />, {
       viewport: VRT_VIEWPORT_DESKTOP,
     });
-    await expect(await expectVrtSurface('marketplace-address-fields')).toMatchScreenshot('address-fields-gb-region-desktop');
+    await expect(await expectVrtSurface('marketplace-address-fields')).toMatchScreenshot(
+      'address-fields-gb-region-desktop',
+    );
   });
 
   it('renders the open US state dropdown', async () => {

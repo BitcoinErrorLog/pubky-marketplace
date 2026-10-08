@@ -87,9 +87,13 @@ describe('#49 Bitkit approval journeys (real hooks)', () => {
     signIn('bitkit');
     if (existing) seedPurchaseSession(parityCapture.previous_request.homeserver_verified);
     const user = userEvent.setup();
-    render(existing
-      ? <MarketplaceReauthDialog refusal="homeserver" triggerLabel="Sign in again" />
-      : <MarketplaceSessionRequiredCard />);
+    render(
+      existing ? (
+        <MarketplaceReauthDialog refusal="homeserver" triggerLabel="Sign in again" />
+      ) : (
+        <MarketplaceSessionRequiredCard />
+      ),
+    );
     await user.click(screen.getByRole('button', { name: existing ? 'Sign in again' : 'Authorize' }));
     expect(screen.getByText('Support for Bitkit is coming soon.')).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: 'Pubky Ring' })).toBeDisabled();

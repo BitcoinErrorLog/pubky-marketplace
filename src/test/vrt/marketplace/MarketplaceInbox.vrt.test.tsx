@@ -270,7 +270,9 @@ describe('Marketplace inbox — visual regression', () => {
     encryptedView.conversations = [encryptedConversationFixture(buyer)];
 
     await renderForVRT(<MarketplaceInbox />, { viewport: VRT_VIEWPORT_DESKTOP, disableHover: true });
-    await expect(await expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-encrypted-conversations-desktop');
+    await expect(await expectVrtSurface('marketplace-inbox')).toMatchScreenshot(
+      'inbox-encrypted-conversations-desktop',
+    );
   });
 
   it('renders the encrypted empty state at desktop viewport', async () => {
@@ -301,7 +303,9 @@ describe('Marketplace inbox — visual regression', () => {
     grantView.signer = 'passport';
 
     await renderForVRT(<MarketplaceInbox />, { viewport: VRT_VIEWPORT_DESKTOP, disableHover: true });
-    await expect(await expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-encrypted-grant-unavailable-desktop');
+    await expect(await expectVrtSurface('marketplace-inbox')).toMatchScreenshot(
+      'inbox-encrypted-grant-unavailable-desktop',
+    );
   });
 
   it('renders the grant sign-in notice in place of the enable prompt at mobile viewport', async () => {
@@ -310,7 +314,9 @@ describe('Marketplace inbox — visual regression', () => {
     grantView.signer = 'passport';
 
     await renderForVRT(<MarketplaceInbox />, { viewport: VRT_VIEWPORT_MOBILE, disableHover: true });
-    await expect(await expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-encrypted-grant-unavailable-mobile');
+    await expect(await expectVrtSurface('marketplace-inbox')).toMatchScreenshot(
+      'inbox-encrypted-grant-unavailable-mobile',
+    );
   });
 
   it('renders the empty state at mobile viewport', async () => {

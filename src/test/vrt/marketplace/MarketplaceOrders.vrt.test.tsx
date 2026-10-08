@@ -643,7 +643,9 @@ describe('Marketplace orders — visual regression', () => {
     expect(screen.getByText('Seller detected payment')).toBeInTheDocument();
     expect(screen.getByText('Seller confirmed payment')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Continue checkout' })).toBeInTheDocument();
-    await expect(await expectVrtSurface('marketplace-orders')).toMatchScreenshot('orders-awaiting-payment-seller-desktop');
+    await expect(await expectVrtSurface('marketplace-orders')).toMatchScreenshot(
+      'orders-awaiting-payment-seller-desktop',
+    );
   });
 
   it('renders seller awaiting-payment rows as Reservations at mobile viewport', async () => {
@@ -655,7 +657,9 @@ describe('Marketplace orders — visual regression', () => {
     const screen = await renderForVRT(<MarketplaceOrders />, { viewport: VRT_VIEWPORT_MOBILE });
     await expect.element(screen.getByRole('heading', { name: 'Reservations' })).toBeVisible();
     expect(screen.getByText('Seller awaiting entitlement')).toBeInTheDocument();
-    await expect(await expectVrtSurface('marketplace-orders')).toMatchScreenshot('orders-awaiting-payment-seller-mobile');
+    await expect(await expectVrtSurface('marketplace-orders')).toMatchScreenshot(
+      'orders-awaiting-payment-seller-mobile',
+    );
   });
 
   it('renders a buyer pending-payment checkout with Continue checkout at desktop viewport', async () => {
@@ -668,7 +672,9 @@ describe('Marketplace orders — visual regression', () => {
     await expect.element(screen.getByRole('heading', { name: 'Checkout in progress' })).toBeVisible();
     await expect.element(screen.getByText('Buyer pending-payment camera')).toBeVisible();
     await expect.element(screen.getByRole('link', { name: 'Continue checkout' })).toBeVisible();
-    await expect(await expectVrtSurface('marketplace-orders')).toMatchScreenshot('orders-pending-payment-buyer-desktop');
+    await expect(await expectVrtSurface('marketplace-orders')).toMatchScreenshot(
+      'orders-pending-payment-buyer-desktop',
+    );
   });
 
   it('renders a bound Bitcoin sale awaiting confirmation on the sales card', async () => {
@@ -681,7 +687,9 @@ describe('Marketplace orders — visual regression', () => {
     const screen = await renderForVRT(<MarketplaceOrders />, { viewport: VRT_VIEWPORT_DESKTOP });
     await expect.element(screen.getByText(/Confirm you received/)).toBeVisible();
     await expect.element(screen.getByRole('heading', { name: 'Reservations' })).not.toBeInTheDocument();
-    await expect(await expectVrtSurface('marketplace-orders')).toMatchScreenshot('orders-seller-bitcoin-confirm-desktop');
+    await expect(await expectVrtSurface('marketplace-orders')).toMatchScreenshot(
+      'orders-seller-bitcoin-confirm-desktop',
+    );
   });
 
   it('renders a bound Bitcoin sale in review on the sales card', async () => {
@@ -694,7 +702,9 @@ describe('Marketplace orders — visual regression', () => {
     const screen = await renderForVRT(<MarketplaceOrders />, { viewport: VRT_VIEWPORT_DESKTOP });
     await expect.element(screen.getByText('Resolve Bitcoin payment review')).toBeVisible();
     await expect.element(screen.getByRole('heading', { name: 'Reservations' })).not.toBeInTheDocument();
-    await expect(await expectVrtSurface('marketplace-orders')).toMatchScreenshot('orders-seller-bitcoin-resolve-desktop');
+    await expect(await expectVrtSurface('marketplace-orders')).toMatchScreenshot(
+      'orders-seller-bitcoin-resolve-desktop',
+    );
   });
 
   it('renders a seller pending-payment reservation at desktop viewport', async () => {
@@ -708,7 +718,9 @@ describe('Marketplace orders — visual regression', () => {
     await expect.element(screen.getByText('Seller pending-payment zine')).toBeVisible();
     await expect.element(screen.getByText('Held for a buyer · restocks Jan 1, 2026, 2:00 PM UTC')).toBeVisible();
     await expect.element(screen.getByTestId('order-placed-at')).toHaveTextContent('Placed Dec 31, 2025, 2:00 PM UTC');
-    await expect(await expectVrtSurface('marketplace-orders')).toMatchScreenshot('orders-pending-payment-seller-desktop');
+    await expect(await expectVrtSurface('marketplace-orders')).toMatchScreenshot(
+      'orders-pending-payment-seller-desktop',
+    );
   });
 
   for (const [label, viewport] of [
@@ -782,7 +794,9 @@ describe('Marketplace orders — visual regression', () => {
     ordersState.adapterMode = 'transaction-service';
 
     await renderForVRT(<MarketplaceOrders />, { viewport: VRT_VIEWPORT_DESKTOP });
-    await expect(await expectVrtSurface('marketplace-orders')).toMatchScreenshot('orders-durable-payment-states-desktop');
+    await expect(await expectVrtSurface('marketplace-orders')).toMatchScreenshot(
+      'orders-durable-payment-states-desktop',
+    );
     ordersState.adapterMode = 'sandbox';
   });
 
@@ -840,7 +854,9 @@ describe('Marketplace orders — visual regression', () => {
     ordersState.error = null;
 
     await renderForVRT(<MarketplaceOrders />, { viewport: VRT_VIEWPORT_DESKTOP });
-    await expect(await expectVrtSurface('marketplace-order-message-cta')).toMatchScreenshot('orders-message-cta-desktop');
+    await expect(await expectVrtSurface('marketplace-order-message-cta')).toMatchScreenshot(
+      'orders-message-cta-desktop',
+    );
   });
 
   it('renders the order message CTA at mobile viewport', async () => {
@@ -850,6 +866,8 @@ describe('Marketplace orders — visual regression', () => {
     ordersState.error = null;
 
     await renderForVRT(<MarketplaceOrders />, { viewport: VRT_VIEWPORT_MOBILE });
-    await expect(await expectVrtSurface('marketplace-order-message-cta')).toMatchScreenshot('orders-message-cta-mobile');
+    await expect(await expectVrtSurface('marketplace-order-message-cta')).toMatchScreenshot(
+      'orders-message-cta-mobile',
+    );
   });
 });

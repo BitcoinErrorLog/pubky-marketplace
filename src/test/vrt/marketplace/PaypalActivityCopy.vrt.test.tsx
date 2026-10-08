@@ -239,7 +239,9 @@ describe('PayPal sale activity copy', () => {
     const reference = document.querySelector('[data-testid="order-reference-label"]');
     if (!(reference instanceof HTMLElement)) throw new Error('missing order reference');
     expect(reference.textContent).toBe('Order 018f47d2');
-    expect(document.querySelector('[data-testid="order-reference-copy"]')?.getAttribute('aria-label')).toBe('Copy order reference');
+    expect(document.querySelector('[data-testid="order-reference-copy"]')?.getAttribute('aria-label')).toBe(
+      'Copy order reference',
+    );
     const paypal = document.querySelector('[data-testid="open-in-paypal"]');
     if (!(paypal instanceof HTMLAnchorElement)) throw new Error('missing Open in PayPal');
     expect(paypal.textContent).toContain('Open in PayPal');

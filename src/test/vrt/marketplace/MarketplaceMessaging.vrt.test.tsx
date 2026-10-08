@@ -429,7 +429,9 @@ describe('Marketplace encrypted messaging — visual regression', () => {
 
     const screen = await renderForVRT(renderConversationDialog(), { viewport: VRT_VIEWPORT_DESKTOP });
     await openDialog(screen.getByRole('button', { name: 'Message seller' }));
-    await expect(await expectVrtSurface('marketplace-encrypted-conversation')).toMatchScreenshot('messaging-error-desktop');
+    await expect(await expectVrtSurface('marketplace-encrypted-conversation')).toMatchScreenshot(
+      'messaging-error-desktop',
+    );
   });
 
   it('renders the standalone enable dialog awaiting Ring approval at desktop viewport', async () => {
@@ -536,7 +538,9 @@ describe('Marketplace encrypted messaging — visual regression', () => {
 
     const screen = await renderForVRT(renderConversationDialog(), { viewport: VRT_VIEWPORT_DESKTOP });
     await openDialog(screen.getByRole('button', { name: 'Message seller' }));
-    await expect(await expectVrtSurface('marketplace-encrypted-conversation')).toMatchScreenshot('messaging-paused-desktop');
+    await expect(await expectVrtSurface('marketplace-encrypted-conversation')).toMatchScreenshot(
+      'messaging-paused-desktop',
+    );
   });
 
   it('renders a muted conversation with the way to unmute at desktop viewport', async () => {
@@ -544,7 +548,9 @@ describe('Marketplace encrypted messaging — visual regression', () => {
 
     const screen = await renderForVRT(renderConversationDialog(), { viewport: VRT_VIEWPORT_DESKTOP });
     await openDialog(screen.getByRole('button', { name: 'Message seller' }));
-    await expect(await expectVrtSurface('marketplace-encrypted-conversation')).toMatchScreenshot('messaging-muted-desktop');
+    await expect(await expectVrtSurface('marketplace-encrypted-conversation')).toMatchScreenshot(
+      'messaging-muted-desktop',
+    );
   });
 
   it('renders a muted conversation at mobile viewport', async () => {
@@ -552,7 +558,9 @@ describe('Marketplace encrypted messaging — visual regression', () => {
 
     const screen = await renderForVRT(renderConversationDialog(), { viewport: VRT_VIEWPORT_MOBILE });
     await openDialog(screen.getByRole('button', { name: 'Message seller' }));
-    await expect(await expectVrtSurface('marketplace-encrypted-conversation')).toMatchScreenshot('messaging-muted-mobile');
+    await expect(await expectVrtSurface('marketplace-encrypted-conversation')).toMatchScreenshot(
+      'messaging-muted-mobile',
+    );
   });
 
   it('renders the seller-disabled listing CTA at desktop viewport', async () => {

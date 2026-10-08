@@ -303,7 +303,9 @@ describe('Marketplace edit listing — visual regression', () => {
     });
     screen.container.querySelector('[data-testid="listing-delivery-options"]')?.scrollIntoView({ block: 'center' });
     await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot('edit-listing-digital-desktop');
-    await expect(await expectVrtSurface('digital-delivery-editor')).toMatchScreenshot('edit-listing-digital-panel-desktop');
+    await expect(await expectVrtSurface('digital-delivery-editor')).toMatchScreenshot(
+      'edit-listing-digital-panel-desktop',
+    );
     view.digitalAvailable = false;
   });
 

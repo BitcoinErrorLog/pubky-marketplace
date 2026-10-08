@@ -331,7 +331,9 @@ describe('MarketplaceDashboard', () => {
     render(<MarketplaceDashboard />);
 
     expect(screen.queryByTestId('create-listing-payment-precondition')).not.toBeInTheDocument();
-    expect(within(screen.getByRole('navigation', { name: 'Shop actions' })).getByRole('link', { name: 'Payment settings' })).toHaveAttribute('href', MARKETPLACE_ROUTES.SETTINGS);
+    expect(
+      within(screen.getByRole('navigation', { name: 'Shop actions' })).getByRole('link', { name: 'Payment settings' }),
+    ).toHaveAttribute('href', MARKETPLACE_ROUTES.SETTINGS);
     expect(screen.getByRole('button', { name: 'Sell an item' })).toBeEnabled();
   });
 

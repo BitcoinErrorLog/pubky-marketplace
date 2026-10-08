@@ -87,6 +87,8 @@ describe('Marketplace section navigation — visual regression', () => {
       .toHaveAttribute('href', '/marketplace/settings');
     await expect.element(screen.getByRole('link', { name: 'Shop settings' })).toHaveAttribute('aria-current', 'page');
     await expect.element(screen.getByRole('link', { name: 'My shop' })).not.toHaveAttribute('aria-current');
-    await expect(await expectVrtSurface('marketplace-section-nav')).toMatchScreenshot(`section-nav-shop-settings-${name}`);
+    await expect(await expectVrtSurface('marketplace-section-nav')).toMatchScreenshot(
+      `section-nav-shop-settings-${name}`,
+    );
   });
 });

@@ -495,8 +495,7 @@ describe('MarketplacePaymentSettings', () => {
   it('explains the Bitkit connection and preserves the mobile handoff', async () => {
     await renderSettings();
 
-    const helper =
-      'Approve payment setup in Bitkit to receive bitcoin.';
+    const helper = 'Approve payment setup in Bitkit to receive bitcoin.';
     expect(screen.getByText(helper)).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 

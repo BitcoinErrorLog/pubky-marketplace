@@ -273,7 +273,9 @@ describe('Marketplace seller dashboard — visual regression', () => {
         throw new Error('The unfinished drafts list has not rendered yet.');
       }
     });
-    await expect(await expectVrtSurface('listing-drafts-list')).toMatchScreenshot('dashboard-unfinished-drafts-desktop');
+    await expect(await expectVrtSurface('listing-drafts-list')).toMatchScreenshot(
+      'dashboard-unfinished-drafts-desktop',
+    );
     view.unfinishedDrafts = [];
   });
 });

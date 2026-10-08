@@ -193,7 +193,10 @@ describe('MarketplaceCart', () => {
     render(<MarketplaceCart />);
 
     expect(screen.getByText('Shipping is calculated at checkout.')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Satoshi Vintage' })).toHaveAttribute('href', `/marketplace/shop/${listing.record.ownerPubky}`);
+    expect(screen.getByRole('link', { name: 'Satoshi Vintage' })).toHaveAttribute(
+      'href',
+      `/marketplace/shop/${listing.record.ownerPubky}`,
+    );
     expect(screen.queryByText('Seller subtotal')).not.toBeInTheDocument();
     expect(screen.getByText('Vintage boots')).toBeInTheDocument();
   });

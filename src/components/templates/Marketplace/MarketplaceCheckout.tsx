@@ -907,7 +907,10 @@ function MarketplaceCartCheckout() {
                               </div>
                             )}
                           </div>
-                          {(shipping.hasCalculatedShipping || shippingTotals.length === 0 || allPickup || allDigital) && (
+                          {(shipping.hasCalculatedShipping ||
+                            shippingTotals.length === 0 ||
+                            allPickup ||
+                            allDigital) && (
                             <Typography as="p" className="text-xs text-muted-foreground">
                               {shipping.hasCalculatedShipping || checkout.requiresDeliveryAddress
                                 ? 'Shipping is calculated at checkout.'

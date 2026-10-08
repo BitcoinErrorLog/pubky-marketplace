@@ -163,7 +163,9 @@ describe('Marketplace session connect — visual regression', () => {
     );
     await openDialog(screen.getByRole('button', { name: 'Approve in Pubky Ring' }));
     await expect(screen.getByRole('button', { name: 'Copy authorization link' })).toBeVisible();
-    await expect(screen.getByRole('button', { name: 'Authorize with Pubky Ring', includeHidden: true })).not.toBeVisible();
+    await expect(
+      screen.getByRole('button', { name: 'Authorize with Pubky Ring', includeHidden: true }),
+    ).not.toBeVisible();
     await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot('session-connect-awaiting-desktop');
   });
 

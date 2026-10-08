@@ -99,14 +99,18 @@ describe('QrCodeSlot', () => {
     render(<QrCodeSlot {...baseProps} />);
 
     expect(screen.getByTestId('qrcode-svg').getAttribute('class') ?? '').not.toContain('group-hover');
-    expect(screen.getByRole('img', { name: 'Pubky Ring' }).parentElement?.getAttribute('class') ?? '').not.toContain('group-hover');
+    expect(screen.getByRole('img', { name: 'Pubky Ring' }).parentElement?.getAttribute('class') ?? '').not.toContain(
+      'group-hover',
+    );
   });
 
   it('adds hover transitions on active QR when activeQrHasHoverEffect is true', () => {
     render(<QrCodeSlot {...baseProps} activeQrHasHoverEffect />);
 
     expect(screen.getByTestId('qrcode-svg').getAttribute('class') ?? '').toContain('group-hover:opacity-90');
-    expect(screen.getByRole('img', { name: 'Pubky Ring' }).parentElement?.getAttribute('class') ?? '').toContain('group-hover:opacity-90');
+    expect(screen.getByRole('img', { name: 'Pubky Ring' }).parentElement?.getAttribute('class') ?? '').toContain(
+      'group-hover:opacity-90',
+    );
   });
 
   it('renders blurred QR + reload label without inline button when no reload action', () => {

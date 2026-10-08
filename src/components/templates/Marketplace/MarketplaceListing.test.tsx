@@ -535,7 +535,7 @@ describe('MarketplaceListing', () => {
 
     const purchase = screen.getByRole('button', { name: 'Buy' });
     expect(purchase).toBeEnabled();
-        expect(
+    expect(
       screen.queryByText('Connect to see availability before adding this item to your cart.'),
     ).not.toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Buy' })).toHaveLength(1);
@@ -676,7 +676,7 @@ describe('MarketplaceListing', () => {
     expect(link).toHaveAttribute('href', `/marketplace/checkout#${ownHold.id}`);
     expect(screen.queryByRole('link', { name: CHECKOUT_HOLD_COPY.heldForYouOfferCta })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: CHECKOUT_HOLD_COPY.heldForYouCta })).toBeDisabled();
-        expect(
+    expect(
       screen.queryByText(
         'Another buyer is currently paying for this item. If payment does not complete, it will become available again.',
       ),
@@ -722,7 +722,7 @@ describe('MarketplaceListing', () => {
     expect(document.querySelector('[data-surface="marketplace-listing-purchase"]')).toBeTruthy();
     const link = screen.getByRole('link', { name: 'Buy' });
     expect(link).toHaveAttribute('href', getMarketplaceOfferCheckoutRoute(offer.id));
-        expect(screen.queryByRole('button', { name: CHECKOUT_HOLD_COPY.heldWhileAnotherPays })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: CHECKOUT_HOLD_COPY.heldWhileAnotherPays })).not.toBeInTheDocument();
     expect(screen.queryByText(CHECKOUT_HOLD_COPY.listingReserved)).not.toBeInTheDocument();
   });
 
