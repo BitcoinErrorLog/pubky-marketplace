@@ -155,7 +155,7 @@ The Bitkit re-approval journeys that are reachable on this release are the durab
 
 ### Purchase approval is always a grant link (#49)
 
-With `marketplaceGrantFlowEnabled` on, `useMarketplaceSessionConnect.start()` gives every signed-in user a `pubkyauth://signin_grant` link carrying exactly `MARKETPLACE_SESSION_GRANT`, which Pubky Ring 2.0 or later, or Bitkit, approves. Ring 2.0 is on Android only so far; iOS Ring users run 1.19, which signs in (and, with single approval, gets a purchase session at sign-in) but cannot approve this link. Bitkit rejects the Ring connect AuthToken link (`pubkyauth://signin`), so no signed-in path falls back to it:
+With `marketplaceGrantFlowEnabled` on, `useMarketplaceSessionConnect.start()` gives every signed-in user a `pubkyauth://signin_grant` link carrying exactly `MARKETPLACE_SESSION_GRANT`, which Pubky Ring 2.0 or later, or Bitkit, approves. Ring 2.0 is out on Android and iOS; Ring 1.19 signs in (and, with single approval, gets a purchase session at sign-in) but cannot approve this link, so its users update to Ring 2.0. Bitkit rejects the Ring connect AuthToken link (`pubkyauth://signin`), so no signed-in path falls back to it:
 
 | Shop session                                | Purchase session | Approval                                                                                                                  |
 | ------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------- |
