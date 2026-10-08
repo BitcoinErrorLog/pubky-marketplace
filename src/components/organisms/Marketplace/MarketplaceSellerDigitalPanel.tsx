@@ -6,6 +6,7 @@ import { Skeleton } from '@/atoms/Skeleton/Skeleton';
 import { Typography } from '@/atoms/Typography/Typography';
 import { useSellerDigitalDelivery } from '@/hooks/useSellerDigitalDelivery/useSellerDigitalDelivery';
 import { DIGITAL_SELLER_COPY, isDigitalOrderEnded } from '@/libs/commerce/digital';
+import { SETTINGS_SECTION_CONTENT_CLASSNAME } from '@/molecules/Settings/SettingsSectionContent/SettingsSectionContent';
 import type { MarketplaceOrder } from '@/services/marketplace/marketplace';
 
 /**
@@ -31,7 +32,7 @@ export function MarketplaceSellerDigitalPanel({
 
   return (
     <section
-      className="mt-3 grid gap-3 rounded-xl border bg-card/60 p-4"
+      className={`${SETTINGS_SECTION_CONTENT_CLASSNAME} mt-3`}
       aria-label="Delivery"
       data-surface="order-seller-digital-panel"
     >

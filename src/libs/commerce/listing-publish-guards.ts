@@ -18,7 +18,7 @@ export const LISTING_PUBLISH_GUARD_CHECKING = 'Checking payment settings…';
 
 export const LISTING_COMPOSER_PAYMENT_COPY = {
   title: 'Set up how you get paid first',
-  body: 'Buyers cannot pay you otherwise. Add at least one payment method, then return here to create the listing.',
+  body: 'Buyers cannot pay you otherwise. Add at least one payment method.',
 } as const;
 
 export const LISTING_COMPOSER_RETURN_INTENT_KEY = 'pubky.marketplace.listingComposerReturnTo';
@@ -33,9 +33,9 @@ export const LISTING_PUBLISH_BLOCK_COPY: Record<
     checklist: 'Sign in',
   },
   session: {
-    title: 'Connect a marketplace session before publishing',
-    body: 'This is a new session, not an expired approval. Connect a marketplace session, then submit these changes again.',
-    checklist: 'Marketplace session',
+    title: 'Enable selling to publish',
+    body: 'Authorize with your keychain to publish listings and manage your sales.',
+    checklist: 'Selling approval',
   },
   'no-method': {
     title: 'Configure a payment method before publishing',

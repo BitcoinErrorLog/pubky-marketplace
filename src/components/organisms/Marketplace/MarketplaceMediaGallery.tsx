@@ -1,17 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { Film, Gavel, PackageCheck } from 'lucide-react';
+import { Film } from 'lucide-react';
 import { Badge } from '@/atoms/Badge/Badge';
 import { Image } from '@/atoms/Image/Image';
 import { useMarketplaceMediaUrls } from '@/hooks/useMarketplaceMediaUrl/useMarketplaceMediaUrl';
 import type { AuctionPhase } from '@/libs/commerce/auction-phase';
 import type { CommerceListingRecord } from '@/libs/commerce/marketplace-records';
 import { cn } from '@/libs/utils/utils';
+import { MarketplaceCategoryIcon } from '@/molecules/Marketplace/MarketplaceCategoryIcon';
 
 export interface MarketplaceMediaGalleryProps {
   media: CommerceListingRecord['media'];
   saleFormat: CommerceListingRecord['sale']['format'];
+  categoryId?: string;
   auctionPhase?: AuctionPhase;
 }
 
@@ -31,7 +33,12 @@ export interface MarketplaceMediaGalleryProps {
  * broken images; when nothing remains viewable the gallery honestly falls
  * back to the same gradient+icon hero that media-less rendering always used.
  */
-export function MarketplaceMediaGallery({ media, saleFormat, auctionPhase = 'live' }: MarketplaceMediaGalleryProps) {
+export function MarketplaceMediaGallery({
+  media,
+  saleFormat,
+  categoryId,
+  auctionPhase = 'live',
+}: MarketplaceMediaGalleryProps) {
   const [failedIds, setFailedIds] = useState<ReadonlySet<string>>(new Set());
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const urls = useMarketplaceMediaUrls(media.map(({ url }) => url));
@@ -74,10 +81,8 @@ export function MarketplaceMediaGallery({ media, saleFormat, auctionPhase = 'liv
               onError={() => markFailed(selected.item.id)}
             />
           )
-        ) : saleFormat === 'auction' ? (
-          <Gavel className="size-32 text-foreground/75 drop-shadow-2xl" />
         ) : (
-          <PackageCheck className="size-32 text-foreground/75 drop-shadow-2xl" />
+          <MarketplaceCategoryIcon categoryId={categoryId} className="size-32 drop-shadow-2xl group-hover:scale-100" />
         )}
         <Badge className="absolute top-4 left-4 bg-background/85 text-foreground backdrop-blur-md">
           {saleFormat === 'auction' ? (auctionPhase === 'ended' ? 'Auction ended' : 'Live auction') : 'Buy now'}
@@ -100,7 +105,7 @@ export function MarketplaceMediaGallery({ media, saleFormat, auctionPhase = 'liv
             >
               {item.type === 'video' ? (
                 <span className="flex size-full items-center justify-center bg-card">
-                  <Film aria-hidden="true" className="size-6 text-foreground/75" />
+                  <Film aria-hidden="true" className="size-6 text-foreground opacity-75" />
                 </span>
               ) : (
                 <Image

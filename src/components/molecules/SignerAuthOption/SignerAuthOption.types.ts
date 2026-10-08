@@ -18,6 +18,8 @@ export type SignerAuthOptionProps = {
   auth: SignerAuth;
   onCopied: () => Promise<void>;
   testId: string;
+  /** Render just the QR control inside a parent-owned card layout. */
+  qrOnly?: boolean;
   /** Sentence shown under the QR when its approval also produces a marketplace session. */
   disclosure?: string | null;
 };
@@ -26,4 +28,5 @@ export type SignerAuthorizeButtonProps = {
   copy: SignerAuthCopy;
   auth: SignerAuth;
   testId: string;
+  authorizeLabel?: string;
 };

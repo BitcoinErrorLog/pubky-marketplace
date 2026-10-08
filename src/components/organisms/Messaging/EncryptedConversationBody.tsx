@@ -32,7 +32,7 @@ export function EncryptedConversationBody({
 
   return (
     <>
-      <div aria-live="polite" className="max-h-80 space-y-3 overflow-y-auto rounded-xl border bg-card/50 p-4">
+      <div aria-live="polite" className="max-h-80 space-y-3 overflow-y-auto rounded-xl bg-card/50 p-4">
         {conversation.thread.length ? (
           conversation.thread.map((item) =>
             item.deliveryState === 'sent' ? (
@@ -97,7 +97,7 @@ export function EncryptedConversationBody({
           disabled={conversation.isSending || !conversation.draft.trim() || overBudget}
           aria-busy={conversation.isSending}
         >
-          {conversation.isSending ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Send className="mr-2 size-4" />}
+          {conversation.isSending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
           {conversation.isSending ? 'Sending…' : 'Send'}
         </Button>
       </div>

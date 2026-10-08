@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   AlertTriangle,
+  Banknote,
   Copy,
   Download,
   History,
@@ -13,9 +14,12 @@ import {
   Pause,
   PencilLine,
   Play,
+  Plus,
   ShoppingBag,
   Store,
   TrendingUp,
+  Truck,
+  Wallet,
 } from 'lucide-react';
 import { getMarketplaceListingEditRoute, getMarketplaceListingRoute, MARKETPLACE_ROUTES } from '@/app/routes';
 import { Badge } from '@/atoms/Badge/Badge';
@@ -34,18 +38,16 @@ import { CommerceController } from '@/controllers/commerce/commerce';
 import { useIsMobile } from '@/hooks/useIsMobile/useIsMobile';
 import { useMarketplaceFirstMediaUrl } from '@/hooks/useMarketplaceMediaUrl/useMarketplaceMediaUrl';
 import { useMarketplaceSellerDashboard } from '@/hooks/useMarketplaceSellerDashboard/useMarketplaceSellerDashboard';
+import { useNowMs } from '@/hooks/useNowMs/useNowMs';
 import { useSellerPaymentMethodGate } from '@/hooks/useSellerPaymentMethodGate/useSellerPaymentMethodGate';
 import { listingDisplayState } from '@/libs/commerce/auction-phase';
 import { formatCommerceMoney } from '@/libs/commerce/format';
 import { formatListingStock } from '@/libs/commerce/unlimited-stock';
 import { isListingRegistrationPending } from '@/models/commerce/commerce.schema';
+import { SettingsSectionContent } from '@/molecules/Settings/SettingsSectionContent/SettingsSectionContent';
 import { ContentLayout } from '@/organisms/ContentLayout/ContentLayout';
 import { MarketplaceSectionNav } from '@/organisms/Marketplace/MarketplaceSectionNav';
 import { MarketplaceSessionConnectDialog } from '@/organisms/Marketplace/MarketplaceSessionConnectDialog';
-import {
-  MarketplaceSessionRequiredCard,
-  SALES_LIST_SESSION_NOTE,
-} from '@/organisms/Marketplace/MarketplaceSessionRequiredCard';
 import { useAuthStore } from '@/stores/auth/auth.store';
 import { useCommerceStore } from '@/stores/commerce/commerce.store';
 
@@ -54,6 +56,7 @@ export function MarketplaceDashboard() {
   const isMobile = useIsMobile({ breakpoint: 'md' });
   const router = useRouter();
   const [selected, setSelected] = useState<string[]>([]);
+  const [showSellingApproval, setShowSellingApproval] = useState(false);
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const [pendingDuplicateId, setPendingDuplicateId] = useState<string | null>(null);
   const [pendingUnsavedDraftId, setPendingUnsavedDraftId] = useState<string | null>(null);
@@ -64,13 +67,25 @@ export function MarketplaceDashboard() {
   const currentUserPubky = useAuthStore((state) => state.currentUserPubky);
   const marketplaceSession = useCommerceStore((state) => state.marketplaceSession);
   const paymentGate = useSellerPaymentMethodGate();
-  const paymentSetupRequired = paymentGate.ready && paymentGate.reason === 'no-method';
+  const nowMs = useNowMs(paymentGate.isDurable && !!marketplaceSession);
+  const needsSellingApproval =
+    paymentGate.isDurable &&
+    (!marketplaceSession ||
+      marketplaceSession.pubky !== currentUserPubky ||
+      Date.parse(marketplaceSession.expiresAt) <= nowMs);
   // Normalize "no record" to null so `undefined` keeps meaning "still loading".
   const shop = useLiveQuery(
     () => (currentUserPubky ? CommerceController.getShop(currentUserPubky).then((found) => found ?? null) : null),
     [currentUserPubky],
   );
   const [shopFetchSettled, setShopFetchSettled] = useState(false);
+
+  useEffect(() => {
+    if (showSellingApproval && !needsSellingApproval) {
+      setShowSellingApproval(false);
+      router.push(MARKETPLACE_ROUTES.SELL);
+    }
+  }, [showSellingApproval, needsSellingApproval, router]);
 
   useEffect(() => {
     if (!currentUserPubky) return;
@@ -130,53 +145,49 @@ export function MarketplaceDashboard() {
       showLeftMobileButton={false}
       showRightMobileButton={false}
       className="pb-28"
-      classNameWrapperContent="max-w-7xl"
     >
-      <Container overrideDefaults className="flex w-full flex-col gap-6 px-4 sm:px-6">
+      <Container overrideDefaults className="flex w-full flex-col gap-6">
         <MarketplaceSectionNav />
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <Heading level={1} size="xl" className="text-4xl sm:text-6xl">
-              Seller studio
-            </Heading>
-            <Typography as="p" className="mt-2 text-muted-foreground">
-              Your listings, shop, order work queues, and offers.
-            </Typography>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <SellAnItemControl align="end" />
-            <Button asChild variant="secondary" className="rounded-full">
-              <Link href={MARKETPLACE_ROUTES.MY_SHOP} overrideDefaults>
-                <Store className="mr-2 size-4" />
-                My shop
-              </Link>
-            </Button>
-            <Button asChild variant="secondary" className="rounded-full">
-              <Link href={MARKETPLACE_ROUTES.INVENTORY} overrideDefaults>
-                <Package className="mr-2 size-4" />
-                Inventory
-              </Link>
-            </Button>
-            <Button asChild variant="secondary" className="rounded-full">
-              <Link href={MARKETPLACE_ROUTES.ORDERS} overrideDefaults>
-                Orders
-              </Link>
-            </Button>
-            <Button asChild variant="secondary" className="rounded-full">
-              <Link href={MARKETPLACE_ROUTES.OFFERS} overrideDefaults>
-                Offers
-              </Link>
-            </Button>
-            <div className="flex items-center gap-2">
-              <Button asChild variant="secondary" className="rounded-full">
-                <Link href={MARKETPLACE_ROUTES.SETTINGS} overrideDefaults>
-                  Payment settings
-                </Link>
-              </Button>
-              {paymentSetupRequired ? <PaymentSetupNotice /> : null}
-            </div>
-          </div>
+        <div>
+          <Heading level={1} size="xl" className="text-4xl sm:text-6xl">
+            My shop
+          </Heading>
+          <Typography as="p" className="mt-2 text-muted-foreground">
+            Manage your listings, shop, orders, and offers.
+          </Typography>
         </div>
+        <nav aria-label="Shop actions" className="flex flex-wrap items-center gap-2">
+          <SellAnItemControl
+            size="sm"
+            needsApproval={needsSellingApproval}
+            approvalVisible={showSellingApproval}
+            onRequestApproval={() => setShowSellingApproval(true)}
+          />
+          <Button asChild variant="secondary" size="sm" className="rounded-full text-xs font-bold">
+            <Link href={MARKETPLACE_ROUTES.MY_SHOP} overrideDefaults>
+              <Store className="size-4" />
+              Storefront
+            </Link>
+          </Button>
+          <Button asChild variant="secondary" size="sm" className="rounded-full text-xs font-bold">
+            <Link href={MARKETPLACE_ROUTES.INVENTORY} overrideDefaults>
+              <Package className="size-4" />
+              Inventory
+            </Link>
+          </Button>
+          <Button asChild variant="secondary" size="sm" className="rounded-full text-xs font-bold">
+            <Link href={MARKETPLACE_ROUTES.SETTINGS_SHIPPING} overrideDefaults>
+              <Truck className="size-4" aria-hidden="true" />
+              Shipping presets
+            </Link>
+          </Button>
+          <Button asChild variant="secondary" size="sm" className="rounded-full text-xs font-bold">
+            <Link href={MARKETPLACE_ROUTES.SETTINGS} overrideDefaults>
+              <Wallet className="size-4" aria-hidden="true" />
+              Payment settings
+            </Link>
+          </Button>
+        </nav>
 
         {dashboard.isLoading ? (
           <Skeleton className="h-48 w-full" />
@@ -186,28 +197,28 @@ export function MarketplaceDashboard() {
                 every buyer who taps "View shop" — surface that here, where
                 sellers actually work. */}
             {shopFetchSettled && shop === null && dashboard.listings.length > 0 && (
-              <Card className="border border-brand/40 bg-brand/5">
-                <CardContent className="flex flex-col gap-3 px-5 sm:flex-row sm:items-center sm:justify-between">
+              <Card className="rounded-md bg-card p-0">
+                <CardContent className="flex flex-col gap-3 p-6 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <Typography as="h2" className="font-semibold">
-                      Your shop page is not set up
+                      Your storefront is not set up
                     </Typography>
                     <Typography as="p" className="text-sm text-muted-foreground">
-                      Buyers who open your listings see only your key. Add a shop name, bio, and policies.
+                      Add a shop name, bio, and policies.
                     </Typography>
                   </div>
                   <Button asChild className="shrink-0 rounded-full">
                     <Link href={MARKETPLACE_ROUTES.MY_SHOP} overrideDefaults>
-                      <Store className="mr-2 size-4" />
-                      Set up your shop
+                      <Store className="size-4" />
+                      Set up your storefront
                     </Link>
                   </Button>
                 </CardContent>
               </Card>
             )}
             {dashboard.unfinishedDrafts.length > 1 && (
-              <Card data-surface="listing-drafts-list" className="border border-brand/30 bg-brand/5">
-                <CardContent className="flex flex-col gap-4 px-5 py-5">
+              <Card data-surface="listing-drafts-list" className="rounded-md bg-brand/5 p-0 shadow-lg">
+                <CardContent className="grid gap-6 p-6">
                   <div className="flex items-start gap-3">
                     <History className="mt-1 size-5 shrink-0 text-brand" />
                     <div>
@@ -219,58 +230,53 @@ export function MarketplaceDashboard() {
                       </Typography>
                     </div>
                   </div>
-                  <ul className="flex flex-col gap-3">
-                    {dashboard.unfinishedDrafts.map((draft) => (
-                      <li
-                        key={draft.listingId}
-                        className="flex flex-col gap-2 rounded-lg border border-border bg-background px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                      >
-                        <div>
-                          <Typography as="p" className="font-medium">
-                            {draft.title}
-                          </Typography>
-                          <Typography as="p" className="text-sm text-muted-foreground">
-                            {draft.ageLabel}
-                          </Typography>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            size="sm"
-                            className="rounded-full"
-                            onClick={() => {
-                              dashboard.resumeListingDraft(draft.listingId);
-                              router.push(MARKETPLACE_ROUTES.SELL);
-                            }}
-                          >
-                            Resume
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            className="rounded-full"
-                            onClick={() => {
-                              void dashboard.discardListingDraft(draft.listingId);
-                            }}
-                          >
-                            Discard
-                          </Button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+                  <SettingsSectionContent>
+                    <ul className="flex flex-col gap-3">
+                      {dashboard.unfinishedDrafts.map((draft) => (
+                        <li
+                          key={draft.listingId}
+                          className="flex flex-col gap-2 rounded-md bg-background p-6 sm:flex-row sm:items-center sm:justify-between"
+                        >
+                          <div>
+                            <Typography as="p" className="font-medium">
+                              {draft.title}
+                            </Typography>
+                            <Typography as="p" className="text-sm text-muted-foreground">
+                              {draft.ageLabel}
+                            </Typography>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              size="sm"
+                              className="rounded-full"
+                              onClick={() => {
+                                dashboard.resumeListingDraft(draft.listingId);
+                                router.push(MARKETPLACE_ROUTES.SELL);
+                              }}
+                            >
+                              Resume
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              className="rounded-full"
+                              onClick={() => {
+                                void dashboard.discardListingDraft(draft.listingId);
+                              }}
+                            >
+                              Discard
+                            </Button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </SettingsSectionContent>
                 </CardContent>
               </Card>
             )}
-            {/* Local listings stay real without a session, but orders/offers
-                come from the durable service — without a session the work
-                queues and revenue below would silently read as zero, so say
-                so and offer the connect affordance instead. */}
-            {dashboard.needsSession && dashboard.sessionError && (
-              <MarketplaceSessionRequiredCard note={SALES_LIST_SESSION_NOTE} />
-            )}
             {dashboard.actionNeeded.total > 0 && (
-              <Card className="border border-brand/40 bg-brand/5">
-                <CardContent className="flex flex-col gap-4 px-5 lg:flex-row lg:items-center lg:justify-between">
+              <Card className="rounded-md bg-brand/5 p-0">
+                <CardContent className="flex flex-col gap-4 p-6 lg:flex-row lg:items-center lg:justify-between">
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="mt-1 size-5 shrink-0 text-brand" />
                     <div>
@@ -322,14 +328,14 @@ export function MarketplaceDashboard() {
             )}
             {isMobile ? (
               <div
-                className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1"
+                className="-mx-4 flex gap-6 overflow-x-auto px-4 pb-1"
                 data-testid="marketplace-dashboard-kpi-chips"
                 tabIndex={0}
                 role="region"
                 aria-label="Dashboard metrics"
               >
                 {dashboardKpis(dashboard.metrics).map(({ label, value }) => (
-                  <div key={label} className="shrink-0 rounded-full border bg-card px-4 py-2">
+                  <div key={label} className="shrink-0 rounded-full bg-card p-6">
                     <Typography as="p" className="text-sm font-semibold">
                       {value}
                     </Typography>
@@ -340,26 +346,28 @@ export function MarketplaceDashboard() {
                 ))}
               </div>
             ) : (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
                 {dashboardKpis(dashboard.metrics).map(({ label, value, icon: Icon }) => (
-                  <Card key={label} className="gap-3 border py-4">
-                    <CardContent className="px-4">
-                      <Icon className="mb-3 size-5 text-brand" />
-                      <Typography as="p" className="text-2xl font-bold">
-                        {value}
-                      </Typography>
-                      <Typography as="p" className="text-sm text-muted-foreground">
-                        {label}
-                      </Typography>
+                  <Card key={label} className="gap-3 rounded-md p-0">
+                    <CardContent className="flex items-start justify-between gap-4 p-6">
+                      <div className="min-w-0">
+                        <Typography as="p" className="text-2xl font-bold">
+                          {value}
+                        </Typography>
+                        <Typography as="p" className="text-sm text-muted-foreground">
+                          {label}
+                        </Typography>
+                      </div>
+                      <Icon className="size-6 shrink-0 text-brand" />
                     </CardContent>
                   </Card>
                 ))}
               </div>
             )}
 
-            <Card className="border">
+            <Card className="rounded-md p-0 shadow-lg">
               {dashboard.error ? (
-                <div role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-6">
+                <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 p-6">
                   <Heading level={3} size="md">
                     Listings could not be loaded
                   </Heading>
@@ -368,7 +376,7 @@ export function MarketplaceDashboard() {
                   </Typography>
                 </div>
               ) : (
-                <CardContent className="grid gap-4 px-5">
+                <CardContent className="grid gap-6 p-6">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <Typography as="h2" className="text-xl font-semibold">
@@ -386,7 +394,7 @@ export function MarketplaceDashboard() {
                         disabled={!selected.length}
                         onClick={() => updateListingState(selected, 'paused')}
                       >
-                        <Pause className="mr-2 size-4" />
+                        <Pause className="size-4" />
                         Pause
                       </Button>
                       <Button
@@ -396,144 +404,164 @@ export function MarketplaceDashboard() {
                         disabled={!selected.length}
                         onClick={() => updateListingState(selected, 'active')}
                       >
-                        <Play className="mr-2 size-4" />
+                        <Play className="size-4" />
                         Activate
                       </Button>
                       <Button size="sm" variant="secondary" className="rounded-full" onClick={exportCsv}>
-                        <Download className="mr-2 size-4" />
+                        <Download className="size-4" />
                         Export CSV
                       </Button>
                     </div>
                   </div>
 
-                  {dashboard.listings.length === 0 ? (
-                    <div className="flex min-h-48 flex-col items-center justify-center rounded-xl border border-dashed bg-card/40 p-8 text-center">
-                      <ShoppingBag className="mb-4 size-10 text-muted-foreground" />
-                      <Heading level={3} size="md">
-                        You have no listings yet
-                      </Heading>
-                      <Typography as="p" className="mt-2 text-muted-foreground">
-                        Publish your first item — it appears here with its state, inventory, and actions.
-                      </Typography>
-                      <SellAnItemControl paymentSetupRequired={paymentSetupRequired} align="center" />
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full min-w-2xl text-left text-sm">
-                        <thead className="text-muted-foreground">
-                          <tr className="border-b">
-                            <th className="p-3">
-                              <span className="sr-only">Select</span>
-                            </th>
-                            <th className="p-3">Listing</th>
-                            <th className="p-3">State</th>
-                            <th className="p-3">Format</th>
-                            <th className="p-3">Inventory</th>
-                            <th className="p-3">Price</th>
-                            <th className="p-3">
-                              <span className="sr-only">Actions</span>
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {dashboard.listings.map((listing) => {
-                            const checked = selected.includes(listing.id);
-                            return (
-                              <tr key={listing.id} className="border-b last:border-0">
-                                <td className="p-3">
-                                  <Checkbox
-                                    checked={checked}
-                                    onCheckedChange={(next) =>
-                                      setSelected((current) =>
-                                        next ? [...current, listing.id] : current.filter((id) => id !== listing.id),
-                                      )
-                                    }
-                                    aria-label={`Select ${listing.record.title}`}
-                                  />
-                                </td>
-                                <td className="p-3">
-                                  <div className="flex items-center gap-3">
-                                    <ListingThumbnail
-                                      mediaUrls={listing.record.media
-                                        .filter(({ type }) => type === 'image')
-                                        .map(({ url }) => url)}
-                                      title={listing.record.title}
+                  <SettingsSectionContent
+                    className={dashboard.listings.length === 0 ? 'border-0 shadow-none' : undefined}
+                  >
+                    {dashboard.listings.length === 0 ? (
+                      <div className="flex min-h-48 flex-col items-center justify-center rounded-md bg-card/40 p-6 text-center">
+                        <ShoppingBag className="mb-4 size-10 text-muted-foreground" />
+                        <Heading level={3} size="md">
+                          You have no listings yet
+                        </Heading>
+                        <Typography as="p" className="mt-2 text-muted-foreground">
+                          Let&apos;s create a listing to sell your first item.
+                        </Typography>
+                        <div className="mt-6">
+                          <SellAnItemControl
+                            label="Create a listing"
+                            variant="secondary"
+                            needsApproval={needsSellingApproval}
+                            approvalVisible={showSellingApproval}
+                            onRequestApproval={() => setShowSellingApproval(true)}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full min-w-2xl text-left text-sm">
+                          <thead className="text-muted-foreground">
+                            <tr className="border-b">
+                              <th className="p-3">
+                                <span className="sr-only">Select</span>
+                              </th>
+                              <th className="p-3">Listing</th>
+                              <th className="p-3">State</th>
+                              <th className="p-3">Format</th>
+                              <th className="p-3">Inventory</th>
+                              <th className="p-3">Price</th>
+                              <th className="p-3">
+                                <span className="sr-only">Actions</span>
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {dashboard.listings.map((listing) => {
+                              const checked = selected.includes(listing.id);
+                              return (
+                                <tr key={listing.id} className="border-b last:border-0">
+                                  <td className="p-3">
+                                    <Checkbox
+                                      checked={checked}
+                                      onCheckedChange={(next) =>
+                                        setSelected((current) =>
+                                          next ? [...current, listing.id] : current.filter((id) => id !== listing.id),
+                                        )
+                                      }
+                                      aria-label={`Select ${listing.record.title}`}
                                     />
-                                    <Link
-                                      href={getMarketplaceListingRoute(listing.seller_id, listing.listing_id)}
-                                      overrideDefaults
-                                      className="font-semibold hover:text-brand hover:underline"
-                                    >
-                                      {listing.record.title}
-                                    </Link>
-                                  </div>
-                                </td>
-                                <td className="p-3">
-                                  <Badge variant="secondary">
-                                    {listingDisplayState(listing.state, listing.record.sale, dashboard.nowMs)}
-                                  </Badge>
-                                </td>
-                                <td className="p-3">{listing.format.replace('_', ' ')}</td>
-                                <td className="p-3">{formatListingStock(listing.record)}</td>
-                                <td className="p-3">
-                                  {/* The record's own price money: the model row's
+                                  </td>
+                                  <td className="p-3">
+                                    <div className="flex items-center gap-3">
+                                      <ListingThumbnail
+                                        mediaUrls={listing.record.media
+                                          .filter(({ type }) => type === 'image')
+                                          .map(({ url }) => url)}
+                                        title={listing.record.title}
+                                      />
+                                      <Link
+                                        href={getMarketplaceListingRoute(listing.seller_id, listing.listing_id)}
+                                        overrideDefaults
+                                        className="font-semibold hover:text-brand hover:underline"
+                                      >
+                                        {listing.record.title}
+                                      </Link>
+                                    </div>
+                                  </td>
+                                  <td className="p-3">
+                                    <Badge variant="secondary">
+                                      {listingDisplayState(listing.state, listing.record.sale, dashboard.nowMs)}
+                                    </Badge>
+                                  </td>
+                                  <td className="p-3">{listing.format.replace('_', ' ')}</td>
+                                  <td className="p-3">{formatListingStock(listing.record)}</td>
+                                  <td className="p-3">
+                                    {/* The record's own price money: the model row's
                                     `price_minor` has no exponent column, and
                                     assuming 2 misstates bitcoin-priced listings. */}
-                                  {formatCommerceMoney(
-                                    listing.record.sale.format === 'fixed_price'
-                                      ? listing.record.sale.unitPrice
-                                      : listing.record.sale.startingPrice,
-                                  )}
-                                </td>
-                                <td className="p-3">
-                                  <div className="flex flex-wrap gap-1">
-                                    <Button asChild size="sm" variant="ghost" className="rounded-full">
-                                      <Link
-                                        href={getMarketplaceListingEditRoute(listing.seller_id, listing.listing_id)}
-                                        overrideDefaults
-                                      >
-                                        <PencilLine className="mr-2 size-4" />
-                                        Edit
-                                      </Link>
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="rounded-full"
-                                      disabled={duplicatingId === listing.listing_id}
-                                      onClick={() => {
-                                        void requestDuplicate(listing.listing_id);
-                                      }}
-                                    >
-                                      <Copy className="mr-2 size-4" />
-                                      Duplicate
-                                    </Button>
-                                    {isListingRegistrationPending(listing) && (
+                                    {formatCommerceMoney(
+                                      listing.record.sale.format === 'fixed_price'
+                                        ? listing.record.sale.unitPrice
+                                        : listing.record.sale.startingPrice,
+                                    )}
+                                  </td>
+                                  <td className="p-3">
+                                    <div className="flex flex-wrap gap-1">
+                                      <Button asChild size="sm" variant="ghost" className="rounded-full">
+                                        <Link
+                                          href={getMarketplaceListingEditRoute(listing.seller_id, listing.listing_id)}
+                                          overrideDefaults
+                                        >
+                                          <PencilLine className="size-4" />
+                                          Edit
+                                        </Link>
+                                      </Button>
                                       <Button
                                         size="sm"
-                                        variant="secondary"
+                                        variant="ghost"
                                         className="rounded-full"
-                                        onClick={() => void dashboard.retryListingRegistration(listing.listing_id)}
+                                        disabled={duplicatingId === listing.listing_id}
+                                        onClick={() => {
+                                          void requestDuplicate(listing.listing_id);
+                                        }}
                                       >
-                                        Register for checkout
+                                        <Copy className="size-4" />
+                                        Duplicate
                                       </Button>
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+                                      {isListingRegistrationPending(listing) && (
+                                        <Button
+                                          size="sm"
+                                          variant="secondary"
+                                          className="rounded-full"
+                                          onClick={() => void dashboard.retryListingRegistration(listing.listing_id)}
+                                        >
+                                          Register for checkout
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </SettingsSectionContent>
                 </CardContent>
               )}
             </Card>
           </>
         )}
+        <MarketplaceSessionConnectDialog
+          intent="sell"
+          open={showSellingApproval}
+          onOpenChange={setShowSellingApproval}
+          hideTrigger
+          onConnected={() => router.push(MARKETPLACE_ROUTES.SELL)}
+        />
         {pendingStateChange && (
           <MarketplaceSessionConnectDialog
+            intent="sell"
             autoOpen
             onConnected={async () => {
               const pending = pendingStateChange;
@@ -590,33 +618,48 @@ export function MarketplaceDashboard() {
   );
 }
 
-function PaymentSetupNotice() {
-  return (
-    <span
-      data-testid="create-listing-payment-precondition"
-      className="inline-flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
-    >
-      <Badge variant="outline">Payment setup required</Badge>
-      Set up how you get paid first
-    </span>
-  );
-}
-
 function SellAnItemControl({
-  paymentSetupRequired = false,
-  align,
+  label = 'Sell an item',
+  variant = 'default',
+  size = 'default',
+  needsApproval,
+  approvalVisible,
+  onRequestApproval,
 }: {
-  paymentSetupRequired?: boolean;
-  align: 'end' | 'center';
+  label?: string;
+  variant?: 'default' | 'secondary';
+  size?: 'default' | 'sm';
+  needsApproval: boolean;
+  approvalVisible: boolean;
+  onRequestApproval: () => void;
 }) {
   return (
-    <div className={`flex flex-wrap items-center gap-2 ${align === 'center' ? 'mt-6 justify-center' : 'justify-end'}`}>
-      <Button asChild className="rounded-full">
-        <Link href={MARKETPLACE_ROUTES.SELL} overrideDefaults>
-          Sell an item
-        </Link>
-      </Button>
-      {paymentSetupRequired ? <PaymentSetupNotice /> : null}
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      {needsApproval ? (
+        <Button
+          variant={variant}
+          size={size}
+          className={size === 'sm' ? 'rounded-full text-xs font-bold' : 'rounded-full'}
+          onClick={onRequestApproval}
+          aria-expanded={approvalVisible}
+          aria-haspopup="dialog"
+        >
+          <Plus className="size-4" aria-hidden="true" />
+          {label}
+        </Button>
+      ) : (
+        <Button
+          asChild
+          variant={variant}
+          size={size}
+          className={size === 'sm' ? 'rounded-full text-xs font-bold' : 'rounded-full'}
+        >
+          <Link href={MARKETPLACE_ROUTES.SELL} overrideDefaults>
+            <Plus className="size-4" aria-hidden="true" />
+            {label}
+          </Link>
+        </Button>
+      )}
     </div>
   );
 }
@@ -628,7 +671,7 @@ function dashboardKpis(metrics: DashboardMetrics) {
     { label: 'Active listings', value: metrics.activeListings, icon: ShoppingBag },
     { label: 'Inventory', value: metrics.totalInventory, icon: Package },
     { label: 'Low stock', value: metrics.lowStock, icon: Package },
-    { label: 'Paid orders', value: metrics.paidOrders, icon: TrendingUp },
+    { label: 'Paid orders', value: metrics.paidOrders, icon: Banknote },
     {
       // In sandbox mode this number is simulated and must say so; in the
       // durable modes it reflects real orders. One figure per pricing asset.

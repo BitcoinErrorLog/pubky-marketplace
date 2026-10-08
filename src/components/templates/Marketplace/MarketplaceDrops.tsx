@@ -41,13 +41,8 @@ export function MarketplaceDrops() {
       showLeftMobileButton={false}
       showRightMobileButton={false}
       className="pb-28 lg:pb-16"
-      classNameWrapperContent="max-w-7xl"
     >
-      <Container
-        overrideDefaults
-        data-surface="marketplace-drops"
-        className="flex w-full flex-col gap-6 px-4 sm:px-6 lg:px-8"
-      >
+      <Container overrideDefaults data-surface="marketplace-drops" className="flex w-full flex-col gap-6">
         <Link
           href={APP_ROUTES.MARKETPLACE}
           overrideDefaults
@@ -78,7 +73,7 @@ export function MarketplaceDrops() {
             <Skeleton className="h-64 rounded-xl" />
           </div>
         ) : error ? (
-          <div role="alert" className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-amber-200">
+          <div role="alert" className="rounded-md border border-amber-500/30 bg-amber-500/10 p-4 text-amber-200">
             {error}
           </div>
         ) : !isIndexed ? (
@@ -119,7 +114,7 @@ function DropSection({ bucket, entries }: { bucket: DropStreamBucket; entries: N
 
 function EmptyState({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
   return (
-    <div className="flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed bg-card/40 p-8 text-center">
+    <div className="flex min-h-64 flex-col items-center justify-center rounded-md bg-card/40 p-6 text-center">
       {icon}
       <Heading level={2} size="md">
         {title}

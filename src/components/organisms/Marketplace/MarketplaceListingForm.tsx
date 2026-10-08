@@ -4,14 +4,17 @@ import { type ReactNode, useEffect, useRef, useState } from 'react';
 import {
   ArrowDown,
   ArrowUp,
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  Circle,
+  ClipboardCheck,
   Film,
   ImagePlus,
+  Images,
+  Package,
   Plus,
+  Tag,
   Trash2,
+  Truck,
 } from 'lucide-react';
 import { Controller, useFieldArray, type UseFormReturn, useWatch } from 'react-hook-form';
 import { Badge } from '@/atoms/Badge/Badge';
@@ -19,6 +22,7 @@ import { Button } from '@/atoms/Button/Button';
 import { Card, CardContent } from '@/atoms/Card/Card';
 import { Checkbox } from '@/atoms/Checkbox/Checkbox';
 import { Container } from '@/atoms/Container/Container';
+import { FilterItem, FilterItemIcon, FilterItemLabel } from '@/atoms/Filter/Filter';
 import { Input } from '@/atoms/Input/Input';
 import { Label } from '@/atoms/Label/Label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/atoms/Select/Select';
@@ -50,10 +54,7 @@ import type {
 } from '@/hooks/useListingMediaManager/useListingMediaManager';
 import { isListingMediaPublishReady } from '@/hooks/useListingMediaManager/useListingMediaManager';
 import { useMarketplaceShippingPresets } from '@/hooks/useMarketplaceShippingPresets/useMarketplaceShippingPresets';
-import {
-  presetToShippingFields,
-  shippingFieldsToPresetInput,
-} from '@/hooks/useMarketplaceShippingPresets/useMarketplaceShippingPresets.types';
+import { presetToShippingFields } from '@/hooks/useMarketplaceShippingPresets/useMarketplaceShippingPresets.types';
 import { DIGITAL_DELIVERY_COPY } from '@/libs/commerce/digital';
 import { isListingDraftSectionId, type ListingDraftSectionId } from '@/libs/commerce/listing-drafts';
 import {
@@ -76,6 +77,7 @@ import { ControlledInputField } from '@/molecules/ControlledInputField/Controlle
 import { ControlledTextareaField } from '@/molecules/ControlledTextareaField/ControlledTextareaField';
 import { ListingPublishGuardNotice } from '@/molecules/Marketplace/ListingPublishGuardNotice';
 import { RequiredToPublishSummary } from '@/molecules/Marketplace/RequiredToPublishSummary';
+import { SettingsSectionContent } from '@/molecules/Settings/SettingsSectionContent/SettingsSectionContent';
 import { toast } from '@/molecules/Toaster/use-toast';
 import { MarketplaceCategoryPicker } from '@/organisms/Marketplace/MarketplaceCategoryPicker';
 import { MarketplaceDigitalDeliveryEditor } from '@/organisms/Marketplace/MarketplaceDigitalDeliveryEditor';
@@ -87,11 +89,11 @@ import {
 import { useMarketplaceDisplayStore } from '@/stores/marketplace-display/marketplace-display.store';
 
 const LISTING_FORM_SECTIONS = [
-  { id: 'listing-section-photos', label: 'Photos' },
-  { id: 'listing-section-item', label: 'Item' },
-  { id: 'listing-section-price', label: 'Price & format' },
-  { id: 'listing-section-shipping', label: 'Delivery & returns' },
-  { id: 'listing-section-review', label: 'Review & publish' },
+  { id: 'listing-section-photos', label: 'Photos', icon: Images },
+  { id: 'listing-section-item', label: 'Item', icon: Package },
+  { id: 'listing-section-price', label: 'Price & format', icon: Tag },
+  { id: 'listing-section-shipping', label: 'Delivery & returns', icon: Truck },
+  { id: 'listing-section-review', label: 'Review & publish', icon: ClipboardCheck },
 ] as const;
 
 type ListingFormSectionId = (typeof LISTING_FORM_SECTIONS)[number]['id'];
@@ -132,6 +134,7 @@ export interface MarketplaceListingFormProps {
   onSessionConnected?: () => void | Promise<void>;
   /** Composer path to resume after configuring a payment method. */
   returnTo?: string;
+  sidebarFooter?: ReactNode;
 }
 
 export function MarketplaceListingForm({
@@ -149,6 +152,7 @@ export function MarketplaceListingForm({
   publishGuardReady = true,
   returnTo,
   onSessionConnected,
+  sidebarFooter,
 }: MarketplaceListingFormProps) {
   const {
     items: mediaItems,
@@ -164,6 +168,8 @@ export function MarketplaceListingForm({
   const fulfillment = useWatch({ control: form.control, name: CREATE_MARKETPLACE_LISTING_FIELDS.FULFILLMENT });
   const saleFormat = useWatch({ control: form.control, name: CREATE_MARKETPLACE_LISTING_FIELDS.SALE_FORMAT });
   const currency = useWatch({ control: form.control, name: CREATE_MARKETPLACE_LISTING_FIELDS.CURRENCY });
+  const { presets, saveFromFields } = useMarketplaceShippingPresets();
+  const [saveDeliveryPreset, setSaveDeliveryPreset] = useState(false);
   const freeShipping = useWatch({ control: form.control, name: CREATE_MARKETPLACE_LISTING_FIELDS.FREE_SHIPPING });
   const watchedListingFields = useWatch({
     control: form.control,
@@ -305,7 +311,6 @@ export function MarketplaceListingForm({
   const sectionStatuses = getListingSectionStatuses(formValues, mediaItems.length, photosReady, publishGuardsClear);
   const remainingRequired = [
     ...createMarketplaceListingPublishChecklist(formValues, mediaItems.length),
-    ...(mediaItems.length > 0 && !photosReady ? ['Photo descriptions'] : []),
     ...(publishBlocked ? [LISTING_PUBLISH_BLOCK_COPY[publishBlocked].checklist] : []),
   ];
   const optionalLaterItems = getOptionalLaterItems(formValues);
@@ -405,6 +410,16 @@ export function MarketplaceListingForm({
       editor?.capability === 'available' &&
       editor.readState === 'ready' &&
       editor.isDirty;
+    const values = form.getValues();
+    const presetFields =
+      saveDeliveryPreset && delivery.ship && values.currency === 'USD' && !values.freeShipping
+        ? {
+            shippingLabel: values.shippingLabel,
+            shippingPrice: values.shippingPrice,
+            shippingMinDays: values.shippingMinDays,
+            shippingMaxDays: values.shippingMaxDays,
+          }
+        : null;
     const saved = await persistListing({ silent: Boolean(willSavePickup) });
     if (!saved) return;
     if (willSavePickup) {
@@ -414,6 +429,7 @@ export function MarketplaceListingForm({
         return;
       }
     }
+    if (presetFields && (await saveFromFields(null, presetFields))) setSaveDeliveryPreset(false);
     publishedFulfillmentRef.current = form.getValues(CREATE_MARKETPLACE_LISTING_FIELDS.FULFILLMENT);
     setPublishedFulfillment(publishedFulfillmentRef.current);
     onPublished?.();
@@ -421,7 +437,7 @@ export function MarketplaceListingForm({
 
   return (
     <form
-      className="grid gap-6 lg:grid-cols-[11rem_minmax(0,1fr)_9rem]"
+      className="grid gap-6 lg:grid-cols-[var(--filter-bar-width)_minmax(0,1fr)]"
       onSubmit={(event) => {
         event.preventDefault();
         void submitListing();
@@ -431,6 +447,7 @@ export function MarketplaceListingForm({
         activeSectionId={activeSectionId}
         sectionStatuses={sectionStatuses}
         onNavigate={navigateToSection}
+        footer={sidebarFooter}
       />
       <div className="flex flex-col gap-6">
         <MobileSectionStepper
@@ -469,7 +486,7 @@ export function MarketplaceListingForm({
             disabled={isPublishing || mediaItems.length >= maxPhotos}
             onClick={choose}
           >
-            <ImagePlus className="mr-2 size-4" />
+            <ImagePlus className="size-4" />
             Add photos ({mediaItems.length}/{maxPhotos})
           </Button>
           <input
@@ -610,7 +627,7 @@ export function MarketplaceListingForm({
             </Typography>
           )}
 
-          <div className="flex items-center justify-between gap-4 border-t pt-5">
+          <div className="flex items-center justify-between gap-4">
             <div>
               <Typography as="h3" className="font-semibold">
                 Variants and inventory
@@ -637,14 +654,14 @@ export function MarketplaceListingForm({
                 })
               }
             >
-              <Plus className="mr-2 size-4" />
+              <Plus className="size-4" />
               Add variant
             </Button>
           </div>
 
           <div className="flex flex-col gap-4">
             {variants.fields.map((variant, index) => (
-              <div key={variant.id} className="relative grid gap-4 rounded-xl border bg-card/60 p-4 sm:grid-cols-3">
+              <div key={variant.id} className="relative grid gap-4 rounded-md bg-card/60 p-6 sm:grid-cols-3">
                 <ControlledInputField
                   name={`variants.${index}.sku`}
                   control={form.control}
@@ -692,7 +709,13 @@ export function MarketplaceListingForm({
                         <Label htmlFor={`variants.${index}.quantity`} className={FORM_LABEL_CLASSES}>
                           Quantity
                         </Label>
-                        <Input id={`variants.${index}.quantity`} value={UNLIMITED_STOCK_LABEL} disabled readOnly />
+                        <Input
+                          theme="dashed"
+                          id={`variants.${index}.quantity`}
+                          value={UNLIMITED_STOCK_LABEL}
+                          disabled
+                          readOnly
+                        />
                       </Container>
                     ) : (
                       <ControlledInputField
@@ -836,7 +859,7 @@ export function MarketplaceListingForm({
 
           {delivery.ship && (
             <>
-              <ListingShippingPresetRow form={form} isPublishing={isPublishing} />
+              <ListingShippingPresetRow form={form} isPublishing={isPublishing} presets={presets} />
               <div className="grid gap-5 sm:grid-cols-2">
                 <ControlledInputField
                   name={CREATE_MARKETPLACE_LISTING_FIELDS.SHIPPING_LABEL}
@@ -879,6 +902,27 @@ export function MarketplaceListingForm({
                   placeholder="7"
                   disabled={isPublishing}
                 />
+              </div>
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="listing-save-delivery-preset"
+                    checked={saveDeliveryPreset && currency === 'USD' && !freeShipping}
+                    disabled={isPublishing || currency !== 'USD' || freeShipping}
+                    onCheckedChange={(checked) => setSaveDeliveryPreset(checked === true)}
+                    aria-describedby="listing-save-delivery-preset-hint"
+                  />
+                  <Label htmlFor="listing-save-delivery-preset" className="cursor-pointer text-sm">
+                    Save delivery details as preset
+                  </Label>
+                </div>
+                <Typography as="p" id="listing-save-delivery-preset-hint" className="text-sm text-muted-foreground">
+                  {currency !== 'USD' || freeShipping
+                    ? 'Presets support paid USD shipping.'
+                    : 'Saves the shipping label, flat rate and delivery estimates on this device when you save the listing.'}
+                </Typography>
+              </div>
+              <div className="grid gap-5 sm:grid-cols-2">
                 <ControlledInputField
                   name={CREATE_MARKETPLACE_LISTING_FIELDS.PACKAGE_WEIGHT}
                   control={form.control}
@@ -938,8 +982,7 @@ export function MarketplaceListingForm({
                 />
               </div>
               <Typography as="p" className="text-sm text-muted-foreground">
-                Package details are entered in {isImperial ? 'inches and ounces' : 'centimeters and grams'} (your
-                measurement preference) and stored exactly in millimeters and grams.
+                {`Package details are entered in ${isImperial ? 'inches and ounces' : 'centimeters and grams'} (your measurement preference) and stored exactly in millimeters and grams.`}
               </Typography>
             </>
           )}
@@ -988,13 +1031,8 @@ export function MarketplaceListingForm({
             {isEdit ? (isPublishing ? 'Saving…' : 'Save changes') : isPublishing ? 'Publishing…' : 'Publish listing'}
           </Button>
         </ListingFormSection>
+        {sidebarFooter && <div className="border-t border-border pt-6 lg:hidden">{sidebarFooter}</div>}
       </div>
-      <SectionProgressRail
-        activeSectionId={activeSectionId}
-        sectionStatuses={sectionStatuses}
-        onNavigate={navigateToSection}
-        align="right"
-      />
     </form>
   );
 }
@@ -1003,50 +1041,35 @@ function SectionProgressRail({
   activeSectionId,
   sectionStatuses,
   onNavigate,
-  align = 'left',
+  footer,
 }: {
+  footer?: ReactNode;
   activeSectionId: ListingFormSectionId;
   sectionStatuses: Record<ListingFormSectionId, boolean>;
   onNavigate: (sectionId: ListingFormSectionId) => void;
-  align?: 'left' | 'right';
 }) {
   return (
-    <nav
-      aria-label={align === 'left' ? 'Listing sections' : 'Listing section status'}
-      className="sticky top-(--header-offset-main) z-10 hidden h-fit flex-col gap-2 self-start rounded-xl bg-background/95 py-1 backdrop-blur lg:flex"
-      data-testid={align === 'left' ? 'listing-section-rail' : 'listing-section-status-rail'}
-    >
-      {LISTING_FORM_SECTIONS.map((section, index) => {
-        const complete = sectionStatuses[section.id];
-        const active = activeSectionId === section.id;
-        return (
-          <a
-            key={section.id}
-            href={`#${section.id}`}
-            className={[
-              'flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition-colors',
-              active
-                ? 'border-brand bg-brand/10 text-brand'
-                : 'border-border text-muted-foreground hover:text-foreground',
-              align === 'right' ? 'justify-center' : '',
-            ].join(' ')}
-            aria-current={active ? 'step' : undefined}
-            onClick={(event) => {
-              event.preventDefault();
-              onNavigate(section.id);
-            }}
-          >
-            {complete ? (
-              <CheckCircle2 className="size-4 shrink-0 text-brand" aria-hidden="true" />
-            ) : (
-              <Circle className="size-4 shrink-0" aria-hidden="true" />
-            )}
-            {align === 'left' ? section.label : `${index + 1}`}
-            <span className="sr-only">{complete ? ' complete' : ' incomplete'}</span>
-          </a>
-        );
-      })}
-    </nav>
+    <aside className="sticky top-(--header-offset-main) z-10 hidden h-fit flex-col gap-6 self-start rounded-xl bg-background/95 py-1 backdrop-blur lg:flex">
+      <nav aria-label="Listing sections" className="flex flex-col gap-2" data-testid="listing-section-rail">
+        {LISTING_FORM_SECTIONS.map((section) => {
+          const complete = sectionStatuses[section.id];
+          const active = activeSectionId === section.id;
+          return (
+            <FilterItem
+              key={section.id}
+              isSelected={active}
+              aria-current={active ? 'step' : undefined}
+              onClick={() => onNavigate(section.id)}
+            >
+              <FilterItemIcon icon={section.icon} className="shrink-0" aria-hidden="true" />
+              <FilterItemLabel>{section.label}</FilterItemLabel>
+              <span className="sr-only">{complete ? ' complete' : ' incomplete'}</span>
+            </FilterItem>
+          );
+        })}
+      </nav>
+      {footer && <div className="border-t border-border pt-6">{footer}</div>}
+    </aside>
   );
 }
 
@@ -1066,7 +1089,7 @@ function MobileSectionStepper({
 
   return (
     <div
-      className="sticky top-(--header-offset-mobile) z-10 flex flex-col gap-3 rounded-xl border bg-background/95 p-3 shadow-sm backdrop-blur lg:hidden"
+      className="sticky top-(--header-offset-mobile) z-10 flex flex-col gap-3 rounded-md border bg-background/95 p-3 shadow-sm backdrop-blur lg:hidden"
       data-testid="listing-mobile-stepper"
     >
       <div className="flex items-center justify-between gap-3">
@@ -1090,7 +1113,7 @@ function MobileSectionStepper({
             disabled={!previousSection}
             onClick={() => previousSection && onNavigate(previousSection.id)}
           >
-            <ChevronLeft className="mr-1 size-4" />
+            <ChevronLeft className="size-4" />
             Back
           </Button>
           <Button
@@ -1102,7 +1125,7 @@ function MobileSectionStepper({
             onClick={() => nextSection && onNavigate(nextSection.id)}
           >
             Next
-            <ChevronRight className="ml-1 size-4" />
+            <ChevronRight className="size-4" />
           </Button>
         </div>
       </div>
@@ -1159,8 +1182,8 @@ function ListingFormSection({
       data-surface={id}
       className="scroll-mt-[calc(var(--header-offset-mobile)+8.5rem)] lg:scroll-mt-(--header-offset-main)"
     >
-      <Card className="border">
-        <CardContent className="grid gap-5 px-6">
+      <Card className="rounded-md p-0 shadow-lg">
+        <CardContent className="grid gap-6 p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <Typography id={`${id}-title`} as="h2" className="text-xl font-semibold">
@@ -1174,7 +1197,7 @@ function ListingFormSection({
               {complete ? 'Complete' : 'Incomplete'}
             </Badge>
           </div>
-          {children}
+          <SettingsSectionContent>{children}</SettingsSectionContent>
         </CardContent>
       </Card>
     </section>
@@ -1193,7 +1216,7 @@ function ReviewPublishChecklist({
   onSelectRequired: (item: string) => void;
 }) {
   return (
-    <div className="grid gap-4 rounded-xl border bg-card/60 p-4">
+    <div className="grid gap-4 rounded-md bg-card/60">
       <RequiredToPublishSummary
         items={remainingRequired.map((item) => ({
           id: `required-${item.toLowerCase().replaceAll(' ', '-')}`,
@@ -1391,13 +1414,12 @@ function ListingDeliveryOptions({
 function ListingShippingPresetRow({
   form,
   isPublishing,
+  presets,
 }: {
   form: UseFormReturn<CreateMarketplaceListingData>;
   isPublishing: boolean;
+  presets: ReturnType<typeof useMarketplaceShippingPresets>['presets'];
 }) {
-  const { presets, saveFromFields } = useMarketplaceShippingPresets();
-  const [presetError, setPresetError] = useState('');
-
   const applyPreset = (presetId: string) => {
     const preset = presets.find(({ id }) => id === presetId);
     if (!preset) return;
@@ -1415,42 +1437,17 @@ function ListingShippingPresetRow({
     });
   };
 
-  const saveAsPreset = () => {
-    const values = form.getValues();
-    const fields = {
-      shippingLabel: values.shippingLabel,
-      shippingPrice: values.shippingPrice,
-      shippingMinDays: values.shippingMinDays,
-      shippingMaxDays: values.shippingMaxDays,
-    };
-    if (!shippingFieldsToPresetInput(fields)) {
-      setPresetError('Complete the shipping label, price, and delivery estimates before saving a preset.');
-      const field =
-        !fields.shippingLabel.trim() || fields.shippingLabel.trim().length > 100
-          ? CREATE_MARKETPLACE_LISTING_FIELDS.SHIPPING_LABEL
-          : !/^\d+(?:\.\d{1,2})?$/.test(fields.shippingPrice.trim()) || Number(fields.shippingPrice) <= 0
-            ? CREATE_MARKETPLACE_LISTING_FIELDS.SHIPPING_PRICE
-            : !/^\d+$/.test(fields.shippingMinDays.trim())
-              ? CREATE_MARKETPLACE_LISTING_FIELDS.SHIPPING_MIN_DAYS
-              : CREATE_MARKETPLACE_LISTING_FIELDS.SHIPPING_MAX_DAYS;
-      const control = document.getElementById(field);
-      control?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      control?.focus({ preventScroll: true });
-      return;
-    }
-    setPresetError('');
-    void saveFromFields(null, fields);
-  };
+  if (presets.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap items-end gap-3 rounded-xl border bg-card/60 p-3">
+    <div className="flex flex-wrap items-end gap-3">
       {presets.length > 0 && (
         <Container className="min-w-48 flex-1 gap-2">
           <Label htmlFor="listing-shipping-preset" className={FORM_LABEL_CLASSES}>
             Shipping preset
           </Label>
           <Select onValueChange={applyPreset} disabled={isPublishing}>
-            <SelectTrigger id="listing-shipping-preset" className="h-11 w-full rounded-md border px-3">
+            <SelectTrigger theme="secondary" id="listing-shipping-preset" className="w-full">
               <SelectValue placeholder="Apply a saved preset" />
             </SelectTrigger>
             <SelectContent>
@@ -1463,26 +1460,6 @@ function ListingShippingPresetRow({
             </SelectContent>
           </Select>
         </Container>
-      )}
-      <Button
-        type="button"
-        size="sm"
-        variant="secondary"
-        className="rounded-full"
-        disabled={isPublishing}
-        onClick={saveAsPreset}
-      >
-        Save as preset
-      </Button>
-      {presetError && (
-        <Typography as="p" role="alert" className="basis-full text-sm text-destructive">
-          {presetError}
-        </Typography>
-      )}
-      {presets.length === 0 && (
-        <Typography as="p" className="text-sm text-muted-foreground">
-          Presets store these shipping fields on this device so future listings start pre-filled.
-        </Typography>
       )}
     </div>
   );
@@ -1507,7 +1484,7 @@ function ListingPhotoRow({
 }) {
   const position = `Photo ${index + 1} of ${count}`;
   return (
-    <li className="flex flex-col gap-3 rounded-xl border bg-card/60 p-3 sm:flex-row sm:items-center">
+    <li className="flex flex-col gap-3 rounded-md bg-card/60 p-6 sm:flex-row sm:items-center">
       <div className="relative size-24 shrink-0 overflow-hidden rounded-lg border bg-card">
         {item.previewUrl ? (
           // Plain <img>: previews are local object URLs or direct homeserver
@@ -1523,9 +1500,10 @@ function ListingPhotoRow({
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <Label htmlFor={`listing-photo-alt-${item.key}`} className={FORM_LABEL_CLASSES}>
-          Photo {index + 1} description
+          Photo description
         </Label>
         <Input
+          theme="dashed"
           id={`listing-photo-alt-${item.key}`}
           value={item.altText}
           placeholder="Describe this photo for people using screen readers"
@@ -1601,7 +1579,7 @@ function FormSelect({
         render={({ field, fieldState }) => (
           <>
             <Select value={field.value} onValueChange={field.onChange} disabled={disabled}>
-              <SelectTrigger id={name} className="h-11 w-full rounded-md border px-3" aria-invalid={!!fieldState.error}>
+              <SelectTrigger theme="secondary" id={name} className="w-full" aria-invalid={!!fieldState.error}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

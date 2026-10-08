@@ -2,13 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, SlidersHorizontal, Store } from 'lucide-react';
-import { APP_ROUTES, MARKETPLACE_ROUTES, readMarketplaceListingComposerReturnTo } from '@/app/routes';
+import { ArrowLeft, ArrowRight, SlidersHorizontal } from 'lucide-react';
+import { readMarketplaceListingComposerReturnTo } from '@/app/routes';
 import { Button } from '@/atoms/Button/Button';
 import { Card, CardContent } from '@/atoms/Card/Card';
 import { Container } from '@/atoms/Container/Container';
 import { Heading } from '@/atoms/Heading/Heading';
-import { Label } from '@/atoms/Label/Label';
 import { Link } from '@/atoms/Link/Link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/atoms/Select/Select';
 import { Switch } from '@/atoms/Switch/Switch';
@@ -22,8 +21,11 @@ import {
   rememberListingComposerReturnTo,
 } from '@/libs/commerce/listing-publish-guards';
 import { availablePaymentMethods, type SellerPaymentConfigOwnView } from '@/libs/commerce/payment-methods';
+import { BackToMyShop } from '@/molecules/Marketplace/BackToMyShop';
+import { SettingsSectionContent } from '@/molecules/Settings/SettingsSectionContent/SettingsSectionContent';
 import { ContentLayout } from '@/organisms/ContentLayout/ContentLayout';
 import { MarketplaceGetPaidSettings } from '@/organisms/Marketplace/MarketplaceGetPaidSettings';
+import { MarketplaceSectionNav } from '@/organisms/Marketplace/MarketplaceSectionNav';
 import { MarketplaceSignOutCard } from '@/organisms/Marketplace/MarketplaceSignOutCard';
 import { useAuthStore } from '@/stores/auth/auth.store';
 import { useMarketplaceDisplayStore } from '@/stores/marketplace-display/marketplace-display.store';
@@ -89,125 +91,105 @@ export function MarketplacePaymentSettings() {
       showLeftMobileButton={false}
       showRightMobileButton={false}
       className="pb-28"
-      classNameWrapperContent="max-w-7xl"
     >
-      <Container overrideDefaults className="flex w-full flex-col gap-6 px-4 sm:px-6">
-        <Link
-          href={returnPath ?? APP_ROUTES.MARKETPLACE}
-          overrideDefaults
-          className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground"
-        >
-          <ArrowLeft className="size-4" />
-          {returnPath ? 'Back to listing' : 'Marketplace'}
-        </Link>
-        <div>
-          <Heading level={1} size="xl" className="text-4xl sm:text-6xl">
-            How you get paid
-          </Heading>
-          <Typography as="p" className="mt-2 text-muted-foreground">
-            Set up the methods buyers can use at checkout.
-          </Typography>
-        </div>
-
-        {returnPath ? (
-          <div
-            data-testid="listing-composer-return"
-            className="flex flex-col gap-3 rounded-xl border border-border p-4 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <Typography as="p" className="text-sm text-muted-foreground">
-              After at least one payment method is configured, continue creating your listing.
+      <Container overrideDefaults className="flex w-full flex-col gap-6">
+        <MarketplaceSectionNav />
+        <BackToMyShop />
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <Heading level={1} size="xl" className="text-4xl sm:text-6xl">
+              Payment settings
+            </Heading>
+            <Typography as="p" className="mt-2 text-muted-foreground">
+              Manage your payment methods and preferences.
             </Typography>
-            <Button className="shrink-0 rounded-full" disabled={!canContinue} onClick={resumeComposer}>
-              Continue creating listing
-            </Button>
           </div>
-        ) : null}
+          {returnPath && (
+            <div data-testid="listing-composer-return" className="shrink-0">
+              {canContinue ? (
+                <Button onClick={resumeComposer}>
+                  Continue listing
+                  <ArrowRight className="size-4" />
+                </Button>
+              ) : (
+                <Button asChild variant="secondary" className="w-fit">
+                  <Link href={returnPath} overrideDefaults>
+                    <ArrowLeft className="size-4" />
+                    Back to listing
+                  </Link>
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
 
         <MarketplaceGetPaidSettings locksConnect={locksConnect} onSaved={onPaymentSaved} />
 
-        <Card className="border">
-          <CardContent className="flex flex-col gap-3 px-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex gap-3">
-              <Store className="mt-1 size-5 text-brand" />
-              <div>
-                <Typography as="h2" className="font-semibold">
-                  Looking for your shop name and policies?
-                </Typography>
-                <Typography as="p" className="text-sm text-muted-foreground">
-                  Storefront settings live under My shop, next to your listings.
-                </Typography>
-              </div>
-            </div>
-            <Button asChild variant="secondary" className="shrink-0 rounded-full">
-              <Link href={MARKETPLACE_ROUTES.MY_SHOP} overrideDefaults>
-                Open My shop
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="border">
-          <CardContent className="grid gap-5 px-6">
-            <div className="flex gap-3">
-              <SlidersHorizontal className="mt-1 size-5 text-brand" />
-              <div>
-                <Typography as="h2" className="font-semibold">
-                  Display preferences
-                </Typography>
-                <Typography as="p" className="text-sm text-muted-foreground">
-                  How prices and package details render for you, stored on this device. Neither setting changes any
-                  listing record or payment amount.
-                </Typography>
-              </div>
+        <Card className="rounded-md p-0 shadow-lg">
+          <CardContent className="grid gap-6 p-6">
+            <div className="grid grid-cols-[1.5rem_minmax(0,1fr)] items-center gap-x-3">
+              <SlidersHorizontal className="size-6 shrink-0 text-brand" />
+              <Heading level={2} size="md">
+                Display preferences
+              </Heading>
+              <Typography as="p" className="col-start-2 text-sm text-muted-foreground">
+                Saved on this device.
+              </Typography>
             </div>
 
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <Label htmlFor="marketplace-fx-estimate" className="font-medium">
-                  Approximate price conversions
-                </Label>
-                <Typography as="p" className="text-sm text-muted-foreground">
-                  Show &ldquo;≈&rdquo; estimates beside prices (fiat ↔ bitcoin) at the current exchange rate. Indicative
-                  only — payments always settle in the listing&rsquo;s own pricing asset.
-                </Typography>
+            <SettingsSectionContent>
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <Typography as="label" htmlFor="marketplace-fx-estimate" className="block text-sm font-semibold">
+                    Approximate price conversions
+                  </Typography>
+                  <Typography as="p" className="text-sm text-muted-foreground">
+                    Show estimated conversions. Your payment currency stays the same.
+                  </Typography>
+                </div>
+                <Switch
+                  id="marketplace-fx-estimate"
+                  checked={showFxEstimate}
+                  onCheckedChange={setShowFxEstimate}
+                  aria-label="Show approximate price conversions"
+                />
               </div>
-              <Switch
-                id="marketplace-fx-estimate"
-                checked={showFxEstimate}
-                onCheckedChange={setShowFxEstimate}
-                aria-label="Show approximate price conversions"
-              />
-            </div>
 
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <Label htmlFor="marketplace-measurement-system" className="font-medium">
-                  Measurement system
-                </Label>
-                <Typography as="p" className="text-sm text-muted-foreground">
-                  Units for package dimensions and weight. Records always store exact millimeters and grams.
-                </Typography>
-              </div>
-              <Select
-                value={measurementSystem ?? 'auto'}
-                onValueChange={(value) =>
-                  setMeasurementSystem(value === 'auto' ? null : (value as 'metric' | 'imperial'))
-                }
-              >
-                <SelectTrigger
-                  id="marketplace-measurement-system"
-                  className="h-11 w-56 shrink-0 rounded-md border px-3"
-                  aria-label="Measurement system"
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <Typography
+                    as="label"
+                    htmlFor="marketplace-measurement-system"
+                    className="block text-sm font-semibold"
+                  >
+                    Measurement system
+                  </Typography>
+                  <Typography as="p" className="text-sm text-muted-foreground">
+                    Units for package size and weight.
+                  </Typography>
+                </div>
+                <Select
+                  value={measurementSystem ?? 'auto'}
+                  onValueChange={(value) =>
+                    setMeasurementSystem(value === 'auto' ? null : (value as 'metric' | 'imperial'))
+                  }
                 >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="auto">Automatic (from locale)</SelectItem>
-                  <SelectItem value="metric">Metric (cm, g)</SelectItem>
-                  <SelectItem value="imperial">Imperial (in, oz)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                  <SelectTrigger
+                    theme="secondary"
+                    id="marketplace-measurement-system"
+                    className="w-full shrink-0 sm:w-56"
+                    aria-label="Measurement system"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">Automatic</SelectItem>
+                    <SelectItem value="metric">Metric (cm, g)</SelectItem>
+                    <SelectItem value="imperial">Imperial (in, oz)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </SettingsSectionContent>
           </CardContent>
         </Card>
 

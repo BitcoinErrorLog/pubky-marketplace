@@ -5,6 +5,7 @@ import { Container } from '@/atoms/Container/Container';
 import { Heading } from '@/atoms/Heading/Heading';
 import { Typography } from '@/atoms/Typography/Typography';
 import { cn } from '@/libs/utils/utils';
+import { SettingsSectionContent } from '@/molecules/Settings/SettingsSectionContent/SettingsSectionContent';
 import type { SettingsSectionCardProps } from './SettingsSectionCard.types';
 
 export function SettingsSectionCard({
@@ -45,12 +46,7 @@ export function SettingsSectionCard({
         </Container>
       )}
       {wrapChildren ? (
-        <Container
-          overrideDefaults
-          className="flex w-full flex-col items-start gap-8 rounded-md border border-border bg-card p-6 shadow-lg md:gap-6"
-        >
-          {children}
-        </Container>
+        <SettingsSectionContent className="flex flex-col items-start gap-8 md:gap-6">{children}</SettingsSectionContent>
       ) : (
         children
       )}

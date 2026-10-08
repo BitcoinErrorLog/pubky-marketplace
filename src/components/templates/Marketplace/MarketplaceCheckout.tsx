@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Banknote, Check, LoaderCircle, WalletCards } from 'lucide-react';
+import { Bitcoin, HandCoins, LoaderCircle, ShoppingCart } from 'lucide-react';
 import { Controller, useWatch } from 'react-hook-form';
 import { APP_ROUTES, getMarketplaceDropRoute, getMarketplaceListingRoute, MARKETPLACE_ROUTES } from '@/app/routes';
 import { Button } from '@/atoms/Button/Button';
@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/atoms/Card/Card';
 import { Checkbox } from '@/atoms/Checkbox/Checkbox';
 import { Container } from '@/atoms/Container/Container';
 import { Heading } from '@/atoms/Heading/Heading';
+import { Image } from '@/atoms/Image/Image';
 import { Label } from '@/atoms/Label/Label';
 import { Link } from '@/atoms/Link/Link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/atoms/Select/Select';
@@ -20,27 +21,23 @@ import { MARKETPLACE_DELIVERY_ADDRESS_DISCLOSURE } from '@/config/commerce-copy'
 import { CommerceController } from '@/controllers/commerce/commerce';
 import { isMarketplaceAwardCheckoutEligible } from '@/core/services/marketplace/marketplace-projections';
 import { useBuyerPaykitWallet } from '@/hooks/useBuyerPaykitWallet/useBuyerPaykitWallet';
-import { useMarketplaceApprovalSigner } from '@/hooks/useMarketplaceApprovalSigner/useMarketplaceApprovalSigner';
 import {
   groupMarketplaceCartItems,
-  type MarketplaceCartGroup,
   type MarketplaceCartItem,
   marketplaceCartShippingTotals,
   useMarketplaceCart,
 } from '@/hooks/useMarketplaceCart/useMarketplaceCart';
 import { useMarketplaceCheckout } from '@/hooks/useMarketplaceCheckout/useMarketplaceCheckout';
 import { marketplaceCheckoutSchema } from '@/hooks/useMarketplaceCheckout/useMarketplaceCheckout.types';
-import { useMarketplaceMediaUrl } from '@/hooks/useMarketplaceMediaUrl/useMarketplaceMediaUrl';
+import { useMarketplaceFirstMediaUrls } from '@/hooks/useMarketplaceMediaUrl/useMarketplaceMediaUrl';
 import { useMarketplaceOfferCheckout } from '@/hooks/useMarketplaceOfferCheckout/useMarketplaceOfferCheckout';
 import { useMarketplaceOffers } from '@/hooks/useMarketplaceOffers/useMarketplaceOffers';
 import { useMarketplaceOrders } from '@/hooks/useMarketplaceOrders/useMarketplaceOrders';
-import { useMarketplaceSellerSummary } from '@/hooks/useMarketplaceSellerSummary/useMarketplaceSellerSummary';
-import { buyerCheckoutProgressCopy, paidOrderHeadline } from '@/libs/commerce/bitcoin-buyer-status';
+import { buyerCheckoutProgressCopy } from '@/libs/commerce/bitcoin-buyer-status';
 import { BITCOIN_PAYMENT_CODE_CHECKOUT_NOTE } from '@/libs/commerce/bitcoin-payment-code';
 import {
   getMarketplaceCheckoutRoute,
   intersectPaymentMethods,
-  isPaidOrLaterState,
   readCheckoutHashOrderId,
 } from '@/libs/commerce/checkout-phase';
 import { DELIVERY_EMAIL_MAX_CHARS, DIGITAL_CHECKOUT_COPY, digitalCheckoutLineLabel } from '@/libs/commerce/digital';
@@ -58,10 +55,15 @@ import { availablePaymentMethods, type PaymentMethodKind } from '@/libs/commerce
 import { getDeployEnv } from '@/libs/runtime-config/runtime-config';
 import type { CommerceListingModelSchema } from '@/models/commerce/commerce.schema';
 import { ControlledInputField } from '@/molecules/ControlledInputField/ControlledInputField';
+import { MarketplaceCheckoutSteps } from '@/molecules/Marketplace/MarketplaceCheckoutSteps';
+import { MarketplacePaymentStatusBadge } from '@/molecules/Marketplace/MarketplacePaymentStatusBadge';
+import { MarketplaceSellerLink } from '@/molecules/Marketplace/MarketplaceSellerLink';
 import { MarketplaceAddressFields } from '@/molecules/MarketplaceAddressFields/MarketplaceAddressFields';
-import { MarketplaceSellerIdentity } from '@/molecules/MarketplaceSellerIdentity/MarketplaceSellerIdentity';
+import { SettingsSectionContent } from '@/molecules/Settings/SettingsSectionContent/SettingsSectionContent';
 import { ContentLayout } from '@/organisms/ContentLayout/ContentLayout';
+import { MarketplaceCheckoutItem } from '@/organisms/Marketplace/MarketplaceCheckoutItem';
 import { MarketplaceIndicativePrice } from '@/organisms/Marketplace/MarketplaceIndicativePrice';
+import { MarketplaceOrderActions } from '@/organisms/Marketplace/MarketplaceOrderActions';
 import { MarketplaceOrderReference } from '@/organisms/Marketplace/MarketplaceOrderReference';
 import { MarketplacePaymentStatusCard } from '@/organisms/Marketplace/MarketplacePaymentStatusCard';
 import { MarketplaceSectionNav } from '@/organisms/Marketplace/MarketplaceSectionNav';
@@ -78,7 +80,7 @@ const CHECKOUT_RAILS = ['bitcoin', 'paypal'] as const;
 type CheckoutRail = (typeof CHECKOUT_RAILS)[number];
 
 const METHOD_COPY: Record<CheckoutRail, string> = {
-  bitcoin: '₿ Bitcoin',
+  bitcoin: 'Bitcoin',
   paypal: 'PayPal',
 };
 
@@ -181,11 +183,13 @@ function MarketplaceCartCheckout() {
   const orders = useMarketplaceOrders();
   const adapterMode = getCommerceAdapterMode();
   const isSandbox = adapterMode === 'sandbox';
-  const approvalSigner = useMarketplaceApprovalSigner();
   const isStaging = getDeployEnv() === 'staging';
   const formValues = useWatch({ control: checkout.form.control });
   const formValid = marketplaceCheckoutSchema.safeParse(formValues).success;
   const displayGroups = useMemo(() => groupMarketplaceCartItems(checkoutItems), [checkoutItems]);
+  const checkoutMediaUrls = useMarketplaceFirstMediaUrls(
+    checkoutItems.map((item) => item.listing.record.media.filter(({ type }) => type === 'image').map(({ url }) => url)),
+  );
   // The award renders as its own fulfillment section (no cart line cards).
   const fulfillmentGroups = awardSeller ? [{ sellerPubky: awardSeller, items: [], subtotals: [] }] : displayGroups;
   const shipping = marketplaceCartShippingTotals(displayGroups, (item) => checkout.fulfillmentForItem(item.id));
@@ -224,7 +228,7 @@ function MarketplaceCartCheckout() {
   const approvalNeeded = isDurableCommerceMode(adapterMode) && (!checkout.hasMarketplaceSession || sessionExpired);
   const [hashOrderId, setHashOrderId] = useState<string | null>(null);
   const [payingOrderIds, setPayingOrderIds] = useState<string[]>([]);
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethodKind | null>(null);
+  const [preferredMethod, setSelectedMethod] = useState<CheckoutRail | null>(null);
   const [loadedMethods, setLoadedMethods] = useState<{
     sellerKey: string;
     attempt: number;
@@ -245,6 +249,11 @@ function MarketplaceCartCheckout() {
   // A failed config read says nothing about the seller's rails; sandbox offers every rail regardless.
   const railsFailed = loadedForCart !== null && loadedForCart.methods === null && !isSandbox;
   const sharedMethods = loadedForCart === null ? null : (loadedForCart.methods ?? []);
+  const availableCheckoutMethods = checkoutRails(isSandbox ? CHECKOUT_RAILS : (sharedMethods ?? []));
+  const selectedMethod =
+    preferredMethod && availableCheckoutMethods.includes(preferredMethod)
+      ? preferredMethod
+      : (availableCheckoutMethods[0] ?? null);
   const isMultiSeller = sellerKey.includes('|');
   const isPaying = isOfferCheckout ? offerPay.isSubmitting : checkout.isPaying;
   const listingRoute = award && getMarketplaceListingRoute(award.listing.sellerPubky, award.listing.listingId);
@@ -280,7 +289,6 @@ function MarketplaceCartCheckout() {
       }
       const next = intersectPaymentMethods(sets);
       setLoadedMethods({ sellerKey, attempt: railAttempt, methods: next });
-      setSelectedMethod((current) => (current && next.includes(current) ? current : (next[0] ?? null)));
     });
     return () => {
       active = false;
@@ -290,6 +298,10 @@ function MarketplaceCartCheckout() {
   const targetPayingIds = [...new Set([...payingOrderIds, ...(hashOrderId ? [hashOrderId] : [])])];
   const focusedPaying = orders.orders.filter((view) => targetPayingIds.includes(view.order.id));
   const showPaying = targetPayingIds.length > 0;
+  const allPaymentsConfirmed =
+    targetPayingIds.length > 0 &&
+    focusedPaying.length === targetPayingIds.length &&
+    focusedPaying.every(({ payment }) => payment?.state === 'confirmed');
   const payingView = focusedPaying[0];
   const payingOrder = payingView?.order;
   const holdCopy = payingOrder ? buyerCheckoutProgressCopy(payingOrder, payingView.payment, nowMs) : null;
@@ -323,9 +335,31 @@ function MarketplaceCartCheckout() {
     (!isOfferCheckout || offerEligible) &&
     (isSandbox || (sharedMethods !== null && sharedMethods.length > 0 && selectedMethod !== null));
 
+  const payDisabledReason = checkout.hasFulfillmentConflict
+    ? "Some items can't be checked out together — see the note above."
+    : !checkout.isDigitalReady
+      ? checkout.digitalNotReadyItemIds.length > 0
+        ? DIGITAL_CHECKOUT_COPY.payReasonNotReady
+        : DIGITAL_CHECKOUT_COPY.payReasonLoading
+      : buyerWalletMissing
+        ? 'Connect Bitkit to pay with Bitcoin, or choose another payment method.'
+        : buyerWalletUnsupported
+          ? bitcoinWalletUnsupportedPayReason(canPayWithPaypal)
+          : buyerWalletUnverified
+            ? bitcoinWalletUnverifiedPayReason(canPayWithPaypal)
+            : buyerWalletChecking
+              ? 'Pay unlocks once your Bitcoin wallet is checked.'
+              : railsFailed
+                ? 'Pay unlocks once payment options load.'
+                : sharedMethods && sharedMethods.length === 0 && !isSandbox
+                  ? isMultiSeller
+                    ? 'Choose sellers that share a payment method.'
+                    : 'Pay unlocks once this seller sets up a payment method.'
+                  : null;
+
   const removeAwardLine = async () => {
     const line = cart.awardItems.find((item) => item.awardId === award?.id);
-    if (line) await cart.remove(line.listingId, line.variantId, line.awardId ?? undefined);
+    if (line) await cart.remove(line.listingId, line.variantId, line.awardId ?? undefined, false);
   };
 
   const payOffer = async () => {
@@ -392,7 +426,8 @@ function MarketplaceCartCheckout() {
       await payOffer();
       return;
     }
-    const method = isSandbox && selectedMethod === null ? null : selectedMethod;
+    // Sandbox creates its simulated payment with the order; it cannot bind a real rail.
+    const method = isSandbox ? null : selectedMethod;
     const result = await checkout.pay(method, () => void pay());
     if (!result.ok) return;
     setPayingOrderIds(result.orderIds);
@@ -415,27 +450,35 @@ function MarketplaceCartCheckout() {
       showLeftMobileButton={false}
       showRightMobileButton={false}
       className="pb-28"
-      classNameWrapperContent="max-w-7xl"
     >
       <Container
         overrideDefaults
-        className="flex w-full flex-col gap-6 px-4 sm:px-6"
+        className="flex w-full flex-col gap-6"
         data-surface="marketplace-checkout"
         data-testid="marketplace-checkout"
       >
         <MarketplaceSectionNav />
-        <Link href={backHref} overrideDefaults className="text-sm text-muted-foreground">
-          {backLabel}
-        </Link>
-        <div>
-          <Heading level={1} size="xl" className="text-4xl sm:text-6xl">
-            Checkout
-          </Heading>
-          <Typography as="p" className="mt-2 text-muted-foreground">
-            {isOfferCheckout && offerEligible && award
-              ? `Checkout window closes ${new Date(award.convertBy).toLocaleString('en-US')}`
-              : 'Address and payment. Nothing is reserved until you pay.'}
-          </Typography>
+        <div className="grid items-end gap-4 md:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="min-w-0">
+            <Heading level={1} size="xl" className="text-4xl sm:text-6xl">
+              Checkout
+            </Heading>
+            <Typography as="p" className="mt-2 text-muted-foreground">
+              {showPaying
+                ? 'Review your items and payment status.'
+                : isOfferCheckout && offerEligible && award
+                  ? `Checkout window closes ${new Date(award.convertBy).toLocaleString('en-US')}`
+                  : `Enter delivery details and choose how to pay.${
+                      checkout.orderCount > 1 ? ' Each order requires a separate payment.' : ''
+                    }`}
+            </Typography>
+          </div>
+          <div className="justify-self-end">
+            <MarketplaceCheckoutSteps
+              currentStep={showPaying || awardOutcome === 'success' ? 3 : 2}
+              completed={allPaymentsConfirmed}
+            />
+          </div>
         </div>
 
         {awardOutcome && isOfferCheckout ? (
@@ -448,16 +491,22 @@ function MarketplaceCartCheckout() {
           />
         ) : showPaying ? (
           <div className="grid gap-4" data-testid="marketplace-checkout-paying">
-            {holdCopy && (
-              <Typography as="p" className="rounded-xl border bg-card/60 px-4 py-3 text-sm">
-                {holdCopy}
-              </Typography>
-            )}
+            {holdCopy &&
+              !allPaymentsConfirmed &&
+              !(
+                payingOrder?.state === 'pending_payment' &&
+                payingOrder.paymentMethod === 'paypal' &&
+                payingView?.payment?.state === 'awaiting_entitlement'
+              ) && (
+                <Typography as="p" className="rounded-md bg-card/60 px-4 py-3 text-sm">
+                  {holdCopy}
+                </Typography>
+              )}
             {orders.isLoading && focusedPaying.length === 0 ? (
               <Skeleton className="h-40 w-full" aria-label="Loading checkout" />
             ) : focusedPaying.length === 0 ? (
-              <Card className="border">
-                <CardContent className="grid gap-3 px-6">
+              <Card className="rounded-md p-0">
+                <CardContent className="grid gap-3 p-6">
                   <Typography as="p">This checkout is no longer waiting for payment.</Typography>
                   <Button asChild className="w-fit rounded-full">
                     <Link href={MARKETPLACE_ROUTES.ORDERS} overrideDefaults>
@@ -468,32 +517,65 @@ function MarketplaceCartCheckout() {
               </Card>
             ) : (
               focusedPaying.map(({ order, payment }) => (
-                <Card key={order.id} className="border">
-                  <CardContent className="grid min-w-0 gap-4 px-6">
-                    {isPaidOrLaterState(order.state) ? (
-                      <Typography as="p" data-testid="marketplace-checkout-paid-headline">
-                        {paidOrderHeadline(order, payment)}
-                      </Typography>
-                    ) : null}
-                    <MarketplaceOrderReference order={order} isBuyer />
-                    <MarketplacePaymentStatusCard
+                <Card className="rounded-md p-0" key={order.id}>
+                  <CardContent className="grid min-w-0 gap-4 p-6">
+                    <MarketplaceOrderReference
                       order={order}
-                      payment={payment}
                       isBuyer
-                      adapterMode={adapterMode}
-                      advancePayment={orders.advancePayment}
-                      onPaymentChanged={orders.refresh}
+                      status={
+                        payment?.state === 'confirmed' ? (
+                          <MarketplacePaymentStatusBadge order={order} payment={payment} />
+                        ) : undefined
+                      }
                     />
+                    {order.lines.map((line, index) => (
+                      <MarketplaceCheckoutItem
+                        key={`${line.listingAggregateId}:${line.variantId ?? index}`}
+                        line={line}
+                      />
+                    ))}
+                    {payment?.state !== 'confirmed' && (
+                      <MarketplacePaymentStatusCard
+                        order={order}
+                        payment={payment}
+                        isBuyer
+                        adapterMode={adapterMode}
+                        advancePayment={orders.advancePayment}
+                        onPaymentChanged={orders.refresh}
+                        showStagingNotice={false}
+                        checkoutActions={
+                          order.state === 'pending_payment' && order.paymentMethod === 'paypal' ? (
+                            <MarketplaceOrderActions
+                              order={order}
+                              isBuyer
+                              canEditReview={false}
+                              cancelButtonSize="default"
+                              actOnOrder={orders.actOnOrder}
+                              onChanged={orders.refresh}
+                            />
+                          ) : undefined
+                        }
+                      />
+                    )}
                   </CardContent>
                 </Card>
               ))
+            )}
+            {isStaging && !isSandbox && (
+              <Typography
+                as="p"
+                role="note"
+                className="rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-200"
+              >
+                Staging environment. No real funds move.
+              </Typography>
             )}
           </div>
         ) : cart.isLoading || (isOfferCheckout && offers.isLoading) || dropLoadState === 'loading' ? (
           <MarketplaceCartSkeleton />
         ) : isOfferCheckout && !offerEligible ? (
-          <Card className="border">
-            <CardContent className="grid gap-3 px-6">
+          <Card className="rounded-md p-0">
+            <CardContent className="grid gap-3 p-6">
               <Heading level={2} size="lg">
                 Checkout unavailable
               </Heading>
@@ -504,7 +586,7 @@ function MarketplaceCartCheckout() {
             </CardContent>
           </Card>
         ) : dropLoadState === 'missing' || (!isOfferCheckout && checkoutItems.length === 0) ? (
-          <div className="flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed text-center">
+          <div className="flex min-h-64 flex-col items-center justify-center rounded-md text-center">
             <Heading level={2} size="md">
               Nothing to check out
             </Heading>
@@ -541,7 +623,6 @@ function MarketplaceCartCheckout() {
                     aria-label={`Items from ${group.sellerPubky}`}
                     data-surface={isPickupGroup ? 'checkout-pickup-group' : undefined}
                   >
-                    {fulfillmentGroups.length > 1 && <MarketplaceCheckoutSellerHeader group={group} />}
                     {isPickupCapabilityLoading ? (
                       <Skeleton
                         className="h-16 w-full"
@@ -550,7 +631,7 @@ function MarketplaceCartCheckout() {
                       />
                     ) : null}
                     {!isPickupCapabilityLoading && fulfillmentOptions.length > 1 && fulfillment && (
-                      <div className="flex flex-wrap items-center gap-3 rounded-xl border bg-card/60 px-4 py-3">
+                      <div className="flex flex-wrap items-center gap-3 rounded-md bg-card/60 px-4 py-3">
                         <Label htmlFor={`fulfillment-${group.sellerPubky}`}>Fulfillment</Label>
                         <Select
                           value={fulfillment}
@@ -561,8 +642,9 @@ function MarketplaceCartCheckout() {
                           }}
                         >
                           <SelectTrigger
+                            theme="secondary"
                             id={`fulfillment-${group.sellerPubky}`}
-                            className="h-11 w-56 rounded-md border px-3"
+                            className="w-56"
                             aria-label={`Fulfillment for items from ${group.sellerPubky}`}
                           >
                             <SelectValue />
@@ -579,10 +661,7 @@ function MarketplaceCartCheckout() {
                       </div>
                     )}
                     {!isPickupCapabilityLoading && isPickupGroup && (
-                      <Typography
-                        as="p"
-                        className="rounded-xl border bg-card/60 px-4 py-3 text-sm text-muted-foreground"
-                      >
+                      <Typography as="p" className="rounded-md bg-card/60 px-4 py-3 text-sm text-muted-foreground">
                         Local pickup — no delivery address or shipping for these items. The meeting point is revealed
                         after payment confirms.
                       </Typography>
@@ -594,7 +673,7 @@ function MarketplaceCartCheckout() {
                         <Typography
                           as="p"
                           role="alert"
-                          className="rounded-xl border border-destructive/40 px-4 py-3 text-sm"
+                          className="rounded-md border border-destructive/40 px-4 py-3 text-sm"
                         >
                           {isOfferCheckout
                             ? 'This listing is local pickup only, and pickup is unavailable on this deployment right now.'
@@ -610,19 +689,39 @@ function MarketplaceCartCheckout() {
                         item.listing.record.ownerPubky,
                         item.listing.listing_id,
                       );
+                      const coverUrl = checkoutMediaUrls[checkoutItems.findIndex(({ id }) => id === item.id)] ?? null;
+                      const variantLabel = variant ? Object.values(variant.options).filter(Boolean).join(' · ') : '';
                       return (
-                        <Card key={item.id} className="border py-4">
-                          <CardContent className="flex items-center gap-4 px-4">
+                        <Card key={item.id} className="rounded-md p-0">
+                          <CardContent className="flex flex-wrap items-center gap-4 p-6">
+                            <Link href={listingRoute} overrideDefaults aria-label={`View ${item.listing.record.title}`}>
+                              <div className="relative flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-brand/15">
+                                <ShoppingCart className="size-7 text-brand" />
+                                {coverUrl && (
+                                  <Image
+                                    src={coverUrl}
+                                    alt={item.listing.record.title}
+                                    fill
+                                    sizes="80px"
+                                    className="absolute inset-0 object-cover object-center"
+                                  />
+                                )}
+                              </div>
+                            </Link>
                             <div className="min-w-0 flex-1">
                               <Typography as="h2" className="truncate font-semibold">
-                                <Link href={listingRoute} overrideDefaults className="hover:text-brand hover:underline">
+                                <Link href={listingRoute} overrideDefaults className="hover:text-brand">
                                   {item.listing.record.title}
                                 </Link>
                               </Typography>
-                              <Typography as="p" className="text-sm text-muted-foreground">
-                                {variant ? Object.values(variant.options).join(' · ') || 'Default' : 'Default'} · Qty{' '}
-                                {item.quantity}
-                              </Typography>
+                              <MarketplaceSellerLink sellerPubky={group.sellerPubky} />
+                              {(variantLabel || item.quantity > 1) && (
+                                <Typography as="p" className="text-sm text-muted-foreground">
+                                  {variantLabel}
+                                  {variantLabel && item.quantity > 1 ? ' · ' : ''}
+                                  {item.quantity > 1 ? `Quantity ${item.quantity}` : ''}
+                                </Typography>
+                              )}
                               {price && (
                                 <Typography as="p" className="mt-1 font-bold text-brand">
                                   {formatCommerceMoney(price)}{' '}
@@ -646,7 +745,8 @@ function MarketplaceCartCheckout() {
                                 onValueChange={(value) => checkout.setDigitalChoice(item.id, value === 'digital')}
                               >
                                 <SelectTrigger
-                                  className="h-10 w-44 shrink-0 rounded-md border px-3"
+                                  theme="secondary"
+                                  className="w-full shrink-0 sm:w-44"
                                   aria-label={`Delivery for ${item.listing.record.title}`}
                                 >
                                   <SelectValue />
@@ -665,458 +765,423 @@ function MarketplaceCartCheckout() {
                 );
               })}
 
-              <Card className="h-fit border">
-                <CardContent className="grid gap-6 px-6">
-                  <section className="grid gap-3" aria-label={`Approve in ${approvalSigner}`}>
-                    <Heading level={2} size="sm" className="text-xl font-semibold">
-                      Approve in {approvalSigner}
-                    </Heading>
-                    {approvalNeeded ? (
-                      <MarketplaceSessionRequiredCard />
-                    ) : (
-                      <div className="flex items-start gap-3 rounded-xl border px-4 py-3">
-                        <Check className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden />
-                        <Typography as="p" className="text-sm text-muted-foreground">
-                          {isSandbox
-                            ? `Sandbox checkout does not need a ${approvalSigner} approval.`
-                            : `Purchases approved in ${approvalSigner}. This session stays on this device until it expires or you sign out.`}
-                        </Typography>
-                      </div>
-                    )}
-                  </section>
-                </CardContent>
-              </Card>
+              {approvalNeeded && <MarketplaceSessionRequiredCard />}
 
               {checkout.requiresDeliveryAddress && (
-                <section className="grid gap-4" aria-label="Delivery address">
+                <section className="grid min-w-0 gap-6 rounded-md bg-card p-6 shadow-lg" aria-label="Delivery address">
                   <Heading level={2} size="sm" className="text-xl font-semibold">
                     Delivery address
                   </Heading>
-                  {checkout.addresses.length > 0 && (
-                    <div className="grid gap-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <Label htmlFor="checkout-address-picker">Saved addresses</Label>
-                        <Link
-                          href={MARKETPLACE_ROUTES.SETTINGS_ADDRESSES}
-                          overrideDefaults
-                          className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+                  <SettingsSectionContent>
+                    {checkout.addresses.length > 0 && (
+                      <div className="grid gap-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <Label htmlFor="checkout-address-picker">Saved addresses</Label>
+                          <Link
+                            href={MARKETPLACE_ROUTES.SETTINGS_ADDRESSES}
+                            overrideDefaults
+                            className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+                          >
+                            Manage
+                          </Link>
+                        </div>
+                        <Select
+                          value={checkout.selectedAddressId ?? 'new'}
+                          onValueChange={(value) => checkout.selectAddress(value === 'new' ? null : value)}
                         >
-                          Manage
-                        </Link>
+                          <SelectTrigger theme="secondary" id="checkout-address-picker" className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {checkout.addresses.map((address) => (
+                              <SelectItem key={address.id} value={address.id}>
+                                {address.label} · {address.city}
+                                {address.is_default ? ' (default)' : ''}
+                              </SelectItem>
+                            ))}
+                            <SelectItem value="new">New address</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
-                      <Select
-                        value={checkout.selectedAddressId ?? 'new'}
-                        onValueChange={(value) => checkout.selectAddress(value === 'new' ? null : value)}
-                      >
-                        <SelectTrigger id="checkout-address-picker" className="h-11 w-full rounded-md border px-3">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {checkout.addresses.map((address) => (
-                            <SelectItem key={address.id} value={address.id}>
-                              {address.label} · {address.city}
-                              {address.is_default ? ' (default)' : ''}
-                            </SelectItem>
-                          ))}
-                          <SelectItem value="new">New address</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                  <Typography as="p" className="rounded-xl border bg-card/60 px-4 py-3 text-sm text-muted-foreground">
-                    {MARKETPLACE_DELIVERY_ADDRESS_DISCLOSURE}
-                  </Typography>
-                  <ControlledInputField name="name" control={checkout.form.control} label="Recipient" />
-                  <MarketplaceAddressFields control={checkout.form.control} setValue={checkout.form.setValue} />
-                  {checkout.selectedAddressId === null && (
-                    <div className="grid gap-3 rounded-xl border bg-card/60 p-3">
-                      <Controller
-                        name="saveAddress"
-                        control={checkout.form.control}
-                        render={({ field }) => (
-                          <Label className="items-start gap-3">
-                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                            <span>Save this address on this device for next time</span>
-                          </Label>
-                        )}
-                      />
-                      {checkout.form.watch('saveAddress') && (
-                        <ControlledInputField
-                          name="saveLabel"
-                          control={checkout.form.control}
-                          label="Label"
-                          placeholder="Home"
-                        />
+                    )}
+                    <ControlledInputField name="name" control={checkout.form.control} label="Full name" />
+                    <MarketplaceAddressFields control={checkout.form.control} setValue={checkout.form.setValue} />
+                    <div className="grid gap-4">
+                      <Typography as="p" className="text-sm text-muted-foreground">
+                        {MARKETPLACE_DELIVERY_ADDRESS_DISCLOSURE}
+                      </Typography>
+                      {checkout.selectedAddressId === null && (
+                        <div className="grid gap-3">
+                          <Controller
+                            name="saveAddress"
+                            control={checkout.form.control}
+                            render={({ field }) => (
+                              <Label className="items-start gap-3">
+                                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                <span>Save this address on this device for next time</span>
+                              </Label>
+                            )}
+                          />
+                          {checkout.form.watch('saveAddress') && (
+                            <ControlledInputField
+                              name="saveLabel"
+                              control={checkout.form.control}
+                              label="Label"
+                              placeholder="Home"
+                            />
+                          )}
+                        </div>
                       )}
                     </div>
-                  )}
+                  </SettingsSectionContent>
                 </section>
               )}
 
               {checkout.requiresDeliveryEmail && (
                 <section
-                  className="grid gap-4"
+                  className="grid min-w-0 gap-6 rounded-md bg-card p-6 shadow-lg"
                   aria-label={DIGITAL_CHECKOUT_COPY.emailHeading}
                   data-surface="checkout-delivery-email"
                 >
                   <Heading level={2} size="sm" className="text-xl font-semibold">
                     {DIGITAL_CHECKOUT_COPY.emailHeading}
                   </Heading>
-                  <Typography as="p" className="rounded-xl border bg-card/60 px-4 py-3 text-sm text-muted-foreground">
+                  <Typography as="p" className="rounded-md bg-card/60 px-4 py-3 text-sm text-muted-foreground">
                     {DIGITAL_CHECKOUT_COPY.emailDisclosure}
                   </Typography>
-                  <ControlledInputField
-                    name="deliveryEmail"
-                    control={checkout.form.control}
-                    label="Email"
-                    placeholder="you@example.com"
-                    maxLength={DELIVERY_EMAIL_MAX_CHARS}
-                  />
+                  <SettingsSectionContent>
+                    <ControlledInputField
+                      name="deliveryEmail"
+                      control={checkout.form.control}
+                      label="Email"
+                      placeholder="you@example.com"
+                      maxLength={DELIVERY_EMAIL_MAX_CHARS}
+                    />
+                  </SettingsSectionContent>
                 </section>
               )}
             </div>
 
-            <Card
-              className="h-fit border lg:col-start-2 lg:row-start-1 lg:self-start"
-              data-testid="marketplace-checkout-summary"
-            >
-              <CardContent className="grid gap-6 px-6">
-                <section className="grid gap-3" aria-label="Pay">
-                  <Heading level={2} size="sm" className="text-xl font-semibold">
-                    Pay
-                  </Heading>
-                  <div className="flex justify-between">
-                    <Typography as="span">{isOfferCheckout ? 'Subtotal' : 'Items'}</Typography>
-                    <div className="flex flex-col items-end">
-                      {itemSubtotals.map((subtotal) => (
-                        <Typography key={`${subtotal.currency}:${subtotal.exponent}`} as="span" className="font-bold">
-                          {formatCommerceMoney(subtotal)}{' '}
-                          <MarketplaceIndicativePrice money={subtotal} className="font-normal" />
-                        </Typography>
-                      ))}
-                    </div>
-                  </div>
-                  {shippingTotals.length > 0 && (
-                    <div className="flex justify-between">
-                      <Typography as="span">Shipping</Typography>
-                      <div className="flex flex-col items-end">
-                        {shippingTotals.map((subtotal) => (
-                          <Typography key={`${subtotal.currency}:${subtotal.exponent}`} as="span" className="font-bold">
-                            {formatCommerceMoney(subtotal)}{' '}
-                            <MarketplaceIndicativePrice money={subtotal} className="font-normal" />
+            <div className="grid min-w-0 gap-4 lg:col-start-2 lg:row-start-1 lg:self-start">
+              <Card className="h-fit rounded-md p-0 shadow-lg" data-testid="marketplace-checkout-summary">
+                <CardContent className="grid min-w-0 gap-6 p-6">
+                  <section className="grid min-w-0 gap-6" aria-label="Order summary">
+                    <Heading level={2} size="sm" className="text-xl font-semibold">
+                      Order summary
+                    </Heading>
+                    <SettingsSectionContent>
+                      <div className="grid gap-6">
+                        <div className="flex justify-between">
+                          <Typography as="span">Items</Typography>
+                          <div className="flex flex-col items-end">
+                            {itemSubtotals.map((subtotal) => (
+                              <Typography
+                                key={`${subtotal.currency}:${subtotal.exponent}`}
+                                as="span"
+                                className="flex flex-col items-end font-bold"
+                              >
+                                {formatCommerceMoney(subtotal)}
+                                <MarketplaceIndicativePrice money={subtotal} className="font-normal" />
+                              </Typography>
+                            ))}
+                          </div>
+                        </div>
+                        <hr className="m-0 border-border" />
+                        <div className="grid gap-1">
+                          <div className="flex justify-between">
+                            <Typography as="span" className="text-foreground">
+                              Shipping
+                            </Typography>
+                            {shippingTotals.length > 0 && (
+                              <div className="flex flex-col items-end">
+                                {shippingTotals.map((subtotal) => (
+                                  <Typography
+                                    key={`${subtotal.currency}:${subtotal.exponent}`}
+                                    as="span"
+                                    className="flex flex-col items-end font-bold"
+                                  >
+                                    {formatCommerceMoney(subtotal)}
+                                    <MarketplaceIndicativePrice money={subtotal} className="font-normal" />
+                                  </Typography>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          {(shipping.hasCalculatedShipping || shippingTotals.length === 0 || allPickup || allDigital) && (
+                            <Typography as="p" className="text-xs text-muted-foreground">
+                              {shipping.hasCalculatedShipping || checkout.requiresDeliveryAddress
+                                ? 'Shipping is calculated at checkout.'
+                                : allPickup
+                                  ? 'No shipping — pickup is arranged with the seller after payment.'
+                                  : allDigital
+                                    ? DIGITAL_CHECKOUT_COPY.noShippingDigital
+                                    : DIGITAL_CHECKOUT_COPY.noShippingMixed}
+                            </Typography>
+                          )}
+                        </div>
+                        <hr className="m-0 border-border" />
+                        <div className="flex justify-between">
+                          <Typography as="span" className="font-semibold">
+                            {isOfferCheckout ? 'Merchandise total' : 'Total'}
                           </Typography>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  <div className="flex justify-between border-t pt-3">
-                    <Typography as="span" className="font-semibold">
-                      {isOfferCheckout ? 'Merchandise total' : 'Total'}
-                    </Typography>
-                    <div className="flex flex-col items-end">
-                      {totalSubtotals.map((subtotal) => (
-                        <Typography key={`${subtotal.currency}:${subtotal.exponent}`} as="span" className="font-bold">
-                          {formatCommerceMoney(subtotal)}{' '}
-                          <MarketplaceIndicativePrice money={subtotal} className="font-normal" />
-                        </Typography>
-                      ))}
-                    </div>
-                  </div>
-                  <Typography as="p" className="text-xs text-muted-foreground">
-                    {shipping.hasCalculatedShipping
-                      ? 'Shipping calculated at checkout for the items that ship.'
-                      : shipping.totals.length > 0
-                        ? 'Shipping is shown from each seller’s configured flat or free option.'
-                        : checkout.requiresDeliveryAddress
-                          ? 'Shipping is calculated authoritatively at checkout for the items that ship.'
-                          : allPickup
-                            ? 'No shipping — pickup is arranged with the seller after payment.'
-                            : allDigital
-                              ? DIGITAL_CHECKOUT_COPY.noShippingDigital
-                              : DIGITAL_CHECKOUT_COPY.noShippingMixed}
-                  </Typography>
-                  {checkout.orderCount > 1 && (
-                    <Typography as="p" className="text-xs text-muted-foreground">
-                      This starts {checkout.orderCount} checkouts — one per seller and delivery method.
-                    </Typography>
-                  )}
-                  {isStaging && (
-                    <Typography
-                      as="p"
-                      role="note"
-                      className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-200"
-                    >
-                      Staging environment — test rails, no real funds move
-                    </Typography>
-                  )}
-                  <div className="grid gap-2">
-                    <Typography as="p" className="font-medium">
-                      Payment method
-                    </Typography>
-                    {railsFailed ? (
-                      <div role="alert" className="flex flex-wrap items-center gap-3">
-                        <Typography as="p" className="text-sm text-muted-foreground">
-                          Couldn&apos;t load payment options.
-                        </Typography>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="secondary"
-                          className="rounded-full"
-                          data-testid="marketplace-checkout-methods-retry"
-                          onClick={() => setRailAttempt((attempt) => attempt + 1)}
-                        >
-                          Retry
-                        </Button>
-                      </div>
-                    ) : sharedMethods === null ? (
-                      <Skeleton className="h-11 w-full" aria-label="Loading payment methods" />
-                    ) : sharedMethods.length === 0 && !isSandbox ? (
-                      <Typography as="p" role="alert" className="text-sm text-muted-foreground">
-                        {isMultiSeller
-                          ? 'These sellers do not share a payment method, so Pay stays disabled. Remove a seller in the cart or ask them to add a shared rail.'
-                          : "This seller hasn't set up a payment method this cart can use, so Pay stays disabled. Message the seller to ask them to add one."}
-                      </Typography>
-                    ) : (
-                      <div className="flex flex-wrap gap-2">
-                        {checkoutRails(isSandbox ? CHECKOUT_RAILS : sharedMethods).map((method) => (
-                          <Button
-                            key={method}
-                            type="button"
-                            size="sm"
-                            variant={selectedMethod === method ? 'default' : 'secondary'}
-                            className="rounded-full"
-                            data-testid={`marketplace-checkout-method-${method}`}
-                            onClick={() => setSelectedMethod(method)}
-                          >
-                            {method === 'bitcoin' && <WalletCards className="mr-2 size-4" />}
-                            {method === 'paypal' && <Banknote className="mr-2 size-4" />}
-                            {METHOD_COPY[method]}
-                          </Button>
-                        ))}
-                      </div>
-                    )}
-                    {bitcoinSelected && (
-                      <Typography
-                        as="p"
-                        className="text-xs text-muted-foreground"
-                        data-testid="marketplace-checkout-bitcoin-amount-note"
-                      >
-                        {BITCOIN_PAYMENT_CODE_CHECKOUT_NOTE}
-                      </Typography>
-                    )}
-                    {buyerWalletChecking && (
-                      <Typography as="p" aria-live="polite" className="text-xs text-muted-foreground">
-                        Checking your Bitcoin wallet…
-                      </Typography>
-                    )}
-                    {buyerWalletMissing && (
-                      <div
-                        role="alert"
-                        className="grid gap-2 rounded-xl border bg-card/60 p-4"
-                        data-testid="marketplace-checkout-bitkit-required"
-                      >
-                        <Typography as="p" className="text-sm font-medium">
-                          Connect Bitkit to pay with Bitcoin
-                        </Typography>
-                        <Typography as="p" className="text-xs text-muted-foreground">
-                          Bitcoin payments arrive in your Paykit wallet as a payment request. This account has no Paykit
-                          wallet that can receive one yet. Connect Bitkit to this Pubky account, then check again.
-                          {canPayWithPaypal ? ' You can also pay with PayPal.' : ''}
-                        </Typography>
-                        <div>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="secondary"
-                            className="rounded-full"
-                            data-testid="marketplace-checkout-bitkit-recheck"
-                            onClick={buyerWallet.recheck}
-                          >
-                            Check again
-                          </Button>
+                          <div className="flex flex-col items-end">
+                            {totalSubtotals.map((subtotal) => (
+                              <Typography
+                                key={`${subtotal.currency}:${subtotal.exponent}`}
+                                as="span"
+                                className="flex flex-col items-end font-bold"
+                              >
+                                {formatCommerceMoney(subtotal)}
+                                <MarketplaceIndicativePrice money={subtotal} className="font-normal" />
+                              </Typography>
+                            ))}
+                          </div>
                         </div>
                       </div>
-                    )}
-                    {buyerWalletUnsupported && (
-                      <div
-                        role="alert"
-                        className="grid gap-2 rounded-xl border bg-card/60 p-4"
-                        data-testid="marketplace-checkout-bitkit-unsupported"
-                      >
-                        <Typography as="p" className="text-sm font-medium">
-                          {BITCOIN_WALLET_UNSUPPORTED_TITLE}
-                        </Typography>
-                        <Typography as="p" className="text-xs text-muted-foreground">
-                          {bitcoinWalletUnsupportedBody(canPayWithPaypal)}
-                        </Typography>
-                      </div>
-                    )}
-                    {buyerWalletUnverified && (
-                      <div
-                        role="alert"
-                        className="grid gap-2 rounded-xl border bg-card/60 p-4"
-                        data-testid="marketplace-checkout-bitkit-unverified"
-                      >
-                        <Typography as="p" className="text-sm font-medium">
-                          {BITCOIN_WALLET_UNVERIFIED_TITLE}
-                        </Typography>
-                        <Typography as="p" className="text-xs text-muted-foreground">
-                          {bitcoinWalletUnverifiedBody(canPayWithPaypal)}
-                        </Typography>
-                        <div>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="secondary"
-                            className="rounded-full"
-                            data-testid="marketplace-checkout-bitkit-unverified-recheck"
-                            onClick={buyerWallet.recheck}
-                          >
-                            Check again
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  {checkout.hasInstantDigitalLine && (
-                    <Typography as="p" className="text-xs text-muted-foreground" data-testid="checkout-consent-instant">
-                      {DIGITAL_CHECKOUT_COPY.consentInstant}
-                    </Typography>
-                  )}
-                  {checkout.hasManualDigitalLine && (
-                    <Typography as="p" className="text-xs text-muted-foreground" data-testid="checkout-consent-manual">
-                      {DIGITAL_CHECKOUT_COPY.consentManual}
-                    </Typography>
-                  )}
-                  <Button
-                    className="w-full rounded-full"
-                    onClick={() => void pay()}
-                    disabled={!canPay}
-                    data-testid="marketplace-checkout-pay"
-                    aria-describedby={!canPay && !approvalNeeded ? 'checkout-pay-reason' : undefined}
+                    </SettingsSectionContent>
+                  </section>
+                  <section
+                    className="grid min-w-0 gap-6"
+                    aria-label="Payment method"
+                    data-testid="marketplace-checkout-payment-method"
                   >
-                    {isPaying ? (
-                      <>
-                        <LoaderCircle className="mr-2 size-4 animate-spin" />
-                        Paying
-                      </>
-                    ) : isSandbox ? (
-                      'Pay sandbox'
-                    ) : (
-                      'Pay'
-                    )}
-                  </Button>
-                  {!isStaging && !isSandbox && (
-                    <Typography as="p" className="text-xs text-muted-foreground">
-                      Paid directly to the seller.
-                    </Typography>
-                  )}
-                  {!canPay && !approvalNeeded && (
-                    <Typography id="checkout-pay-reason" as="p" className="text-xs text-muted-foreground">
-                      {checkout.hasFulfillmentConflict
-                        ? "Some items can't be checked out together — see the note above."
-                        : !checkout.isDigitalReady
-                          ? checkout.digitalNotReadyItemIds.length > 0
-                            ? DIGITAL_CHECKOUT_COPY.payReasonNotReady
-                            : DIGITAL_CHECKOUT_COPY.payReasonLoading
-                          : buyerWalletMissing
-                            ? 'Connect Bitkit to pay with Bitcoin, or choose another payment method.'
-                            : buyerWalletUnsupported
-                              ? bitcoinWalletUnsupportedPayReason(canPayWithPaypal)
-                              : buyerWalletUnverified
-                                ? bitcoinWalletUnverifiedPayReason(canPayWithPaypal)
-                                : buyerWalletChecking
-                                  ? 'Pay unlocks once your Bitcoin wallet is checked.'
-                                  : railsFailed
-                                    ? 'Pay unlocks once payment options load.'
-                                    : sharedMethods && sharedMethods.length === 0 && !isSandbox
-                                      ? isMultiSeller
-                                        ? 'Choose sellers that share a payment method.'
-                                        : 'Pay unlocks once this seller sets up a payment method.'
-                                      : 'Fill in delivery details, accept the guarantee, and choose a payment method to pay.'}
-                    </Typography>
-                  )}
-                </section>
-                <section className="grid gap-4 border-t pt-4" aria-label="Guarantee">
-                  <Heading level={2} size="sm" className="text-xl font-semibold">
-                    Guarantee
-                  </Heading>
-                  {allPickup && (
-                    <div className="rounded-xl border bg-card/60 p-4">
-                      <Typography as="p" className="text-sm font-medium">
-                        Local pickup
-                      </Typography>
-                      <Typography as="p" className="mt-1 text-xs text-muted-foreground">
-                        No delivery address is needed — every item here is collected in person. The seller&apos;s
-                        meeting point is revealed as soon as your payment confirms.
-                      </Typography>
-                    </div>
-                  )}
-                  <Controller
-                    name="acceptsGuarantee"
-                    control={checkout.form.control}
-                    render={({ field, fieldState }) => (
-                      <div className="grid gap-2">
-                        <Label className="items-start gap-3">
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            onBlur={field.onBlur}
-                            aria-invalid={fieldState.error ? true : undefined}
-                          />
-                          <span>
-                            {isSandbox
-                              ? 'I accept sandbox guarantee policy v1. This is not legal escrow and moves no real funds.'
-                              : isLocksPaykitCommerceMode(adapterMode)
-                                ? 'I accept guarantee policy v1. This is not legal escrow — payment goes from your wallet directly to the seller, and this marketplace never holds funds.'
-                                : 'I accept guarantee policy v1. This is not legal escrow, and no payment rails are live in this deployment — no real funds move.'}
-                          </span>
-                        </Label>
-                        {fieldState.error && (
-                          <Typography as="p" role="alert" className="text-sm text-destructive">
-                            {fieldState.error.message}
+                    <Heading level={2} size="sm" className="text-xl font-semibold">
+                      Payment method
+                    </Heading>
+                    <SettingsSectionContent>
+                      {railsFailed ? (
+                        <div role="alert" className="flex flex-wrap items-center gap-3">
+                          <Typography as="p" className="text-sm text-muted-foreground">
+                            Couldn&apos;t load payment options.
                           </Typography>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            className="rounded-full"
+                            data-testid="marketplace-checkout-methods-retry"
+                            onClick={() => setRailAttempt((attempt) => attempt + 1)}
+                          >
+                            Retry
+                          </Button>
+                        </div>
+                      ) : sharedMethods === null ? (
+                        <Skeleton className="h-11 w-full" aria-label="Loading payment methods" />
+                      ) : sharedMethods.length === 0 && !isSandbox ? (
+                        <Typography as="p" role="alert" className="text-sm text-muted-foreground">
+                          {isMultiSeller
+                            ? 'These sellers do not share a payment method, so Pay stays disabled. Remove a seller in the cart or ask them to add a shared rail.'
+                            : "This seller hasn't set up a payment method this cart can use, so Pay stays disabled. Message the seller to ask them to add one."}
+                        </Typography>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-3" role="group" aria-label="Payment method">
+                          {availableCheckoutMethods.map((method) => (
+                            <Button
+                              key={method}
+                              type="button"
+                              variant={selectedMethod === method ? 'default' : 'secondary'}
+                              className="h-20 w-full gap-3 rounded-md px-4 text-base"
+                              aria-pressed={selectedMethod === method}
+                              data-testid={`marketplace-checkout-method-${method}`}
+                              onClick={() => setSelectedMethod(method)}
+                            >
+                              {method === 'bitcoin' && <Bitcoin className="size-6" aria-hidden="true" />}
+                              {method === 'paypal' && <HandCoins className="size-6" aria-hidden="true" />}
+                              {METHOD_COPY[method]}
+                            </Button>
+                          ))}
+                        </div>
+                      )}
+                      {bitcoinSelected && (
+                        <Typography
+                          as="p"
+                          className="text-xs text-muted-foreground"
+                          data-testid="marketplace-checkout-bitcoin-amount-note"
+                        >
+                          {BITCOIN_PAYMENT_CODE_CHECKOUT_NOTE}
+                        </Typography>
+                      )}
+                      {buyerWalletChecking && (
+                        <Typography as="p" aria-live="polite" className="text-xs text-muted-foreground">
+                          Checking your Bitcoin wallet…
+                        </Typography>
+                      )}
+                      {buyerWalletMissing && (
+                        <div
+                          role="alert"
+                          className="grid gap-2 rounded-md border bg-card/60 p-6"
+                          data-testid="marketplace-checkout-bitkit-required"
+                        >
+                          <Typography as="p" className="text-sm font-medium">
+                            Connect Bitkit to pay with Bitcoin
+                          </Typography>
+                          <Typography as="p" className="text-xs text-muted-foreground">
+                            Bitcoin payments arrive in your Paykit wallet as a payment request. This account has no
+                            Paykit wallet that can receive one yet. Connect Bitkit to this Pubky account, then check
+                            again.
+                            {canPayWithPaypal ? ' You can also pay with PayPal.' : ''}
+                          </Typography>
+                          <div>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="secondary"
+                              className="rounded-full"
+                              data-testid="marketplace-checkout-bitkit-recheck"
+                              onClick={buyerWallet.recheck}
+                            >
+                              Check again
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      {buyerWalletUnsupported && (
+                        <div
+                          role="alert"
+                          className="grid gap-2 rounded-xl border bg-card/60 p-4"
+                          data-testid="marketplace-checkout-bitkit-unsupported"
+                        >
+                          <Typography as="p" className="text-sm font-medium">
+                            {BITCOIN_WALLET_UNSUPPORTED_TITLE}
+                          </Typography>
+                          <Typography as="p" className="text-xs text-muted-foreground">
+                            {bitcoinWalletUnsupportedBody(canPayWithPaypal)}
+                          </Typography>
+                        </div>
+                      )}
+                      {buyerWalletUnverified && (
+                        <div
+                          role="alert"
+                          className="grid gap-2 rounded-xl border bg-card/60 p-4"
+                          data-testid="marketplace-checkout-bitkit-unverified"
+                        >
+                          <Typography as="p" className="text-sm font-medium">
+                            {BITCOIN_WALLET_UNVERIFIED_TITLE}
+                          </Typography>
+                          <Typography as="p" className="text-xs text-muted-foreground">
+                            {bitcoinWalletUnverifiedBody(canPayWithPaypal)}
+                          </Typography>
+                          <div>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="secondary"
+                              className="rounded-full"
+                              data-testid="marketplace-checkout-bitkit-unverified-recheck"
+                              onClick={buyerWallet.recheck}
+                            >
+                              Check again
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      <div className="grid gap-3" data-testid="marketplace-checkout-guarantee">
+                        {allPickup && (
+                          <div className="rounded-md bg-card/60 p-6">
+                            <Typography as="p" className="text-sm font-medium">
+                              Local pickup
+                            </Typography>
+                            <Typography as="p" className="mt-1 text-xs text-muted-foreground">
+                              No delivery address is needed — every item here is collected in person. The seller&apos;s
+                              meeting point is revealed as soon as your payment confirms.
+                            </Typography>
+                          </div>
                         )}
+                        <Controller
+                          name="acceptsGuarantee"
+                          control={checkout.form.control}
+                          render={({ field, fieldState }) => (
+                            <div className="grid gap-2">
+                              <Label className="items-start gap-3">
+                                <Checkbox
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                  onBlur={field.onBlur}
+                                  aria-invalid={fieldState.error ? true : undefined}
+                                />
+                                <span>
+                                  {isSandbox
+                                    ? 'I accept sandbox guarantee policy v1. This is not legal escrow and moves no real funds.'
+                                    : isLocksPaykitCommerceMode(adapterMode)
+                                      ? 'I accept guarantee policy v1. This is not legal escrow — payment goes from your wallet directly to the seller, and this marketplace never holds funds.'
+                                      : 'I accept guarantee policy v1. This is not legal escrow, and no payment rails are live in this deployment — no real funds move.'}
+                                </span>
+                              </Label>
+                              {fieldState.error && (
+                                <Typography as="p" role="alert" className="text-sm text-destructive">
+                                  {fieldState.error.message}
+                                </Typography>
+                              )}
+                            </div>
+                          )}
+                        />
                       </div>
-                    )}
-                  />
-                </section>
-              </CardContent>
-            </Card>
+                      {checkout.hasInstantDigitalLine && (
+                        <Typography
+                          as="p"
+                          className="text-xs text-muted-foreground"
+                          data-testid="checkout-consent-instant"
+                        >
+                          {DIGITAL_CHECKOUT_COPY.consentInstant}
+                        </Typography>
+                      )}
+                      {checkout.hasManualDigitalLine && (
+                        <Typography
+                          as="p"
+                          className="text-xs text-muted-foreground"
+                          data-testid="checkout-consent-manual"
+                        >
+                          {DIGITAL_CHECKOUT_COPY.consentManual}
+                        </Typography>
+                      )}
+                      <Button
+                        className="w-full rounded-full"
+                        onClick={() => void pay()}
+                        disabled={!canPay}
+                        data-testid="marketplace-checkout-pay"
+                        aria-describedby={
+                          !canPay && !approvalNeeded && payDisabledReason ? 'checkout-pay-reason' : undefined
+                        }
+                      >
+                        {isPaying ? (
+                          <>
+                            <LoaderCircle className="size-4 animate-spin" />
+                            Paying
+                          </>
+                        ) : isSandbox ? (
+                          'Pay sandbox'
+                        ) : (
+                          'Pay'
+                        )}
+                      </Button>
+                      {!isStaging && !isSandbox && (
+                        <Typography as="p" className="text-xs text-muted-foreground">
+                          Paid directly to the seller.
+                        </Typography>
+                      )}
+                      {!canPay && !approvalNeeded && payDisabledReason && (
+                        <Typography id="checkout-pay-reason" as="p" className="text-xs text-muted-foreground">
+                          {payDisabledReason}
+                        </Typography>
+                      )}
+                    </SettingsSectionContent>
+                  </section>
+                </CardContent>
+              </Card>
+              {isStaging && (
+                <Typography
+                  as="p"
+                  role="note"
+                  className="rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-200"
+                >
+                  Staging environment. No real funds move.
+                </Typography>
+              )}
+            </div>
           </div>
         )}
       </Container>
     </ContentLayout>
-  );
-}
-
-function MarketplaceCheckoutSellerHeader({ group }: { group: MarketplaceCartGroup }) {
-  const seller = useMarketplaceSellerSummary(group.sellerPubky, { includeReputation: false });
-  const avatarUrl = useMarketplaceMediaUrl(seller.shop?.record.avatarUrl);
-
-  return (
-    <Card className="border py-4">
-      <CardContent className="flex flex-col gap-4 px-4 sm:flex-row sm:items-center sm:justify-between">
-        <MarketplaceSellerIdentity
-          sellerPubky={group.sellerPubky}
-          displayName={seller.displayName}
-          avatarUrl={avatarUrl}
-          avatarAlt={`${seller.shop?.record.name ?? 'Shop'} avatar`}
-          reputation={seller.reputation}
-        />
-        <div className="flex flex-col gap-1 sm:items-end">
-          <Typography as="p" className="text-sm text-muted-foreground">
-            Seller subtotal
-          </Typography>
-          {group.subtotals.map((subtotal) => (
-            <Typography key={`${subtotal.currency}:${subtotal.exponent}`} as="p" className="font-bold text-brand">
-              {formatCommerceMoney(subtotal)} <MarketplaceIndicativePrice money={subtotal} className="font-normal" />
-            </Typography>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 
@@ -1133,18 +1198,22 @@ function dropCheckoutItem(listing: CommerceListingModelSchema, variantId: string
 
 function MarketplaceAwardTerms({ award }: { award: NonNullable<MarketplaceOfferAward> }) {
   const listingRoute = getMarketplaceListingRoute(award.listing.sellerPubky, award.listing.listingId);
-  const variantLabel = award.variant.options.map((item) => item.value).join(' · ') || 'Default';
+  const variantLabel = award.variant.options
+    .map((item) => item.value)
+    .filter(Boolean)
+    .join(' · ');
   return (
     <section className="grid gap-3" aria-label="Accepted offer">
-      <Card className="border py-4">
-        <CardContent className="grid gap-2 px-4">
+      <Card className="rounded-md p-0">
+        <CardContent className="grid gap-2 p-6">
           <Typography as="h2" className="truncate font-semibold">
-            <Link href={listingRoute} overrideDefaults className="hover:text-brand hover:underline">
+            <Link href={listingRoute} overrideDefaults className="hover:text-brand">
               {award.listing.title}
             </Link>
           </Typography>
+          <MarketplaceSellerLink sellerPubky={award.listing.sellerPubky} />
           <Typography as="p" className="text-sm text-muted-foreground">
-            {variantLabel} · Quantity {award.quantity}
+            {variantLabel ? `${variantLabel} · ` : ''}Quantity {award.quantity}
           </Typography>
         </CardContent>
       </Card>
@@ -1167,8 +1236,8 @@ function MarketplaceAwardOutcome({
 }) {
   if (outcome === 'success') {
     return (
-      <Card className="border">
-        <CardContent className="grid gap-4 px-6">
+      <Card className="rounded-md p-0">
+        <CardContent className="grid gap-4 p-6">
           <Heading level={2} size="lg">
             Checkout started
           </Heading>
@@ -1181,8 +1250,8 @@ function MarketplaceAwardOutcome({
   }
   if (outcome === 'expired') {
     return (
-      <Card className="border">
-        <CardContent className="grid gap-4 px-6">
+      <Card className="rounded-md p-0">
+        <CardContent className="grid gap-4 p-6">
           <Heading level={2} size="lg">
             Offer expired
           </Heading>
@@ -1207,8 +1276,8 @@ function MarketplaceAwardOutcome({
   }
   if (outcome === 'converted') {
     return (
-      <Card className="border">
-        <CardContent className="grid gap-4 px-6">
+      <Card className="rounded-md p-0">
+        <CardContent className="grid gap-4 p-6">
           <Heading level={2} size="lg">
             Offer already converted
           </Heading>
@@ -1224,8 +1293,8 @@ function MarketplaceAwardOutcome({
   }
   if (outcome === 'unavailable') {
     return (
-      <Card className="border">
-        <CardContent className="grid gap-3 px-6">
+      <Card className="rounded-md p-0">
+        <CardContent className="grid gap-3 p-6">
           <Heading level={2} size="lg">
             Checkout unavailable
           </Heading>
@@ -1241,8 +1310,8 @@ function MarketplaceAwardOutcome({
     return <MarketplaceSessionRequiredCard />;
   }
   return (
-    <Card className="border">
-      <CardContent className="grid gap-4 px-6">
+    <Card className="rounded-md p-0">
+      <CardContent className="grid gap-4 p-6">
         <Heading level={2} size="lg">
           Checkout could not be completed
         </Heading>

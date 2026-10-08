@@ -179,7 +179,7 @@ describe('Marketplace cart — visual regression', () => {
 
   async function captureCart(sceneName: string) {
     await parkVrtHover();
-    const surface = expectVrtSurface('marketplace-cart');
+    const surface = await expectVrtSurface('marketplace-cart');
     await expect(surface).toMatchScreenshot(sceneName, VRT_DENSE_CHROME_SCREENSHOT);
   }
 
@@ -205,7 +205,7 @@ describe('Marketplace cart — visual regression', () => {
 
     const items = surface.querySelector('[data-testid="marketplace-cart-items"]');
     const summary = surface.querySelector('[data-testid="marketplace-cart-summary"]');
-    const checkout = surface.querySelector('[aria-label="Checkout"]');
+    const checkout = surface.querySelector('[data-testid="marketplace-cart-checkout"]');
     if (!(items instanceof HTMLElement) || !(summary instanceof HTMLElement) || !(checkout instanceof HTMLElement)) {
       throw new Error('VRT geometry rejected: missing cart items, summary, or Checkout region');
     }

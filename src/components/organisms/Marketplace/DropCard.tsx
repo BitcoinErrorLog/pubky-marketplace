@@ -60,8 +60,11 @@ export function DropCard({
     >
       <Card
         className={cn(
-          'h-full gap-0 overflow-hidden border-0 py-0 transition-all group-hover:shadow-[0_24px_64px_-8px_rgba(0,0,0,0.8),0_8px_24px_rgba(0,0,0,0.5)]',
-          layout === 'list' && 'flex-row',
+          cn(
+            'h-full gap-0 overflow-hidden border-0 py-0 transition-all group-hover:shadow-[0_24px_64px_-8px_rgba(0,0,0,0.8),0_8px_24px_rgba(0,0,0,0.5)]',
+            layout === 'list' && 'flex-row',
+          ),
+          'p-0',
         )}
       >
         <div
@@ -90,7 +93,7 @@ export function DropCard({
             {BUCKET_BADGES[bucket]}
           </Badge>
         </div>
-        <CardContent className="flex min-w-0 flex-1 flex-col gap-3 p-4">
+        <CardContent className="flex min-w-0 flex-1 flex-col gap-3 p-6">
           <div className="space-y-1">
             <Typography as="h2" className="line-clamp-2 text-base leading-6 font-bold text-foreground">
               {entry.title}

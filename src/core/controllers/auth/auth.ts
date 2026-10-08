@@ -524,7 +524,9 @@ export class AuthController {
     }
     try {
       try {
+        const environmentCheckStartedAt = Date.now();
         await AuthApplication.assertUserHomeserverAllowed({ publicKey: session.info.publicKey });
+        Logger.debug('Sign-in environment check completed', { elapsedMs: Date.now() - environmentCheckStartedAt });
       } catch (error) {
         // The just-approved session lives on the user's actual homeserver — sign it
         // out instead of leaving it dangling, whether the key was rejected or the
@@ -544,6 +546,7 @@ export class AuthController {
       // — refused by the environment check OR failed anywhere in the
       // post-mint bootstrap — must not leave that bearer at rest.
       CommerceController.clearMarketplaceSession();
+      useSignInStore.getState().reset();
       throw error;
     }
   }
@@ -1205,6 +1208,17 @@ export class AuthController {
 
       const outcome: Promise<TSingleApprovalResult> = (async () => {
         const authToken = await AuthApplication.withAuthFlowTimeout(flow.awaitToken(), flow.cancelAuthFlow);
+        if (
+          !preserveLocalState &&
+          this.signInCeremony?.token === token &&
+          this.authFlowGeneration === generationAtStart
+        ) {
+          // Approval has arrived, but session exchanges and account checks still follow.
+          // Show progress now instead of leaving the approved QR on screen.
+          const signInStore = useSignInStore.getState();
+          signInStore.reset();
+          signInStore.setAuthUrlResolved(true);
+        }
         // Step-up only (preserveLocalState): refuse a wrong-identity approval
         // INSIDE the ceremony, BEFORE the marketplace POST can mint (and
         // persist) a bearer for the other pubky — the same ordering the
@@ -1238,6 +1252,16 @@ export class AuthController {
 
       const awaitApproval = outcome
         .then(({ session }) => session)
+        .catch((error: unknown) => {
+          if (
+            !preserveLocalState &&
+            this.signInCeremony?.token === token &&
+            this.authFlowGeneration === generationAtStart
+          ) {
+            useSignInStore.getState().reset();
+          }
+          throw error;
+        })
         .finally(() => {
           if (this.activeAuthFlow?.token === token) {
             this.activeAuthFlow = null;

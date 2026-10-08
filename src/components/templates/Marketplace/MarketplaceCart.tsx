@@ -1,7 +1,7 @@
 'use client';
 
 import { Minus, Plus, ShoppingCart, Trash2 } from 'lucide-react';
-import { APP_ROUTES, getMarketplaceListingRoute } from '@/app/routes';
+import { getMarketplaceListingRoute } from '@/app/routes';
 import { Button } from '@/atoms/Button/Button';
 import { Card, CardContent } from '@/atoms/Card/Card';
 import { Container } from '@/atoms/Container/Container';
@@ -9,16 +9,15 @@ import { Heading } from '@/atoms/Heading/Heading';
 import { Image } from '@/atoms/Image/Image';
 import { Link } from '@/atoms/Link/Link';
 import { Typography } from '@/atoms/Typography/Typography';
-import { type MarketplaceCartGroup, useMarketplaceCart } from '@/hooks/useMarketplaceCart/useMarketplaceCart';
-import {
-  useMarketplaceFirstMediaUrls,
-  useMarketplaceMediaUrl,
-} from '@/hooks/useMarketplaceMediaUrl/useMarketplaceMediaUrl';
+import { useMarketplaceCart } from '@/hooks/useMarketplaceCart/useMarketplaceCart';
+import { useMarketplaceFirstMediaUrls } from '@/hooks/useMarketplaceMediaUrl/useMarketplaceMediaUrl';
 import { useMarketplaceOffers } from '@/hooks/useMarketplaceOffers/useMarketplaceOffers';
-import { useMarketplaceSellerSummary } from '@/hooks/useMarketplaceSellerSummary/useMarketplaceSellerSummary';
 import { getMarketplaceCheckoutRoute, getMarketplaceOfferCheckoutRoute } from '@/libs/commerce/checkout-phase';
 import { formatCommerceMoney } from '@/libs/commerce/format';
-import { MarketplaceSellerIdentity } from '@/molecules/MarketplaceSellerIdentity/MarketplaceSellerIdentity';
+import { MarketplaceCheckoutSteps } from '@/molecules/Marketplace/MarketplaceCheckoutSteps';
+import { MarketplaceEmptyState } from '@/molecules/Marketplace/MarketplaceEmptyState';
+import { MarketplaceSellerLink } from '@/molecules/Marketplace/MarketplaceSellerLink';
+import { SettingsSectionContent } from '@/molecules/Settings/SettingsSectionContent/SettingsSectionContent';
 import { ContentLayout } from '@/organisms/ContentLayout/ContentLayout';
 import { MarketplaceIndicativePrice } from '@/organisms/Marketplace/MarketplaceIndicativePrice';
 import { MarketplaceSectionNav } from '@/organisms/Marketplace/MarketplaceSectionNav';
@@ -41,17 +40,21 @@ export function MarketplaceCart() {
       showLeftMobileButton={false}
       showRightMobileButton={false}
       className="pb-28"
-      classNameWrapperContent="max-w-7xl"
     >
-      <Container overrideDefaults className="flex w-full flex-col gap-6 px-4 sm:px-6">
+      <Container overrideDefaults className="flex w-full flex-col gap-6">
         <MarketplaceSectionNav />
-        <div>
-          <Heading level={1} size="xl" className="text-4xl sm:text-6xl">
-            Cart
-          </Heading>
-          <Typography as="p" className="mt-2 text-muted-foreground">
-            {cart.itemCount} {cart.itemCount === 1 ? 'item' : 'items'} · local-first until checkout.
-          </Typography>
+        <div className="grid items-end gap-4 md:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="min-w-0">
+            <Heading level={1} size="xl" className="text-4xl sm:text-6xl">
+              Cart
+            </Heading>
+            <Typography as="p" className="mt-2 text-muted-foreground">
+              {cart.itemCount} {cart.itemCount === 1 ? 'item' : 'items'} in your cart.
+            </Typography>
+          </div>
+          <div className="justify-self-end">
+            <MarketplaceCheckoutSteps currentStep={1} />
+          </div>
         </div>
 
         {cart.isLoading ? (
@@ -75,15 +78,18 @@ export function MarketplaceCart() {
                       <Heading level={2} size="sm" className="text-xl font-semibold">
                         Accepted offer
                       </Heading>
-                      <Card className="border py-4">
-                        <CardContent className="flex flex-col gap-4 px-4 sm:flex-row sm:items-center sm:justify-between">
+                      <Card className="rounded-md p-0">
+                        <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
                           <div>
                             <Typography as="p" className="font-semibold">
                               {item.listing.record.title}
                             </Typography>
+                            <MarketplaceSellerLink sellerPubky={item.listing.record.ownerPubky} />
                             <Typography as="p" className="text-sm text-muted-foreground">
-                              {variant ? Object.values(variant.options).join(' · ') || 'Default' : 'Default'} · Quantity{' '}
-                              {item.quantity}
+                              {variant && Object.values(variant.options).filter(Boolean).length > 0
+                                ? `${Object.values(variant.options).filter(Boolean).join(' · ')} · `
+                                : ''}
+                              Quantity {item.quantity}
                             </Typography>
                             {award && (
                               <>
@@ -108,7 +114,7 @@ export function MarketplaceCart() {
                           </Button>
                           <Button
                             size="icon"
-                            variant="ghost"
+                            variant="secondary"
                             aria-label={`Remove ${item.listing.record.title}`}
                             onClick={() => void cart.remove(item.listingId, item.variantId, item.awardId ?? undefined)}
                           >
@@ -119,18 +125,12 @@ export function MarketplaceCart() {
                     </section>
                   );
                 })}
-                {ordinaryItems.length > 0 && (
-                  <Typography as="p" className="rounded-xl border bg-card/60 px-4 py-3 text-sm text-muted-foreground">
-                    Each seller ships separately; shipping is calculated at checkout.
-                  </Typography>
-                )}
                 {cart.groups.map((group) => (
                   <section
                     key={group.sellerPubky}
                     className="grid gap-3"
                     aria-label={`Cart items from ${group.sellerPubky}`}
                   >
-                    {cart.groups.length > 1 && <MarketplaceCartSellerHeader group={group} />}
                     {group.items.map((item) => {
                       const variant = item.listing.record.variants.find(({ id }) => id === item.variantId);
                       const price =
@@ -142,8 +142,8 @@ export function MarketplaceCart() {
                         item.listing.listing_id,
                       );
                       return (
-                        <Card key={item.id} className="border py-4">
-                          <CardContent className="flex items-center gap-4 px-4">
+                        <Card key={item.id} className="rounded-md p-0">
+                          <CardContent className="flex items-center gap-4 p-6">
                             <Link href={listingRoute} overrideDefaults aria-label={`View ${item.listing.record.title}`}>
                               <div className="relative flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-brand/15">
                                 <ShoppingCart className="size-7 text-brand" />
@@ -160,13 +160,16 @@ export function MarketplaceCart() {
                             </Link>
                             <div className="min-w-0 flex-1">
                               <Typography as="h2" className="truncate font-semibold">
-                                <Link href={listingRoute} overrideDefaults className="hover:text-brand hover:underline">
+                                <Link href={listingRoute} overrideDefaults className="hover:text-brand">
                                   {item.listing.record.title}
                                 </Link>
                               </Typography>
-                              <Typography as="p" className="text-sm text-muted-foreground">
-                                {variant ? Object.values(variant.options).join(' · ') || 'Default' : 'Default'}
-                              </Typography>
+                              <MarketplaceSellerLink sellerPubky={group.sellerPubky} />
+                              {variant && Object.values(variant.options).filter(Boolean).length > 0 && (
+                                <Typography as="p" className="text-sm text-muted-foreground">
+                                  {Object.values(variant.options).filter(Boolean).join(' · ')}
+                                </Typography>
+                              )}
                               {price && (
                                 <Typography as="p" className="mt-1 font-bold text-brand">
                                   {formatCommerceMoney(price)}{' '}
@@ -175,30 +178,34 @@ export function MarketplaceCart() {
                               )}
                             </div>
                             <div className="flex items-center gap-1">
+                              {((variant?.quantity ?? 0) > 1 || item.quantity > 1) && (
+                                <>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    aria-label={`Decrease ${item.listing.record.title} quantity`}
+                                    disabled={item.quantity <= 1}
+                                    onClick={() => void cart.update(item.listingId, item.variantId, item.quantity - 1)}
+                                  >
+                                    <Minus className="size-4" />
+                                  </Button>
+                                  <Typography as="span" className="min-w-8 text-center">
+                                    {item.quantity}
+                                  </Typography>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    aria-label={`Increase ${item.listing.record.title} quantity`}
+                                    disabled={!variant || item.quantity >= variant.quantity}
+                                    onClick={() => void cart.update(item.listingId, item.variantId, item.quantity + 1)}
+                                  >
+                                    <Plus className="size-4" />
+                                  </Button>
+                                </>
+                              )}
                               <Button
                                 size="icon"
-                                variant="ghost"
-                                aria-label={`Decrease ${item.listing.record.title} quantity`}
-                                disabled={item.quantity <= 1}
-                                onClick={() => void cart.update(item.listingId, item.variantId, item.quantity - 1)}
-                              >
-                                <Minus className="size-4" />
-                              </Button>
-                              <Typography as="span" className="min-w-8 text-center">
-                                {item.quantity}
-                              </Typography>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                aria-label={`Increase ${item.listing.record.title} quantity`}
-                                disabled={!variant || item.quantity >= variant.quantity}
-                                onClick={() => void cart.update(item.listingId, item.variantId, item.quantity + 1)}
-                              >
-                                <Plus className="size-4" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                variant="ghost"
+                                variant="secondary"
                                 aria-label={`Remove ${item.listing.record.title}`}
                                 onClick={() => void cart.remove(item.listingId, item.variantId)}
                               >
@@ -216,91 +223,65 @@ export function MarketplaceCart() {
 
             {ordinaryItems.length > 0 && (
               <Card
-                className="h-fit border lg:col-start-2 lg:row-start-1 lg:self-start"
+                className="h-fit rounded-md p-0 shadow-lg lg:col-start-2 lg:row-start-1 lg:self-start"
                 data-testid="marketplace-cart-summary"
               >
-                <CardContent className="grid gap-6 px-6">
-                  <section className="grid gap-3" aria-label="Checkout">
+                <CardContent className="grid min-w-0 gap-6 p-6">
+                  <section className="grid min-w-0 gap-6" aria-label="Total">
                     <Heading level={2} size="sm" className="text-xl font-semibold">
-                      Checkout
+                      Total
                     </Heading>
-                    <div className="flex justify-between">
-                      <Typography as="span">Items</Typography>
-                      <div className="flex flex-col items-end">
-                        {cart.subtotals.map((subtotal) => (
-                          <Typography key={`${subtotal.currency}:${subtotal.exponent}`} as="span" className="font-bold">
-                            {formatCommerceMoney(subtotal)}{' '}
-                            <MarketplaceIndicativePrice money={subtotal} className="font-normal" />
+                    <SettingsSectionContent>
+                      <div className="grid gap-6">
+                        <div className="flex justify-between">
+                          <Typography as="span">Items</Typography>
+                          <div className="flex flex-col items-end">
+                            {cart.subtotals.map((subtotal) => (
+                              <Typography
+                                key={`${subtotal.currency}:${subtotal.exponent}`}
+                                as="span"
+                                className="flex flex-col items-end font-bold"
+                              >
+                                {formatCommerceMoney(subtotal)}
+                                <MarketplaceIndicativePrice money={subtotal} className="font-normal" />
+                              </Typography>
+                            ))}
+                          </div>
+                        </div>
+                        <hr className="m-0 border-border" />
+                        <div className="grid gap-1">
+                          <Typography as="p" className="text-foreground">
+                            Shipping
                           </Typography>
-                        ))}
+                          <Typography as="p" className="text-xs text-muted-foreground">
+                            Shipping is calculated at checkout.
+                          </Typography>
+                        </div>
                       </div>
-                    </div>
-                    <Typography as="p" className="text-xs text-muted-foreground">
-                      Shipping is calculated at checkout for the items that ship.
-                    </Typography>
-                    <Button asChild className="w-full rounded-full">
-                      <Link
-                        href={getMarketplaceCheckoutRoute()}
-                        overrideDefaults
-                        data-testid="marketplace-cart-checkout"
-                      >
-                        Checkout
-                      </Link>
-                    </Button>
+                      <Button asChild className="w-full rounded-full">
+                        <Link
+                          href={getMarketplaceCheckoutRoute()}
+                          overrideDefaults
+                          data-testid="marketplace-cart-checkout"
+                        >
+                          Checkout
+                        </Link>
+                      </Button>
+                    </SettingsSectionContent>
                   </section>
                 </CardContent>
               </Card>
             )}
           </div>
         ) : (
-          <div
-            className="flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed text-center"
-            data-surface="marketplace-cart"
-          >
-            <ShoppingCart className="mb-3 size-10 text-muted-foreground" />
-            <Heading level={2} size="md">
-              Your cart is empty
-            </Heading>
-            <Typography as="p" className="mt-2 text-muted-foreground">
-              Items you add from listings appear here, saved on this device.
-            </Typography>
-            <Button asChild className="mt-6 rounded-full">
-              <Link href={APP_ROUTES.MARKETPLACE} overrideDefaults>
-                Browse the marketplace
-              </Link>
-            </Button>
-          </div>
+          <MarketplaceEmptyState
+            icon={ShoppingCart}
+            title="Your cart is empty"
+            description="Items you add from listings appear here, saved on this device."
+            surface="marketplace-cart"
+          />
         )}
       </Container>
     </ContentLayout>
-  );
-}
-
-function MarketplaceCartSellerHeader({ group }: { group: MarketplaceCartGroup }) {
-  const seller = useMarketplaceSellerSummary(group.sellerPubky, { includeReputation: false });
-  const avatarUrl = useMarketplaceMediaUrl(seller.shop?.record.avatarUrl);
-
-  return (
-    <Card className="border py-4">
-      <CardContent className="flex flex-col gap-4 px-4 sm:flex-row sm:items-center sm:justify-between">
-        <MarketplaceSellerIdentity
-          sellerPubky={group.sellerPubky}
-          displayName={seller.displayName}
-          avatarUrl={avatarUrl}
-          avatarAlt={`${seller.shop?.record.name ?? 'Shop'} avatar`}
-          reputation={seller.reputation}
-        />
-        <div className="flex flex-col gap-1 sm:items-end">
-          <Typography as="p" className="text-sm text-muted-foreground">
-            Seller subtotal
-          </Typography>
-          {group.subtotals.map((subtotal) => (
-            <Typography key={`${subtotal.currency}:${subtotal.exponent}`} as="p" className="font-bold text-brand">
-              {formatCommerceMoney(subtotal)} <MarketplaceIndicativePrice money={subtotal} className="font-normal" />
-            </Typography>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
   );
 }

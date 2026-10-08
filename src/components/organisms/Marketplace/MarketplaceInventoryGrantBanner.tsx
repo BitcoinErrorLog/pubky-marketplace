@@ -10,7 +10,7 @@ export function MarketplaceInventoryGrantBanner({ onConnected }: { onConnected?:
     <div
       role="alert"
       data-testid="inventory-grant-banner"
-      className="flex min-h-56 flex-col items-center justify-center gap-4 rounded-xl border border-brand/40 bg-brand/5 px-6 py-8 text-center"
+      className="flex min-h-56 flex-col items-center justify-center gap-4 rounded-md border border-brand/40 bg-brand/5 px-6 py-8 text-center"
     >
       <KeyRound className="size-10 text-muted-foreground" />
       <div>

@@ -698,7 +698,7 @@ describe('Header', () => {
 
       render(<Header />);
 
-      expect(screen.getByTestId('header-container')).toHaveAttribute('data-class-name-nav', ' xl:px-0');
+      expect(screen.getByTestId('header-container')).toHaveAttribute('data-class-name-nav', 'xl:px-0');
     });
 
     it('renders HeaderSignIn when authenticated regardless of public route', () => {

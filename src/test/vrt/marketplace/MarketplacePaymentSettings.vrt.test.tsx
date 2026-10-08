@@ -164,7 +164,7 @@ describe('Marketplace payment settings — visual regression', () => {
   it('renders the Bitkit setup dialog', async () => {
     setLocksConnect();
     const screen = await renderForVRT(<MarketplacePaymentSettings />, { viewport: VRT_VIEWPORT_MOBILE });
-    await screen.getByRole('button', { name: /Open Bitkit setup/ }).click();
+    await screen.getByRole('button', { name: /Connect Bitkit/ }).click();
     await expect(screen.getByTitle('Connect Bitkit')).toBeVisible();
     await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot('payment-settings-bitkit-dialog-mobile');
   });

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { ExternalLink } from 'lucide-react';
+import { type ReactNode, useState } from 'react';
+import { Check, Copy, ExternalLink } from 'lucide-react';
 import { Button } from '@/atoms/Button/Button';
 import { Link } from '@/atoms/Link/Link';
 import { formatOrderInstant } from '@/libs/commerce/checkout-hold';
@@ -13,10 +13,12 @@ export function MarketplaceOrderReference({
   order,
   isBuyer,
   showPlacedAt = false,
+  status,
 }: {
   order: MarketplaceOrder;
   isBuyer: boolean;
   showPlacedAt?: boolean;
+  status?: ReactNode;
 }) {
   const reference = shortOrderReference(order.id);
   const paypalUrl = sellerPaypalActivityUrl(order, isBuyer);
@@ -31,8 +33,10 @@ export function MarketplaceOrderReference({
       <Button
         type="button"
         variant="ghost"
-        size="sm"
-        className="h-7 px-2 text-xs"
+        size="icon"
+        className="size-7"
+        aria-label={copied ? 'Copied' : 'Copy order reference'}
+        title={copied ? 'Copied' : 'Copy order reference'}
         data-testid="order-reference-copy"
         onClick={() => {
           void copyToClipboard({ text: reference })
@@ -40,13 +44,9 @@ export function MarketplaceOrderReference({
             .catch(() => setCopied(false));
         }}
       >
-        {copied ? 'Copied' : 'Copy'}
+        {copied ? <Check className="size-4" aria-hidden="true" /> : <Copy className="size-4" aria-hidden="true" />}
       </Button>
-      {placedAt ? (
-        <time dateTime={order.createdAt} className="text-sm text-muted-foreground" data-testid="order-placed-at">
-          Placed {placedAt}
-        </time>
-      ) : null}
+      {status}
       {paypalUrl ? (
         <Link
           href={paypalUrl}
@@ -57,6 +57,15 @@ export function MarketplaceOrderReference({
           Open in PayPal
           <ExternalLink className="size-3.5" />
         </Link>
+      ) : null}
+      {placedAt ? (
+        <time
+          dateTime={order.createdAt}
+          className="ml-auto text-right text-sm text-muted-foreground"
+          data-testid="order-placed-at"
+        >
+          Placed {placedAt}
+        </time>
       ) : null}
     </div>
   );

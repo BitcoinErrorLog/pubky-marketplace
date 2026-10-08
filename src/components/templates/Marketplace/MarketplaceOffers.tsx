@@ -24,9 +24,9 @@ import type { CommerceListingRecord } from '@/libs/commerce/marketplace-records'
 import { amountInputUnitLabel, isBitcoinAsset } from '@/libs/commerce/pricing';
 import { ControlledInputField } from '@/molecules/ControlledInputField/ControlledInputField';
 import { ControlledTextareaField } from '@/molecules/ControlledTextareaField/ControlledTextareaField';
+import { MarketplaceEmptyState } from '@/molecules/Marketplace/MarketplaceEmptyState';
 import { ContentLayout } from '@/organisms/ContentLayout/ContentLayout';
 import { MarketplaceSectionNav } from '@/organisms/Marketplace/MarketplaceSectionNav';
-import { MarketplaceSessionRequiredCard } from '@/organisms/Marketplace/MarketplaceSessionRequiredCard';
 import type { MarketplaceOffer, MarketplaceOrder } from '@/services/marketplace/marketplace';
 import { useAuthStore } from '@/stores/auth/auth.store';
 
@@ -86,9 +86,8 @@ export function MarketplaceOffers() {
       showLeftMobileButton={false}
       showRightMobileButton={false}
       className="pb-28"
-      classNameWrapperContent="max-w-7xl"
     >
-      <Container overrideDefaults className="flex w-full flex-col gap-6 px-4 sm:px-6">
+      <Container overrideDefaults className="flex w-full flex-col gap-6">
         <MarketplaceSectionNav />
         <div>
           <Heading level={1} size="xl" className="text-4xl sm:text-6xl">
@@ -102,13 +101,17 @@ export function MarketplaceOffers() {
         {offers.isLoading ? (
           <Skeleton className="h-40 w-full" />
         ) : offers.needsSession && offers.error ? (
-          <MarketplaceSessionRequiredCard />
+          <MarketplaceEmptyState
+            icon={HandCoins}
+            title="No offers yet"
+            description="Offers you send and receive will appear here."
+          />
         ) : offers.error ? (
-          <div role="alert" className="rounded-xl border border-destructive/40 p-4">
+          <div role="alert" className="rounded-md border border-destructive/40 p-4">
             {offers.error}
           </div>
         ) : linkedOfferMissing ? (
-          <Typography as="p" role="status" className="rounded-xl border border-dashed p-4 text-muted-foreground">
+          <Typography as="p" role="status" className="rounded-md p-4 text-muted-foreground">
             This offer is no longer available.
           </Typography>
         ) : offers.offers.length ? (
@@ -121,8 +124,8 @@ export function MarketplaceOffers() {
                 ? convertedOrderStates[convertedAward.convertedOrderId]
                 : undefined;
               return (
-                <Card key={offer.id} id={`offer-${offer.id}`} className="border py-5">
-                  <CardContent className="grid gap-4 px-5 sm:grid-cols-[1fr_auto] sm:items-center">
+                <Card key={offer.id} id={`offer-${offer.id}`} className="rounded-md p-0">
+                  <CardContent className="grid gap-4 p-6 sm:grid-cols-[1fr_auto] sm:items-center">
                     <div>
                       <div className="mb-2 flex flex-wrap items-center gap-2">
                         <Badge>{incoming ? 'Incoming' : 'Sent'}</Badge>
@@ -278,12 +281,11 @@ export function MarketplaceOffers() {
             })}
           </div>
         ) : (
-          <div className="flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed text-center">
-            <HandCoins className="mb-3 size-10 text-muted-foreground" />
-            <Heading level={2} size="md">
-              No offers yet
-            </Heading>
-          </div>
+          <MarketplaceEmptyState
+            icon={HandCoins}
+            title="No offers yet"
+            description="Offers you send and receive will appear here."
+          />
         )}
       </Container>
 

@@ -7,15 +7,18 @@ import {
   ChevronDown,
   ExternalLink,
   HandCoins,
+  KeyRound,
   Loader2,
   LoaderCircle,
   RefreshCw,
+  Save,
 } from 'lucide-react';
 import { Badge } from '@/atoms/Badge/Badge';
 import { Button } from '@/atoms/Button/Button';
 import { Card, CardContent } from '@/atoms/Card/Card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/atoms/Collapsible/Collapsible';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/atoms/Dialog/Dialog';
+import { Heading } from '@/atoms/Heading/Heading';
 import { Input } from '@/atoms/Input/Input';
 import { Label } from '@/atoms/Label/Label';
 import { Switch } from '@/atoms/Switch/Switch';
@@ -24,14 +27,13 @@ import { getLocksUrl } from '@/config/commerce';
 import { CommerceController } from '@/controllers/commerce/commerce';
 import { useMarketplaceSellerPaymentConfig } from '@/hooks/useMarketplaceSellerPaymentConfig/useMarketplaceSellerPaymentConfig';
 import { type SellerPaymentConfigOwnView } from '@/libs/commerce/payment-methods';
+import { SettingsSectionContent } from '@/molecules/Settings/SettingsSectionContent/SettingsSectionContent';
 import { toast } from '@/molecules/Toaster/use-toast';
 import { MarketplaceSessionConnectDialog } from '@/organisms/Marketplace/MarketplaceSessionConnectDialog';
 import { locksCreatorMatchesShopPubky } from '@/services/locks/locks-frontend-session';
 import { useAuthStore } from '@/stores/auth/auth.store';
 import { useCommerceStore } from '@/stores/commerce/commerce.store';
 import {
-  atLeastOneMethodSentence,
-  countReadyPaymentMethods,
   deriveBitcoinStatus,
   derivePaypalStatus,
   PAYMENT_METHOD_STATUS_LABELS,
@@ -74,8 +76,6 @@ const UNSAVED_SELLER_PAYMENT_CONFIG: SellerPaymentConfigOwnView = {
   updatedAt: '',
 };
 const PAYKIT_SETUP_EXPLANATION = 'Scan the code with Bitkit, or open this page on your phone and tap Open in Bitkit.';
-const PAYKIT_RING_IDENTITY_HELPER =
-  'Your Shop identity must live in Bitkit. Signed up with Pubky Ring? Create a new Shop account by scanning the sign-up QR with Bitkit — Ring import is coming to Bitkit.';
 
 function createPaykitSetupState(): string {
   const bytes = new Uint8Array(16);
@@ -89,7 +89,7 @@ function createPaykitSetupState(): string {
 function StatusPill({ status, testId }: { status: PaymentMethodStatus; testId: string }) {
   const variant = status === 'connected' ? 'secondary' : status === 'needs_attention' ? 'destructive' : 'outline';
   return (
-    <Badge variant={variant} role="status" data-testid={testId} className="mt-1">
+    <Badge variant={variant} role="status" data-testid={testId} className="shrink-0">
       {PAYMENT_METHOD_STATUS_LABELS[status]}
     </Badge>
   );
@@ -111,23 +111,22 @@ function MethodCard({
   children: React.ReactNode;
 }) {
   return (
-    <Card className="border">
-      <CardContent className="grid gap-4 px-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex gap-3">
-            <Icon className="mt-1 size-5 text-brand" />
-            <div>
-              <Typography as="h2" className="font-semibold">
-                {title}
-              </Typography>
-              <Typography as="p" className="text-sm text-muted-foreground">
-                {promise}
-              </Typography>
-            </div>
+    <Card className="rounded-md p-0 shadow-lg">
+      <CardContent className="grid gap-6 p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="grid grid-cols-[1.5rem_minmax(0,1fr)] items-center gap-x-3">
+            <Icon className="size-6 shrink-0 text-brand" />
+            <Heading level={2} size="md">
+              {title}
+            </Heading>
+            <Typography as="p" className="col-start-2 text-sm text-muted-foreground">
+              {promise}
+            </Typography>
           </div>
           <StatusPill status={status} testId={statusTestId} />
         </div>
-        {children}
+
+        <SettingsSectionContent>{children}</SettingsSectionContent>
       </CardContent>
     </Card>
   );
@@ -267,8 +266,8 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
 
   const saveButton = (
     <Button className="w-fit rounded-full" disabled={payments.isSaving || !saveReady} onClick={() => void onSave()}>
-      {payments.isSaving ? <LoaderCircle className="mr-2 size-4 animate-spin" /> : null}
-      Save payment settings
+      {payments.isSaving ? <LoaderCircle className="size-4 animate-spin" /> : <Save className="size-4" />}
+      Save changes
     </Button>
   );
 
@@ -282,9 +281,7 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
   });
   const serverBitcoin = serverConfig?.bitcoinEnabled ?? false;
   const bitcoinValue = railDraft.bitcoin ?? serverBitcoin;
-  const readyCount = countReadyPaymentMethods([paypalStatus, bitcoinStatus]);
   const step1Connected = locksCreatorMatchesShopPubky(connectedCreator, currentUserPubky);
-  const step1NeedsPrimary = !step1Connected && bitcoinStatus === 'needs_attention';
   const paykitCodeExpired = paykitSetupStatus === 'error' || paykitSetupStatus === 'timeout';
 
   // Stored rails need the marketplace session and the loaded config; the
@@ -292,11 +289,11 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
   const renderStoredRailBody = (children: React.ReactNode) => {
     if (!marketplaceSession) {
       return (
-        <div className="grid justify-items-start gap-3 rounded-xl border p-4">
+        <div className="grid justify-items-start gap-3">
           <Typography as="p" className="text-sm text-muted-foreground">
-            Saving payment settings requires a marketplace session.
+            Enable selling to save your payment methods.
           </Typography>
-          <MarketplaceSessionConnectDialog />
+          <MarketplaceSessionConnectDialog triggerLabel="Enable selling" intent="sell" />
         </div>
       );
     }
@@ -320,35 +317,30 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
 
   return (
     <section aria-label="Payment methods" className="flex flex-col gap-6" data-surface="marketplace-get-paid">
-      <Typography as="p" className="text-muted-foreground" data-testid="payment-methods-ready-summary">
-        {atLeastOneMethodSentence(readyCount)}
-      </Typography>
       <MethodCard
         icon={HandCoins}
         title="PayPal"
-        promise="Buyers pay straight to your PayPal account — all you need is the email you use there."
+        promise="Get paid directly to your PayPal account."
         status={paypalStatus}
         statusTestId="payment-method-status-paypal"
       >
         {renderStoredRailBody(
           <>
-            <div className="grid gap-3 rounded-xl border p-4">
+            <div className="grid gap-3">
               <div>
                 <Label htmlFor="get-paid-paypal" className="font-medium">
                   PayPal email
                 </Label>
-                <Typography as="p" className="text-sm text-muted-foreground">
-                  Buyers pay this PayPal email directly; payments are confirmed by PayPal, not by this marketplace.
-                </Typography>
               </div>
               <Input
+                theme="dashed"
                 id="get-paid-paypal"
                 type="email"
                 value={paypalValue}
                 onChange={(event) => setRailDraft((draft) => ({ ...draft, paypal: event.target.value }))}
                 placeholder="you@example.com"
                 autoComplete="off"
-                className="h-10 max-w-md"
+                className="max-w-md"
                 aria-label="PayPal merchant email"
               />
             </div>
@@ -360,23 +352,22 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
       <MethodCard
         icon={Bitcoin}
         title="Bitcoin wallet"
-        promise="Get paid in bitcoin, straight to your own wallet — set it up in two steps."
+        promise="Connect your wallet to accept bitcoin."
         status={bitcoinStatus}
         statusTestId="payment-method-status-bitcoin"
       >
-        <div className="grid gap-4 rounded-xl border p-4 sm:grid-cols-[1fr_auto] sm:items-center">
+        <div className="grid gap-6 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
           <div>
             <Typography as="h3" className="text-sm font-semibold">
-              <span className="text-brand">Step 1</span> Connect your Lock Server
+              1. Connect Lock Server
             </Typography>
             <Typography as="p" className="text-sm text-muted-foreground">
-              Approve the connection in Pubky Ring or Bitkit. The Lock Server can then lock your content for buyers — it
-              never sees your identity secret.
+              Authorize with your keychain to enable secure delivery.
             </Typography>
             {step1Connected && (
               <Typography as="p" className="mt-2 flex items-center gap-2 text-sm text-brand">
                 <CheckCircle2 className="size-4" />
-                Creator authority connected: {connectedCreator?.slice(0, 12)}…
+                Connected to your account.
               </Typography>
             )}
             {locksError && (
@@ -395,57 +386,48 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
               Connected
             </Badge>
           ) : (
-            <Button
-              variant={step1NeedsPrimary ? 'default' : 'secondary'}
-              className="rounded-full"
-              disabled={isExchanging}
-              onClick={openConnect}
-            >
-              {isExchanging ? <LoaderCircle className="mr-2 size-4 animate-spin" /> : null}
-              Open Locks connect
+            <Button variant="secondary" className="w-fit" disabled={isExchanging} onClick={openConnect}>
+              {isExchanging ? <LoaderCircle className="size-4 animate-spin" /> : <KeyRound className="size-4" />}
+              Connect Lock Server
             </Button>
           )}
         </div>
 
-        <div className="grid gap-4 rounded-xl border p-4 sm:grid-cols-[1fr_auto] sm:items-center">
+        <div className="grid gap-6 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
           <div>
             <Typography as="h3" className="text-sm font-semibold">
-              <span className="text-brand">Step 2</span> Approve Paykit in Bitkit
+              2. Connect Bitkit
             </Typography>
             <Typography as="p" className="text-sm text-muted-foreground">
-              Open the setup in Bitkit and approve it there. Payments settle to your own bitcoin wallet — your spending
-              keys never leave it.
-            </Typography>
-            <Typography as="p" className="mt-2 text-sm text-muted-foreground">
-              {PAYKIT_RING_IDENTITY_HELPER}
+              Approve payment setup in Bitkit to receive bitcoin.
             </Typography>
             {payments.accountClaimed === true && (
               <Typography as="p" className="mt-2 flex items-center gap-2 text-sm text-brand">
                 <CheckCircle2 className="size-4" />
-                Watch-only account claimed — payment requests derive fresh addresses from it.
+                Wallet connected.
               </Typography>
             )}
           </div>
           <Button
-            variant={step1NeedsPrimary ? 'secondary' : 'default'}
-            className="rounded-full"
+            variant="secondary"
+            className="w-fit"
             disabled={!marketplaceSession || !currentUserPubky}
             onClick={openPaykitSetup}
           >
-            Open Bitkit setup
-            <ExternalLink className="ml-2 size-4" />
+            Connect Bitkit
+            <ExternalLink className="size-4" />
           </Button>
         </div>
 
         {renderStoredRailBody(
           <>
-            <div className="flex items-center justify-between gap-4 rounded-xl border p-4">
+            <div className="grid gap-6 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
               <div>
-                <Label htmlFor="get-paid-bitcoin" className="font-medium">
-                  Accept bitcoin
-                </Label>
+                <Typography as="label" htmlFor="get-paid-bitcoin" className="block text-sm font-semibold">
+                  3. Accept bitcoin
+                </Typography>
                 <Typography as="p" className="text-sm text-muted-foreground">
-                  Buyers see bitcoin as a payment option on your orders.
+                  Offer bitcoin payment option at checkout.
                 </Typography>
               </div>
               <Switch
@@ -465,28 +447,25 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
                 <ChevronDown className="size-4 transition-transform group-data-[state=open]:rotate-180" />
                 Technical details
               </CollapsibleTrigger>
-              <CollapsibleContent className="grid gap-3 rounded-xl border p-4 text-sm text-muted-foreground data-[state=closed]:hidden">
+              <CollapsibleContent className="grid gap-3 pt-4 text-sm text-muted-foreground data-[state=closed]:hidden">
                 <Typography as="p" className="text-sm text-muted-foreground">
-                  No identity secret enters this app.
+                  Bitkit keeps your spending keys private and shares a watch-only account with Paykit to generate
+                  payment addresses. Payments go directly to your wallet through private payment requests, without
+                  exposing your identity secret to Shop.{' '}
+                  <a
+                    href={getLocksUrl()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-4"
+                  >
+                    Locks Server
+                  </a>{' '}
+                  handles secure delivery.
+                  {payments.accountClaimed !== true &&
+                    (payments.accountClaimed === null
+                      ? ' Your wallet status is currently unavailable.'
+                      : ' Connect Bitkit to finish wallet setup.')}
                 </Typography>
-                <Typography as="p" className="text-sm text-muted-foreground">
-                  Bitkit sends a watch-only BIP84 account claim directly to Paykit Server. Spending keys remain in the
-                  wallet. Completion is confirmed inside the setup window — this app has no API to verify Paykit setup
-                  state and does not pretend to.
-                </Typography>
-                <Typography as="p" className="text-sm text-muted-foreground">
-                  Payment requests are delivered privately via Paykit and settle to your claimed watch-only account.
-                </Typography>
-                <Typography as="p" className="text-sm text-muted-foreground">
-                  Lock Server: {getLocksUrl()}
-                </Typography>
-                {payments.accountClaimed !== true && (
-                  <Typography as="p" className="text-sm text-muted-foreground">
-                    {payments.accountClaimed === null
-                      ? 'The Paykit server could not report your account state right now.'
-                      : 'No watch-only account is claimed yet. Use Open Bitkit setup above. Spending keys stay in Bitkit.'}
-                  </Typography>
-                )}
               </CollapsibleContent>
             </Collapsible>
 
@@ -507,8 +486,7 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
             <DialogTitle>Connect Lock Server</DialogTitle>
           </DialogHeader>
           <Typography as="p" className="text-sm text-muted-foreground">
-            Scan with Pubky Ring or Bitkit. The Lock Server can then lock your content for buyers — it never sees your
-            identity secret.
+            Scan with your keychain to enable secure delivery.
           </Typography>
           {connectUrl && (
             <iframe
@@ -522,10 +500,10 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
             />
           )}
           {locksError && (
-            <div role="alert" className="grid gap-3 rounded-lg border border-amber-500/40 p-3 text-sm">
+            <div role="alert" className="grid gap-3 rounded-md border border-amber-500/40 p-3 text-sm">
               <Typography as="p">{locksError}</Typography>
               <Button variant="secondary" className="w-fit rounded-full" onClick={openConnect}>
-                <RefreshCw className="mr-2 size-4" />
+                <RefreshCw className="size-4" />
                 Retry
               </Button>
             </div>
@@ -550,7 +528,7 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
             <DialogTitle>Connect Bitkit</DialogTitle>
           </DialogHeader>
           {paykitSetupStatus !== 'idle' && (
-            <div role="alert" className="grid gap-3 rounded-lg border border-amber-500/40 p-3 text-sm">
+            <div role="alert" className="grid gap-3 rounded-md border border-amber-500/40 p-3 text-sm">
               <Typography as="p">
                 {paykitSetupStatus === 'error'
                   ? 'Bitkit setup failed. Try again.'
@@ -561,7 +539,7 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
                       : 'No approval received. Try again.'}
               </Typography>
               <Button variant="secondary" className="w-fit rounded-full" onClick={openPaykitSetup}>
-                <RefreshCw className="mr-2 size-4" />
+                <RefreshCw className="size-4" />
                 Retry
               </Button>
             </div>
@@ -569,13 +547,10 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
           <Typography as="p" className="text-sm text-muted-foreground">
             {PAYKIT_SETUP_EXPLANATION}
           </Typography>
-          <Typography as="p" className="text-sm text-muted-foreground">
-            {PAYKIT_RING_IDENTITY_HELPER}
-          </Typography>
           {paykitSetupUrl && paykitCodeExpired ? (
             <div
               data-testid="paykit-setup-qr-expired"
-              className="flex h-40 w-full items-center justify-center rounded-lg border border-dashed bg-muted/40 p-6 text-center text-sm text-muted-foreground"
+              className="flex h-40 w-full items-center justify-center rounded-md bg-muted/40 p-6 text-center text-sm text-muted-foreground"
             >
               This code expired.
             </div>

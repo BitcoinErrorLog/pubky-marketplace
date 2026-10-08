@@ -289,7 +289,7 @@ describe('Marketplace payment status card — visual regression', () => {
       deployEnv: 'production',
       orderOverrides: { holdExpiresAt: HOLD_DEADLINE, holdSource: 'checkout' },
     });
-    await expect.element(screen.getByText('₿ Bitcoin')).toBeInTheDocument();
+    await expect.element(screen.getByRole('button', { name: 'Bitcoin' })).toBeInTheDocument();
     await expect.element(screen.getByText(/The item is held for you until/)).toBeInTheDocument();
     await expect
       .element(screen.getByText('Real money. Payments are final and go directly to the seller.'))
@@ -635,7 +635,7 @@ async function renderCapturedCard(scene: keyof typeof projectionSamples, isBuyer
     </Harness>,
     { viewport: VRT_VIEWPORT_DESKTOP },
   );
-  expect(expectVrtSurface('marketplace-payment-status-card')).toBeInTheDocument();
+  expect(await expectVrtSurface('marketplace-payment-status-card')).toBeInTheDocument();
   return screen;
 }
 

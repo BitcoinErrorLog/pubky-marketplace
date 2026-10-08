@@ -49,7 +49,7 @@ export function MarketplacePickupRevealDialog({ order }: { order: MarketplaceOrd
   return (
     <>
       <Button size="sm" variant="secondary" className="rounded-full" onClick={() => handleOpenChange(true)}>
-        <MapPin className="mr-2 size-4" />
+        <MapPin className="size-4" />
         Show meeting point
       </Button>
       <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -77,7 +77,7 @@ export function MarketplacePickupRevealDialog({ order }: { order: MarketplaceOrd
                 // render surface unwraps it here and nowhere else.
                 const details = line.details.value;
                 return (
-                  <div key={line.lineIndex} className="grid gap-2 rounded-xl border bg-card/60 p-4">
+                  <div key={line.lineIndex} className="grid gap-2 rounded-md bg-card/60 p-6">
                     {orderLine && (
                       <Typography as="p" className="text-sm font-semibold">
                         {orderLine.title} × {orderLine.quantity}

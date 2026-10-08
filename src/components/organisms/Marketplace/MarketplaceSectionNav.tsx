@@ -1,17 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import {
-  Bell,
-  HandCoins,
-  Heart,
-  LayoutDashboard,
-  MessageCircle,
-  ReceiptText,
-  Settings,
-  ShoppingCart,
-  Store,
-} from 'lucide-react';
+import { Bell, HandCoins, Heart, MessageCircle, ReceiptText, Settings, ShoppingCart, Store } from 'lucide-react';
 import { APP_ROUTES, MARKETPLACE_ROUTES } from '@/app/routes';
 import { Badge } from '@/atoms/Badge/Badge';
 import { Link } from '@/atoms/Link/Link';
@@ -44,7 +34,6 @@ const getItems = (socialLinkOut: boolean): readonly MarketplaceSectionItem[] => 
     ],
   },
   { label: 'Messages', href: MARKETPLACE_ROUTES.MESSAGES, icon: MessageCircle, badge: 'messages' },
-  { label: 'Offers', href: MARKETPLACE_ROUTES.OFFERS, icon: HandCoins },
   { label: 'Watchlist', href: MARKETPLACE_ROUTES.WATCHLIST, icon: Heart },
   {
     label: 'Cart',
@@ -53,12 +42,13 @@ const getItems = (socialLinkOut: boolean): readonly MarketplaceSectionItem[] => 
     badge: 'cart',
     activePrefixes: [MARKETPLACE_ROUTES.CART, MARKETPLACE_ROUTES.CHECKOUT, MARKETPLACE_ROUTES.AWARD_CHECKOUT],
   },
+  { label: 'Offers', href: MARKETPLACE_ROUTES.OFFERS, icon: HandCoins },
   { label: 'Orders', href: MARKETPLACE_ROUTES.ORDERS, icon: ReceiptText, badge: 'orders' },
   { label: 'Activity', href: MARKETPLACE_ROUTES.NOTIFICATIONS, icon: Bell, badge: 'activity' },
   {
-    label: 'Seller studio',
+    label: 'My shop',
     href: MARKETPLACE_ROUTES.DASHBOARD,
-    icon: LayoutDashboard,
+    icon: Store,
     activePrefixes: [
       MARKETPLACE_ROUTES.DASHBOARD,
       MARKETPLACE_ROUTES.SELL,

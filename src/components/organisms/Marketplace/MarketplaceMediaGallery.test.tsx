@@ -90,8 +90,8 @@ describe('MarketplaceMediaGallery', () => {
     fireEvent.error(screen.getByAltText('Front view'));
 
     expect(screen.queryByAltText('Front view')).not.toBeInTheDocument();
-    // The honest media-less fallback for an auction is the gavel hero.
-    expect(document.querySelector('svg.lucide-gavel')).toBeInTheDocument();
+    // Missing media keeps the shared category placeholder.
+    expect(document.querySelector('svg.lucide-package')).toBeInTheDocument();
   });
 
   it('labels an ended auction as ended', () => {

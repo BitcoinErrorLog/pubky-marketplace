@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useGrantSignInAvailable } from '@/hooks/useGrantSignInAvailable/useGrantSignInAvailable';
 import { useMobileAuth } from '@/hooks/useMobileAuth/useMobileAuth';
@@ -339,7 +339,7 @@ describe('SignInContent', () => {
 
     // Wait for the component to finish loading
     await waitFor(() => {
-      expect(screen.getByText('Authorize with Pubky Ring')).toBeInTheDocument();
+      expect(screen.getByText('Authorize')).toBeInTheDocument();
     });
 
     const images = screen.getAllByTestId('next-image');
@@ -350,7 +350,7 @@ describe('SignInContent', () => {
     expect(logoImage).toHaveAttribute('width', '137');
     expect(logoImage).toHaveAttribute('height', '30');
 
-    expect(screen.getByRole('button', { name: /Authorize with Pubky Ring/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Authorize/i })).toBeInTheDocument();
   });
 
   it('calls mobile authorize handler when button is tapped', async () => {
@@ -359,10 +359,10 @@ describe('SignInContent', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Authorize with Pubky Ring/i })).not.toBeDisabled();
+      expect(screen.getByRole('button', { name: /Authorize/i })).not.toBeDisabled();
     });
 
-    const authorizeButton = screen.getByRole('button', { name: /Authorize with Pubky Ring/i });
+    const authorizeButton = screen.getByRole('button', { name: /Authorize/i });
     await act(async () => {
       fireEvent.click(authorizeButton);
     });
@@ -541,48 +541,40 @@ describe('SignInContent - Bitkit grant sign-in', () => {
     expect(useMobileAuth).not.toHaveBeenCalledWith({ type: 'grant' });
   });
 
-  it('shows the Ring and Bitkit QRs side by side, each labelled, with no link to click', async () => {
+  it('switches between signer-specific QR codes', async () => {
     vi.mocked(useGrantSignInAvailable).mockReturnValue(true);
-    await act(async () => {
-      render(<SignInContent />);
-    });
-
-    expect(useMobileAuth).toHaveBeenCalledWith();
-    expect(useMobileAuth).toHaveBeenCalledWith({ type: 'grant' });
-    const ring = screen.getByTestId('sign-in-ring-option');
-    const bitkit = screen.getByTestId('sign-in-bitkit-option');
-    expect(within(ring).getByText('Pubky Ring')).toBeInTheDocument();
-    expect(within(ring).getByRole('button', { name: 'Copy authentication link' })).toBeInTheDocument();
-    expect(within(bitkit).getByText('Bitkit')).toBeInTheDocument();
-    expect(within(bitkit).getByText('Scan with Bitkit.')).toBeInTheDocument();
-    expect(within(bitkit).queryByText(/\d+\.\d+/)).not.toBeInTheDocument();
-    expect(within(bitkit).getByRole('button', { name: 'Copy Bitkit authentication link' })).toBeInTheDocument();
-    expect(screen.queryByTestId('sign-in-use-grant')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('sign-in-use-ring')).not.toBeInTheDocument();
+    render(<SignInContent />);
+    expect(screen.getByTestId('sign-in-ring-option')).toBeInTheDocument();
+    expect(screen.queryByTestId('sign-in-bitkit-option')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('radio', { name: 'Bitkit' }));
+    expect(screen.getByTestId('sign-in-bitkit-option')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copy Bitkit authentication link' })).toBeInTheDocument();
+    expect(screen.queryByTestId('sign-in-ring-option')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('radio', { name: 'Pubky Ring' }));
+    expect(screen.getByRole('button', { name: 'Copy authentication link' })).toBeInTheDocument();
   });
 
-  it('tells new Bitkit users to create a Pubky identity before scanning the QR', async () => {
+  it('authorizes using the selected signer on mobile', async () => {
     vi.mocked(useGrantSignInAvailable).mockReturnValue(true);
-    await act(async () => {
-      render(<SignInContent />);
-    });
-
-    const hint = "New Bitkit users must create a Pubky identity in Bitkit's profile before scanning.";
-    const bitkit = screen.getByTestId('sign-in-bitkit-option');
-    expect(within(bitkit).getByText('Scan with Bitkit.')).toBeInTheDocument();
-    expect(within(bitkit).getByText(hint)).toBeInTheDocument();
-    expect(screen.getAllByText(hint)).toHaveLength(2);
-  });
-
-  it('offers both authorize buttons on mobile', async () => {
-    vi.mocked(useGrantSignInAvailable).mockReturnValue(true);
-    await act(async () => {
-      render(<SignInContent />);
-    });
-
-    expect(screen.getByText('Authorize with Pubky Ring')).toBeInTheDocument();
-    expect(screen.getByText('Authorize with Bitkit')).toBeInTheDocument();
-    expect(screen.getByTestId('sign-in-grant-button')).toBeInTheDocument();
+    const ringAuthorize = vi.fn();
+    const bitkitAuthorize = vi.fn();
+    vi.mocked(useMobileAuth).mockImplementation((options) => ({
+      url: 'auth-url',
+      isLoading: false,
+      isExpired: false,
+      fetchUrl: mockFetchUrl,
+      copyAuthUrl: mockCopyAuthUrl,
+      isOpeningRing: false,
+      onAuthorizeClick: options?.type === 'grant' ? bitkitAuthorize : ringAuthorize,
+    }));
+    render(<SignInContent />);
+    fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
+    expect(ringAuthorize).toHaveBeenCalledOnce();
+    expect(bitkitAuthorize).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('radio', { name: 'Bitkit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
+    expect(bitkitAuthorize).toHaveBeenCalledOnce();
+    expect(ringAuthorize).toHaveBeenCalledOnce();
   });
 
   it('copying the Bitkit QR copies the Bitkit flow URL, not the Ring one', async () => {
@@ -602,6 +594,9 @@ describe('SignInContent - Bitkit grant sign-in', () => {
       render(<SignInContent />);
     });
 
+    await act(async () => {
+      fireEvent.click(screen.getByRole('radio', { name: 'Bitkit' }));
+    });
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Copy Bitkit authentication link' }));
     });
@@ -652,7 +647,7 @@ describe('SignInContent - Progress View', () => {
     expect(screen.getByText('Please wait while your Pubky experience loads.')).toBeInTheDocument();
 
     // Should show all 4 step labels
-    expect(screen.getByText('Verifying account')).toBeInTheDocument();
+    expect(screen.getByText('Setting up')).toBeInTheDocument();
     expect(screen.getByText('Loading your data')).toBeInTheDocument();
     expect(screen.getByText('Building your feed')).toBeInTheDocument();
     expect(screen.getByText('Syncing settings')).toBeInTheDocument();
@@ -665,7 +660,7 @@ describe('SignInContent - Progress View', () => {
       render(<SignInContent />);
     });
 
-    const verifyingLabel = screen.getByText('Verifying account');
+    const verifyingLabel = screen.getByText('Setting up');
     const loadingLabel = screen.getByText('Loading your data');
     const buildingLabel = screen.getByText('Building your feed');
     const syncingLabel = screen.getByText('Syncing settings');
@@ -691,7 +686,7 @@ describe('SignInContent - Progress View', () => {
       render(<SignInContent />);
     });
 
-    const verifyingLabel = screen.getByText('Verifying account');
+    const verifyingLabel = screen.getByText('Setting up');
     const loadingLabel = screen.getByText('Loading your data');
     const buildingLabel = screen.getByText('Building your feed');
     const syncingLabel = screen.getByText('Syncing settings');
@@ -721,7 +716,7 @@ describe('SignInContent - Progress View', () => {
     });
 
     // Should not have the authorize button
-    expect(screen.queryByText('Authorize with Pubky Ring')).not.toBeInTheDocument();
+    expect(screen.queryByText('Authorize')).not.toBeInTheDocument();
 
     // Should not have the desktop/mobile specific containers
     const containers = screen.getAllByTestId('container');
@@ -740,22 +735,11 @@ describe('SignInFooter', () => {
   it('renders footer with recovery message', () => {
     render(<SignInFooter />);
 
-    expect(screen.getAllByRole('link').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText('Not able to sign in with', { exact: false })).toBeInTheDocument();
     expect(
-      screen.getByText('? Use the recovery phrase or encrypted file to restore your account.', { exact: false }),
+      screen.getByText(
+        'Not able to sign in with a keychain? Use the recovery phrase or encrypted file to restore your account.',
+      ),
     ).toBeInTheDocument();
-  });
-
-  it('renders Pubky Ring link', () => {
-    render(<SignInFooter />);
-
-    const link = screen.getByRole('link', { name: /Pubky Ring/i });
-
-    expect(link).toHaveAttribute('href', 'https://pubkyring.app/');
-    expect(link).toHaveAttribute('target', '_blank');
-    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
-    expect(link).toHaveTextContent('Pubky Ring');
   });
 
   it('does not render in progress view', () => {
@@ -787,10 +771,10 @@ describe('SignInContent - Continue with Google (Pubky Passport)', () => {
     });
 
     const buttons = screen.getAllByRole('button', { name: 'Continue with Google' });
-    expect(buttons).toHaveLength(2);
-    expect(screen.getAllByText(/Messages are not available with Passport sign-ins yet\./)).toHaveLength(2);
+    expect(buttons).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Continue with Apple' })).toBeDisabled();
     expect(screen.getByTestId('sign-in-ring-option')).toBeInTheDocument();
-    expect(screen.getByTestId('sign-in-bitkit-option')).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Bitkit' })).toBeInTheDocument();
   });
 
   it('starts the Passport attempt from the click itself', async () => {
@@ -831,6 +815,6 @@ describe('SignInContent - Continue with Google (Pubky Passport)', () => {
     });
 
     expect(screen.queryByTestId('sign-in-passport-option')).not.toBeInTheDocument();
-    expect(screen.getByTestId('sign-in-bitkit-option')).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Bitkit' })).toBeInTheDocument();
   });
 });

@@ -6,6 +6,8 @@ export interface QrCodeSlotProps {
   clickToReloadLabel: string;
   /** QR code pixel size. Defaults to 176. */
   size?: number;
+  /** Scale the QR to a square parent; the center badge stays 48px. */
+  fillWidth?: boolean;
   /**
    * When the active QR is itself clickable (e.g. SignIn copy-to-clipboard),
    * the consumer wraps this slot in a `group`-classed button. Setting this to
@@ -25,4 +27,6 @@ export interface QrCodeSlotProps {
   };
   /** The Pubky Ring logo over the QR. Off for QRs meant for another signer (Bitkit). Defaults to true. */
   showRingLogo?: boolean;
+  /** Signer brand shown in the center; overrides showRingLogo when provided. */
+  logo?: 'ring' | 'bitkit';
 }

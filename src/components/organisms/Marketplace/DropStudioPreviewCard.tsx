@@ -39,7 +39,7 @@ export function DropStudioPreviewCard({
   const showMedia = mediaUrl !== null && !mediaFailed;
 
   return (
-    <Card className="overflow-hidden border-dashed py-0" aria-label="Preview of the announced drop card">
+    <Card className="overflow-hidden p-0" aria-label="Preview of the announced drop card">
       <div className="relative aspect-[2/1] w-full bg-gradient-to-br from-brand/25 via-muted to-background">
         {showMedia && (
           // eslint-disable-next-line @next/next/no-img-element -- teaser media comes from arbitrary homeservers; next/image cannot optimize them.
@@ -55,7 +55,7 @@ export function DropStudioPreviewCard({
           Upcoming drop
         </Badge>
       </div>
-      <CardContent className="flex flex-col gap-2 px-5 py-4">
+      <CardContent className="flex flex-col gap-2 p-6">
         <Typography as="p" className="text-lg font-semibold">
           {title.trim() === '' ? 'Untitled drop' : title}
         </Typography>

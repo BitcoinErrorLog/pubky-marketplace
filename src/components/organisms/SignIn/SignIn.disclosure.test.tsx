@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RING_COOKIE_CAPABILITIES } from '@/config/app';
 import { MARKETPLACE_DISCLOSURE_RING_SIGN_IN } from '@/services/marketplace/marketplace-session-grant';
@@ -67,21 +67,11 @@ describe('Ring sign-in marketplace disclosure', () => {
     expect(screen.getByTestId('button').parentElement).toContainElement(disclosures[1]);
   });
 
-  it('shows it under Ring, never under Bitkit, in the side-by-side layouts', () => {
+  it('keeps the combined signer layout free of explanatory copy below the options', () => {
     view.grantSignIn = true;
     render(<SignInContent />);
-
-    expect(
-      within(screen.getByTestId('sign-in-ring-option')).getByTestId('session-approval-disclosure'),
-    ).toHaveTextContent(MARKETPLACE_DISCLOSURE_RING_SIGN_IN);
-    expect(within(screen.getByTestId('sign-in-bitkit-option')).queryByTestId('session-approval-disclosure')).toBeNull();
-    const mobileRing = screen.getByTestId('button');
-    expect(mobileRing.nextElementSibling).toHaveAttribute('data-testid', 'session-approval-disclosure');
-    expect(screen.getByTestId('sign-in-grant-button').nextElementSibling).not.toHaveAttribute(
-      'data-testid',
-      'session-approval-disclosure',
-    );
-    expect(screen.getAllByTestId('session-approval-disclosure')).toHaveLength(2);
+    expect(screen.getByTestId('sign-in-ring-option')).toBeInTheDocument();
+    expect(screen.queryByTestId('session-approval-disclosure')).not.toBeInTheDocument();
   });
 
   it.each([

@@ -47,7 +47,7 @@ export function MarketplaceEditListing({ sellerPubky, listingId }: MarketplaceEd
         showLeftMobileButton={false}
         showRightMobileButton={false}
       >
-        <Container overrideDefaults className="w-full px-4 sm:px-6">
+        <Container overrideDefaults className="w-full">
           {editing.status === 'loading' ? (
             <MarketplaceSkeleton count={1} />
           ) : (
@@ -87,9 +87,8 @@ export function MarketplaceEditListing({ sellerPubky, listingId }: MarketplaceEd
       showRightMobileButton={false}
       disableMainContentOverflow
       className="pb-28 lg:pb-16"
-      classNameWrapperContent="max-w-7xl"
     >
-      <Container overrideDefaults className="flex w-full flex-col gap-6 px-4 sm:px-6 lg:px-8">
+      <Container overrideDefaults className="flex w-full flex-col gap-6">
         <Link
           href={listingRoute}
           overrideDefaults

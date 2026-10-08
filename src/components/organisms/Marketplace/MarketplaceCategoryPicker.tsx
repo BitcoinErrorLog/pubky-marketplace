@@ -75,8 +75,9 @@ export function MarketplaceCategoryPicker({ value, onChange, disabled, error }: 
             disabled={disabled}
           >
             <SelectTrigger
+              theme="secondary"
               id={`marketplace-category-level-${depth}`}
-              className="h-11 w-full rounded-md border px-3"
+              className="w-full"
               aria-label={depth === 0 ? 'Category' : `Category level ${depth + 1}`}
               aria-invalid={!!error}
             >

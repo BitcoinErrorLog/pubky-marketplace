@@ -5,8 +5,10 @@ import { LISTING_PUBLISH_BLOCK_COPY, LISTING_PUBLISH_BLOCK_REASONS } from '@/lib
 import { ListingPublishGuardNotice } from './ListingPublishGuardNotice';
 
 vi.mock('@/organisms/Marketplace/MarketplaceSessionConnectDialog', () => ({
-  MarketplaceSessionConnectDialog: ({ triggerLabel }: { triggerLabel: string }) => (
-    <button type="button">{triggerLabel}</button>
+  MarketplaceSessionConnectDialog: ({ triggerLabel, intent }: { triggerLabel: string; intent: string }) => (
+    <button type="button" data-intent={intent}>
+      {triggerLabel}
+    </button>
   ),
 }));
 
@@ -35,13 +37,13 @@ describe('ListingPublishGuardNotice', () => {
       'href',
       `${MARKETPLACE_ROUTES.SETTINGS}?returnTo=${encodeURIComponent(MARKETPLACE_ROUTES.SELL)}`,
     );
-    expect(screen.queryByRole('button', { name: 'Connect marketplace session' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Enable selling' })).not.toBeInTheDocument();
   });
 
   it('bootstraps a marketplace session from the session guard, not the buyer reconnect card', () => {
     render(<ListingPublishGuardNotice reason="session" surface="listing-publish-guard" density="action" />);
 
-    expect(screen.getByRole('button', { name: 'Connect marketplace session' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Enable selling' })).toHaveAttribute('data-intent', 'sell');
     expect(screen.queryByText('Approve purchases in Pubky Ring')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Approve in Pubky Ring' })).not.toBeInTheDocument();
   });
@@ -49,7 +51,7 @@ describe('ListingPublishGuardNotice', () => {
   it('uses the same session bootstrap control on the page banner', () => {
     render(<ListingPublishGuardNotice reason="unverified" surface="seller-publish-blocked" density="banner" />);
 
-    expect(screen.getByRole('button', { name: 'Connect marketplace session' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Enable selling' })).toHaveAttribute('data-intent', 'sell');
     expect(screen.queryByText('Approve purchases in Pubky Ring')).not.toBeInTheDocument();
   });
 });

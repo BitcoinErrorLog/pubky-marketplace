@@ -14,6 +14,7 @@ import {
 } from '@/hooks/useMarketplaceShopSettings/useMarketplaceShopSettings';
 import { ControlledInputField } from '@/molecules/ControlledInputField/ControlledInputField';
 import { ControlledTextareaField } from '@/molecules/ControlledTextareaField/ControlledTextareaField';
+import { SettingsSectionContent } from '@/molecules/Settings/SettingsSectionContent/SettingsSectionContent';
 
 export interface MarketplaceShopSettingsFormProps {
   onSaved?: () => void;
@@ -42,59 +43,64 @@ export function MarketplaceShopSettingsFormView({ settings, onSaved }: Marketpla
   };
 
   return (
-    <Card className="border">
-      <CardContent className="grid gap-5 px-6">
+    <Card className="rounded-md p-0 shadow-lg">
+      <CardContent className="grid gap-6 p-6">
         <div>
           <Typography as="h2" className="text-xl font-semibold">
-            {settings.hasShop ? 'Shop details and policies' : 'Create your shop'}
+            {settings.hasShop ? 'Shop details and policies' : 'Create your storefront'}
           </Typography>
           <Typography as="p" className="text-sm text-muted-foreground">
             {settings.hasShop
               ? `Public owner-signed storefront settings · revision ${settings.revision}`
-              : 'Buyers see this on your public shop page and next to every listing you publish.'}
+              : 'Buyers see this on your public storefront and next to every listing you publish.'}
           </Typography>
         </div>
-        <ShopImageField
-          slot={settings.avatar}
-          label="Shop avatar"
-          description="Square image shown on your shop page and next to your listings. Metadata is stripped before publication."
-          shape="avatar"
-          disabled={settings.isSaving}
-        />
-        <ShopImageField
-          slot={settings.banner}
-          label="Shop banner"
-          description="Wide image across the top of your shop page. Metadata is stripped before publication."
-          shape="banner"
-          disabled={settings.isSaving}
-        />
-        <ControlledInputField name="name" control={settings.form.control} label="Shop name" />
-        <ControlledTextareaField name="bio" control={settings.form.control} label="Shop bio" />
-        <div className="grid gap-4 sm:grid-cols-2">
-          <ControlledInputField name="countryCode" control={settings.form.control} label="Country" />
-          <ControlledInputField name="region" control={settings.form.control} label="Region" />
-        </div>
-        <ControlledTextareaField name="shippingPolicy" control={settings.form.control} label="Shipping policy" />
-        <ControlledTextareaField name="returnPolicy" control={settings.form.control} label="Return policy" />
-        <Controller
-          name="vacationMode"
-          control={settings.form.control}
-          render={({ field }) => (
-            <div>
-              <Label className="justify-between">
-                Vacation mode
-                <Switch checked={field.value} onCheckedChange={field.onChange} aria-label="Vacation mode" />
-              </Label>
-              <Typography as="p" className="mt-1 text-sm text-muted-foreground">
-                Shows a vacation notice on your shop and listings. Listings stay visible; pause them from the seller
-                dashboard if you want them unavailable.
-              </Typography>
-            </div>
-          )}
-        />
-        <Button className="w-full rounded-full" disabled={settings.isSaving} onClick={() => void submit()}>
-          {settings.isSaving ? 'Saving…' : settings.hasShop ? 'Save shop settings' : 'Create shop'}
-        </Button>
+        <SettingsSectionContent>
+          <ShopImageField
+            slot={settings.avatar}
+            label="Avatar"
+            description="Square image shown on your storefront and next to your listings."
+            shape="avatar"
+            disabled={settings.isSaving}
+          />
+          <ShopImageField
+            slot={settings.banner}
+            label="Banner"
+            description="Wide image across the top of your storefront."
+            shape="banner"
+            disabled={settings.isSaving}
+          />
+
+          <ControlledInputField name="name" control={settings.form.control} label="Shop name" />
+          <ControlledTextareaField name="bio" control={settings.form.control} label="About your shop" />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <ControlledInputField name="countryCode" control={settings.form.control} label="Country" />
+            <ControlledInputField name="region" control={settings.form.control} label="Region" />
+          </div>
+
+          <ControlledTextareaField name="shippingPolicy" control={settings.form.control} label="Shipping policy" />
+          <ControlledTextareaField name="returnPolicy" control={settings.form.control} label="Return policy" />
+
+          <Controller
+            name="vacationMode"
+            control={settings.form.control}
+            render={({ field }) => (
+              <div>
+                <Label className="justify-between">
+                  Vacation mode
+                  <Switch checked={field.value} onCheckedChange={field.onChange} aria-label="Vacation mode" />
+                </Label>
+                <Typography as="p" className="mt-1 text-sm text-muted-foreground">
+                  Shows a vacation notice on your shop and listings. Listings stay visible; pause them from the seller
+                  dashboard if you want them unavailable.
+                </Typography>
+              </div>
+            )}
+          />
+          <Button size="lg" className="w-full rounded-full" disabled={settings.isSaving} onClick={() => void submit()}>
+            {settings.isSaving ? 'Saving…' : 'Save storefront'}
+          </Button>
+        </SettingsSectionContent>
       </CardContent>
     </Card>
   );
@@ -153,7 +159,7 @@ function ShopImageField({
             disabled={disabled}
             onClick={choose}
           >
-            <ImagePlus className="mr-2 size-4" />
+            <ImagePlus className="size-4" />
             {hasImage ? `Replace ${shape}` : `Add ${shape}`}
           </Button>
           {hasImage && (
@@ -165,7 +171,7 @@ function ShopImageField({
               disabled={disabled}
               onClick={remove}
             >
-              <Trash2 className="mr-2 size-4" />
+              <Trash2 className="size-4" />
               Remove
             </Button>
           )}

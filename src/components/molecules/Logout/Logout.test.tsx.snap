@@ -17,7 +17,7 @@ exports[`LogoutContent - Snapshots > matches the signed-out illustration layout 
       </span>
     </h1>
     <h2>
-      You have signed out of the Shop. If you signed in with Pubky Ring, pubky.app in this browser is signed out too.
+      You have securely signed out.
     </h2>
   </header>
   <div

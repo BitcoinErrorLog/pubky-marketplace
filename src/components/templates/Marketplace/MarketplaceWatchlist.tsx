@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Bell, Eye, Gavel, Heart, Package, RefreshCw } from 'lucide-react';
-import { APP_ROUTES, getMarketplaceListingRoute } from '@/app/routes';
+import { getMarketplaceListingRoute } from '@/app/routes';
 import { Badge } from '@/atoms/Badge/Badge';
 import { Button } from '@/atoms/Button/Button';
 import { Card, CardContent } from '@/atoms/Card/Card';
@@ -28,6 +28,7 @@ import { useRelativeTime } from '@/hooks/useRelativeTime/useRelativeTime';
 import { effectiveListingState } from '@/libs/commerce/auction-phase';
 import { formatCommerceMoney } from '@/libs/commerce/format';
 import { Logger } from '@/libs/logger/logger';
+import { MarketplaceEmptyState } from '@/molecules/Marketplace/MarketplaceEmptyState';
 import { ContentLayout } from '@/organisms/ContentLayout/ContentLayout';
 import { MarketplaceReauthDialog } from '@/organisms/Marketplace/MarketplaceReauthDialog';
 import { MarketplaceSectionNav } from '@/organisms/Marketplace/MarketplaceSectionNav';
@@ -72,9 +73,8 @@ export function MarketplaceWatchlist() {
       showLeftMobileButton={false}
       showRightMobileButton={false}
       className="pb-28"
-      classNameWrapperContent="max-w-7xl"
     >
-      <Container overrideDefaults className="flex w-full flex-col gap-6 px-4 sm:px-6">
+      <Container overrideDefaults className="flex w-full flex-col gap-6">
         <MarketplaceSectionNav />
 
         <div className="flex flex-wrap items-end justify-between gap-4">
@@ -83,8 +83,7 @@ export function MarketplaceWatchlist() {
               Watchlist
             </Heading>
             <Typography as="p" className="mt-2 text-muted-foreground">
-              {entries.length} watched {entries.length === 1 ? 'item' : 'items'}. Changes are detected by checks this
-              device runs when you visit — there is no background process.
+              {entries.length} watched {entries.length === 1 ? 'item' : 'items'}.
             </Typography>
           </div>
           {isSignedIn && entries.length > 0 && (
@@ -97,63 +96,16 @@ export function MarketplaceWatchlist() {
                 onClick={() => void checkNow()}
                 data-cy="watchlist-check-now"
               >
-                <RefreshCw className={`mr-2 size-4 ${isCheckingNow ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`size-4 ${isCheckingNow ? 'animate-spin' : ''}`} />
                 Check now
               </Button>
             </div>
           )}
         </div>
 
-        {isSignedIn && watchlistSyncStatus === 'needs_reauth' && (
-          <Card className="border border-amber-500/40 bg-amber-500/5" data-cy="watchlist-sync-reauth-notice">
-            <CardContent className="flex flex-col gap-1 py-4">
-              <Typography as="p" className="font-medium">
-                Sync across devices needs a fresh sign-in approval
-              </Typography>
-              <Typography as="p" className="text-sm text-muted-foreground">
-                Your watchlist keeps working on this device. To sync it privately through your homeserver, sign in again
-                and approve the private-storage permission — sessions approved before that permission existed cannot
-                write it.
-              </Typography>
-              <div className="mt-2">
-                <MarketplaceReauthDialog
-                  triggerLabel="Sign in again to enable sync"
-                  refusal="homeserver"
-                  onReauthenticated={syncWatchlist}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {isSignedIn && watchlistSyncStatus === 'needs_marketplace_approval' && (
-          <Card
-            className="border border-amber-500/40 bg-amber-500/5"
-            data-cy="watchlist-sync-marketplace-approval-notice"
-          >
-            <CardContent className="flex flex-col gap-1 py-4">
-              <Typography as="p" className="font-medium">
-                Sync across devices needs a marketplace approval
-              </Typography>
-              <Typography as="p" className="text-sm text-muted-foreground">
-                Your watchlist keeps working on this device. It syncs encrypted through your homeserver, and the
-                marketplace releases the key only to a purchase session that includes your private Shop data. Approve
-                one to turn sync on.
-              </Typography>
-              <div className="mt-2">
-                <MarketplaceReauthDialog
-                  triggerLabel="Approve private sync"
-                  refusal="purchase_session"
-                  onReauthenticated={syncWatchlist}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {isSignedIn && watchlistSyncStatus === 'unavailable' && (
-          <Card className="border border-muted-foreground/30" data-cy="watchlist-sync-unavailable-notice">
-            <CardContent className="flex flex-col gap-1 py-4">
+          <Card className="rounded-md p-0" data-cy="watchlist-sync-unavailable-notice">
+            <CardContent className="flex flex-col gap-1 p-6">
               <Typography as="p" className="font-medium">
                 Private sync is unavailable right now
               </Typography>
@@ -166,8 +118,8 @@ export function MarketplaceWatchlist() {
         )}
 
         {isSignedIn && watchlistSyncStatus === 'unsupported' && (
-          <Card className="border border-muted-foreground/30" data-cy="watchlist-sync-unsupported-notice">
-            <CardContent className="flex flex-col gap-1 py-4">
+          <Card className="rounded-md p-0" data-cy="watchlist-sync-unsupported-notice">
+            <CardContent className="flex flex-col gap-1 p-6">
               <Typography as="p" className="font-medium">
                 This browser cannot sync your watchlist
               </Typography>
@@ -180,8 +132,8 @@ export function MarketplaceWatchlist() {
         )}
 
         {!isSignedIn ? (
-          <Card className="border py-10">
-            <CardContent className="flex flex-col items-center gap-3 text-center">
+          <Card className="rounded-md p-0">
+            <CardContent className="flex flex-col items-center gap-3 p-6 text-center">
               <Eye className="size-10 text-muted-foreground" />
               <Heading level={2} size="md">
                 Sign in to keep a watchlist
@@ -205,8 +157,8 @@ export function MarketplaceWatchlist() {
                     Delivered by the marketplace service — you are notified when a bid displaces you.
                   </Typography>
                 </div>
-                <Card className="border py-2">
-                  <CardContent className="flex flex-col gap-3 px-4 py-2">
+                <Card className="rounded-md p-0">
+                  <CardContent className="flex flex-col gap-3 p-6">
                     {serviceAuctionRows.map((notification) => (
                       <MarketplaceNotificationItem key={notification.id} notification={notification} />
                     ))}
@@ -227,8 +179,8 @@ export function MarketplaceWatchlist() {
                     events.
                   </Typography>
                 </div>
-                <Card className="border py-2">
-                  <CardContent className="flex flex-col gap-1 px-4 py-2">
+                <Card className="rounded-md p-0">
+                  <CardContent className="flex flex-col gap-1 p-6">
                     {localAlerts.map((alert) => {
                       const detail = getWatchAlertDetail(alert);
                       return (
@@ -265,24 +217,37 @@ export function MarketplaceWatchlist() {
                 ))}
               </section>
             ) : (
-              <div className="flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed text-center">
-                <Heart className="mb-3 size-10 text-muted-foreground" />
-                <Heading level={2} size="md">
-                  Nothing watched yet
-                </Heading>
-                <Typography as="p" className="mt-2 max-w-md text-muted-foreground">
-                  Tap the heart on a listing — or the bell on an auction — and it will show up here with its latest
-                  observed price, state, and deadline.
-                </Typography>
-                <Button asChild className="mt-6 rounded-full">
-                  <Link href={APP_ROUTES.MARKETPLACE} overrideDefaults>
-                    Browse the marketplace
-                  </Link>
-                </Button>
-              </div>
+              <MarketplaceEmptyState
+                icon={Heart}
+                title="Nothing watched yet"
+                description="Tap the heart on a listing, or the bell on an auction, to watch it here."
+              />
             )}
           </>
         )}
+        {isSignedIn &&
+          (watchlistSyncStatus === 'needs_reauth' || watchlistSyncStatus === 'needs_marketplace_approval') && (
+            <div
+              className="flex flex-col items-center gap-4 py-6 text-center"
+              data-cy={
+                watchlistSyncStatus === 'needs_reauth'
+                  ? 'watchlist-sync-reauth-notice'
+                  : 'watchlist-sync-marketplace-approval-notice'
+              }
+            >
+              <Typography as="p" className="text-sm text-muted-foreground">
+                Have more devices?
+              </Typography>
+              <MarketplaceReauthDialog
+                triggerLabel="Enable device sync"
+                intent="sync"
+                triggerVariant="outline"
+                triggerIcon={RefreshCw}
+                refusal={watchlistSyncStatus === 'needs_reauth' ? 'homeserver' : 'purchase_session'}
+                onReauthenticated={syncWatchlist}
+              />
+            </div>
+          )}
       </Container>
     </ContentLayout>
   );
@@ -317,8 +282,8 @@ function WatchlistItemRow({ entry }: { entry: MarketplaceWatchlistEntry }) {
   const state = deriveWatchlistState(entry);
 
   return (
-    <Card ref={liveBidRef} className="border py-3" data-cy="watchlist-item">
-      <CardContent className="flex items-center gap-4 px-4">
+    <Card ref={liveBidRef} className="rounded-md p-0" data-cy="watchlist-item">
+      <CardContent className="flex items-center gap-4 p-6">
         <Link
           href={getMarketplaceListingRoute(sellerId, rawListingId)}
           overrideDefaults

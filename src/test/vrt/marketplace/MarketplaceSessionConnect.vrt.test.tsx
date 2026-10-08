@@ -162,10 +162,12 @@ describe('Marketplace session connect — visual regression', () => {
       { viewport: VRT_VIEWPORT_DESKTOP },
     );
     await openDialog(screen.getByRole('button', { name: 'Approve in Pubky Ring' }));
+    await expect(screen.getByRole('button', { name: 'Copy authorization link' })).toBeVisible();
+    await expect(screen.getByRole('button', { name: 'Authorize with Pubky Ring', includeHidden: true })).not.toBeVisible();
     await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot('session-connect-awaiting-desktop');
   });
 
-  it('renders the awaiting-approval QR state at mobile viewport', async () => {
+  it('renders the awaiting-approval app button without a QR at mobile viewport', async () => {
     view.authorizationUrl = VRT_AUTH_URL;
 
     await preloadImages(QR_LOGO_URLS);
@@ -176,6 +178,10 @@ describe('Marketplace session connect — visual regression', () => {
       { viewport: VRT_VIEWPORT_MOBILE },
     );
     await openDialog(screen.getByRole('button', { name: 'Approve in Pubky Ring' }));
+    await expect(
+      screen.getByRole('button', { name: 'Copy authorization link', includeHidden: true }),
+    ).not.toBeVisible();
+    await expect(screen.getByRole('button', { name: 'Authorize with Pubky Ring' })).toBeVisible();
     await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot('session-connect-awaiting-mobile');
   });
 

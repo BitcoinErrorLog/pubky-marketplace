@@ -309,6 +309,7 @@ describe('CommerceApplication', () => {
 
   it('seeds catalog data only when sandbox mode is explicit', async () => {
     const seed = vi.spyOn(LocalCommerceService, 'seedSandboxCatalog').mockResolvedValue(true);
+    vi.spyOn(CommerceApplication, 'ensureListingRegistered').mockResolvedValue(true);
     vi.spyOn(commerceConfig, 'getCommerceAdapterMode').mockReturnValue('unavailable');
 
     await expect(CommerceApplication.initializeSandboxCatalog()).resolves.toBe(false);
@@ -317,6 +318,26 @@ describe('CommerceApplication', () => {
     vi.mocked(commerceConfig.getCommerceAdapterMode).mockReturnValue('sandbox');
     await expect(CommerceApplication.initializeSandboxCatalog()).resolves.toBe(true);
     expect(seed).toHaveBeenCalledOnce();
+  });
+
+  it('does not report sandbox success when another catalog prevents seeding', async () => {
+    vi.spyOn(commerceConfig, 'getCommerceAdapterMode').mockReturnValue('sandbox');
+    vi.spyOn(LocalCommerceService, 'seedSandboxCatalog').mockResolvedValue(false);
+    vi.spyOn(LocalCommerceService, 'getListing').mockResolvedValue(null);
+    const register = vi.spyOn(CommerceApplication, 'ensureListingRegistered').mockResolvedValue(true);
+
+    await expect(CommerceApplication.initializeSandboxCatalog()).resolves.toBe(false);
+    expect(register).not.toHaveBeenCalled();
+  });
+
+  it('reports sandbox setup failure when listings cannot register for checkout', async () => {
+    vi.spyOn(commerceConfig, 'getCommerceAdapterMode').mockReturnValue('sandbox');
+    vi.spyOn(LocalCommerceService, 'seedSandboxCatalog').mockResolvedValue(true);
+    vi.spyOn(CommerceApplication, 'ensureListingRegistered').mockResolvedValue(false);
+
+    await expect(CommerceApplication.initializeSandboxCatalog()).rejects.toMatchObject({
+      code: ServerErrorCode.SERVICE_UNAVAILABLE,
+    });
   });
 
   it('fetches, validates, and caches a missing shop', async () => {

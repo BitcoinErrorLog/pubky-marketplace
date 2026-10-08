@@ -284,7 +284,7 @@ describe('MarketplaceListing', () => {
     expect(screen.getByRole('button', { name: 'Message seller' })).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Reviews' })).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Approve in Pubky Ring' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Authorize with Pubky Ring' })).not.toBeInTheDocument();
   });
 
   it('renders the seller block with shop identity, actions, and shipping copy', () => {
@@ -310,7 +310,7 @@ describe('MarketplaceListing', () => {
     expect(screen.getByText('Satoshi Vintage')).toBeInTheDocument();
     expect(screen.getByText('No rating yet')).toBeInTheDocument();
     expect(screen.queryByText(/Shop opened/)).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'View shop' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View storefront' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Message seller' })).toBeInTheDocument();
     expect(screen.getByText('Shipping: $8.99')).toHaveAttribute('data-slot', 'badge');
     expect(screen.queryByText('Shipping: Ground shipping $8.99')).not.toBeInTheDocument();
@@ -345,7 +345,7 @@ describe('MarketplaceListing', () => {
     expect(screen.getByText('Pickup location')).toBeInTheDocument();
     expect(screen.queryByText('Ships from')).not.toBeInTheDocument();
     expect(screen.queryByText(/Shipping: calculated/)).not.toBeInTheDocument();
-    const purchase = screen.getByRole('button', { name: /Add to cart/ });
+    const purchase = screen.getByRole('button', { name: /Buy/ });
     expect(
       purchase.compareDocumentPosition(screen.getByRole('heading', { name: 'Item specifics' })) &
         Node.DOCUMENT_POSITION_FOLLOWING,
@@ -449,7 +449,7 @@ describe('MarketplaceListing', () => {
   it('offers Make offer on a pickup-only Buy-now listing that accepts offers', () => {
     view.listing = toCommerceListingModel(createCommerceListingFixture({ fulfillmentMethods: ['pickup'] }));
     renderListing();
-    expect(screen.getByRole('button', { name: /Add to cart/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Buy/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Make offer' })).toBeEnabled();
   });
 
@@ -533,13 +533,12 @@ describe('MarketplaceListing', () => {
 
     renderListing();
 
-    const purchase = screen.getByRole('button', { name: 'Approve to buy' });
+    const purchase = screen.getByRole('button', { name: 'Buy' });
     expect(purchase).toBeEnabled();
-    expect(screen.queryByRole('button', { name: 'Add to cart' })).not.toBeInTheDocument();
-    expect(
+        expect(
       screen.queryByText('Connect to see availability before adding this item to your cart.'),
     ).not.toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: 'Approve to buy' })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: 'Buy' })).toHaveLength(1);
     expect(cartAdd).not.toHaveBeenCalled();
   });
 
@@ -551,10 +550,10 @@ describe('MarketplaceListing', () => {
 
     renderListing();
 
-    await user.click(screen.getByRole('button', { name: 'Approve to buy' }));
+    await user.click(screen.getByRole('button', { name: 'Buy' }));
 
-    expect(screen.getByRole('heading', { name: 'Approve purchases in Pubky Ring' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Approve in Pubky Ring' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Enable purchases' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Authorize with Pubky Ring' })).toBeInTheDocument();
     expect(
       screen.queryByText('Connect to see availability before adding this item to your cart.'),
     ).not.toBeInTheDocument();
@@ -569,9 +568,9 @@ describe('MarketplaceListing', () => {
 
     renderListing();
 
-    const purchase = screen.getByRole('button', { name: 'Sign in to buy' });
+    const purchase = screen.getByRole('button', { name: 'Buy' });
     expect(purchase).toBeEnabled();
-    expect(screen.getAllByRole('button', { name: 'Sign in to buy' })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: 'Buy' })).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'Make offer' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Add to watchlist' })).toBeEnabled();
     expect(
@@ -581,7 +580,7 @@ describe('MarketplaceListing', () => {
 
     await user.click(purchase);
     expect(authState.setShowSignInDialog).toHaveBeenCalledWith(true);
-    expect(screen.queryByRole('heading', { name: 'Approve purchases in Pubky Ring' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Enable purchases' })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Make offer' }));
     expect(authState.setShowSignInDialog).toHaveBeenCalledTimes(2);
@@ -591,17 +590,17 @@ describe('MarketplaceListing', () => {
     const user = userEvent.setup();
 
     const listing = renderListing();
-    await user.click(screen.getByRole('button', { name: 'Add to cart' }));
+    await user.click(screen.getByRole('button', { name: 'Buy' }));
 
     expect(cartAdd).toHaveBeenCalledWith(`${listing.seller_id}:${listing.listing_id}`, 'variant_01', 1);
-    expect(screen.queryByRole('button', { name: 'Approve in Pubky Ring' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Authorize with Pubky Ring' })).not.toBeInTheDocument();
   });
 
   it('shows the holding sentence and disables checkout when the listing is reserved', () => {
     view.projection = createListingProjectionFixture({ state: 'reserved', availableQuantity: 0, reservedQuantity: 1 });
     renderListing();
 
-    expect(screen.getByRole('button', { name: 'Held by another buyer' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Buy' })).toBeDisabled();
     expect(
       screen.getByText(
         'Another buyer is currently paying for this item. If payment does not complete, it will become available again.',
@@ -637,7 +636,7 @@ describe('MarketplaceListing', () => {
 
     renderListing();
 
-    expect(screen.getByRole('button', { name: 'Held by another buyer' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Buy' })).toBeDisabled();
     expect(screen.queryByRole('link', { name: CHECKOUT_HOLD_COPY.heldForYouCta })).not.toBeInTheDocument();
   });
 
@@ -673,12 +672,11 @@ describe('MarketplaceListing', () => {
 
     renderListing();
 
-    const link = screen.getByRole('link', { name: CHECKOUT_HOLD_COPY.heldForYouCta });
+    const link = screen.getByRole('link', { name: 'Buy' });
     expect(link).toHaveAttribute('href', `/marketplace/checkout#${ownHold.id}`);
     expect(screen.queryByRole('link', { name: CHECKOUT_HOLD_COPY.heldForYouOfferCta })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: CHECKOUT_HOLD_COPY.heldForYouCta })).toBeDisabled();
-    expect(screen.queryByRole('button', { name: 'Held by another buyer' })).not.toBeInTheDocument();
-    expect(
+        expect(
       screen.queryByText(
         'Another buyer is currently paying for this item. If payment does not complete, it will become available again.',
       ),
@@ -722,10 +720,9 @@ describe('MarketplaceListing', () => {
     renderListing();
 
     expect(document.querySelector('[data-surface="marketplace-listing-purchase"]')).toBeTruthy();
-    const link = screen.getByRole('link', { name: CHECKOUT_HOLD_COPY.heldForYouOfferCta });
+    const link = screen.getByRole('link', { name: 'Buy' });
     expect(link).toHaveAttribute('href', getMarketplaceOfferCheckoutRoute(offer.id));
-    expect(screen.queryByRole('button', { name: 'Held by another buyer' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: CHECKOUT_HOLD_COPY.heldWhileAnotherPays })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: CHECKOUT_HOLD_COPY.heldWhileAnotherPays })).not.toBeInTheDocument();
     expect(screen.queryByText(CHECKOUT_HOLD_COPY.listingReserved)).not.toBeInTheDocument();
   });
 
@@ -736,7 +733,7 @@ describe('MarketplaceListing', () => {
 
     renderListing();
 
-    expect(screen.getByRole('button', { name: 'Held by another buyer' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Buy' })).toBeDisabled();
     expect(screen.queryByRole('link', { name: CHECKOUT_HOLD_COPY.heldForYouOfferCta })).not.toBeInTheDocument();
   });
 
@@ -747,7 +744,7 @@ describe('MarketplaceListing', () => {
 
     renderListing();
 
-    expect(screen.getByRole('button', { name: 'Held by another buyer' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Buy' })).toBeDisabled();
     expect(screen.queryByRole('link', { name: CHECKOUT_HOLD_COPY.heldForYouOfferCta })).not.toBeInTheDocument();
   });
 
@@ -762,7 +759,7 @@ describe('MarketplaceListing', () => {
 
     renderListing();
 
-    expect(screen.getByRole('button', { name: 'Held by another buyer' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Buy' })).toBeDisabled();
     expect(screen.queryByRole('link', { name: CHECKOUT_HOLD_COPY.heldForYouOfferCta })).not.toBeInTheDocument();
   });
 
@@ -830,11 +827,11 @@ describe('MarketplaceListing', () => {
     renderAuctionListingNeedingSession();
     await user.click(screen.getByRole('button', { name: 'Place a bid' }));
 
-    expect(screen.getByRole('heading', { name: 'Approve purchases in Pubky Ring' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Approve in Pubky Ring' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Enable purchases' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Authorize with Pubky Ring' })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Approve in Pubky Ring' }));
-    expect(screen.getByText('Sign in to Pubky Shop.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Authorize with Pubky Ring' }));
+    expect(screen.queryByText('Sign in to Pubky Shop.')).not.toBeInTheDocument();
     expect(screen.queryByText(/permission list/i)).not.toBeInTheDocument();
     expect(screen.queryByText(CAPABILITIES)).not.toBeInTheDocument();
     expect(screen.queryByText(/first Shop-scoped approval/i)).not.toBeInTheDocument();
@@ -916,11 +913,13 @@ describe('MarketplaceListing', () => {
     renderAuctionListingNeedingSession();
     await user.click(screen.getByRole('button', { name: 'Place a bid' }));
 
-    expect(screen.getByRole('heading', { name: 'Approve purchases in Pubky Ring' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Approve in Pubky Ring' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Enable purchases' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Authorize with Pubky Ring' })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Approve in Pubky Ring' }));
-    expect(screen.getByText('Approve with Pubky Ring to connect the marketplace on this device.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Authorize with Pubky Ring' }));
+    expect(
+      screen.queryByText('Approve with Pubky Ring to connect the marketplace on this device.'),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText(/permission list/i)).not.toBeInTheDocument();
     expect(screen.queryByText(CAPABILITIES)).not.toBeInTheDocument();
   });

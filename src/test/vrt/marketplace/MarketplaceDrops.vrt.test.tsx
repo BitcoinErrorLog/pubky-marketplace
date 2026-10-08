@@ -78,25 +78,25 @@ describe('Marketplace drops calendar — visual regression', () => {
   it('renders the populated estimate buckets at desktop viewport', async () => {
     setDropsView({ buckets: POPULATED });
     await renderForVRT(<MarketplaceDrops />, { viewport: VRT_VIEWPORT_DESKTOP, disableHover: true });
-    await expect(expectVrtSurface('marketplace-drops')).toMatchScreenshot('drops-calendar-desktop');
+    await expect(await expectVrtSurface('marketplace-drops')).toMatchScreenshot('drops-calendar-desktop');
   });
 
   it('renders the populated estimate buckets at mobile viewport', async () => {
     setDropsView({ buckets: POPULATED });
     await renderForVRT(<MarketplaceDrops />, { viewport: VRT_VIEWPORT_MOBILE, disableHover: true });
-    await expect(expectVrtSurface('marketplace-drops')).toMatchScreenshot('drops-calendar-mobile');
+    await expect(await expectVrtSurface('marketplace-drops')).toMatchScreenshot('drops-calendar-mobile');
   });
 
   it('renders the honest not-indexed empty state at desktop viewport', async () => {
     setDropsView({ isIndexed: false });
     const screen = await renderForVRT(<MarketplaceDrops />, { viewport: VRT_VIEWPORT_DESKTOP, disableHover: true });
     await expect.element(screen.getByText(/isn't indexed on this deployment yet/)).toBeInTheDocument();
-    await expect(expectVrtSurface('marketplace-drops')).toMatchScreenshot('drops-calendar-not-indexed-desktop');
+    await expect(await expectVrtSurface('marketplace-drops')).toMatchScreenshot('drops-calendar-not-indexed-desktop');
   });
 
   it('renders the durable-only unavailable state in sandbox mode at desktop viewport', async () => {
     setDropsView({ adapterMode: 'sandbox' });
     await renderForVRT(<MarketplaceDrops />, { viewport: VRT_VIEWPORT_DESKTOP, disableHover: true });
-    await expect(expectVrtSurface('marketplace-drops')).toMatchScreenshot('drops-calendar-unavailable-desktop');
+    await expect(await expectVrtSurface('marketplace-drops')).toMatchScreenshot('drops-calendar-unavailable-desktop');
   });
 });

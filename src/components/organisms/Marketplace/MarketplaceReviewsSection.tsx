@@ -60,7 +60,7 @@ export function MarketplaceReviewsSection({
       className={cn(
         'flex w-full gap-3',
         infoCard
-          ? 'marketplace-item-details min-w-0 items-start rounded-xl bg-card p-5 text-card-foreground shadow-sm sm:col-span-2'
+          ? 'marketplace-item-details min-w-0 items-start rounded-md bg-card p-5 text-card-foreground shadow-sm sm:col-span-2'
           : 'flex-col',
         className,
       )}
@@ -122,7 +122,7 @@ function MarketplaceReviewItem({
   const [response, setResponse] = useState(review.response);
 
   return (
-    <li className="flex flex-col gap-2 rounded-lg border border-border/60 p-3" data-cy="marketplace-review-item">
+    <li className="flex flex-col gap-2 rounded-md p-3" data-cy="marketplace-review-item">
       <div className="flex flex-wrap items-center gap-2">
         <MarketplaceStarRating rating={review.ratingOverall} size="sm" />
         <Link
@@ -286,6 +286,7 @@ function MarketplaceReviewResponseComposer({
   return (
     <div className="flex flex-col gap-2" data-cy="marketplace-review-response-composer">
       <Textarea
+        variant="dashed"
         value={text}
         onChange={(event) => setText(event.target.value)}
         placeholder="Write a public response to this review…"

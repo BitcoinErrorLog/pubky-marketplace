@@ -83,7 +83,7 @@ function StudioInventoryGrantDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button className="rounded-full">
-          <KeyRound className="mr-2 size-4" />
+          <KeyRound className="size-4" />
           {triggerLabel}
         </Button>
       </DialogTrigger>
@@ -95,7 +95,7 @@ function StudioInventoryGrantDialog({
           Approve this grant in Pubky Ring; it does not replace your purchase session.
         </Typography>
         {grant.status === 'error' ? (
-          <div role="alert" className="rounded-xl border border-destructive/40 p-4 text-sm">
+          <div role="alert" className="rounded-md border border-destructive/40 p-4 text-sm">
             {grant.errorMessage}
           </div>
         ) : (
@@ -136,7 +136,7 @@ function StudioInventoryGrantDialog({
                 onClick={grant.openInSigner}
                 disabled={!grant.authorizationUrl || grant.isOpeningSigner}
               >
-                <Smartphone className="mr-2 size-4" />
+                <Smartphone className="size-4" />
                 Open in Pubky Ring
               </Button>
               <Button
@@ -145,7 +145,7 @@ function StudioInventoryGrantDialog({
                 onClick={() => void copyUrl()}
                 disabled={!grant.authorizationUrl}
               >
-                <Copy className="mr-2 size-4" />
+                <Copy className="size-4" />
                 Copy link
               </Button>
             </div>

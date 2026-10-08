@@ -83,6 +83,7 @@ export function MarketplacePackingSlipDialog({ order }: { order: MarketplaceOrde
             <div className="space-y-1.5">
               <Label htmlFor="packing-slip-address">Paste delivery address (optional)</Label>
               <Textarea
+                variant="dashed"
                 id="packing-slip-address"
                 data-sentry-mask
                 autoComplete="off"
@@ -99,7 +100,7 @@ export function MarketplacePackingSlipDialog({ order }: { order: MarketplaceOrde
           )}
           <div
             data-packing-slip
-            className="rounded-lg border border-neutral-300 bg-white p-6 font-mono text-sm text-black"
+            className="rounded-md border border-neutral-300 bg-white p-6 font-mono text-sm text-black"
           >
             <div className="flex items-start justify-between gap-4 border-b border-neutral-300 pb-4">
               <div>
@@ -214,7 +215,7 @@ export function MarketplacePackingSlipDialog({ order }: { order: MarketplaceOrde
               Close
             </Button>
             <Button className="rounded-full" onClick={() => window.print()}>
-              <Printer className="mr-2 size-4" />
+              <Printer className="size-4" />
               Print
             </Button>
           </DialogFooter>

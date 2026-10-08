@@ -41,7 +41,7 @@ export function MarketplaceInventoryRevokeDialog({
             Cancel
           </Button>
           <Button variant="destructive" className="rounded-full" onClick={onConfirm} disabled={pending}>
-            <KeyRound className="mr-2 size-4" />
+            <KeyRound className="size-4" />
             Revoke
           </Button>
         </DialogFooter>

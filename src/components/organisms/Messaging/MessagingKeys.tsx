@@ -30,7 +30,7 @@ export function MessagingKeysPanel({ counterpartyPubky }: { counterpartyPubky: s
   const { keys, status } = useMessagingKeys(counterpartyPubky, true);
 
   return (
-    <div className="grid gap-3 rounded-xl border p-4" data-testid="messaging-keys">
+    <div className="grid gap-3 rounded-xl p-4" data-testid="messaging-keys">
       <Typography as="p" className="text-sm text-muted-foreground">
         {MESSAGING_COPY.messagingKeysHelp}
       </Typography>
@@ -62,7 +62,7 @@ export function MessagingKeysToggle({ counterpartyPubky }: { counterpartyPubky: 
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
       >
-        <KeyRound className="mr-1.5 size-4" aria-hidden />
+        <KeyRound className="size-4" aria-hidden />
         {MESSAGING_COPY.messagingKeys}
       </Button>
       {open ? (
@@ -108,7 +108,7 @@ export function MessagingKeyChangedNotice({
         </div>
       </div>
       {verifying ? (
-        <div className="grid gap-3 rounded-lg border p-3" data-testid="messaging-key-verify">
+        <div className="grid gap-3 rounded-lg p-3" data-testid="messaging-key-verify">
           <Typography as="p" overrideDefaults className="text-sm text-muted-foreground">
             {MESSAGING_COPY.keyChangedVerifyHelp}
           </Typography>

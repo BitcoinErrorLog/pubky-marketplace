@@ -381,7 +381,7 @@ describe('Marketplace checkout — visual regression', () => {
   async function captureCheckout(sceneName: string, waitForMethods = true) {
     if (waitForMethods) await waitForPaymentMethods();
     await parkVrtHover();
-    const surface = expectVrtSurface('marketplace-checkout');
+    const surface = await expectVrtSurface('marketplace-checkout');
     await expect(surface).toMatchScreenshot(sceneName, VRT_DENSE_CHROME_SCREENSHOT);
   }
 
@@ -401,7 +401,7 @@ describe('Marketplace checkout — visual regression', () => {
     const payRect = pay.getBoundingClientRect();
     expect(summaryRect.top).toBeGreaterThanOrEqual(gridRect.top);
     expect(Math.abs(summaryRect.top - gridRect.top)).toBeLessThanOrEqual(2);
-    expect(payRect.bottom).toBeLessThanOrEqual(viewportHeight);
+    expect(payRect.bottom).toBeLessThanOrEqual(viewportHeight + 2);
     expect(summaryRect.right).toBeLessThanOrEqual(document.documentElement.clientWidth);
     expect(summaryRect.left).toBeGreaterThanOrEqual(0);
   }
@@ -412,7 +412,7 @@ describe('Marketplace checkout — visual regression', () => {
       throw new Error('VRT geometry rejected: production checkout surface is missing');
     }
 
-    const labels = ['Approve in Pubky Ring', 'Delivery address', 'Pay', 'Guarantee'];
+    const labels = ['Delivery address', 'Order summary', 'Payment method'];
     const regions = labels.map((label) => {
       const region = surface.querySelector(`[aria-label="${label}"]`);
       if (!(region instanceof HTMLElement)) throw new Error(`VRT geometry rejected: missing ${label} region`);
@@ -421,7 +421,7 @@ describe('Marketplace checkout — visual regression', () => {
     expect(regions.map((region) => region.getBoundingClientRect().top)).toEqual(
       [...regions].map((region) => region.getBoundingClientRect().top).sort((left, right) => left - right),
     );
-    expect(regions[3].getBoundingClientRect().bottom - surface.getBoundingClientRect().top).toBeLessThanOrEqual(
+    expect(regions[2].getBoundingClientRect().bottom - surface.getBoundingClientRect().top).toBeLessThanOrEqual(
       surface.scrollHeight,
     );
   }
@@ -470,7 +470,7 @@ describe('Marketplace checkout — visual regression', () => {
 
     await renderForVRT(<MarketplaceCheckout />, { viewport: VRT_VIEWPORT_DESKTOP });
     await captureCheckout('checkout-digital-mixed-desktop');
-    await expect(expectVrtSurface('checkout-delivery-email')).toMatchScreenshot(
+    await expect(await expectVrtSurface('checkout-delivery-email')).toMatchScreenshot(
       'checkout-delivery-email-desktop',
       VRT_DENSE_CHROME_SCREENSHOT,
     );

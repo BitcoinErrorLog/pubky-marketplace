@@ -47,7 +47,7 @@ export function ConversationSafetyActions({
             if (await safety.mute(counterpartyPubky)) onMuted();
           }}
         >
-          <VolumeX className="mr-1.5 size-4" aria-hidden />
+          <VolumeX className="size-4" aria-hidden />
           {MESSAGING_COPY.mute}
         </Button>
       ) : null}
@@ -59,7 +59,7 @@ export function ConversationSafetyActions({
         aria-label={`${MESSAGING_COPY.report} ${counterpartyLabel}`}
         onClick={() => void safety.report(conversationId)}
       >
-        <Flag className="mr-1.5 size-4" aria-hidden />
+        <Flag className="size-4" aria-hidden />
         {MESSAGING_COPY.report}
       </Button>
       <MessagingKeysToggle counterpartyPubky={counterpartyPubky} />
@@ -80,10 +80,7 @@ export function MutedConversationPanel({
   const safety = useMessagingSafety();
 
   return (
-    <div
-      className="flex flex-col items-center gap-3 rounded-xl border border-dashed px-6 py-8 text-center"
-      data-testid="muted-conversation"
-    >
+    <div className="flex flex-col items-center gap-3 rounded-xl px-6 py-8 text-center" data-testid="muted-conversation">
       <BellOff className="size-8 text-muted-foreground" aria-hidden />
       <Typography as="p" role="status" className="text-sm text-muted-foreground">
         {MESSAGING_COPY.mutedThread}

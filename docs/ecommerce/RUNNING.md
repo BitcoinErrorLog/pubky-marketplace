@@ -15,10 +15,18 @@ npm run marketplace:dev
 # terminal 2 — the app, with commerce switched on
 PUBKY_RUNTIME_COMMERCE_ADAPTER_MODE=sandbox \
 PUBKY_RUNTIME_MARKETPLACE_URL=http://localhost:3100 \
+NEXT_PUBLIC_DB_NAME=franky-marketplace-sandbox \
 npm run dev
 ```
 
 Then sign in (the seed page is auth-gated on top of the adapter-mode gate), open <http://localhost:3000/marketplace/sandbox>, and press **Seed sandbox catalog**. Browse from <http://localhost:3000/marketplace>. The seeded catalog lives in the signed-in account's local database, so each account seeds its own copy.
+
+Keep the sandbox database name separate from staging's database name. Changing
+the adapter mode does not clear or isolate an existing browser cache. The seed
+action preserves a database containing other listings and reports that it was
+skipped; it reports ready only after the demo listings register with the local
+transaction service. Existing demos can be registered again after that service
+restarts. Do not clear site data to switch modes: that can remove local drafts.
 
 ## Why commerce is off unless you ask for it
 

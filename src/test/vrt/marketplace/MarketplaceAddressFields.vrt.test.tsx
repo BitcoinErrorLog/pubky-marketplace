@@ -83,19 +83,19 @@ function AddressFieldsScene({
 describe('Marketplace address fields — visual regression', () => {
   it('renders idle US fields labelled State and ZIP', async () => {
     await renderForVRT(<AddressFieldsScene provider={null} />, { viewport: VRT_VIEWPORT_DESKTOP });
-    await expect(expectVrtSurface('marketplace-address-fields')).toMatchScreenshot('address-fields-us-idle-desktop');
+    await expect(await expectVrtSurface('marketplace-address-fields')).toMatchScreenshot('address-fields-us-idle-desktop');
   });
 
   it('renders the OpenStreetMap credit when suggestions are on', async () => {
     await renderForVRT(<AddressFieldsScene provider={mockProvider} />, { viewport: VRT_VIEWPORT_DESKTOP });
-    await expect(expectVrtSurface('marketplace-address-fields')).toMatchScreenshot('address-fields-us-credit-desktop');
+    await expect(await expectVrtSurface('marketplace-address-fields')).toMatchScreenshot('address-fields-us-credit-desktop');
   });
 
   it('renders the manual-entry notice when suggestions are unavailable', async () => {
     const screen = await renderForVRT(<AddressFieldsScene provider={unavailableProvider} />, {
       viewport: VRT_VIEWPORT_DESKTOP,
     });
-    expectVrtSurface('marketplace-address-fields');
+    await expectVrtSurface('marketplace-address-fields');
     await userEvent.type(screen.getByLabelText('Address line 1'), '42 Union');
     await waitForTestId('marketplace-address-unavailable');
     await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot('address-fields-unavailable-desktop');
@@ -105,12 +105,12 @@ describe('Marketplace address fields — visual regression', () => {
     await renderForVRT(<AddressFieldsScene provider={null} countryCode="GB" />, {
       viewport: VRT_VIEWPORT_DESKTOP,
     });
-    await expect(expectVrtSurface('marketplace-address-fields')).toMatchScreenshot('address-fields-gb-region-desktop');
+    await expect(await expectVrtSurface('marketplace-address-fields')).toMatchScreenshot('address-fields-gb-region-desktop');
   });
 
   it('renders the open US state dropdown', async () => {
     const screen = await renderForVRT(<AddressFieldsScene provider={null} />, { viewport: VRT_VIEWPORT_DESKTOP });
-    expectVrtSurface('marketplace-address-fields');
+    await expectVrtSurface('marketplace-address-fields');
     const state = screen.getByLabelText('State');
     await userEvent.click(state);
     await userEvent.type(state, 'Mass');
@@ -123,7 +123,7 @@ describe('Marketplace address fields — visual regression', () => {
     const screen = await renderForVRT(<AddressFieldsScene provider={mockProvider} />, {
       viewport: VRT_VIEWPORT_DESKTOP,
     });
-    expectVrtSurface('marketplace-address-fields');
+    await expectVrtSurface('marketplace-address-fields');
     await userEvent.type(screen.getByLabelText('Address line 1'), '42 Union');
     await waitForTestId('marketplace-address-suggestions');
     await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot('address-fields-suggestions-desktop');

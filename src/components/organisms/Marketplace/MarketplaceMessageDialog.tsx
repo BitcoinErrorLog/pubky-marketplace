@@ -42,7 +42,7 @@ export function MarketplaceMessageDialog({ sellerPubky, listingId }: { sellerPub
             disabled={isSeller}
             onClick={() => requireAuth(() => undefined)}
           >
-            <MessageCircle className="mr-2 size-4" />
+            <MessageCircle className="size-4" />
             {MESSAGING_COPY.listingCta}
           </Button>
           {isSeller && (
@@ -61,7 +61,7 @@ export function MarketplaceMessageDialog({ sellerPubky, listingId }: { sellerPub
         counterpartyPubky={sellerPubky}
         trigger={
           <Button variant="secondary" size="sm" className="w-full rounded-full">
-            <MessageCircle className="mr-2 size-4" />
+            <MessageCircle className="size-4" />
             {MESSAGING_COPY.listingCta}
           </Button>
         }
@@ -74,7 +74,7 @@ export function MarketplaceMessageDialog({ sellerPubky, listingId }: { sellerPub
     return (
       <div>
         <Button variant="secondary" size="sm" className="w-full rounded-full" disabled>
-          <MessageCircle className="mr-2 size-4" />
+          <MessageCircle className="size-4" />
           {MESSAGING_COPY.listingCta}
         </Button>
         <Typography as="p" className="mt-2 text-center text-xs text-muted-foreground">
@@ -102,7 +102,7 @@ export function MarketplaceMessageDialog({ sellerPubky, listingId }: { sellerPub
           className="w-full rounded-full"
           disabled={Boolean(currentUserPubky && currentUserPubky === sellerPubky)}
         >
-          <MessageCircle className="mr-2 size-4" />
+          <MessageCircle className="size-4" />
           {MESSAGING_COPY.listingCta}
         </Button>
       </DialogTrigger>
@@ -113,7 +113,7 @@ export function MarketplaceMessageDialog({ sellerPubky, listingId }: { sellerPub
         <Typography as="p" className="text-xs text-muted-foreground">
           {MESSAGING_COPY.sandboxWarning}
         </Typography>
-        <div aria-live="polite" className="max-h-80 space-y-3 overflow-y-auto rounded-xl border bg-card/50 p-4">
+        <div aria-live="polite" className="max-h-80 space-y-3 overflow-y-auto rounded-md bg-card/50 p-6">
           {messages.conversation?.messages.length ? (
             messages.conversation.messages.map((message) => {
               const mine = message.senderPubky === currentUserPubky;
@@ -160,7 +160,7 @@ export function MarketplaceMessageDialog({ sellerPubky, listingId }: { sellerPub
             />
           ) : null}
           <Button type="button" size="sm" variant="secondary" className="rounded-full" onClick={choose}>
-            <ImagePlus className="mr-2 size-4" />
+            <ImagePlus className="size-4" />
             Add image
           </Button>
           {previewUrl ? (
@@ -189,7 +189,7 @@ export function MarketplaceMessageDialog({ sellerPubky, listingId }: { sellerPub
             Close
           </Button>
           <Button className="rounded-full" onClick={submit}>
-            <Send className="mr-2 size-4" />
+            <Send className="size-4" />
             Send
           </Button>
         </DialogFooter>

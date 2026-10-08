@@ -1,23 +1,21 @@
 'use client';
 
+import Image from 'next/image';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/atoms/Button/Button';
 import { Typography } from '@/atoms/Typography/Typography';
 import { usePassportSignIn } from '@/hooks/usePassportSignIn/usePassportSignIn';
-
-export const PASSPORT_SIGN_IN_HINT =
-  'Pubky Passport signs you in with your Google account and creates your Pubky identity if you have none. Messages are not available with Passport sign-ins yet.';
 
 /**
  * "Continue with Google" through Pubky Passport. Renders nothing where the
  * grant key cannot be held (no secure context, IndexedDB or WebCrypto
  * Ed25519) or the deploy turned Passport off.
  */
-export function PassportSignInButton() {
+export function PassportSignInButton({ showAppleOption = false }: { showAppleOption?: boolean }) {
   const passport = usePassportSignIn();
   if (!passport.isAvailable) return null;
   return (
-    <div className="flex w-full max-w-sm flex-col items-center gap-2" data-testid="sign-in-passport-option">
+    <div className="flex w-full max-w-sm flex-col items-center gap-3" data-testid="sign-in-passport-option">
       <Button
         className="w-full"
         size="lg"
@@ -35,12 +33,18 @@ export function PassportSignInButton() {
             </Typography>
           </>
         ) : (
-          'Continue with Google'
+          <>
+            <Image src="/images/sign-in/google.svg" alt="" width={16} height={16} />
+            Continue with Google
+          </>
         )}
       </Button>
-      <Typography as="p" className="text-center text-sm text-muted-foreground">
-        {PASSPORT_SIGN_IN_HINT}
-      </Typography>
+      {showAppleOption && (
+        <Button className="w-full disabled:opacity-40" size="lg" variant="secondary" disabled>
+          <Image src="/images/sign-in/apple.svg" alt="" width={16} height={16} />
+          Continue with Apple
+        </Button>
+      )}
     </div>
   );
 }

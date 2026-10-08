@@ -206,7 +206,7 @@ describe('Marketplace inbox — visual regression', () => {
     view.conversations = conversations;
 
     await renderForVRT(<MarketplaceInbox />, { viewport: VRT_VIEWPORT_DESKTOP, disableHover: true });
-    await expect(expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-conversations-desktop');
+    await expect(await expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-conversations-desktop');
   });
 
   it('renders the conversations list at mobile viewport', async () => {
@@ -214,26 +214,26 @@ describe('Marketplace inbox — visual regression', () => {
     view.conversations = conversations;
 
     await renderForVRT(<MarketplaceInbox />, { viewport: VRT_VIEWPORT_MOBILE, disableHover: true });
-    await expect(expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-conversations-mobile');
+    await expect(await expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-conversations-mobile');
   });
 
   it('renders the empty state at desktop viewport', async () => {
     await renderForVRT(<MarketplaceInbox />, { viewport: VRT_VIEWPORT_DESKTOP, disableHover: true });
-    await expect(expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-empty-desktop');
+    await expect(await expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-empty-desktop');
   });
 
   it('renders the error state at desktop viewport', async () => {
     view.error = 'Marketplace messages are unavailable.';
 
     await renderForVRT(<MarketplaceInbox />, { viewport: VRT_VIEWPORT_DESKTOP, disableHover: true });
-    await expect(expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-error-desktop');
+    await expect(await expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-error-desktop');
   });
 
   it('renders the loading state at desktop viewport', async () => {
     view.isLoading = true;
 
     await renderForVRT(<MarketplaceInbox />, { viewport: VRT_VIEWPORT_DESKTOP, disableHover: true });
-    await expect(expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-loading-desktop');
+    await expect(await expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-loading-desktop');
   });
 
   // Modes with no messaging backend at all (`unavailable`): honest dead end.
@@ -241,7 +241,7 @@ describe('Marketplace inbox — visual regression', () => {
     view.isSandbox = false;
 
     await renderForVRT(<MarketplaceInbox />, { viewport: VRT_VIEWPORT_DESKTOP, disableHover: true });
-    await expect(expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-unavailable-desktop');
+    await expect(await expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-unavailable-desktop');
   });
 
   // Durable modes: the encrypted inbox.
@@ -250,7 +250,7 @@ describe('Marketplace inbox — visual regression', () => {
     encryptedView.status = 'needs-enable';
 
     await renderForVRT(<MarketplaceInbox />, { viewport: VRT_VIEWPORT_DESKTOP, disableHover: true });
-    await expect(expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-encrypted-enable-desktop');
+    await expect(await expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-encrypted-enable-desktop');
   });
 
   it('renders the encrypted reconnect prompt with readable local history at desktop viewport', async () => {
@@ -261,7 +261,7 @@ describe('Marketplace inbox — visual regression', () => {
     encryptedView.conversations = [encryptedConversationFixture(buyer)];
 
     await renderForVRT(<MarketplaceInbox />, { viewport: VRT_VIEWPORT_DESKTOP, disableHover: true });
-    await expect(expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-encrypted-reconnect-desktop');
+    await expect(await expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-encrypted-reconnect-desktop');
   });
 
   it('renders the encrypted conversations list at desktop viewport', async () => {
@@ -270,21 +270,21 @@ describe('Marketplace inbox — visual regression', () => {
     encryptedView.conversations = [encryptedConversationFixture(buyer)];
 
     await renderForVRT(<MarketplaceInbox />, { viewport: VRT_VIEWPORT_DESKTOP, disableHover: true });
-    await expect(expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-encrypted-conversations-desktop');
+    await expect(await expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-encrypted-conversations-desktop');
   });
 
   it('renders the encrypted empty state at desktop viewport', async () => {
     config.mode = 'transaction-service';
 
     await renderForVRT(<MarketplaceInbox />, { viewport: VRT_VIEWPORT_DESKTOP, disableHover: true });
-    await expect(expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-encrypted-empty-desktop');
+    await expect(await expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-encrypted-empty-desktop');
   });
 
   it('renders the encrypted empty state at mobile viewport', async () => {
     config.mode = 'transaction-service';
 
     await renderForVRT(<MarketplaceInbox />, { viewport: VRT_VIEWPORT_MOBILE, disableHover: true });
-    await expect(expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-encrypted-empty-mobile');
+    await expect(await expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-encrypted-empty-mobile');
   });
 
   it('renders the encrypted enable prompt at mobile viewport', async () => {
@@ -292,7 +292,7 @@ describe('Marketplace inbox — visual regression', () => {
     encryptedView.status = 'needs-enable';
 
     await renderForVRT(<MarketplaceInbox />, { viewport: VRT_VIEWPORT_MOBILE, disableHover: true });
-    await expect(expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-encrypted-enable-mobile');
+    await expect(await expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-encrypted-enable-mobile');
   });
 
   it('renders the grant sign-in notice in place of the enable prompt at desktop viewport', async () => {
@@ -301,7 +301,7 @@ describe('Marketplace inbox — visual regression', () => {
     grantView.signer = 'passport';
 
     await renderForVRT(<MarketplaceInbox />, { viewport: VRT_VIEWPORT_DESKTOP, disableHover: true });
-    await expect(expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-encrypted-grant-unavailable-desktop');
+    await expect(await expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-encrypted-grant-unavailable-desktop');
   });
 
   it('renders the grant sign-in notice in place of the enable prompt at mobile viewport', async () => {
@@ -310,19 +310,19 @@ describe('Marketplace inbox — visual regression', () => {
     grantView.signer = 'passport';
 
     await renderForVRT(<MarketplaceInbox />, { viewport: VRT_VIEWPORT_MOBILE, disableHover: true });
-    await expect(expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-encrypted-grant-unavailable-mobile');
+    await expect(await expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-encrypted-grant-unavailable-mobile');
   });
 
   it('renders the empty state at mobile viewport', async () => {
     await renderForVRT(<MarketplaceInbox />, { viewport: VRT_VIEWPORT_MOBILE, disableHover: true });
-    await expect(expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-empty-mobile');
+    await expect(await expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-empty-mobile');
   });
 
   it('renders the error state at mobile viewport', async () => {
     view.error = 'Marketplace messages are unavailable.';
 
     await renderForVRT(<MarketplaceInbox />, { viewport: VRT_VIEWPORT_MOBILE, disableHover: true });
-    await expect(expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-error-mobile');
+    await expect(await expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-error-mobile');
   });
 
   it('renders Requests from people the seller does not know yet at desktop viewport', async () => {
@@ -340,7 +340,7 @@ describe('Marketplace inbox — visual regression', () => {
     ];
 
     await renderForVRT(<MarketplaceInbox />, { viewport: VRT_VIEWPORT_DESKTOP, disableHover: true });
-    await expect(expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-encrypted-requests-desktop');
+    await expect(await expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-encrypted-requests-desktop');
   });
 
   it('renders Requests at mobile viewport', async () => {
@@ -349,7 +349,7 @@ describe('Marketplace inbox — visual regression', () => {
     encryptedView.conversations = [requestConversationFixture(buyer, true)];
 
     await renderForVRT(<MarketplaceInbox />, { viewport: VRT_VIEWPORT_MOBILE, disableHover: true });
-    await expect(expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-encrypted-requests-mobile');
+    await expect(await expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-encrypted-requests-mobile');
   });
 
   it('renders the paused-delivery notice when mutes need approval at desktop viewport', async () => {
@@ -359,7 +359,7 @@ describe('Marketplace inbox — visual regression', () => {
     encryptedView.conversations = [];
 
     await renderForVRT(<MarketplaceInbox />, { viewport: VRT_VIEWPORT_DESKTOP, disableHover: true });
-    await expect(expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-encrypted-mutes-paused-desktop');
+    await expect(await expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-encrypted-mutes-paused-desktop');
   });
 
   it('renders the fail-closed invalid conversation query at desktop viewport', async () => {
@@ -367,6 +367,6 @@ describe('Marketplace inbox — visual regression', () => {
     search.params = new URLSearchParams('conversation=not-a-conversation');
 
     await renderForVRT(<MarketplaceInbox />, { viewport: VRT_VIEWPORT_DESKTOP, disableHover: true });
-    await expect(expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-invalid-conversation-desktop');
+    await expect(await expectVrtSurface('marketplace-inbox')).toMatchScreenshot('inbox-invalid-conversation-desktop');
   });
 });

@@ -1,21 +1,7 @@
 'use client';
 
 import { type CSSProperties, useState } from 'react';
-import {
-  Bell,
-  Camera,
-  Clock3,
-  Disc3,
-  Footprints,
-  Gavel,
-  Gem,
-  Heart,
-  House,
-  Keyboard,
-  Package,
-  Shirt,
-  Star,
-} from 'lucide-react';
+import { Bell, Clock3, Gavel, Heart, Star } from 'lucide-react';
 import { getMarketplaceListingRoute } from '@/app/routes';
 import { Badge } from '@/atoms/Badge/Badge';
 import { Card, CardContent } from '@/atoms/Card/Card';
@@ -30,6 +16,7 @@ import { useMarketplaceFirstMediaUrl } from '@/hooks/useMarketplaceMediaUrl/useM
 import { CHECKOUT_HOLD_COPY } from '@/libs/commerce/checkout-hold';
 import { formatCommerceCondition, formatCommerceMoney } from '@/libs/commerce/format';
 import { cn } from '@/libs/utils/utils';
+import { MarketplaceCategoryIcon } from '@/molecules/Marketplace/MarketplaceCategoryIcon';
 import { MarketplaceFulfillmentBadge } from '@/molecules/MarketplaceFulfillmentBadge/MarketplaceFulfillmentBadge';
 import { MarketplaceStarRating } from '@/molecules/MarketplaceStarRating/MarketplaceStarRating';
 import { MarketplaceCardPrice } from '@/organisms/Marketplace/MarketplaceCardPrice';
@@ -102,8 +89,11 @@ export function MarketplaceListingCard({ listing, shopName, layout = 'grid', ind
       <Card
         ref={liveBidRef}
         className={cn(
-          'h-full gap-0 overflow-hidden border-0 py-0 transition-all group-hover:shadow-[0_24px_64px_-8px_rgba(0,0,0,0.8),0_8px_24px_rgba(0,0,0,0.5)]',
-          layout === 'list' && 'flex-row',
+          cn(
+            'h-full gap-0 overflow-hidden border-0 py-0 transition-all group-hover:shadow-[0_24px_64px_-8px_rgba(0,0,0,0.8),0_8px_24px_rgba(0,0,0,0.5)]',
+            layout === 'list' && 'flex-row',
+          ),
+          'p-0',
         )}
       >
         <div
@@ -161,7 +151,7 @@ export function MarketplaceListingCard({ listing, shopName, layout = 'grid', ind
           )}
         </div>
 
-        <CardContent className="flex min-w-0 flex-1 flex-col gap-3 p-4">
+        <CardContent className="flex min-w-0 flex-1 flex-col gap-3 p-6">
           <div className="space-y-1">
             <Typography as="h2" className="line-clamp-2 text-base leading-6 font-bold text-foreground">
               {listing.title}
@@ -239,6 +229,7 @@ export function MarketplaceListingCard({ listing, shopName, layout = 'grid', ind
 function CardTopAttributes({ listing }: { listing: MarketplaceCatalogItem }) {
   if (listing.attributes === null) return null;
   const parts = commerceCardAttributeKeys(listing.categoryId)
+    .filter((key) => key !== 'age')
     .map((key) => {
       const value = listing.attributes?.[key];
       const first = Array.isArray(value) ? value[0] : value;
@@ -268,26 +259,4 @@ function colorIndex(listingId: string): number {
 
 function formatAuctionEnd(endsAt: string): string {
   return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(new Date(endsAt));
-}
-
-function MarketplaceCategoryIcon({ categoryId }: { categoryId: string }) {
-  const className = 'size-20 text-foreground opacity-75 drop-shadow-xl transition-transform group-hover:scale-105';
-  switch (true) {
-    case categoryId.includes('camera'):
-      return <Camera aria-hidden="true" className={className} />;
-    case categoryId.includes('vinyl'):
-      return <Disc3 aria-hidden="true" className={className} />;
-    case categoryId.includes('shoes'):
-      return <Footprints aria-hidden="true" className={className} />;
-    case categoryId.includes('jewelry'):
-      return <Gem aria-hidden="true" className={className} />;
-    case categoryId.includes('home'):
-      return <House aria-hidden="true" className={className} />;
-    case categoryId.includes('keyboard'):
-      return <Keyboard aria-hidden="true" className={className} />;
-    case categoryId.includes('fashion'):
-      return <Shirt aria-hidden="true" className={className} />;
-    default:
-      return <Package aria-hidden="true" className={className} />;
-  }
 }

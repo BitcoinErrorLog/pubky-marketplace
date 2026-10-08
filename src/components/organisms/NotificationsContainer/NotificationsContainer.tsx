@@ -1,10 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Button, ButtonVariant } from '@/atoms/Button/Button';
 import { Container } from '@/atoms/Container/Container';
 import { Heading } from '@/atoms/Heading/Heading';
-import { buildFeatureDiscoveryStorageKey } from '@/config/featureDiscovery';
 import { CommerceController } from '@/controllers/commerce/commerce';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll/useInfiniteScroll';
 import { useMarketplaceNotificationFeed } from '@/hooks/useMarketplaceNotificationFeed/useMarketplaceNotificationFeed';
@@ -26,15 +25,6 @@ import { NotificationsContainerSkeleton, NotificationsLoadMoreSkeleton } from '.
 
 /** Consecutive automatic loads allowed without the rendered list getting any longer. */
 const MAX_UNPRODUCTIVE_AUTO_LOADS = 3;
-type GeneralNotificationsTab = 'all' | 'marketplace' | 'social';
-
-const GENERAL_NOTIFICATIONS_TAB_STORAGE_ID = 'general-notifications-tab-v1';
-const GENERAL_NOTIFICATION_TABS: { id: GeneralNotificationsTab; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'marketplace', label: 'Marketplace' },
-  { id: 'social', label: 'Social' },
-];
-
 /**
  * Exhaustive by construction: adding a `MarketplaceNotification['type']` fails
  * compilation here until it is classified into the Marketplace tab.
@@ -126,16 +116,6 @@ export function NotificationsContainer() {
   const watchAlertFeed = useMarketplaceWatchAlertFeed();
 
   const socialEntries = groupNotifications(notifications);
-  const marketplaceItems = marketplaceFeed.items.filter(
-    (item) => item.kind === 'unrecognized' || isMarketplaceNotificationType(item.type),
-  );
-  const marketplaceEntries = mergeWatchAlerts(
-    mergeMarketplaceNotifications([], marketplaceItems, {
-      hasMoreSocial: false,
-    }),
-    watchAlertFeed.items,
-    { hasMoreSocial: false },
-  );
   const allEntries = mergeWatchAlerts(
     mergeMarketplaceNotifications(socialEntries, marketplaceFeed.items, {
       hasMoreSocial: hasMore,
@@ -143,15 +123,6 @@ export function NotificationsContainer() {
     watchAlertFeed.items,
     { hasMoreSocial: hasMore },
   );
-  const [selectedTab, setSelectedTab] = useState<GeneralNotificationsTab>('all');
-  const currentUserPubky = useAuthStore((state) => state.currentUserPubky);
-  const selectedEntries =
-    selectedTab === 'marketplace' ? marketplaceEntries : selectedTab === 'social' ? socialEntries : allEntries;
-  const tabCounts: Record<GeneralNotificationsTab, number> = {
-    all: allEntries.length,
-    marketplace: marketplaceEntries.length,
-    social: socialEntries.length,
-  };
   const unreadMarketplaceCount =
     marketplaceFeed.items.filter((item) => item.isUnread).length +
     watchAlertFeed.items.filter((item) => item.isUnseen).length;
@@ -168,44 +139,12 @@ export function NotificationsContainer() {
     onLoadMore: loadMore,
     hasMore,
     isLoading: isLoadingMore,
-    itemCount: selectedEntries.length,
+    itemCount: allEntries.length,
     maxUnproductiveLoads: MAX_UNPRODUCTIVE_AUTO_LOADS,
   });
 
   // Re-run once the session is restored, since the write needs an authenticated session.
   const isAuthenticated = useAuthStore((state) => state.session !== null);
-
-  useEffect(() => {
-    if (!currentUserPubky) {
-      setSelectedTab('all');
-      return;
-    }
-    try {
-      const stored = window.localStorage.getItem(
-        buildFeatureDiscoveryStorageKey(currentUserPubky, GENERAL_NOTIFICATIONS_TAB_STORAGE_ID),
-      );
-      if (stored === 'all' || stored === 'marketplace' || stored === 'social') {
-        setSelectedTab(stored);
-      } else {
-        setSelectedTab('all');
-      }
-    } catch {
-      setSelectedTab('all');
-    }
-  }, [currentUserPubky]);
-
-  const selectTab = (tab: GeneralNotificationsTab) => {
-    setSelectedTab(tab);
-    if (!currentUserPubky) return;
-    try {
-      window.localStorage.setItem(
-        buildFeatureDiscoveryStorageKey(currentUserPubky, GENERAL_NOTIFICATIONS_TAB_STORAGE_ID),
-        tab,
-      );
-    } catch {
-      // Tab still updates for this session if storage is unavailable.
-    }
-  };
 
   // Mark all notifications as read when entering the page (once authenticated), so the
   // tab counter shows 0 while viewing. Marketplace mark-read is sandbox-only (the
@@ -262,34 +201,13 @@ export function NotificationsContainer() {
       <Heading level={5} size="lg" className="leading-normal font-light text-muted-foreground lg:hidden">
         Notifications {totalUnreadCount > 0 && `(${totalUnreadCount})`}
       </Heading>
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Notification type">
-        {GENERAL_NOTIFICATION_TABS.map((tab) => (
-          <Button
-            key={tab.id}
-            type="button"
-            variant={selectedTab === tab.id ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY}
-            className="rounded-full"
-            role="tab"
-            aria-selected={selectedTab === tab.id}
-            onClick={() => selectTab(tab.id)}
-          >
-            {tab.label} ({tabCounts[tab.id]})
-          </Button>
-        ))}
-      </div>
       {unrecognizedMarketplaceCount > 0 && (
         <Container role="status" overrideDefaults={true} className="rounded-md border border-amber-500/40 p-4 text-sm">
           {unrecognizedMarketplaceCount} unrecognized marketplace event
           {unrecognizedMarketplaceCount === 1 ? '' : 's'} — history may be incomplete.
         </Container>
       )}
-      {selectedEntries.length > 0 ? (
-        <NotificationsList entries={selectedEntries} unreadNotifications={unreadNotifications} />
-      ) : (
-        <Container overrideDefaults={true} className="rounded-md bg-card p-6 text-center text-muted-foreground">
-          No {selectedTab} notifications yet.
-        </Container>
-      )}
+      <NotificationsList entries={allEntries} unreadNotifications={unreadNotifications} />
 
       {/* Infinite scroll sentinel - triggers loadMore when visible. Unmounted while an
           error shows so the observer cannot loop retries against a failing network;

@@ -23,6 +23,7 @@ import {
 } from '@/libs/commerce/digital';
 import { ControlledInputField } from '@/molecules/ControlledInputField/ControlledInputField';
 import { ControlledTextareaField } from '@/molecules/ControlledTextareaField/ControlledTextareaField';
+import { SETTINGS_SECTION_CONTENT_CLASSNAME } from '@/molecules/Settings/SettingsSectionContent/SettingsSectionContent';
 
 /**
  * The Digital delivery panel on a listing's edit page (digital delivery
@@ -55,7 +56,7 @@ export function MarketplaceDigitalDeliveryEditor({
     <section
       data-surface="digital-delivery-editor"
       aria-labelledby="digital-delivery-editor-heading"
-      className="grid gap-4 rounded-xl border border-border/60 p-4"
+      className={SETTINGS_SECTION_CONTENT_CLASSNAME}
     >
       <div className="grid gap-1">
         <Typography as="h3" id="digital-delivery-editor-heading" className="text-base font-semibold">
@@ -147,7 +148,7 @@ export function MarketplaceDigitalDeliveryEditor({
                   disabled={busy}
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <FileUp className="mr-2 size-4" aria-hidden="true" />
+                  <FileUp className="size-4" aria-hidden="true" />
                   {editor.picker.file ? 'Choose another file' : 'Choose file'}
                 </Button>
                 {editor.picker.file && (
@@ -203,7 +204,7 @@ export function MarketplaceDigitalDeliveryEditor({
             </Button>
             {editor.delivery?.current && (
               <Button type="button" variant="secondary" size="sm" disabled={busy} onClick={() => void editor.clear()}>
-                <Trash2 className="mr-2 size-4" aria-hidden="true" />
+                <Trash2 className="size-4" aria-hidden="true" />
                 Remove delivery
               </Button>
             )}

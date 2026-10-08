@@ -1,7 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { buildFeatureDiscoveryStorageKey } from '@/config/featureDiscovery';
 import { useNotifications } from '@/hooks/useNotifications/useNotifications';
 import { type FlatNotification, NotificationType, PostChangedSource } from '@/models/notification/notification.types';
 import { marketplaceNotificationSchema } from '@/services/marketplace/marketplace-projections';
@@ -384,7 +383,7 @@ describe('NotificationsContainer', () => {
     expect(container).toMatchSnapshot();
   });
 
-  it('filters tabs and persists the last selected tab for the account', async () => {
+  it('combines social, marketplace, and watch alerts in one feed', async () => {
     marketplaceFeedState.items = [
       {
         id: 'marketplace:offer1',
@@ -417,21 +416,11 @@ describe('NotificationsContainer', () => {
 
     render(<NotificationsContainer />);
 
-    expect(screen.getByRole('tab', { name: 'All (3)' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Marketplace (2)' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Social (1)' })).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('tab', { name: 'Marketplace (2)' }));
-
-    expect(screen.getByTestId('notifications-list')).toHaveTextContent('2 notifications');
-    expect(
-      window.localStorage.getItem(
-        buildFeatureDiscoveryStorageKey(authStoreState.currentUserPubky, 'general-notifications-tab-v1'),
-      ),
-    ).toBe('marketplace');
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    expect(screen.getByTestId('notifications-list')).toHaveTextContent('3 notifications');
   });
 
-  it('places review_received and message_received in Marketplace, not Social', async () => {
+  it('includes reviews and messages alongside social notifications', async () => {
     marketplaceFeedState.items = [
       marketplaceItem('review_received', 'order:1', '/marketplace/orders'),
       marketplaceItem('message_received', 'conversation:1', '/marketplace/messages'),
@@ -439,15 +428,8 @@ describe('NotificationsContainer', () => {
 
     render(<NotificationsContainer />);
 
-    expect(screen.getByRole('tab', { name: 'All (3)' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Marketplace (2)' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Social (1)' })).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('tab', { name: 'Marketplace (2)' }));
-    expect(screen.getByTestId('notifications-list')).toHaveTextContent('2 notifications');
-
-    await userEvent.click(screen.getByRole('tab', { name: 'Social (1)' }));
-    expect(screen.getByTestId('notifications-list')).toHaveTextContent('1 notifications');
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    expect(screen.getByTestId('notifications-list')).toHaveTextContent('3 notifications');
   });
 
   it('classifies every marketplace and social notification type explicitly', () => {

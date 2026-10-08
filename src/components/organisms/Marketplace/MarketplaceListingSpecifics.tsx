@@ -39,7 +39,7 @@ export function MarketplaceListingSpecifics({ record }: MarketplaceListingSpecif
 
   return (
     <div
-      className="flex min-w-0 items-start gap-3 rounded-xl bg-card p-5 text-card-foreground shadow-sm sm:col-span-2"
+      className="flex min-w-0 items-start gap-3 rounded-md bg-card p-6 text-card-foreground shadow-sm sm:col-span-2"
       data-cy="marketplace-listing-specifics"
     >
       <Info className="size-5 shrink-0 text-brand" aria-hidden="true" />

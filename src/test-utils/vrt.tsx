@@ -79,6 +79,18 @@ export function expectVrtSurface(surface: string) {
         'Mount the production component that carries the marker, not a test stand-in.',
     );
   }
+  return prepareVrtSurfaceCapture(marker as HTMLElement);
+}
+
+async function prepareVrtSurfaceCapture(marker: HTMLElement) {
+  const root = marker.closest(`[data-testid="${VRT_ROOT_TESTID}"]`);
+  if (root instanceof HTMLElement && marker.getBoundingClientRect().bottom > root.getBoundingClientRect().bottom) {
+    // Browser tests run inside an iframe. An element screenshot cannot paint
+    // beyond that iframe's viewport, even when the element itself is taller.
+    root.style.height = 'auto';
+    root.style.overflow = 'visible';
+    await page.viewport(root.clientWidth, Math.ceil(marker.getBoundingClientRect().bottom));
+  }
   // Playwright's element screenshot scrolls tall elements into view before
   // capturing them. Firefox can choose a middle scroll position for a surface
   // taller than the viewport, which changes sticky layout and clips the

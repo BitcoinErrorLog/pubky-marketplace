@@ -59,8 +59,8 @@ export interface UseMarketplaceSessionConnectReturn {
   requestsGrantReconnect: boolean;
   /**
    * True while `start()` is running (or about to run) the browser bootstrap:
-   * a grant (Bitkit or Pubky Passport) sign-in with no marketplace bearer yet.
-   * Its approval comes from the same signer, never the Ring prompt.
+   * a signed-in Shop session with no marketplace bearer yet.
+   * Uses a grant link that Pubky Ring 2.0+ or Bitkit can approve; Passport uses its popup.
    */
   requestsGrantBootstrap: boolean;
   /**

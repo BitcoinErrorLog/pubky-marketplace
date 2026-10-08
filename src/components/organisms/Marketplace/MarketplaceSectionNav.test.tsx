@@ -86,15 +86,15 @@ describe('MarketplaceSectionNav', () => {
       render(<MarketplaceSectionNav />);
 
       expect(screen.getByRole('link', { name: 'Shop settings' })).toHaveAttribute('aria-current', 'page');
-      expect(screen.getByRole('link', { name: 'Seller studio' })).not.toHaveAttribute('aria-current');
+      expect(screen.getByRole('link', { name: 'My shop' })).not.toHaveAttribute('aria-current');
       expect(screen.getAllByRole('link').filter((link) => link.hasAttribute('aria-current'))).toHaveLength(1);
     },
   );
 
-  it('keeps settings under Seller studio while link-out is off', () => {
+  it('keeps settings under My shop while link-out is off', () => {
     state.pathname = '/marketplace/settings';
     render(<MarketplaceSectionNav />);
-    expect(screen.getByRole('link', { name: 'Seller studio' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'My shop' })).toHaveAttribute('aria-current', 'page');
   });
 
   it('badges orders that still need the signed-in identity', () => {
@@ -105,11 +105,11 @@ describe('MarketplaceSectionNav', () => {
     expect(screen.getByLabelText('2 orders needing you')).toBeInTheDocument();
   });
 
-  it('highlights seller studio subroutes without highlighting buyer sections', () => {
+  it('highlights My shop subroutes without highlighting buyer sections', () => {
     state.pathname = '/marketplace/sell';
     render(<MarketplaceSectionNav />);
 
-    expect(screen.getByRole('link', { name: 'Seller studio' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'My shop' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: 'Offers' })).not.toHaveAttribute('aria-current');
   });
 
@@ -130,7 +130,7 @@ describe('MarketplaceSectionNav', () => {
     expect(nav.firstElementChild).toHaveClass('flex-wrap');
     expect(nav.firstElementChild).not.toHaveClass('min-w-max');
     expect(screen.getByRole('link', { name: /Activity/ })).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Seller studio' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'My shop' })).toBeVisible();
     expect(screen.getByTestId('marketplace-section-nav-activity-badge')).toHaveTextContent('12');
   });
 

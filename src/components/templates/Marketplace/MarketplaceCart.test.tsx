@@ -179,21 +179,21 @@ describe('MarketplaceCart', () => {
 
     render(<MarketplaceCart />);
 
-    expect(screen.getByText('Each seller ships separately; shipping is calculated at checkout.')).toBeInTheDocument();
+    expect(screen.getByText('Shipping is calculated at checkout.')).toBeInTheDocument();
     expect(screen.getByText('Satoshi Vintage')).toBeInTheDocument();
     expect(screen.getByText('Film Camera Supply')).toBeInTheDocument();
-    expect(screen.getAllByText('Seller subtotal')).toHaveLength(2);
+    expect(screen.queryByText('Seller subtotal')).not.toBeInTheDocument();
     expect(screen.getAllByText('$12.00').length).toBeGreaterThan(0);
     expect(screen.getAllByText(/₿/).length).toBeGreaterThan(0);
   });
 
-  it('does not render a seller header for a single-seller cart', () => {
+  it('shows the seller identity on a single-seller cart item', () => {
     seededCart();
 
     render(<MarketplaceCart />);
 
-    expect(screen.getByText('Each seller ships separately; shipping is calculated at checkout.')).toBeInTheDocument();
-    expect(screen.queryByText('Satoshi Vintage')).not.toBeInTheDocument();
+    expect(screen.getByText('Shipping is calculated at checkout.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Satoshi Vintage' })).toHaveAttribute('href', `/marketplace/shop/${listing.record.ownerPubky}`);
     expect(screen.queryByText('Seller subtotal')).not.toBeInTheDocument();
     expect(screen.getByText('Vintage boots')).toBeInTheDocument();
   });

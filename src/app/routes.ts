@@ -41,7 +41,7 @@ export enum MARKETPLACE_ROUTES {
   DROPS = '/marketplace/drops',
   DROP = '/marketplace/drop',
   SELL_DROPS = '/marketplace/sell/drops',
-  MY_SHOP = '/marketplace/my-shop',
+  MY_SHOP = '/marketplace/storefront',
   SELL = '/marketplace/sell',
   DASHBOARD = '/marketplace/dashboard',
   INVENTORY = '/marketplace/dashboard/inventory',

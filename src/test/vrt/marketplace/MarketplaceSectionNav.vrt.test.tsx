@@ -39,7 +39,7 @@ describe('Marketplace section navigation — visual regression', () => {
       </div>,
       { viewport: VRT_VIEWPORT_DESKTOP },
     );
-    await expect(expectVrtSurface('marketplace-section-nav')).toMatchScreenshot('section-nav-offers-desktop');
+    await expect(await expectVrtSurface('marketplace-section-nav')).toMatchScreenshot('section-nav-offers-desktop');
   });
 
   it('renders the wrapping section navigation on mobile', async () => {
@@ -49,10 +49,10 @@ describe('Marketplace section navigation — visual regression', () => {
       </div>,
       { viewport: VRT_VIEWPORT_MOBILE },
     );
-    await expect(expectVrtSurface('marketplace-section-nav')).toMatchScreenshot('section-nav-offers-mobile');
+    await expect(await expectVrtSurface('marketplace-section-nav')).toMatchScreenshot('section-nav-offers-mobile');
   });
 
-  it('keeps Seller studio reachable with a two-digit activity badge at 1024px', async () => {
+  it('keeps My shop reachable with a two-digit activity badge at 1024px', async () => {
     state.activityCount = 12;
     await renderForVRT(
       <div className="w-full p-6">
@@ -60,7 +60,7 @@ describe('Marketplace section navigation — visual regression', () => {
       </div>,
       { viewport: { width: 1024, height: 768 } },
     );
-    await expect(expectVrtSurface('marketplace-section-nav')).toMatchScreenshot('section-nav-activity-12-1024');
+    await expect(await expectVrtSurface('marketplace-section-nav')).toMatchScreenshot('section-nav-activity-12-1024');
   });
 
   it('rejects a missing production surface marker', () => {
@@ -72,7 +72,7 @@ describe('Marketplace section navigation — visual regression', () => {
   it.each([
     { name: 'desktop', viewport: VRT_VIEWPORT_DESKTOP },
     { name: 'mobile', viewport: VRT_VIEWPORT_MOBILE },
-  ])('keeps Shop settings local and distinct from Seller studio on $name', async ({ name, viewport }) => {
+  ])('keeps Shop settings local and distinct from My shop on $name', async ({ name, viewport }) => {
     setSocialHost('https://pubky.app');
     state.pathname = '/marketplace/settings/addresses';
     const screen = await renderForVRT(
@@ -86,7 +86,7 @@ describe('Marketplace section navigation — visual regression', () => {
       .element(screen.getByRole('link', { name: 'Shop settings' }))
       .toHaveAttribute('href', '/marketplace/settings');
     await expect.element(screen.getByRole('link', { name: 'Shop settings' })).toHaveAttribute('aria-current', 'page');
-    await expect.element(screen.getByRole('link', { name: 'Seller studio' })).not.toHaveAttribute('aria-current');
-    await expect(expectVrtSurface('marketplace-section-nav')).toMatchScreenshot(`section-nav-shop-settings-${name}`);
+    await expect.element(screen.getByRole('link', { name: 'My shop' })).not.toHaveAttribute('aria-current');
+    await expect(await expectVrtSurface('marketplace-section-nav')).toMatchScreenshot(`section-nav-shop-settings-${name}`);
   });
 });

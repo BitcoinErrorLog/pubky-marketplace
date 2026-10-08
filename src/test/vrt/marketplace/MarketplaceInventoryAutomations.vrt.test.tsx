@@ -123,7 +123,7 @@ describe('MarketplaceInventoryAutomations VRT', () => {
       viewport: VRT_VIEWPORT_DESKTOP,
       disableHover: true,
     });
-    await expect(expectVrtSurface('inventory-studio')).toMatchScreenshot(
+    await expect(await expectVrtSurface('inventory-studio')).toMatchScreenshot(
       'inventory-automations-list-desktop',
       VRT_DENSE_CHROME_SCREENSHOT,
     );
@@ -158,7 +158,7 @@ describe('MarketplaceInventoryAutomations VRT', () => {
       viewport: VRT_VIEWPORT_MOBILE,
       disableHover: true,
     });
-    await expect(expectVrtSurface('inventory-studio')).toMatchScreenshot(
+    await expect(await expectVrtSurface('inventory-studio')).toMatchScreenshot(
       'inventory-automations-list-mobile',
       VRT_DENSE_CHROME_SCREENSHOT,
     );
@@ -176,7 +176,7 @@ describe('MarketplaceInventoryAutomations VRT', () => {
       { viewport: VRT_VIEWPORT_DESKTOP, disableHover: true },
     );
     expect(screen.getByTestId('inventory-once-secret')).toBeTruthy();
-    await expect(expectVrtSurface('inventory-studio')).toMatchScreenshot(
+    await expect(await expectVrtSurface('inventory-studio')).toMatchScreenshot(
       'inventory-once-secret-masked-desktop',
       VRT_DENSE_CHROME_SCREENSHOT,
     );
@@ -190,7 +190,7 @@ describe('MarketplaceInventoryAutomations VRT', () => {
       viewport: VRT_VIEWPORT_DESKTOP,
       disableHover: true,
     });
-    await expect(expectVrtSurface('inventory-studio')).toMatchScreenshot(
+    await expect(await expectVrtSurface('inventory-studio')).toMatchScreenshot(
       'inventory-automations-empty-desktop',
       VRT_DENSE_CHROME_SCREENSHOT,
     );
@@ -204,7 +204,7 @@ describe('MarketplaceInventoryAutomations VRT', () => {
       viewport: VRT_VIEWPORT_DESKTOP,
       disableHover: true,
     });
-    await expect(expectVrtSurface('inventory-studio')).toMatchScreenshot(
+    await expect(await expectVrtSurface('inventory-studio')).toMatchScreenshot(
       'inventory-automations-grant-needed-desktop',
       VRT_DENSE_CHROME_SCREENSHOT,
     );
@@ -218,7 +218,7 @@ describe('MarketplaceInventoryAutomations VRT', () => {
       viewport: VRT_VIEWPORT_DESKTOP,
       disableHover: true,
     });
-    await expect(expectVrtSurface('inventory-studio')).toMatchScreenshot(
+    await expect(await expectVrtSurface('inventory-studio')).toMatchScreenshot(
       'inventory-automations-error-desktop',
       VRT_DENSE_CHROME_SCREENSHOT,
     );
@@ -236,7 +236,7 @@ describe('MarketplaceInventoryAutomations VRT', () => {
       { viewport: VRT_VIEWPORT_MOBILE, disableHover: true },
     );
     expect(screen.getByTestId('inventory-once-secret')).toBeTruthy();
-    await expect(expectVrtSurface('inventory-studio')).toMatchScreenshot(
+    await expect(await expectVrtSurface('inventory-studio')).toMatchScreenshot(
       'inventory-once-secret-masked-mobile',
       VRT_DENSE_CHROME_SCREENSHOT,
     );

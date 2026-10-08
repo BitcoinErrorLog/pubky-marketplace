@@ -12,6 +12,26 @@ import { createCommerceShopFixture } from '@/test/fixtures/commerce/commerce';
 import { Marketplace } from './Marketplace';
 
 const routerPush = vi.hoisted(() => vi.fn());
+const sellingAccess = vi.hoisted(() => ({ allowed: true }));
+vi.mock('@/hooks/useMarketplaceSellingAccess/useMarketplaceSellingAccess', () => ({
+  useMarketplaceSellingAccess: () => ({ checkAccess: () => sellingAccess.allowed }),
+}));
+vi.mock('@/organisms/Marketplace/MarketplaceSessionConnectDialog', () => ({
+  MarketplaceSessionConnectDialog: ({
+    intent,
+    onOpenChange,
+    onConnected,
+  }: {
+    intent: string;
+    onOpenChange: (open: boolean) => void;
+    onConnected: () => void;
+  }) => (
+    <div role="dialog" aria-label={intent}>
+      <button onClick={() => onOpenChange(false)}>Cancel approval</button>
+      <button onClick={onConnected}>Complete approval</button>
+    </div>
+  ),
+}));
 const setSaleFormat = vi.hoisted(() => vi.fn());
 const promoDismiss = vi.hoisted(() => vi.fn());
 const promoState = vi.hoisted(() => ({ showPromo: false, isResolved: true }));
@@ -149,6 +169,7 @@ vi.mock('@/hooks/useIndicativeBtcRate/useIndicativeBtcRate', () => ({
 describe('Marketplace', () => {
   beforeEach(() => {
     routerPush.mockClear();
+    sellingAccess.allowed = true;
     setSaleFormat.mockClear();
     promoDismiss.mockClear();
     promoState.showPromo = false;
@@ -176,7 +197,7 @@ describe('Marketplace', () => {
 
     expect(html).toContain('data-testid="marketplace-section-nav"');
     expect(html).toContain('Sell an item');
-    expect(html).toContain('Seller studio');
+    expect(html).toContain('My shop');
   });
 
   it('does not repeat the logo environment label as a catalog banner', () => {
@@ -239,6 +260,32 @@ describe('Marketplace', () => {
     expect(
       within(screen.getByTestId('marketplace-section-nav')).getByRole('link', { name: 'Orders' }),
     ).toBeInTheDocument();
+  });
+
+  it('asks for selling approval before navigating to the listing form', async () => {
+    sellingAccess.allowed = false;
+    render(<Marketplace />);
+    await userEvent.click(screen.getByRole('button', { name: 'Sell an item' }));
+    expect(screen.getByRole('dialog', { name: 'sell' })).toBeInTheDocument();
+    expect(routerPush).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Complete approval' }));
+    expect(routerPush).toHaveBeenCalledWith(MARKETPLACE_ROUTES.SELL);
+  });
+
+  it('stays in the catalog when selling approval is cancelled', async () => {
+    sellingAccess.allowed = false;
+    render(<Marketplace />);
+    await userEvent.click(screen.getByRole('button', { name: 'Sell an item' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel approval' }));
+    expect(routerPush).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('opens the listing form directly when selling is already approved', async () => {
+    render(<Marketplace />);
+    await userEvent.click(screen.getByRole('button', { name: 'Sell an item' }));
+    expect(routerPush).toHaveBeenCalledWith(MARKETPLACE_ROUTES.SELL);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('gates section navigation through the existing auth flow', async () => {

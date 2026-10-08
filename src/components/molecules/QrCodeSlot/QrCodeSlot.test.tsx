@@ -83,30 +83,30 @@ describe('QrCodeSlot', () => {
     );
     expect(slotAttributeValues).not.toContain('auth-url');
 
-    const ringLogo = screen.getByAltText('Pubky Ring');
-    expect(ringLogo).toHaveAttribute('src', '/images/ring-logo.svg');
-    expect(ringLogo).toHaveAttribute('width', '48');
+    const ringLogo = screen.getByRole('img', { name: 'Pubky Ring' });
+    expect(ringLogo.tagName.toLowerCase()).toBe('svg');
+    expect(ringLogo).toHaveAttribute('width', '24');
   });
 
-  it('scales the QR code and ring logo for a non-default size', () => {
+  it('scales the QR code while keeping the shared brand badge size', () => {
     render(<QrCodeSlot {...baseProps} size={220} />);
 
     expect(screen.getByTestId('qrcode-svg')).toHaveAttribute('width', '220');
-    expect(screen.getByAltText('Pubky Ring')).toHaveAttribute('width', '60');
+    expect(screen.getByRole('img', { name: 'Pubky Ring' })).toHaveAttribute('width', '24');
   });
 
   it('omits hover transitions on active QR by default', () => {
     render(<QrCodeSlot {...baseProps} />);
 
     expect(screen.getByTestId('qrcode-svg').getAttribute('class') ?? '').not.toContain('group-hover');
-    expect(screen.getByAltText('Pubky Ring').getAttribute('class') ?? '').not.toContain('group-hover');
+    expect(screen.getByRole('img', { name: 'Pubky Ring' }).parentElement?.getAttribute('class') ?? '').not.toContain('group-hover');
   });
 
   it('adds hover transitions on active QR when activeQrHasHoverEffect is true', () => {
     render(<QrCodeSlot {...baseProps} activeQrHasHoverEffect />);
 
     expect(screen.getByTestId('qrcode-svg').getAttribute('class') ?? '').toContain('group-hover:opacity-90');
-    expect(screen.getByAltText('Pubky Ring').getAttribute('class') ?? '').toContain('group-hover:opacity-90');
+    expect(screen.getByRole('img', { name: 'Pubky Ring' }).parentElement?.getAttribute('class') ?? '').toContain('group-hover:opacity-90');
   });
 
   it('renders blurred QR + reload label without inline button when no reload action', () => {
