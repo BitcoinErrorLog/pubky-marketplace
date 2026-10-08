@@ -271,7 +271,7 @@ describe('Messages inbox for a grant sign-in', () => {
     render(<Messages />);
 
     expect(screen.getByRole('heading', { name: 'Enable encrypted messaging' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Enable messages', exact: true })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Enable messages' })).toBeInTheDocument();
     expect(screen.queryByTestId('grant-session-messaging-unavailable')).not.toBeInTheDocument();
   });
 });

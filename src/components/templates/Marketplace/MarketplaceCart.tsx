@@ -62,7 +62,7 @@ export function MarketplaceCart() {
             <MarketplaceCartSkeleton />
           </div>
         ) : cart.items.length ? (
-          <div className="grid gap-6 lg:grid-cols-[1fr_420px]" data-surface="marketplace-cart">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_420px]" data-surface="marketplace-cart">
             <div className="flex flex-col gap-6 lg:col-start-1 lg:row-start-1">
               <div className="flex flex-col gap-4" data-testid="marketplace-cart-items">
                 {awardItems.map((item) => {
@@ -143,7 +143,7 @@ export function MarketplaceCart() {
                       );
                       return (
                         <Card key={item.id} className="rounded-md p-0">
-                          <CardContent className="flex items-center gap-4 p-6">
+                          <CardContent className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-4 p-6 sm:flex">
                             <Link href={listingRoute} overrideDefaults aria-label={`View ${item.listing.record.title}`}>
                               <div className="relative flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-brand/15">
                                 <ShoppingCart className="size-7 text-brand" />
@@ -177,7 +177,7 @@ export function MarketplaceCart() {
                                 </Typography>
                               )}
                             </div>
-                            <div className="flex items-center gap-1">
+                            <div className="col-span-2 flex items-center justify-end gap-1 sm:shrink-0">
                               {((variant?.quantity ?? 0) > 1 || item.quantity > 1) && (
                                 <>
                                   <Button
