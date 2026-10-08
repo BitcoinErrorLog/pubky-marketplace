@@ -62,8 +62,8 @@ import {
   stripForbiddenPublicReserveKeys,
 } from '@/libs/commerce/marketplace-records';
 import {
-  appRegistryReceivesPaymentRequests,
   type BuyerPaykitWallet,
+  foundAppRegistryShowsNewWallet,
   PAYKIT_APP_REGISTRY_PATH,
   paykitAppRegistryUrl,
 } from '@/libs/commerce/paykit-wallet';
@@ -1357,17 +1357,24 @@ export class CommerceApplication {
 
   /**
    * Whether the buyer can receive a Bitcoin payment request from the Shop's
-   * Paykit server (see {@link BuyerPaykitWallet}). A registry that takes
-   * payment requests wins over receiver markers: Bitkit 2.6 keeps the
-   * markers 2.5 published but no longer answers on them. Rejects when either
-   * public read fails.
+   * Paykit server (see {@link BuyerPaykitWallet}). The registry wins over
+   * receiver markers: Bitkit 2.6 keeps the markers 2.5 published but no
+   * longer answers on them. So a registry read that fails (anything but a
+   * 404, already logged by the homeserver service) is `unverified`, never a
+   * marker verdict. Rejects only when the marker read fails after the
+   * registry was ruled out.
    */
   static async fetchBuyerPaykitWallet(buyerPubky: string): Promise<BuyerPaykitWallet> {
-    const registry = await HomeserverService.getJsonIfFound<unknown>({
-      url: paykitAppRegistryUrl(buyerPubky),
-      logUrl: PAYKIT_APP_REGISTRY_PATH,
-    });
-    if (registry.found && appRegistryReceivesPaymentRequests(registry.json)) return 'unsupported';
+    let registry: { found: false } | { found: true; json: unknown };
+    try {
+      registry = await HomeserverService.getJsonIfFound<unknown>({
+        url: paykitAppRegistryUrl(buyerPubky),
+        logUrl: PAYKIT_APP_REGISTRY_PATH,
+      });
+    } catch {
+      return 'unverified';
+    }
+    if (registry.found && foundAppRegistryShowsNewWallet(registry.json)) return 'unsupported';
     return (await PaykitMessagingService.hasPaymentRequestReceiver(buyerPubky)) ? 'payable' : 'not_payable';
   }
 

@@ -59,7 +59,12 @@ import {
 import { MARKETPLACE_FAILURE_MESSAGES } from '@/libs/commerce/failure-messages';
 import { type BuyerVisiblePaymentStatus, buyerVisiblePaymentStatus } from '@/libs/commerce/locks-payment';
 import type { CommerceDigitalLock } from '@/libs/commerce/marketplace-records';
-import { BITCOIN_WALLET_UNSUPPORTED_TITLE, bitcoinWalletUnsupportedBody } from '@/libs/commerce/paykit-wallet';
+import {
+  BITCOIN_WALLET_UNSUPPORTED_TITLE,
+  BITCOIN_WALLET_UNVERIFIED_TITLE,
+  bitcoinWalletUnsupportedBody,
+  bitcoinWalletUnverifiedBody,
+} from '@/libs/commerce/paykit-wallet';
 import { buildMarketplaceOrderAggregateId } from '@/libs/commerce/transaction-commands';
 import { getDeployEnv } from '@/libs/runtime-config/runtime-config';
 import type { MarketplaceOrder, MarketplacePayment } from '@/services/marketplace/marketplace';
@@ -179,6 +184,7 @@ export function MarketplacePaymentStatusCard({
     usesMethodFlow && isBuyer && !order.paymentMethod && (methodPayment.availableMethods?.includes('bitcoin') ?? false);
   const buyerWallet = useBuyerPaykitWallet(currentUserPubky, bitcoinBindOffered);
   const bitcoinWalletUnsupported = bitcoinBindOffered && buyerWallet.state === 'unsupported';
+  const bitcoinWalletUnverified = bitcoinBindOffered && buyerWallet.state === 'unverified';
   const sellerReview = useMarketplaceSellerPaymentReviewForm(order.id, onPaymentChanged);
   const [paypalTransactionRef, setPaypalTransactionRef] = useState('');
   const [isReleasingHold, setIsReleasingHold] = useState(false);
@@ -432,7 +438,9 @@ export function MarketplacePaymentStatusCard({
                   <Button
                     size="sm"
                     className="rounded-full"
-                    disabled={methodPayment.pendingAction !== null || bitcoinWalletUnsupported}
+                    disabled={
+                      methodPayment.pendingAction !== null || bitcoinWalletUnsupported || bitcoinWalletUnverified
+                    }
                     onClick={() => void methodPayment.bind('bitcoin')}
                   >
                     <WalletCards className="mr-2 size-4" />₿ Bitcoin
@@ -463,6 +471,29 @@ export function MarketplacePaymentStatusCard({
                   <Typography as="p" className="text-xs text-muted-foreground">
                     {bitcoinWalletUnsupportedBody(methodPayment.availableMethods.includes('paypal'))}
                   </Typography>
+                </div>
+              )}
+              {bitcoinWalletUnverified && (
+                <div
+                  role="alert"
+                  className="grid gap-2 rounded-xl border bg-card/60 p-4"
+                  data-testid="order-payment-bitkit-unverified"
+                >
+                  <Typography as="p" className="text-sm font-medium">
+                    {BITCOIN_WALLET_UNVERIFIED_TITLE}
+                  </Typography>
+                  <Typography as="p" className="text-xs text-muted-foreground">
+                    {bitcoinWalletUnverifiedBody(methodPayment.availableMethods.includes('paypal'))}
+                  </Typography>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="w-fit rounded-full"
+                    data-testid="order-payment-bitkit-unverified-recheck"
+                    onClick={buyerWallet.recheck}
+                  >
+                    Check again
+                  </Button>
                 </div>
               )}
               {methodPayment.pendingAction === 'bind' && (

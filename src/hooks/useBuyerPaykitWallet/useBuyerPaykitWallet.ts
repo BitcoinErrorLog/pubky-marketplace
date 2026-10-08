@@ -14,7 +14,10 @@ import { Logger } from '@/libs/logger/logger';
  * - `not_payable`: they publish none, so a Bitcoin Pay cannot succeed;
  * - `unsupported`: their wallet is Bitkit 2.6+, which the Shop's Paykit
  *   server cannot send a payment request to yet;
- * - `unknown`: the read failed; Pay is not blocked and the service answers.
+ * - `unverified`: the Paykit registry read failed, so Bitkit 2.6+ cannot be
+ *   ruled out; Bitcoin Pay waits for a `recheck` that succeeds;
+ * - `unknown`: the receiver-marker read failed after the registry ruled out
+ *   Bitkit 2.6+; Pay is not blocked and the service answers.
  */
 export type BuyerPaykitWalletState = 'idle' | 'checking' | BuyerPaykitWallet | 'unknown';
 

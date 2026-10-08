@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
-  appRegistryReceivesPaymentRequests,
   bitcoinWalletUnsupportedBody,
   bitcoinWalletUnsupportedPayReason,
+  bitcoinWalletUnverifiedBody,
+  bitcoinWalletUnverifiedPayReason,
+  foundAppRegistryShowsNewWallet,
   paykitAppRegistryUrl,
 } from './paykit-wallet';
 
@@ -30,10 +32,10 @@ describe('paykitAppRegistryUrl', () => {
   });
 });
 
-describe('appRegistryReceivesPaymentRequests', () => {
+describe('foundAppRegistryShowsNewWallet', () => {
   it('is true when an app takes payment requests over a private link', () => {
     expect(
-      appRegistryReceivesPaymentRequests(
+      foundAppRegistryShowsNewWallet(
         registry({
           'to.bitkit': { private_payments: true, payment_requests: true },
         }),
@@ -43,7 +45,7 @@ describe('appRegistryReceivesPaymentRequests', () => {
 
   it('finds the capable app among others', () => {
     expect(
-      appRegistryReceivesPaymentRequests(
+      foundAppRegistryShowsNewWallet(
         registry({
           'app.chat': { private_payments: true, payment_requests: false },
           'to.bitkit': { private_payments: true, payment_requests: true },
@@ -52,31 +54,35 @@ describe('appRegistryReceivesPaymentRequests', () => {
     ).toBe(true);
   });
 
-  it('is false when no app has both capabilities', () => {
+  it('is false only for a v1 registry that lists no app with both capabilities', () => {
     expect(
-      appRegistryReceivesPaymentRequests(
+      foundAppRegistryShowsNewWallet(
         registry({
           'app.chat': { private_payments: true, payment_requests: false },
           'app.public': { private_payments: false, payment_requests: true },
         }),
       ),
     ).toBe(false);
-    expect(appRegistryReceivesPaymentRequests(registry({}))).toBe(false);
+    expect(foundAppRegistryShowsNewWallet(registry({}))).toBe(false);
   });
 
-  it('is false for anything that is not a v1 Paykit App Registry', () => {
+  it('counts a registry it cannot read as a new wallet, since only Paykit rc59+ writes the path', () => {
     const capable = registry({ 'to.bitkit': { private_payments: true, payment_requests: true } });
-    expect(appRegistryReceivesPaymentRequests({ ...capable, version: 2 })).toBe(false);
-    expect(appRegistryReceivesPaymentRequests({ ...capable, kind: 'paykit.receiver' })).toBe(false);
-    expect(appRegistryReceivesPaymentRequests({ ...capable, apps: [] })).toBe(false);
+    const empty = registry({});
+    expect(foundAppRegistryShowsNewWallet({ ...capable, version: 2 })).toBe(true);
+    expect(foundAppRegistryShowsNewWallet({ ...empty, version: 2 })).toBe(true);
+    expect(foundAppRegistryShowsNewWallet({ ...capable, kind: 'paykit.receiver' })).toBe(true);
+    expect(foundAppRegistryShowsNewWallet({ ...capable, apps: [] })).toBe(true);
     expect(
-      appRegistryReceivesPaymentRequests({
+      foundAppRegistryShowsNewWallet({
         ...capable,
         apps: { 'to.bitkit': { display_name: 'Bitkit', capabilities: { payment_requests: 'yes' } } },
       }),
-    ).toBe(false);
-    expect(appRegistryReceivesPaymentRequests(null)).toBe(false);
-    expect(appRegistryReceivesPaymentRequests('{}')).toBe(false);
+    ).toBe(true);
+    // The homeserver service hands back invalid JSON as `undefined`.
+    expect(foundAppRegistryShowsNewWallet(undefined)).toBe(true);
+    expect(foundAppRegistryShowsNewWallet(null)).toBe(true);
+    expect(foundAppRegistryShowsNewWallet('{}')).toBe(true);
   });
 });
 
@@ -90,5 +96,18 @@ describe('Bitkit 2.6 fallback copy', () => {
       'Bitcoin checkout does not support Bitkit 2.6 yet. Choose PayPal to pay now.',
     );
     expect(bitcoinWalletUnsupportedPayReason(false)).toBe('Bitcoin checkout does not support Bitkit 2.6 yet.');
+  });
+});
+
+describe('unverified wallet copy', () => {
+  it('asks for a recheck and offers PayPal only when the seller takes it', () => {
+    expect(bitcoinWalletUnverifiedBody(true)).toBe(
+      "The Shop couldn't check which Bitkit version this Pubky account uses, so Bitcoin Pay is paused. Check again in a moment. You can also pay with PayPal.",
+    );
+    expect(bitcoinWalletUnverifiedBody(false)).not.toMatch(/PayPal/);
+    expect(bitcoinWalletUnverifiedPayReason(true)).toBe(
+      'Check your Bitcoin wallet again to pay with Bitcoin, or choose PayPal.',
+    );
+    expect(bitcoinWalletUnverifiedPayReason(false)).toBe('Check your Bitcoin wallet again to pay with Bitcoin.');
   });
 });

@@ -41,6 +41,17 @@ describe('useBuyerPaykitWallet', () => {
     await waitFor(() => expect(result.current.state).toBe('unsupported'));
   });
 
+  it('reports an unverified wallet and reads again on recheck', async () => {
+    controller.fetchBuyerPaykitWallet.mockResolvedValueOnce('unverified');
+    const { result } = renderHook(() => useBuyerPaykitWallet(BUYER, true));
+    await waitFor(() => expect(result.current.state).toBe('unverified'));
+
+    controller.fetchBuyerPaykitWallet.mockResolvedValueOnce('payable');
+    act(() => result.current.recheck());
+    await waitFor(() => expect(result.current.state).toBe('payable'));
+    expect(controller.fetchBuyerPaykitWallet).toHaveBeenCalledTimes(2);
+  });
+
   it('reports unknown, never not_payable, when the read fails', async () => {
     controller.fetchBuyerPaykitWallet.mockRejectedValueOnce(new TypeError('unreachable'));
     const { result } = renderHook(() => useBuyerPaykitWallet(BUYER, true));

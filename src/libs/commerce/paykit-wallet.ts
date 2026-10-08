@@ -13,9 +13,11 @@ export const PAYKIT_APP_REGISTRY_PATH = '/pub/paykit/v0/app-registry.json';
  * - `payable`: a Paykit receiver marker takes payment requests (Bitkit 2.5);
  * - `not_payable`: nothing published takes them;
  * - `unsupported`: the wallet takes them only on Paykit rc59+ (Bitkit 2.6+),
- *   which the Shop's Paykit server cannot reach yet.
+ *   which the Shop's Paykit server cannot reach yet;
+ * - `unverified`: the registry could not be read, so a Bitkit 2.6 wallet
+ *   cannot be ruled out; Bitcoin waits for a successful recheck.
  */
-export type BuyerPaykitWallet = 'payable' | 'not_payable' | 'unsupported';
+export type BuyerPaykitWallet = 'payable' | 'not_payable' | 'unsupported' | 'unverified';
 
 const appRegistrySchema = z.object({
   version: z.literal(1),
@@ -33,13 +35,16 @@ export function paykitAppRegistryUrl(ownerPubky: string): string {
 }
 
 /**
- * True when `json` is a v1 Paykit App Registry listing an app that takes
- * payment requests over a private link. Anything else is not a registry the
- * buyer's wallet receives through.
+ * Whether a file found at {@link PAYKIT_APP_REGISTRY_PATH} shows a wallet on
+ * Paykit rc59+. Only rc59+ writes that path, so anything there counts,
+ * including a registry this parser cannot read (invalid JSON arrives as
+ * `undefined`, or a later version or kind). The one exception is a v1
+ * registry that lists no app taking payment requests over a private link:
+ * it proves no such wallet, and the receiver markers decide.
  */
-export function appRegistryReceivesPaymentRequests(json: unknown): boolean {
+export function foundAppRegistryShowsNewWallet(json: unknown): boolean {
   const parsed = appRegistrySchema.safeParse(json);
-  if (!parsed.success) return false;
+  if (!parsed.success) return true;
   return Object.values(parsed.data.apps).some(
     ({ capabilities }) => capabilities.private_payments && capabilities.payment_requests,
   );
@@ -53,4 +58,14 @@ export function bitcoinWalletUnsupportedBody(canPayWithPaypal: boolean): string 
 
 export function bitcoinWalletUnsupportedPayReason(canPayWithPaypal: boolean): string {
   return `Bitcoin checkout does not support Bitkit 2.6 yet.${canPayWithPaypal ? ' Choose PayPal to pay now.' : ''}`;
+}
+
+export const BITCOIN_WALLET_UNVERIFIED_TITLE = "Couldn't verify your Bitcoin wallet";
+
+export function bitcoinWalletUnverifiedBody(canPayWithPaypal: boolean): string {
+  return `The Shop couldn't check which Bitkit version this Pubky account uses, so Bitcoin Pay is paused. Check again in a moment.${canPayWithPaypal ? ' You can also pay with PayPal.' : ''}`;
+}
+
+export function bitcoinWalletUnverifiedPayReason(canPayWithPaypal: boolean): string {
+  return `Check your Bitcoin wallet again to pay with Bitcoin${canPayWithPaypal ? ', or choose PayPal' : ''}.`;
 }

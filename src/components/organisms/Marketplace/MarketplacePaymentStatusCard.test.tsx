@@ -14,8 +14,9 @@ import { MarketplacePaymentStatusCard } from './MarketplacePaymentStatusCard';
 const runtime = vi.hoisted(() => ({ deployEnv: 'production' as 'production' | 'staging' | undefined }));
 const auth = vi.hoisted(() => ({ currentUserPubky: 's'.repeat(52) }));
 const buyerWallet = vi.hoisted(() => ({
-  state: 'payable' as 'payable' | 'not_payable' | 'unsupported' | 'unknown',
+  state: 'payable' as 'payable' | 'not_payable' | 'unsupported' | 'unverified' | 'unknown',
   calls: [] as { buyerPubky: string | null; enabled: boolean }[],
+  recheck: vi.fn(),
 }));
 
 vi.mock('@/libs/runtime-config/runtime-config', async (importOriginal) => {
@@ -41,7 +42,7 @@ vi.mock('@/hooks/useMarketplaceLocksPayment/useMarketplaceLocksPayment', () => (
 vi.mock('@/hooks/useBuyerPaykitWallet/useBuyerPaykitWallet', () => ({
   useBuyerPaykitWallet: (buyerPubky: string | null, enabled: boolean) => {
     buyerWallet.calls.push({ buyerPubky, enabled });
-    return { state: enabled ? buyerWallet.state : 'idle', recheck: vi.fn() };
+    return { state: enabled ? buyerWallet.state : 'idle', recheck: buyerWallet.recheck };
   },
 }));
 
@@ -76,6 +77,7 @@ describe('MarketplacePaymentStatusCard', () => {
     auth.currentUserPubky = 's'.repeat(52);
     buyerWallet.state = 'payable';
     buyerWallet.calls = [];
+    buyerWallet.recheck.mockReset();
     vi.mocked(useMarketplaceOrderPayment).mockReturnValue({
       availableMethods: null,
       bitcoinOfferUnavailable: false,
@@ -439,6 +441,38 @@ describe('MarketplacePaymentStatusCard', () => {
     expect(notice).toHaveTextContent('You can pay with PayPal instead.');
     expect(screen.getByRole('button', { name: /Bitcoin/ })).toBeDisabled();
     expect(screen.getByRole('button', { name: /PayPal/ })).toBeEnabled();
+  });
+
+  it('holds Bitcoin on the method picker until an unverified wallet is checked again', () => {
+    buyerWallet.state = 'unverified';
+    vi.mocked(useMarketplaceOrderPayment).mockReturnValue({
+      availableMethods: ['bitcoin', 'paypal'],
+      bitcoinOfferUnavailable: false,
+      configError: null,
+      pendingAction: null,
+      bind: vi.fn(),
+      verifyStripe: vi.fn(),
+      markPaid: vi.fn(),
+      confirmReceived: vi.fn(),
+    });
+    render(
+      <MarketplacePaymentStatusCard
+        order={createOrderFixture('pending_payment', { holdSource: 'checkout' })}
+        payment={createPaymentFixture('awaiting_entitlement')}
+        isBuyer
+        adapterMode="transaction-service"
+        advancePayment={async () => false}
+        onPaymentChanged={() => {}}
+      />,
+    );
+
+    const notice = screen.getByTestId('order-payment-bitkit-unverified');
+    expect(notice).toHaveAttribute('role', 'alert');
+    expect(notice).toHaveTextContent("Couldn't verify your Bitcoin wallet");
+    expect(screen.getByRole('button', { name: /Bitcoin/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /PayPal/ })).toBeEnabled();
+    fireEvent.click(screen.getByTestId('order-payment-bitkit-unverified-recheck'));
+    expect(buyerWallet.recheck).toHaveBeenCalledTimes(1);
   });
 
   it('leaves Bitcoin open on the method picker for a payable or unchecked wallet', () => {
