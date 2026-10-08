@@ -577,9 +577,9 @@ export class CommerceController {
     return await CommerceApplication.getSellerPaymentConfig(CommerceRecordNormalizer.pubky(sellerPubky));
   }
 
-  /** Whether the buyer has a Paykit wallet that can receive a Bitcoin payment request. */
-  static async hasBuyerPaykitWallet(buyerPubky: unknown) {
-    return await CommerceApplication.hasBuyerPaykitWallet(CommerceRecordNormalizer.pubky(buyerPubky));
+  /** Whether the buyer's Paykit wallet can receive a Bitcoin payment request from the Shop. */
+  static async fetchBuyerPaykitWallet(buyerPubky: unknown) {
+    return await CommerceApplication.fetchBuyerPaykitWallet(CommerceRecordNormalizer.pubky(buyerPubky));
   }
 
   /** The current user's own stored payment configuration, or null. */
