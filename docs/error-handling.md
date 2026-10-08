@@ -38,7 +38,7 @@ throw 'Something went wrong';
 
 - `Err.*` factories currently **log automatically** (`src/libs/error/error.factories.ts`).
 - Legacy `AppError.type/statusCode/details` still exist in some paths (Phase 2 migration).
-- Sentry + traceId inheritance + log de-duplication are planned but not implemented yet (see ADR-0015 Future Work).
+- Capture is implemented in the factories (`captureAppError` for Sentry, then `Pulse.captureException` for the optional browser Pulse sink, with expected-error drop rules that both sinks share — see `docs/sentry.md`). traceId inheritance and local-log de-duplication are still planned (see ADR-0015 Future Work).
 
 ## Layer-Specific Patterns
 

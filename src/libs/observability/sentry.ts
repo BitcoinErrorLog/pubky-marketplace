@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/nextjs';
 import { Env } from '@/libs/env/env';
 import { AppError } from '@/libs/error/error';
+import { OBSERVABILITY_IGNORE_ERRORS } from '@/libs/observability/sentry.constants';
 import {
   sanitizeForSentry,
   scrubBreadcrumb,
@@ -98,14 +99,8 @@ export function getSentryInitBase(): Sentry.NodeOptions & Sentry.BrowserOptions 
     debug: false,
     sendDefaultPii: false,
     tracesSampleRate: getSentryTracesSampleRate(),
-    ignoreErrors: [
-      'ResizeObserver loop limit exceeded',
-      'ResizeObserver loop completed with undelivered notifications',
-      'Failed to fetch',
-      /Loading chunk \d+ failed/,
-      'AbortError',
-      'Non-Error promise rejection captured',
-    ],
+    // Spread, not passed through: the SDK option is a mutable array, and neither sink may mutate the shared list.
+    ignoreErrors: [...OBSERVABILITY_IGNORE_ERRORS],
     beforeBreadcrumb: scrubBreadcrumb,
     beforeSend: scrubSensitiveData,
     beforeSendTransaction: scrubTransactionEvent,
