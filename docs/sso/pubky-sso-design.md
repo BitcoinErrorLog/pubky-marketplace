@@ -122,6 +122,8 @@ Identity is the user's key. Authorization is a grant: a statement signed by that
 
 ## 4. Target architecture
 
+**Update 8 Oct.** Severin's objection to the delegable child grants below: grant sessions are built to be non-extractable from browsers, and a grant that can mint further grants "basically invites hackers". He has asked Marcos and tomos for a design that balances this. tomos's draft [pubky-homeserver#681](https://github.com/pubky/pubky-homeserver/pull/681) is that candidate: a *session agent* page on a dedicated same-site origin holds the one grant session, and allowlisted first-party apps (pubky.app, the Shop) embed it in a hidden iframe and receive bearers over `postMessage`; the grant and PoP key never leave the agent. It is option B1 (one `client_id`, the union of capabilities, one session-list entry), with per-app grants possible later behind the same app-facing API. The Shop follows whichever the homeserver team adopts, and delegation stays only as the open option for third-party apps, if at all. Our questions to tomos are on [#681](https://github.com/pubky/pubky-homeserver/pull/681#issuecomment-6057868388): the Shop's future Synonym-hosted origin (same-site or not), how `e` keys from #668 reach apps through the agent, and who hosts the agent page. Sections 4–5 below describe the delegation design as proposed; read H1, K1 and K3 as superseded by #681 if it lands.
+
 **Parts.**
 
 - The **signer** issues an **agent grant** to the agent's non-extractable key.
@@ -342,7 +344,7 @@ Sizes describe technical scope, not time:
 
 The code can't answer these. Each gates the item named.
 
-1. **Delegation shape (H1, K1).** Will core accept one-level delegable grants? Which form?
+1. **Delegation shape (H1, K1).** Will core accept one-level delegable grants? Which form? **Update 8 Oct:** Severin objects (non-extractable sessions; delegation invites attackers), and tomos's session agent ([#681](https://github.com/pubky/pubky-homeserver/pull/681)) is the proposed alternative; see §4.
    - Child grants signed by the delegate's key, carrying the parent: verifiable offline by services and mirrors.
    - A child the homeserver records at the agent's request: no new token format, but only valid where it was recorded.
 
