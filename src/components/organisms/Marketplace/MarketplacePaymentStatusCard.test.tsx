@@ -8,6 +8,7 @@ import {
   holderUnboundCopy,
   UNBOUND_BACK_CANCEL_REASON,
 } from '@/libs/commerce/checkout-hold';
+import { LOCKS_ADMISSION_COPY } from '@/libs/commerce/locks-lifecycle';
 import { createOrderFixture, createPaymentFixture } from '@/test/fixtures/commerce/orders';
 import { MarketplacePaymentStatusCard } from './MarketplacePaymentStatusCard';
 
@@ -24,6 +25,8 @@ vi.mock('@/libs/runtime-config/runtime-config', async (importOriginal) => {
   return { ...actual, getDeployEnv: () => runtime.deployEnv };
 });
 
+const locksView = vi.hoisted(() => ({ overrides: {} as Record<string, unknown> }));
+
 vi.mock('@/hooks/useMarketplaceLocksPayment/useMarketplaceLocksPayment', () => ({
   useMarketplaceLocksPayment: () => ({
     enabled: false,
@@ -36,6 +39,8 @@ vi.mock('@/hooks/useMarketplaceLocksPayment/useMarketplaceLocksPayment', () => (
     start: vi.fn(),
     unlock: vi.fn(),
     resumePolling: vi.fn(),
+    admission: null,
+    ...locksView.overrides,
   }),
 }));
 
@@ -366,6 +371,56 @@ describe('MarketplacePaymentStatusCard', () => {
     );
 
     expect(screen.getByText('Payment confirmed')).toBeInTheDocument();
+  });
+
+  describe('Locks invoice admission (pubky/locks#72)', () => {
+    const registered = { id: 'c', registered: true, window_expires_at: null };
+    const renderAwaiting = () => {
+      const payment = createPaymentFixture('awaiting_entitlement', { adapter: 'locks' });
+      render(
+        <MarketplacePaymentStatusCard
+          order={createOrderFixture('pending_payment', { paymentId: payment.id })}
+          payment={payment}
+          isBuyer
+          adapterMode="locks-paykit"
+          advancePayment={async () => false}
+          onPaymentChanged={() => {}}
+        />,
+      );
+    };
+
+    afterEach(() => {
+      locksView.overrides = {};
+    });
+
+    it('shows Reader wallet setup needed while the request is admitted, with no new request action', () => {
+      locksView.overrides = {
+        correlation: registered,
+        admission: { kind: 'in_flight', readerWalletSetupNeeded: true },
+      };
+      renderAwaiting();
+
+      expect(screen.getByTestId('locks-reader-wallet-setup')).toHaveTextContent(LOCKS_ADMISSION_COPY.walletSetupTitle);
+      expect(screen.getByTestId('locks-reader-wallet-setup')).toHaveTextContent(
+        'This page keeps checking, so you don’t need to request the payment again.',
+      );
+      expect(screen.getByText(/Payment request sent/)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Request payment in your wallet|Retry registration/ })).toBeNull();
+    });
+
+    it.each([
+      ['reader_not_payable', LOCKS_ADMISSION_COPY.readerNotPayable],
+      ['admission_deadline_exceeded', LOCKS_ADMISSION_COPY.admissionDeadlineExceeded],
+      ['failed', LOCKS_ADMISSION_COPY.failed],
+    ] as const)('shows the %s admission failure in place of the wait, with no retry', (failure, copy) => {
+      locksView.overrides = { correlation: registered, admission: { kind: 'failed', failure } };
+      renderAwaiting();
+
+      expect(screen.getByTestId('locks-admission-failed')).toHaveTextContent(copy);
+      expect(screen.queryByText(/Payment request sent/)).toBeNull();
+      expect(screen.queryByTestId('locks-reader-wallet-setup')).toBeNull();
+      expect(screen.queryByRole('button', { name: /Request payment|Retry|Keep checking/ })).toBeNull();
+    });
   });
 
   it('renders unbound hold copy and Back cancel on the method picker', async () => {
