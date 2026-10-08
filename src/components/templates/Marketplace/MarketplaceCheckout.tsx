@@ -46,6 +46,11 @@ import {
 import { DELIVERY_EMAIL_MAX_CHARS, DIGITAL_CHECKOUT_COPY, digitalCheckoutLineLabel } from '@/libs/commerce/digital';
 import { marketplaceOfferCheckoutFailureMessage } from '@/libs/commerce/failure-messages';
 import { formatCommerceMoney } from '@/libs/commerce/format';
+import {
+  BITCOIN_WALLET_UNSUPPORTED_TITLE,
+  bitcoinWalletUnsupportedBody,
+  bitcoinWalletUnsupportedPayReason,
+} from '@/libs/commerce/paykit-wallet';
 import { availablePaymentMethods, type PaymentMethodKind } from '@/libs/commerce/payment-methods';
 import { getDeployEnv } from '@/libs/runtime-config/runtime-config';
 import type { CommerceListingModelSchema } from '@/models/commerce/commerce.schema';
@@ -297,7 +302,9 @@ function MarketplaceCartCheckout() {
   const bitcoinSelected = !isSandbox && isDurableCommerceMode(adapterMode) && selectedMethod === 'bitcoin';
   const buyerWallet = useBuyerPaykitWallet(currentUserPubky ?? null, bitcoinSelected);
   const buyerWalletMissing = bitcoinSelected && buyerWallet.state === 'not_payable';
+  const buyerWalletUnsupported = bitcoinSelected && buyerWallet.state === 'unsupported';
   const buyerWalletChecking = bitcoinSelected && buyerWallet.state === 'checking';
+  const canPayWithPaypal = sharedMethods?.includes('paypal') ?? false;
 
   const canPay =
     !approvalNeeded &&
@@ -306,6 +313,7 @@ function MarketplaceCartCheckout() {
     checkout.isDigitalReady &&
     !isPaying &&
     !buyerWalletMissing &&
+    !buyerWalletUnsupported &&
     !buyerWalletChecking &&
     (!isOfferCheckout || offerEligible) &&
     (isSandbox || (sharedMethods !== null && sharedMethods.length > 0 && selectedMethod !== null));
@@ -909,7 +917,7 @@ function MarketplaceCartCheckout() {
                         <Typography as="p" className="text-xs text-muted-foreground">
                           Bitcoin payments arrive in your Paykit wallet as a payment request. This account has no Paykit
                           wallet that can receive one yet. Connect Bitkit to this Pubky account, then check again.
-                          {sharedMethods?.includes('paypal') ? ' You can also pay with PayPal.' : ''}
+                          {canPayWithPaypal ? ' You can also pay with PayPal.' : ''}
                         </Typography>
                         <div>
                           <Button
@@ -923,6 +931,20 @@ function MarketplaceCartCheckout() {
                             Check again
                           </Button>
                         </div>
+                      </div>
+                    )}
+                    {buyerWalletUnsupported && (
+                      <div
+                        role="alert"
+                        className="grid gap-2 rounded-xl border bg-card/60 p-4"
+                        data-testid="marketplace-checkout-bitkit-unsupported"
+                      >
+                        <Typography as="p" className="text-sm font-medium">
+                          {BITCOIN_WALLET_UNSUPPORTED_TITLE}
+                        </Typography>
+                        <Typography as="p" className="text-xs text-muted-foreground">
+                          {bitcoinWalletUnsupportedBody(canPayWithPaypal)}
+                        </Typography>
                       </div>
                     )}
                   </div>
@@ -969,15 +991,17 @@ function MarketplaceCartCheckout() {
                             : DIGITAL_CHECKOUT_COPY.payReasonLoading
                           : buyerWalletMissing
                             ? 'Connect Bitkit to pay with Bitcoin, or choose another payment method.'
-                            : buyerWalletChecking
-                              ? 'Pay unlocks once your Bitcoin wallet is checked.'
-                              : railsFailed
-                                ? 'Pay unlocks once payment options load.'
-                                : sharedMethods && sharedMethods.length === 0 && !isSandbox
-                                  ? isMultiSeller
-                                    ? 'Choose sellers that share a payment method.'
-                                    : 'Pay unlocks once this seller sets up a payment method.'
-                                  : 'Fill in delivery details, accept the guarantee, and choose a payment method to pay.'}
+                            : buyerWalletUnsupported
+                              ? bitcoinWalletUnsupportedPayReason(canPayWithPaypal)
+                              : buyerWalletChecking
+                                ? 'Pay unlocks once your Bitcoin wallet is checked.'
+                                : railsFailed
+                                  ? 'Pay unlocks once payment options load.'
+                                  : sharedMethods && sharedMethods.length === 0 && !isSandbox
+                                    ? isMultiSeller
+                                      ? 'Choose sellers that share a payment method.'
+                                      : 'Pay unlocks once this seller sets up a payment method.'
+                                    : 'Fill in delivery details, accept the guarantee, and choose a payment method to pay.'}
                     </Typography>
                   )}
                 </section>

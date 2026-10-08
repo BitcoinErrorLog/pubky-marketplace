@@ -174,6 +174,7 @@ describe('MarketplaceCheckout session expiry (real checkout hook)', () => {
       bitcoinOfferAvailable: true,
       paypalAvailable: false,
     });
+    vi.spyOn(CommerceApplication, 'fetchBuyerPaykitWallet').mockResolvedValue('payable');
     vi.spyOn(CommerceApplication, 'getMarketplaceListingProjection').mockResolvedValue({
       aggregateId: `listing:${BUYER}_boots`,
       sellerPubky: BUYER,

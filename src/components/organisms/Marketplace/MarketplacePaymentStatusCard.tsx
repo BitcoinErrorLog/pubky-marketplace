@@ -18,6 +18,7 @@ import { Button } from '@/atoms/Button/Button';
 import { Typography } from '@/atoms/Typography/Typography';
 import { type CommerceAdapterMode, isDurableCommerceMode, isLocksPaykitCommerceMode } from '@/config/commerce';
 import { CommerceController } from '@/controllers/commerce/commerce';
+import { useBuyerPaykitWallet } from '@/hooks/useBuyerPaykitWallet/useBuyerPaykitWallet';
 import { useMarketplaceLocksPayment } from '@/hooks/useMarketplaceLocksPayment/useMarketplaceLocksPayment';
 import { useMarketplaceOrderPayment } from '@/hooks/useMarketplaceOrderPayment/useMarketplaceOrderPayment';
 import {
@@ -58,6 +59,7 @@ import {
 import { MARKETPLACE_FAILURE_MESSAGES } from '@/libs/commerce/failure-messages';
 import { type BuyerVisiblePaymentStatus, buyerVisiblePaymentStatus } from '@/libs/commerce/locks-payment';
 import type { CommerceDigitalLock } from '@/libs/commerce/marketplace-records';
+import { BITCOIN_WALLET_UNSUPPORTED_TITLE, bitcoinWalletUnsupportedBody } from '@/libs/commerce/paykit-wallet';
 import { buildMarketplaceOrderAggregateId } from '@/libs/commerce/transaction-commands';
 import { getDeployEnv } from '@/libs/runtime-config/runtime-config';
 import type { MarketplaceOrder, MarketplacePayment } from '@/services/marketplace/marketplace';
@@ -173,6 +175,10 @@ export function MarketplacePaymentStatusCard({
     enabled: usesMethodFlow && isBuyer,
     onPaymentChanged,
   });
+  const bitcoinBindOffered =
+    usesMethodFlow && isBuyer && !order.paymentMethod && (methodPayment.availableMethods?.includes('bitcoin') ?? false);
+  const buyerWallet = useBuyerPaykitWallet(currentUserPubky, bitcoinBindOffered);
+  const bitcoinWalletUnsupported = bitcoinBindOffered && buyerWallet.state === 'unsupported';
   const sellerReview = useMarketplaceSellerPaymentReviewForm(order.id, onPaymentChanged);
   const [paypalTransactionRef, setPaypalTransactionRef] = useState('');
   const [isReleasingHold, setIsReleasingHold] = useState(false);
@@ -426,7 +432,7 @@ export function MarketplacePaymentStatusCard({
                   <Button
                     size="sm"
                     className="rounded-full"
-                    disabled={methodPayment.pendingAction !== null}
+                    disabled={methodPayment.pendingAction !== null || bitcoinWalletUnsupported}
                     onClick={() => void methodPayment.bind('bitcoin')}
                   >
                     <WalletCards className="mr-2 size-4" />₿ Bitcoin
@@ -445,6 +451,20 @@ export function MarketplacePaymentStatusCard({
                   </Button>
                 )}
               </div>
+              {bitcoinWalletUnsupported && (
+                <div
+                  role="alert"
+                  className="grid gap-1 rounded-xl border bg-card/60 p-4"
+                  data-testid="order-payment-bitkit-unsupported"
+                >
+                  <Typography as="p" className="text-sm font-medium">
+                    {BITCOIN_WALLET_UNSUPPORTED_TITLE}
+                  </Typography>
+                  <Typography as="p" className="text-xs text-muted-foreground">
+                    {bitcoinWalletUnsupportedBody(methodPayment.availableMethods.includes('paypal'))}
+                  </Typography>
+                </div>
+              )}
               {methodPayment.pendingAction === 'bind' && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <LoaderCircle className="size-4 animate-spin" />

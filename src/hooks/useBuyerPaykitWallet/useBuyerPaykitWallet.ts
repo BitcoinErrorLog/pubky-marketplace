@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { CommerceController } from '@/controllers/commerce/commerce';
+import type { BuyerPaykitWallet } from '@/libs/commerce/paykit-wallet';
 import { Logger } from '@/libs/logger/logger';
 
 /**
@@ -11,9 +12,11 @@ import { Logger } from '@/libs/logger/logger';
  * - `payable`: the buyer publishes a Paykit receiver that takes payment
  *   requests (a Paykit wallet such as Bitkit);
  * - `not_payable`: they publish none, so a Bitcoin Pay cannot succeed;
+ * - `unsupported`: their wallet is Bitkit 2.6+, which the Shop's Paykit
+ *   server cannot send a payment request to yet;
  * - `unknown`: the read failed; Pay is not blocked and the service answers.
  */
-export type BuyerPaykitWalletState = 'idle' | 'checking' | 'payable' | 'not_payable' | 'unknown';
+export type BuyerPaykitWalletState = 'idle' | 'checking' | BuyerPaykitWallet | 'unknown';
 
 export function useBuyerPaykitWallet(buyerPubky: string | null, enabled: boolean) {
   const [result, setResult] = useState<{ key: string; state: BuyerPaykitWalletState } | null>(null);
@@ -25,8 +28,8 @@ export function useBuyerPaykitWallet(buyerPubky: string | null, enabled: boolean
     let active = true;
     void (async () => {
       try {
-        const payable = await CommerceController.hasBuyerPaykitWallet(buyerPubky);
-        if (active) setResult({ key, state: payable ? 'payable' : 'not_payable' });
+        const wallet = await CommerceController.fetchBuyerPaykitWallet(buyerPubky);
+        if (active) setResult({ key, state: wallet });
       } catch (error) {
         Logger.warn('Could not read the buyer Paykit wallet; Pay stays available', { error });
         if (active) setResult({ key, state: 'unknown' });

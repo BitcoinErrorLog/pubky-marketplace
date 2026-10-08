@@ -61,6 +61,12 @@ import {
   findForbiddenPublicReserveKey,
   stripForbiddenPublicReserveKeys,
 } from '@/libs/commerce/marketplace-records';
+import {
+  appRegistryReceivesPaymentRequests,
+  type BuyerPaykitWallet,
+  PAYKIT_APP_REGISTRY_PATH,
+  paykitAppRegistryUrl,
+} from '@/libs/commerce/paykit-wallet';
 import type { PaymentMethodKind } from '@/libs/commerce/payment-methods';
 import {
   type MarketplaceCheckoutFulfillmentLine,
@@ -1350,12 +1356,19 @@ export class CommerceApplication {
   }
 
   /**
-   * Whether the buyer can receive a Bitcoin payment request: a public Paykit
-   * receiver that takes payment requests (a Paykit wallet such as Bitkit).
-   * Rejects when it cannot be read.
+   * Whether the buyer can receive a Bitcoin payment request from the Shop's
+   * Paykit server (see {@link BuyerPaykitWallet}). A registry that takes
+   * payment requests wins over receiver markers: Bitkit 2.6 keeps the
+   * markers 2.5 published but no longer answers on them. Rejects when either
+   * public read fails.
    */
-  static async hasBuyerPaykitWallet(buyerPubky: string) {
-    return await PaykitMessagingService.hasPaymentRequestReceiver(buyerPubky);
+  static async fetchBuyerPaykitWallet(buyerPubky: string): Promise<BuyerPaykitWallet> {
+    const registry = await HomeserverService.getJsonIfFound<unknown>({
+      url: paykitAppRegistryUrl(buyerPubky),
+      logUrl: PAYKIT_APP_REGISTRY_PATH,
+    });
+    if (registry.found && appRegistryReceivesPaymentRequests(registry.json)) return 'unsupported';
+    return (await PaykitMessagingService.hasPaymentRequestReceiver(buyerPubky)) ? 'payable' : 'not_payable';
   }
 
   static async getMyPaymentConfig(actorPubky: string) {

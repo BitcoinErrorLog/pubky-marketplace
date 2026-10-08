@@ -95,7 +95,7 @@ const secondSellerListing = {
 const searchParams = vi.hoisted(() => ({ current: new URLSearchParams() }));
 
 const buyerWallet = vi.hoisted(() => ({
-  state: 'payable' as 'idle' | 'checking' | 'payable' | 'not_payable' | 'unknown',
+  state: 'payable' as 'idle' | 'checking' | 'payable' | 'not_payable' | 'unsupported' | 'unknown',
   recheck: vi.fn(),
   enabledCalls: [] as boolean[],
 }));
@@ -541,6 +541,36 @@ describe('MarketplaceCheckout', () => {
     await user.click(screen.getByTestId('marketplace-checkout-method-paypal'));
     await waitFor(() => expect(pay).toBeEnabled());
     expect(screen.queryByTestId('marketplace-checkout-bitkit-required')).not.toBeInTheDocument();
+    expect(checkoutActions.pay).not.toHaveBeenCalled();
+  });
+
+  it('tells a Bitkit 2.6 buyer Bitcoin checkout is not supported yet and keeps PayPal payable', async () => {
+    const user = userEvent.setup();
+    seededCart();
+    view.adapterMode = 'transaction-service';
+    view.hasMarketplaceSession = true;
+    buyerWallet.state = 'unsupported';
+
+    render(<MarketplaceCheckout />);
+
+    const pay = screen.getByTestId('marketplace-checkout-pay');
+    await fillValidDelivery(user);
+    await user.click(screen.getByRole('checkbox', { name: /I accept guarantee policy v1/ }));
+    const notice = await screen.findByTestId('marketplace-checkout-bitkit-unsupported');
+    expect(notice).toHaveAttribute('role', 'alert');
+    expect(notice).toHaveTextContent('Bitcoin checkout does not support Bitkit 2.6 yet');
+    expect(notice).toHaveTextContent('This Pubky account uses Bitkit 2.6 or later.');
+    expect(notice).toHaveTextContent('You can pay with PayPal instead.');
+    expect(screen.queryByTestId('marketplace-checkout-bitkit-required')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('marketplace-checkout-bitkit-recheck')).not.toBeInTheDocument();
+    expect(pay).toBeDisabled();
+    expect(
+      screen.getByText('Bitcoin checkout does not support Bitkit 2.6 yet. Choose PayPal to pay now.'),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('marketplace-checkout-method-paypal'));
+    await waitFor(() => expect(pay).toBeEnabled());
+    expect(screen.queryByTestId('marketplace-checkout-bitkit-unsupported')).not.toBeInTheDocument();
     expect(checkoutActions.pay).not.toHaveBeenCalled();
   });
 

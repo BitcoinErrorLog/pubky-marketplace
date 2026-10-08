@@ -13,6 +13,10 @@ import { MarketplacePaymentStatusCard } from './MarketplacePaymentStatusCard';
 
 const runtime = vi.hoisted(() => ({ deployEnv: 'production' as 'production' | 'staging' | undefined }));
 const auth = vi.hoisted(() => ({ currentUserPubky: 's'.repeat(52) }));
+const buyerWallet = vi.hoisted(() => ({
+  state: 'payable' as 'payable' | 'not_payable' | 'unsupported' | 'unknown',
+  calls: [] as { buyerPubky: string | null; enabled: boolean }[],
+}));
 
 vi.mock('@/libs/runtime-config/runtime-config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/libs/runtime-config/runtime-config')>();
@@ -32,6 +36,13 @@ vi.mock('@/hooks/useMarketplaceLocksPayment/useMarketplaceLocksPayment', () => (
     unlock: vi.fn(),
     resumePolling: vi.fn(),
   }),
+}));
+
+vi.mock('@/hooks/useBuyerPaykitWallet/useBuyerPaykitWallet', () => ({
+  useBuyerPaykitWallet: (buyerPubky: string | null, enabled: boolean) => {
+    buyerWallet.calls.push({ buyerPubky, enabled });
+    return { state: enabled ? buyerWallet.state : 'idle', recheck: vi.fn() };
+  },
 }));
 
 vi.mock('@/hooks/useMarketplaceOrderPayment/useMarketplaceOrderPayment', () => ({
@@ -63,6 +74,8 @@ describe('MarketplacePaymentStatusCard', () => {
   beforeEach(() => {
     runtime.deployEnv = 'production';
     auth.currentUserPubky = 's'.repeat(52);
+    buyerWallet.state = 'payable';
+    buyerWallet.calls = [];
     vi.mocked(useMarketplaceOrderPayment).mockReturnValue({
       availableMethods: null,
       bitcoinOfferUnavailable: false,
@@ -392,6 +405,74 @@ describe('MarketplacePaymentStatusCard', () => {
       ),
     );
     await waitFor(() => expect(onPaymentChanged).toHaveBeenCalled());
+  });
+
+  it('keeps a Bitkit 2.6 buyer off Bitcoin on the method picker and leaves PayPal open', () => {
+    const buyer = 'b'.repeat(52);
+    auth.currentUserPubky = buyer;
+    buyerWallet.state = 'unsupported';
+    vi.mocked(useMarketplaceOrderPayment).mockReturnValue({
+      availableMethods: ['bitcoin', 'paypal'],
+      bitcoinOfferUnavailable: false,
+      configError: null,
+      pendingAction: null,
+      bind: vi.fn(),
+      verifyStripe: vi.fn(),
+      markPaid: vi.fn(),
+      confirmReceived: vi.fn(),
+    });
+    render(
+      <MarketplacePaymentStatusCard
+        order={createOrderFixture('pending_payment', { holdSource: 'checkout' })}
+        payment={createPaymentFixture('awaiting_entitlement')}
+        isBuyer
+        adapterMode="transaction-service"
+        advancePayment={async () => false}
+        onPaymentChanged={() => {}}
+      />,
+    );
+
+    expect(buyerWallet.calls).toContainEqual({ buyerPubky: buyer, enabled: true });
+    const notice = screen.getByTestId('order-payment-bitkit-unsupported');
+    expect(notice).toHaveAttribute('role', 'alert');
+    expect(notice).toHaveTextContent('Bitcoin checkout does not support Bitkit 2.6 yet');
+    expect(notice).toHaveTextContent('You can pay with PayPal instead.');
+    expect(screen.getByRole('button', { name: /Bitcoin/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /PayPal/ })).toBeEnabled();
+  });
+
+  it('leaves Bitcoin open on the method picker for a payable or unchecked wallet', () => {
+    vi.mocked(useMarketplaceOrderPayment).mockReturnValue({
+      availableMethods: ['bitcoin', 'paypal'],
+      bitcoinOfferUnavailable: false,
+      configError: null,
+      pendingAction: null,
+      bind: vi.fn(),
+      verifyStripe: vi.fn(),
+      markPaid: vi.fn(),
+      confirmReceived: vi.fn(),
+    });
+    const props = {
+      order: createOrderFixture('pending_payment', { holdSource: 'checkout' }),
+      payment: createPaymentFixture('awaiting_entitlement'),
+      adapterMode: 'transaction-service' as const,
+      advancePayment: async () => false,
+      onPaymentChanged: () => {},
+    };
+    const { rerender } = render(<MarketplacePaymentStatusCard {...props} isBuyer />);
+    expect(screen.getByRole('button', { name: /Bitcoin/ })).toBeEnabled();
+    expect(screen.queryByTestId('order-payment-bitkit-unsupported')).not.toBeInTheDocument();
+
+    buyerWallet.state = 'unknown';
+    rerender(<MarketplacePaymentStatusCard {...props} isBuyer />);
+    expect(screen.getByRole('button', { name: /Bitcoin/ })).toBeEnabled();
+
+    // A seller viewing the order never triggers the buyer wallet read.
+    buyerWallet.calls = [];
+    buyerWallet.state = 'unsupported';
+    rerender(<MarketplacePaymentStatusCard {...props} isBuyer={false} />);
+    expect(buyerWallet.calls.every((call) => !call.enabled)).toBe(true);
+    expect(screen.queryByTestId('order-payment-bitkit-unsupported')).not.toBeInTheDocument();
   });
 
   it('renders bound hold copy after a payment method is chosen', () => {
