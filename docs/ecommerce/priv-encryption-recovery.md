@@ -1,5 +1,7 @@
 # Reading encrypted marketplace data without the marketplace
 
+> When your signer shares encryption keys with the Shop, the key below is also stored on your homeserver wrapped under a key only your signer can derive, and the marketplace service deletes its copy. See [priv-key-wrapping.md](priv-key-wrapping.md).
+
 The Shop encrypts your watchlist, order receipts, badge checkpoints and the people you muted in messages before they reach your homeserver. The key is a random 32-byte data key that the marketplace service holds sealed and releases only to your signed-in session. **Settings → Privacy and Safety → Export recovery key** downloads that key. With the file and your homeserver data, you can read everything offline, even if the marketplace service no longer exists.
 
 Anyone who has the file can read the same data. Keep it offline.
