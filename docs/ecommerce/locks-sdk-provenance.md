@@ -1,89 +1,53 @@
-# Locks SDK Build Provenance
+# Locks SDK Provenance
 
-The Pubky Locks browser SDK is not published to npm. It is built from source at a pinned commit and vendored into this repository, then loaded through a dynamic import so the WASM module never enters a server-rendered module graph. This file records the provenance of the build so it is reproducible and auditable.
+The Pubky Locks browser SDK is installed from npm as `@synonymdev/locks-sdk`, pinned to an exact release-candidate version, and loaded through a dynamic import so the WASM module never enters a server-rendered module graph. This file records where the artifact comes from so it is reproducible and auditable.
 
-Reproduced: 2026-08-20. Vendored: 2026-08-20.
+Previously the SDK was built from source at a pinned commit and committed under `vendor/locks-sdk-wasm` (`pubky/locks` `ba49a777`, 2026-08-20, because it was then unpublished). It is published now, so the vendored copy was replaced by the npm package: the registry tarball is integrity-pinned in `package-lock.json`, builds need no Rust toolchain, and re-pinning is a one-line dependency bump instead of a rebuild-and-copy.
 
 ## Source
 
-| Field           | Value                                         |
-| --------------- | --------------------------------------------- |
-| Repository      | `https://github.com/pubky/locks`              |
-| Commit          | `ba49a777a94db318ec6ebd427315080a5b904645`    |
-| Package path    | `locks-sdk/bindings/js`                       |
-| Package name    | `@pubky/locks-sdk` (`private: true` upstream) |
-| Package version | `0.1.0`                                       |
-| License         | MIT                                           |
+| Field             | Value                                                                                             |
+| ----------------- | ------------------------------------------------------------------------------------------------- |
+| npm package       | `@synonymdev/locks-sdk@0.1.0-rc10` (dist-tag `rc`; `latest` is still rc5 — never install by tag)  |
+| Repository        | `https://github.com/pubky/locks`                                                                  |
+| Package path      | `locks-sdk/bindings/js`                                                                           |
+| Source commit     | `01cfeca14c7b5d385d8c3536c0cb4e1af81b458c` (`chore: prepare locks 0.1.0-rc10 (#78)`)              |
+| Upstream tag      | `v0.1.0-rc10` (resolves to the same commit)                                                       |
+| Published         | 2026-10-08                                                                                        |
+| Tarball integrity | `sha512-0RAAxUgV2PsEFHulxeqAFwjYQ3nOIK9BCUqXsrL63V8wbfC3cCJ1B/GBDx92fYtAQ+Xsv2L9TEsG5iEbO5Fz2Q==` |
+| License           | MIT                                                                                               |
 
-The commit matches the audited revision pinned in [`upstream-integration.md`](upstream-integration.md).
+The source commit is the `gitHead` field the registry records for the published version (`npm view @synonymdev/locks-sdk@0.1.0-rc10 gitHead`) and equals the upstream `v0.1.0-rc10` tag. The npm release carries no registry provenance attestation, so the commit link is the registry's recorded claim, not a signed one; the integrity hash in `package-lock.json` is what guarantees every install gets the same bytes.
 
-## Toolchain
+The package build is `wasm-pack build --target web --out-dir pkg` (upstream `package.json` `build` script, run by its `prepack`).
 
-| Tool              | Version                       |
-| ----------------- | ----------------------------- |
-| `wasm-pack`       | 0.13.1                        |
-| `rustc`           | 1.89.0 (29483883e 2025-08-04) |
-| Rust target       | `wasm32-unknown-unknown`      |
-| Node (smoke test) | v22.14.0                      |
+## Installed artifact
 
-## Generation command
+`package.json` pins the exact version (no range) and `package-lock.json` records the tarball. Files under `node_modules/@synonymdev/locks-sdk/pkg/` and their SHA-256:
 
-```bash
-git clone https://github.com/pubky/locks.git
-cd locks && git checkout ba49a777a94db318ec6ebd427315080a5b904645
-cd locks-sdk/bindings/js
-rustup target add wasm32-unknown-unknown
-npm run build            # wasm-pack build --target web --out-dir pkg
-node scripts/smoke-generated-api.mjs
-```
+| File                          | SHA-256                                                            | Bytes     |
+| ----------------------------- | ------------------------------------------------------------------ | --------- |
+| `locks_sdk_wasm_bg.wasm`      | `02888fa14cd12cc6ae440014e736e9501ec40f10bfd8d3da739726fd160ac545` | 1,313,137 |
+| `locks_sdk_wasm.js`           | `f44ee59fe14aa06bea75acb6b5583f88b4b7b7a132b4614f6d48ef35296d90ef` | 76,290    |
+| `locks_sdk_wasm.d.ts`         | `5ca7f0aba5d7d4d747281525e60cbda6895907fc103bb29751295a28c4a0a589` | 15,765    |
+| `locks_sdk_wasm_bg.wasm.d.ts` | `c7a9aca8c6bdfd6c8c25c775be87767c01f025f15c274963188a002b22b877ca` | 8,850     |
 
-## Artifact checksums
+Size versus the replaced `ba49a777` vendored build: the `.wasm` grew from 1,114,311 to 1,313,137 bytes (+198,826, +17.8%; gzip 431,140 to 498,799 bytes) because rc10 carries more upstream surface (Paykit setup/connection-state lookups, `proxyReadGuardedResourceResponse`, `hasPaykitData`). The Shop calls only `BundleId.generate()`, whose API is unchanged. The WASM is still fetched lazily, only when a Locks operation runs in the browser, and is excluded from the service-worker precache.
 
-SHA-256 of the generated `pkg/` outputs:
+## Re-pinning
 
-| File                     | SHA-256                                                            |
-| ------------------------ | ------------------------------------------------------------------ |
-| `locks_sdk_wasm_bg.wasm` | `90e388d0cde26955bf384c2dc899e289efc24d71feb95f15976b7af3fdb21e06` |
-| `locks_sdk_wasm.js`      | `c8d3ae13f0e556da906fc6adecc7a9c22afdf43037132275b9510c7896d8556e` |
-
-Generated package size: ~1.2 MB. Note that `wasm-opt` output is not guaranteed bit-identical across platforms; treat these checksums as a record of this build, and re-record when the pin or toolchain changes.
-
-## Vendoring mechanism
-
-The generated `pkg/` output is committed verbatim at `vendor/locks-sdk-wasm/` and referenced from `package.json` as a `file:` dependency:
-
-```json
-"locks-sdk-wasm": "file:vendor/locks-sdk-wasm"
-```
-
-npm symlinks `node_modules/locks-sdk-wasm` to the vendored directory, so a fresh clone plus `npm ci` resolves the SDK with no extra steps and no network fetch from a mutable source. The vendored directory carries a `PROVENANCE.md` pointing back to this file, and is excluded from Prettier (`.prettierignore`) so the committed artifacts stay byte-identical to the recorded build.
-
-Vendored files and their SHA-256 checksums (the `.js` and `.wasm` match the build record above):
-
-| File                          | SHA-256                                                            |
-| ----------------------------- | ------------------------------------------------------------------ |
-| `locks_sdk_wasm_bg.wasm`      | `90e388d0cde26955bf384c2dc899e289efc24d71feb95f15976b7af3fdb21e06` |
-| `locks_sdk_wasm.js`           | `c8d3ae13f0e556da906fc6adecc7a9c22afdf43037132275b9510c7896d8556e` |
-| `locks_sdk_wasm.d.ts`         | `91cc6bf29ed2e13fd248b68185b2b63d0fbbc1ec83f4d2739c157ff1dae98dae` |
-| `locks_sdk_wasm_bg.wasm.d.ts` | `2dc0e05420095ef8a7992d07154c0702372b2dfd6664d436e729002e6c34dbf4` |
-| `package.json`                | `c760bc271fbe85ad8d10bc48ccdec1f9cf869f369ece58102a18adbf046d66d6` |
-
-Upstream's `pkg/.gitignore` (which ignores everything) is deliberately not copied.
-
-### Re-vendoring
-
-1. Rebuild from the pinned (or newly pinned) upstream commit using the generation command above.
-2. Copy `pkg/package.json`, `locks_sdk_wasm.js`, `locks_sdk_wasm.d.ts`, `locks_sdk_wasm_bg.wasm`, and `locks_sdk_wasm_bg.wasm.d.ts` into `vendor/locks-sdk-wasm/` (never copy `pkg/.gitignore`).
-3. Run `npm install` to refresh `package-lock.json`, then `node scripts/locks-sdk-smoke.mjs`.
-4. Update the commit pin, toolchain table, and checksums in this file.
+1. Pick the target release tag from `https://github.com/pubky/locks/tags` and confirm it is published: `npm view @synonymdev/locks-sdk versions`.
+2. `HUSKY=0 npm install --save-exact @synonymdev/locks-sdk@<version>` (always an explicit version; `latest` is not the release candidate line).
+3. Confirm the source commit: `npm view @synonymdev/locks-sdk@<version> gitHead` equals the upstream tag's commit (`gh api repos/pubky/locks/git/ref/tags/v<version>`).
+4. Run `node scripts/locks-sdk-smoke.mjs` and the Locks tests (`npx vitest run --project unit src/core/services/locks`).
+5. Update the version, commit, integrity, and checksums in this file (`sha256sum node_modules/@synonymdev/locks-sdk/pkg/*`).
 
 ## Verification performed
 
-- `npm run build` (upstream `wasm-pack` build) completed successfully.
-- `node scripts/locks-sdk-smoke.mjs` passes against the vendored copy; CI runs it in `.github/workflows/build.yml` ahead of `next build`, so a regression in the generated API surface fails the build job.
-- The generated API exposes the viewer surface the marketplace needs on `Locks.viewer`: `submitProofBundle`, `lookupVerificationTask`, `completeVerificationTask`, `issueAccessCredential`, and `proxyReadGuardedResource`, plus the creator surface (`Creator`, `CreateContentLockRequestBuilder`, `RegisterGuardedResourceOptions`, session/connect helpers).
+- `node scripts/locks-sdk-smoke.mjs` passes against the installed package; CI runs it in `.github/workflows/build.yml` ahead of `next build`, so a regression in the generated API surface fails the build job.
+- The generated API still exposes the viewer surface the marketplace needs on `Locks.viewer` (`submitProofBundle`, `lookupVerificationTask`, `completeVerificationTask`, `issueAccessCredential`, `proxyReadGuardedResource`) plus the creator surface and `BundleId`.
 
-`LocksGatewayService` (`src/core/services/locks/locks.ts`) uses this SDK for canonical identifier generation (`BundleId.generate()`), per the upstream guidance in `upstream-integration.md` ("do not create hand-written substitutes for Locks canonicalization, identifiers, proof payloads, credentials, or session handling") — the client's previous hand-rolled Crockford base32 generator is removed. The WASM module is loaded lazily via dynamic import on first use; `src/core/services/locks/locks.ssr.test.ts` proves it is never imported at module scope anywhere in the Locks call chain.
+`LocksGatewayService` (`src/core/services/locks/locks.ts`) uses this SDK for canonical identifier generation (`BundleId.generate()`), per the upstream guidance in `upstream-integration.md` ("do not create hand-written substitutes for Locks canonicalization, identifiers, proof payloads, credentials, or session handling"). The WASM module is loaded lazily via dynamic import on first use; `src/core/services/locks/locks.ssr.test.ts` proves it is never imported at module scope anywhere in the Locks call chain. The SDK is never used for status reads or any other network route (see below), so it has no effect on compatibility with the Lock Server versions the Shop talks to over HTTP.
 
 ## SDK-backed vs raw HTTP — what is measured, not aspirational
 
@@ -95,8 +59,8 @@ Upstream's `pkg/.gitignore` (which ignores everything) is deliberately not copie
 
 The SDK's generated `Viewer` API does cover proof-bundle submission, verification-task lookups, access-credential issuance, and guarded proxy reads. The network routes nevertheless stay on the Lock Server's documented HTTP contract at the explicitly configured `getLocksUrl()`, for two measured reasons:
 
-1. **The SDK has no configured-endpoint mode.** Its clients (`Locks.forServer`/`forCreator`/`forContentLock`) accept only pubkys and resolve the Lock Server's HTTP endpoint through pkarr; `LocksOptions` configures relays and nothing else (verified against the vendored `locks_sdk_wasm.d.ts` and by direct probing — `forServer('http://…')` throws `invalid lock server pubky`). This app's `locks-paykit` activation is fail-closed on an explicit `PUBKY_RUNTIME_LOCKS_URL`; routing payment-rail traffic to whatever endpoint a pkarr record names would bypass that operator decision.
-2. **The SDK requires browser-usable domain endpoints in the resolved records.** The composed regtest environment — the only place real payments are live-verified — publishes compose-internal endpoints (`localhost:3000`, `127.0.0.1:6287`), unreachable from outside the compose network. Driving the viewer flows through the SDK was attempted post-vendoring and fails there with `PKARR record did not contain a browser-usable domain endpoint`, which would forfeit the live purchase proof (`npm run test:marketplace:locks`).
+1. **The SDK has no configured-endpoint mode.** Its clients (`Locks.forServer`/`forCreator`/`forContentLock`) accept only pubkys and resolve the Lock Server's HTTP endpoint through pkarr; `LocksOptions` configures relays and nothing else (verified against the SDK's `locks_sdk_wasm.d.ts` and by direct probing — `forServer('http://…')` throws `invalid lock server pubky`). This app's `locks-paykit` activation is fail-closed on an explicit `PUBKY_RUNTIME_LOCKS_URL`; routing payment-rail traffic to whatever endpoint a pkarr record names would bypass that operator decision.
+2. **The SDK requires browser-usable domain endpoints in the resolved records.** The composed regtest environment — the only place real payments are live-verified — publishes compose-internal endpoints (`localhost:3000`, `127.0.0.1:6287`), unreachable from outside the compose network. Driving the viewer flows through the SDK was attempted and fails there with `PKARR record did not contain a browser-usable domain endpoint`, which would forfeit the live purchase proof (`npm run test:marketplace:locks`).
 
 The HTTP surface in use (proof-bundle submission, lifecycle lookups, credential issuance, guarded proxy reads, frontend sessions) is live-verified against the pinned Lock Server revision by `npm run test:marketplace:locks`, which bounds the drift risk the SDK would otherwise eliminate. Moving the viewer routes onto the SDK requires upstream support for an explicitly configured Lock Server endpoint (or this app adopting pkarr-published lock servers with browser-usable domains, including in its verification environment).
 
@@ -108,7 +72,7 @@ Still open:
 
 Done since this file was first written:
 
-- ~~Vendor the generated `pkg/` and wire the smoke test into CI ahead of `next build`~~ — done: committed at `vendor/locks-sdk-wasm/`, `scripts/locks-sdk-smoke.mjs` runs in `.github/workflows/build.yml`.
+- ~~Get the SDK into the build reproducibly and wire the smoke test into CI ahead of `next build`~~ — done: exact-pinned `@synonymdev/locks-sdk` from npm (initially a vendored source build), `scripts/locks-sdk-smoke.mjs` runs in `.github/workflows/build.yml`.
 - ~~Stop hand-minting Locks identifiers~~ — done: bundle ids now come from the SDK's `BundleId.generate()`.
 - ~~Stand up the composed integration environment (Lock Server, Paykit Server, Bitcoin regtest, Electrum)~~ — done: the `payments-env` composed stack builds paykit-server from its pinned commit and proves the protocol leg with its own `verify.sh`.
 - ~~Exercise the buyer flow end to end~~ — done on regtest with the wallet's protocol role simulated by the environment's real tooling (`paykit-companion-auth`, `paykit-reader-demo`); the real Bitkit app UX was proven live 2026-08-22 (companion claim, in-app Payment Request, swipe-to-pay). See [`status.md`](status.md) and [`RUNNING.md`](RUNNING.md).
