@@ -166,7 +166,7 @@ describe('MarketplacePaymentSettings', () => {
     expect(bitcoin).toBeChecked();
     expect(bitcoin).toBeEnabled();
     await userEvent.click(bitcoin);
-    await userEvent.click(screen.getAllByRole('button', { name: 'Save payment settings' })[0]);
+    await userEvent.click(screen.getAllByRole('button', { name: 'Save changes' })[0]);
     await waitFor(() =>
       expect(mockedController.putMyPaymentConfig).toHaveBeenCalledWith(
         expect.objectContaining({ bitcoinEnabled: false }),
