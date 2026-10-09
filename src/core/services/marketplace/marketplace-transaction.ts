@@ -1010,6 +1010,7 @@ export class MarketplaceTransactionService {
       stripePaymentLink: string | null;
       stripeRestrictedKey?: string;
       paypalMerchantEmail: string | null;
+      usdtEnabled?: boolean;
     },
   ): Promise<SellerPaymentConfigOwnView> {
     const raw = await this.paymentMethodRequest('putMyPaymentConfig', actor, '/v0/sellers/me/payment-config', {

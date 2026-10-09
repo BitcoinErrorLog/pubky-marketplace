@@ -31,6 +31,8 @@ export function createMarketplaceVrtCommerceController() {
     syncAttentionSeen: async () => {},
     // The deployment reports no digital delivery unless a scene opts in.
     fetchDigitalDeliveryCapability: async () => ({ available: false, maxBytes: null }),
+    // USDT stays off unless a scene opts in.
+    fetchUsdtPaymentsAvailable: async () => false,
     getSellerPaymentConfig: async () => ({
       bitcoinAvailable: false,
       bitcoinOfferAvailable: true,

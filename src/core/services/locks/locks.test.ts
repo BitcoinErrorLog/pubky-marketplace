@@ -17,14 +17,14 @@ vi.mock('@synonymdev/locks-sdk', () => ({
   BundleId: { generate: sdkMocks.generateBundleId },
 }));
 
-const paykitSetupConfig = vi.hoisted(() => ({ creatorParam: true }));
+const paykitSetupConfig = vi.hoisted(() => ({ creatorParam: true, setupUrl: 'https://paykit.example.com/setup' }));
 
 vi.mock('@/config/commerce', async () => {
   const actual = await vi.importActual<typeof import('@/config/commerce')>('@/config/commerce');
   return {
     ...actual,
     getLocksUrl: () => 'https://locks.example.com',
-    getPaykitSetupUrl: () => 'https://paykit.example.com/setup',
+    getPaykitSetupUrl: () => paykitSetupConfig.setupUrl,
     getPaykitSetupCreatorParam: () => paykitSetupConfig.creatorParam,
   };
 });
@@ -437,5 +437,46 @@ describe('LocksGatewayService', () => {
     } finally {
       paykitSetupConfig.creatorParam = true;
     }
+  });
+
+  describe('buildPaykitReconnectUrl', () => {
+    const returnTo = 'https://app.example.com/marketplace/settings';
+    const creator = 'gy1wnkhfwezwdnawnur1bc3kw1x3jf5ggjj3cm37e31i5ntq3pco';
+
+    // Upstream pubky/paykit-server answers `GET /setup/reconnect` with a
+    // required `creator` plus `return_to` and `state`; `/setup` rejects `creator`.
+    it('builds the reconnect URL beside the setup URL with creator, return_to and state', () => {
+      const built = LocksGatewayService.buildPaykitReconnectUrl(returnTo, 'opaque-state', creator);
+      expect(built).toBe(
+        `https://paykit.example.com/setup/reconnect?creator=${creator}&return_to=https%3A%2F%2Fapp.example.com%2Fmarketplace%2Fsettings&state=opaque-state`,
+      );
+      expect([...new URL(built).searchParams.keys()]).toEqual(['creator', 'return_to', 'state']);
+    });
+
+    it('always sends creator, even where the setup URL deliberately omits it', () => {
+      paykitSetupConfig.creatorParam = false;
+      try {
+        expect(LocksGatewayService.buildPaykitSetupUrl(returnTo, 'opaque-state', creator)).not.toContain('creator=');
+        expect(
+          new URL(LocksGatewayService.buildPaykitReconnectUrl(returnTo, 'opaque-state', creator)).searchParams.get(
+            'creator',
+          ),
+        ).toBe(creator);
+      } finally {
+        paykitSetupConfig.creatorParam = true;
+      }
+    });
+
+    it('tolerates a trailing slash and drops stray query or hash from the configured setup URL', () => {
+      paykitSetupConfig.setupUrl = 'https://paykit.example.com/setup/?stale=1#embed';
+      try {
+        const built = new URL(LocksGatewayService.buildPaykitReconnectUrl(returnTo, 'opaque-state', creator));
+        expect(built.pathname).toBe('/setup/reconnect');
+        expect(built.searchParams.has('stale')).toBe(false);
+        expect(built.hash).toBe('');
+      } finally {
+        paykitSetupConfig.setupUrl = 'https://paykit.example.com/setup';
+      }
+    });
   });
 });
