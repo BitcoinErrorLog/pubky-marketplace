@@ -5,6 +5,7 @@ import {
   getMarketplaceUrl,
   getPaykitSetupCreatorParam,
   getPaykitSetupUrl,
+  getUsdtPaymentsEnabled,
 } from '@/libs/runtime-config/runtime-config';
 import type { CommerceAdapterMode } from '@/libs/runtime-config/runtime-config.schema';
 
@@ -16,6 +17,7 @@ export {
   getMarketplaceUrl,
   getPaykitSetupCreatorParam,
   getPaykitSetupUrl,
+  getUsdtPaymentsEnabled,
 };
 
 /**
