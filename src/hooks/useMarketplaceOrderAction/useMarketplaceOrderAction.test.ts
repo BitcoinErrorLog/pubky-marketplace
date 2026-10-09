@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { createOrderFixture } from '@/test/fixtures/commerce/orders';
+import { createOrderFixture, createUsdtOrderFixture } from '@/test/fixtures/commerce/orders';
 import { useMarketplaceOrderAction } from './useMarketplaceOrderAction';
 
 describe('useMarketplaceOrderAction ship action', () => {
@@ -221,5 +221,72 @@ describe('useMarketplaceOrderAction refund', () => {
 
     expect(actOnOrder).not.toHaveBeenCalled();
     expect(result.current.form.getFieldState('amount').error?.message).toBe('Enter a valid refund amount.');
+  });
+});
+
+describe('useMarketplaceOrderAction USDT refund', () => {
+  const hash = `0x${'ab12'.repeat(16)}`;
+  const usdtOrder = createUsdtOrderFixture('return_received', {
+    refundDestination: {
+      address: '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed',
+      network: 'arbitrum-one',
+      asset: 'USDT',
+      source: 'buyer_entered',
+      confirmedAt: '2026-10-09T16:00:00.000Z',
+    },
+  });
+
+  async function record(transactionId: string, amount = '137.00') {
+    const actOnOrder = vi.fn(async () => true);
+    const { result } = renderHook(() => {
+      const value = useMarketplaceOrderAction(usdtOrder, actOnOrder);
+      void value.form.formState.errors;
+      return value;
+    });
+    act(() => {
+      result.current.setAction('refund', { amount, transactionId });
+    });
+    await act(async () => {
+      await result.current.submit();
+    });
+    return { actOnOrder, result };
+  }
+
+  it('records the Arbitrum transaction hash in order cents, lowercased', async () => {
+    const { actOnOrder } = await record(hash.toUpperCase().replace('0X', '0x'));
+    expect(actOnOrder).toHaveBeenCalledWith(usdtOrder, 'refund.record_external', {
+      amountMinor: 13_700,
+      transactionId: hash,
+    });
+  });
+
+  it.each([
+    '',
+    'txid-canary-refund',
+    `0x${'a'.repeat(63)}`,
+    `0x${'g'.repeat(64)}`,
+    '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed',
+  ])('refuses %j as a USDT refund reference', async (transactionId) => {
+    const { actOnOrder, result } = await record(transactionId);
+    expect(actOnOrder).not.toHaveBeenCalled();
+    expect(result.current.form.formState.errors.transactionId?.message).toBe(
+      'Enter the Arbitrum transaction hash (0x followed by 64 characters).',
+    );
+  });
+
+  it('keeps free-form evidence for every other rail', async () => {
+    const bitcoin = createOrderFixture('return_received', { paymentMethod: 'bitcoin' });
+    const actOnOrder = vi.fn(async () => true);
+    const { result } = renderHook(() => useMarketplaceOrderAction(bitcoin, actOnOrder));
+    act(() => {
+      result.current.setAction('refund', { amount: '137.00', transactionId: 'txid-canary-refund' });
+    });
+    await act(async () => {
+      await result.current.submit();
+    });
+    expect(actOnOrder).toHaveBeenCalledWith(bitcoin, 'refund.record_external', {
+      amountMinor: 13_700,
+      transactionId: 'txid-canary-refund',
+    });
   });
 });

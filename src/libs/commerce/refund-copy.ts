@@ -7,11 +7,14 @@ import {
 import { MARKETPLACE_FAILURE_MESSAGES } from '@/libs/commerce/failure-messages';
 import { partialRefundLabel } from '@/libs/commerce/partial-refund';
 import type { CommerceMoney } from '@/libs/commerce/transaction-contracts';
+import { isUsdtRefundOrder, type RefundDestination, usdtRefundRecordLine } from '@/libs/commerce/usdt-refund';
 
 type RefundCopyOrder = {
   state: string;
   total: CommerceMoney;
   paymentMethod?: BitcoinPaymentOrder['paymentMethod'];
+  paymentAsset?: string | null;
+  refundDestination?: RefundDestination | null;
   subtotal?: CommerceMoney;
   shipping?: CommerceMoney;
   merchandiseTotal?: CommerceMoney | null;
@@ -42,6 +45,7 @@ export function refundStateLabel(order: RefundCopyOrder): string | null {
   const partial = partialRefundLabel(order);
   if (partial) return partial;
   if (order.state !== 'refunded_external') return null;
+  if (isUsdtRefundOrder(order)) return 'Refund recorded';
   return order.paymentReversedAt ? 'Payment reversed' : 'Refunded';
 }
 
@@ -50,6 +54,7 @@ export function refundRecordLine(order: RefundCopyOrder): string | null {
   const refund = order.externalRefund;
   if (!refund) return null;
   const partial = partialRefundLabel(order);
+  if (isUsdtRefundOrder(order)) return usdtRefundRecordLine(order);
   const equation = refundEquation(order);
   const amount = partial ?? `Refunded in full (${equation ?? formatBitcoinAwareMoney(order.total)})`;
   if (partial && equation) return `${partial}. ${equation}. Reference: ${refund.transactionId}`;

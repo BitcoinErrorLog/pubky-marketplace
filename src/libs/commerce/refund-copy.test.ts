@@ -108,3 +108,32 @@ describe('refund copy', () => {
     expect(MARKETPLACE_FAILURE_MESSAGES.orderRefundRecordedMeanwhile).toMatch(/^A refund was recorded/);
   });
 });
+
+describe('USDT refund copy', () => {
+  const usdtOrder = {
+    state: 'refunded_external',
+    total,
+    paymentAsset: 'USDT',
+    refundDestination: {
+      address: '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed',
+      network: 'arbitrum-one' as const,
+      asset: 'USDT' as const,
+      source: 'buyer_entered',
+      confirmedAt: '2026-10-09T16:00:00.000Z',
+    },
+    externalRefund: { ...refund(250), transactionId: `0x${'ab'.repeat(32)}` },
+  };
+
+  it('names a recorded USDT refund as recorded, never as refunded or verified', () => {
+    expect(refundStateLabel(usdtOrder)).toBe('Refund recorded');
+    expect(refundRecordLine(usdtOrder)).toBe(
+      `The seller recorded a refund of 2.500000 USDT to 0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed (transaction 0x${'ab'.repeat(32)}). The Shop hasn't checked it on Arbitrum.`,
+    );
+  });
+
+  it('leaves every non-USDT refund line exactly as before', () => {
+    const bitcoinAsset = { ...usdtOrder, paymentAsset: null, refundDestination: null };
+    expect(refundStateLabel(bitcoinAsset)).toBe('Refunded');
+    expect(refundRecordLine(bitcoinAsset)).toMatch(/^Refunded in full \(\$2\.50\)\. Reference: /);
+  });
+});

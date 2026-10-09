@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { OTHER_CARRIER_ID, SHIPPING_CARRIERS } from '@/libs/commerce/carriers';
+import { isArbitrumTxHash, USDT_REFUND_COPY } from '@/libs/commerce/usdt-refund';
 
 const carrierIds = SHIPPING_CARRIERS.map(({ id }) => id) as [string, ...string[]];
 
@@ -38,9 +39,6 @@ export const marketplaceOrderActionSchema = z
       if (!/^\d+(?:\.\d{1,2})?$/.test(data.amount)) {
         context.addIssue({ code: 'custom', path: ['amount'], message: 'Enter a valid refund amount.' });
       }
-      if (data.transactionId.length < 8) {
-        context.addIssue({ code: 'custom', path: ['transactionId'], message: 'Transaction evidence is required.' });
-      }
     }
     if (['review', 'review_edit'].includes(data.action) && (!/^[1-5]$/.test(data.rating) || !data.text)) {
       context.addIssue({ code: 'custom', path: ['rating'], message: 'Rating and review text are required.' });
@@ -73,10 +71,19 @@ export function formatOrderMajor(total: MarketplaceRefundCap): string {
 export function marketplaceOrderActionSchemaFor(
   total: MarketplaceRefundCap,
   refundedMinor = 0,
-  rail: 'paypal' | 'other' = 'other',
+  rail: 'paypal' | 'usdt' | 'other' = 'other',
 ) {
   return marketplaceOrderActionSchema.superRefine((data, context) => {
     if (data.action !== 'refund') return;
+    // A USDT refund is recorded with the Arbitrum transaction hash, which the
+    // service checks as `0x` + 64 hex; any other rail takes free evidence.
+    if (rail === 'usdt') {
+      if (!isArbitrumTxHash(data.transactionId)) {
+        context.addIssue({ code: 'custom', path: ['transactionId'], message: USDT_REFUND_COPY.referenceRequired });
+      }
+    } else if (data.transactionId.length < 8) {
+      context.addIssue({ code: 'custom', path: ['transactionId'], message: 'Transaction evidence is required.' });
+    }
     if (!/^\d+(?:\.\d{1,2})?$/.test(data.amount)) return;
     if (total.exponent === 0 && !/^\d+$/.test(data.amount)) {
       context.addIssue({ code: 'custom', path: ['amount'], message: 'Enter a whole number.' });

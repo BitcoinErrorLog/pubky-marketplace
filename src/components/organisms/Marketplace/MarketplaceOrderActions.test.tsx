@@ -5,7 +5,8 @@ import { COMMERCE_REVIEW_EDIT_WINDOW_SECONDS } from '@/config/commerce';
 import { CommerceController } from '@/controllers/commerce/commerce';
 import type { CommerceReviewModelSchema } from '@/models/commerce/commerce.schema';
 import type { MarketplaceOrder } from '@/services/marketplace/marketplace';
-import { createOrderFixture, ORDER_FIXTURE_BUYER } from '@/test/fixtures/commerce/orders';
+import { createOrderFixture, createUsdtOrderFixture, ORDER_FIXTURE_BUYER } from '@/test/fixtures/commerce/orders';
+import { REFUND_FIXTURE_ADDRESS, REFUND_FIXTURE_TX_HASH } from '@/test/fixtures/commerce/usdt-refund.wire';
 import { MarketplaceOrderActions } from './MarketplaceOrderActions';
 
 // The component reads two honest projections through the controller: the
@@ -789,5 +790,76 @@ describe('MarketplaceOrderActions digital refunds and cancels (digital delivery 
     );
 
     expect(screen.queryByTestId('digital-opened-stay-sold')).not.toBeInTheDocument();
+  });
+});
+
+describe('MarketplaceOrderActions USDT refund recording', () => {
+  const destination = {
+    address: REFUND_FIXTURE_ADDRESS,
+    network: 'arbitrum-one' as const,
+    asset: 'USDT' as const,
+    source: 'buyer_entered',
+    confirmedAt: '2026-10-09T16:00:00.000Z',
+  };
+
+  it('holds Record refund until the buyer confirmed an address', () => {
+    render(
+      <MarketplaceOrderActions
+        order={createUsdtOrderFixture('return_received')}
+        isBuyer={false}
+        canEditReview={false}
+        actOnOrder={vi.fn(async () => true)}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Record refund' })).toBeDisabled();
+    expect(screen.getByTestId('usdt-refund-address-hint')).toHaveTextContent(
+      "Ask the buyer to confirm a refund address first. It's on their order page.",
+    );
+  });
+
+  it('records the lowercase Arbitrum hash with the destination and parity amount shown', async () => {
+    const order = createUsdtOrderFixture('return_received', { refundDestination: destination });
+    const actOnOrder = vi.fn(async () => true);
+    render(<MarketplaceOrderActions order={order} isBuyer={false} canEditReview={false} actOnOrder={actOnOrder} />);
+    const user = userEvent.setup();
+
+    expect(screen.queryByTestId('usdt-refund-address-hint')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Record refund' }));
+    expect(screen.getByTestId('refund-usdt-destination')).toHaveTextContent(REFUND_FIXTURE_ADDRESS);
+    expect(screen.getByTestId('refund-usdt-destination')).toHaveTextContent('Amount to send: 137.000000 USDT');
+
+    await user.type(screen.getByLabelText('Arbitrum transaction hash'), 'not-a-hash');
+    await user.click(screen.getByRole('button', { name: 'Confirm' }));
+    expect(
+      await screen.findByText('Enter the Arbitrum transaction hash (0x followed by 64 characters).'),
+    ).toBeInTheDocument();
+    expect(actOnOrder).not.toHaveBeenCalled();
+
+    await user.clear(screen.getByLabelText('Arbitrum transaction hash'));
+    await user.type(
+      screen.getByLabelText('Arbitrum transaction hash'),
+      REFUND_FIXTURE_TX_HASH.toUpperCase().replace('0X', '0x'),
+    );
+    await user.click(screen.getByRole('button', { name: 'Confirm' }));
+    await waitFor(() =>
+      expect(actOnOrder).toHaveBeenCalledWith(order, 'refund.record_external', {
+        amountMinor: 13_700,
+        transactionId: REFUND_FIXTURE_TX_HASH,
+      }),
+    );
+  });
+
+  it('does not touch a Bitcoin refund: no hold, free-form evidence', () => {
+    render(
+      <MarketplaceOrderActions
+        order={createOrderFixture('return_received', { paymentMethod: 'bitcoin' })}
+        isBuyer={false}
+        canEditReview={false}
+        actOnOrder={vi.fn(async () => true)}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Record refund' })).toBeEnabled();
+    expect(screen.queryByTestId('usdt-refund-address-hint')).not.toBeInTheDocument();
   });
 });
