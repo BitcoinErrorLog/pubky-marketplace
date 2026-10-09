@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { toCamelCaseWire } from '@/libs/commerce/wire-casing';
 import { scrubSensitiveData } from '@/libs/observability/sentry.utils';
 import { asOpaque } from '@/test-utils/type-assertions';
 import {
@@ -282,6 +283,22 @@ describe('reveal and owner-read schemas (captured shapes from crates/service/tes
     expect(marketplaceHealthSchema.parse({ status: 'ok', pickupAvailable: true }).pickupAvailable).toBe(true);
     expect(marketplaceHealthSchema.parse({ status: 'ok', pickupAvailable: false }).pickupAvailable).toBe(false);
     expect(marketplaceHealthSchema.parse({ status: 'ok' }).pickupAvailable).toBe(false);
+  });
+
+  it('reads usdt_payments only when the service sends it, and treats anything malformed as absent', () => {
+    expect(
+      marketplaceHealthSchema.parse(toCamelCaseWire({ status: 'ok', usdt_payments: { available: true } })).usdtPayments,
+    ).toEqual({
+      available: true,
+    });
+    expect(marketplaceHealthSchema.parse({ status: 'ok', usdtPayments: { available: false } }).usdtPayments).toEqual({
+      available: false,
+    });
+    expect('usdtPayments' in marketplaceHealthSchema.parse({ status: 'ok' })).toBe(false);
+    expect(marketplaceHealthSchema.parse({ status: 'ok', usdtPayments: 'on' }).usdtPayments).toBeUndefined();
+    expect(marketplaceHealthSchema.parse({ status: 'ok', usdtPayments: { available: 'yes' } }).usdtPayments).toEqual({
+      available: false,
+    });
   });
 });
 

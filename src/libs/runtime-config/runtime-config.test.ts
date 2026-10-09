@@ -15,6 +15,7 @@ import {
   getSentryReplaysOnErrorSampleRate,
   getSentryReplaysSessionSampleRate,
   getSentryTracesSampleRate,
+  getUsdtPaymentsEnabled,
   readClientConfig,
   readServerConfig,
   resetRuntimeConfigForTests,
@@ -215,6 +216,30 @@ describe('runtime-config resolver', () => {
       resetRuntimeConfigForTests();
       process.env[PUBKY_RUNTIME_ENV_NAMES.passportSignIn] = 'false';
       expect(getPassportSignInEnabled()).toBe(false);
+    });
+
+    it('keeps USDT payments off by default and takes the PUBKY_RUNTIME_USDT_PAYMENTS_ENABLED switch', () => {
+      expect(PUBKY_RUNTIME_ENV_NAMES.usdtPaymentsEnabled).toBe('PUBKY_RUNTIME_USDT_PAYMENTS_ENABLED');
+      expect(getUsdtPaymentsEnabled()).toBe(false);
+
+      resetRuntimeConfigForTests();
+      process.env[PUBKY_RUNTIME_ENV_NAMES.usdtPaymentsEnabled] = 'true';
+      expect(getUsdtPaymentsEnabled()).toBe(true);
+
+      resetRuntimeConfigForTests();
+      process.env[PUBKY_RUNTIME_ENV_NAMES.usdtPaymentsEnabled] = 'false';
+      expect(getUsdtPaymentsEnabled()).toBe(false);
+    });
+
+    it('fails loudly on a malformed USDT payments switch', () => {
+      process.env[PUBKY_RUNTIME_ENV_NAMES.usdtPaymentsEnabled] = 'yes please';
+      expect(() => readServerConfig()).toThrow();
+    });
+
+    it('strict deployed parse succeeds with the USDT switch unset and resolves it off', () => {
+      simulateDeployedEnv();
+      setAllRuntimeEnv();
+      expect(readServerConfig().usdtPaymentsEnabled).toBe(false);
     });
 
     it('a deployed container takes only an https:// Passport override', () => {

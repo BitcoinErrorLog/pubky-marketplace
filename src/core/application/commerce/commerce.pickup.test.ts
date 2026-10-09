@@ -355,3 +355,26 @@ describe('CommerceApplication local pickup (Wave 7)', () => {
     });
   });
 });
+
+describe('CommerceApplication USDT payments gate', () => {
+  beforeEach(() => {
+    vi.spyOn(commerceConfig, 'getCommerceAdapterMode').mockReturnValue('transaction-service');
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it.each([
+    { flag: false, capability: false, expected: false },
+    { flag: false, capability: true, expected: false },
+    { flag: true, capability: false, expected: false },
+    { flag: true, capability: true, expected: true },
+  ])('flag=$flag capability=$capability -> $expected', async ({ flag, capability, expected }) => {
+    vi.spyOn(commerceConfig, 'getUsdtPaymentsEnabled').mockReturnValue(flag);
+    const read = vi.spyOn(MarketplaceGatewayService, 'getUsdtPaymentsCapability').mockResolvedValue(capability);
+
+    await expect(CommerceApplication.fetchUsdtPaymentsAvailable()).resolves.toBe(expected);
+    expect(read).toHaveBeenCalledTimes(flag ? 1 : 0);
+  });
+});

@@ -11,6 +11,7 @@ import {
   COMMERCE_WATCH_ENDING_SOON_THRESHOLD_MS,
   getCommerceAdapterMode,
   getMarketplaceUrl,
+  getUsdtPaymentsEnabled,
   isDurableCommerceMode,
   isTransactionalCommerceMode,
   MARKETPLACE_FOLLOWED_SHELF_MAX_SELLER_FETCHES,
@@ -709,6 +710,17 @@ export class CommerceApplication {
   /** The deployment's digital delivery capability (digital delivery design §6 B5), read from /health. */
   static async fetchDigitalDeliveryCapability(): Promise<MarketplaceDigitalDeliveryCapability> {
     return await MarketplaceGatewayService.getDigitalDeliveryCapability();
+  }
+
+  /**
+   * Whether the Shop may offer USDT: the runtime flag AND the service's
+   * `/health` capability. With the flag off the service is never asked, so a
+   * default deploy makes no extra request. Gates new offers only; it never
+   * hides an existing USDT order.
+   */
+  static async fetchUsdtPaymentsAvailable(): Promise<boolean> {
+    if (!getUsdtPaymentsEnabled()) return false;
+    return await MarketplaceGatewayService.getUsdtPaymentsCapability();
   }
 
   /**

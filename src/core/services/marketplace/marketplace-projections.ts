@@ -5,6 +5,7 @@ import {
 } from '@/libs/commerce/digital';
 import { sellerPaymentObservationSchema } from '@/libs/commerce/marketplace-payment-review';
 import { findForbiddenPublicReserveKey } from '@/libs/commerce/marketplace-records';
+import { PAYMENT_METHOD_KINDS, paymentAssetFieldsShape } from '@/libs/commerce/payment-options';
 import { marketplaceFulfillmentMethodSchema, marketplaceFulfillmentMethodsSchema } from '@/libs/commerce/pickup';
 import { MAX_BITCOIN_BASE_UNITS } from '@/libs/commerce/pricing';
 import {
@@ -627,7 +628,12 @@ export const marketplaceOrderProjectionSchema = z
     // order. `fiatCheckoutUrl` is the service-built checkout URL snapshot
     // taken at binding (Stripe payment link with `client_reference_id`, or
     // the PayPal web-accept URL with the order id in `custom`).
-    paymentMethod: z.enum(['bitcoin', 'stripe', 'paypal']).nullable().optional(),
+    // `usdt` is accepted so a service with USDT on never breaks the order page;
+    // nothing renders it until the flag-gated USDT surfaces exist.
+    paymentMethod: z.enum(PAYMENT_METHOD_KINDS).nullable().optional(),
+    // Asset-bearing payment attempt (USDT orders only; null/absent for
+    // Bitcoin, PayPal and Stripe). Display-only and tolerant.
+    ...paymentAssetFieldsShape,
     fiatCheckoutUrl: z.string().nullable().optional(),
     // How the bound fiat rail is verified: Stripe is `processor` (the
     // service checks with the seller's restricted key), PayPal is

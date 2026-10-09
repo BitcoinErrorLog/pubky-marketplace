@@ -292,3 +292,31 @@ describe('MarketplaceGatewayService local pickup facade (Wave 7)', () => {
     expect(vi.mocked(fetch)).not.toHaveBeenCalled();
   });
 });
+
+describe('MarketplaceGatewayService USDT payments capability', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    config.mode = 'sandbox';
+  });
+
+  it.each(['sandbox', 'unavailable'])('reports USDT unavailable in %s mode without a network read', async (mode) => {
+    config.mode = mode;
+    await expect(MarketplaceGatewayService.getUsdtPaymentsCapability()).resolves.toBe(false);
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['usdt_payments.available is true', { status: 'ok', usdt_payments: { available: true } }, true],
+    ['usdt_payments.available is false', { status: 'ok', usdt_payments: { available: false } }, false],
+    ['the usdt_payments key is absent (flag off)', { status: 'ok', pickup_available: true }, false],
+    ['usdt_payments is malformed', { status: 'ok', usdt_payments: 'on' }, false],
+  ])('reads /health when %s', async (_label, body, expected) => {
+    config.mode = 'transaction-service';
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(200, body));
+
+    await expect(MarketplaceGatewayService.getUsdtPaymentsCapability()).resolves.toBe(expected);
+
+    const [url] = vi.mocked(fetch).mock.calls[0] as [string];
+    expect(url).toBe('http://localhost:3100/health');
+  });
+});
