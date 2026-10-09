@@ -907,6 +907,11 @@ export class CommerceController {
     return await CommerceApplication.fetchDigitalDeliveryCapability();
   }
 
+  /** Whether USDT may be offered: the Shop flag AND the service capability. A failed read rejects. */
+  static async fetchUsdtPaymentsAvailable(): Promise<boolean> {
+    return await CommerceApplication.fetchUsdtPaymentsAvailable();
+  }
+
   /**
    * The current buyer's per-line pickup-details reveal for one of their
    * paid orders (§A3). Memory only: re-fetch on each view, never persist.

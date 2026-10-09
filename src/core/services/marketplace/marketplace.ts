@@ -554,6 +554,17 @@ export class MarketplaceGatewayService {
   }
 
   /**
+   * Whether the durable service reports USDT payments on (`/health`
+   * `usdt_payments.available`, present only when its USDT flag is on). Off in
+   * every non-durable mode: the sandbox has no payment rails.
+   */
+  static async getUsdtPaymentsCapability(): Promise<boolean> {
+    if (!isDurableCommerceMode(getCommerceAdapterMode())) return false;
+    const health = await MarketplaceTransactionService.getHealth();
+    return health.usdtPayments?.available === true;
+  }
+
+  /**
    * Seller-configurable payment methods — durable service only (the sandbox
    * has no payment rails). See `MarketplaceTransactionService` for the
    * endpoint semantics.

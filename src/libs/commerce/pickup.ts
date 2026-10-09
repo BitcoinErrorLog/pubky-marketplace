@@ -251,6 +251,7 @@ export const marketplaceSellerPickupDetailsSchema = z
  * when it is off. `digitalDeliveryAvailable` is on iff the digital sealing
  * key is configured (digital delivery design §6 B5); absent reads as off,
  * and `digitalDeliveryMaxBytes` is the file cap the service enforces.
+ * `usdtPayments.available` is present only when the service's USDT flag is on.
  */
 export const marketplaceHealthSchema = z
   .object({
@@ -259,6 +260,12 @@ export const marketplaceHealthSchema = z
     pickupAvailable: z.boolean().default(false),
     digitalDeliveryAvailable: z.boolean().catch(false).default(false),
     digitalDeliveryMaxBytes: z.number().int().positive().optional().catch(undefined),
+    // Present only when the service's USDT flag is on; absent reads as off.
+    usdtPayments: z
+      .object({ available: z.boolean().catch(false) })
+      .passthrough()
+      .optional()
+      .catch(undefined),
   })
   .passthrough();
 
