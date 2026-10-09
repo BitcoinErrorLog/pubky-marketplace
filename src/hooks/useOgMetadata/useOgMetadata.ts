@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { withBasePath } from '@/config/base-path';
 
 export interface OgMetadata {
   url: string;
@@ -47,7 +48,7 @@ export function useOgMetadata(url: string | null) {
       return;
     }
 
-    const apiUrl = `/api/og-metadata?url=${encodeURIComponent(url)}`;
+    const apiUrl = withBasePath(`/api/og-metadata?url=${encodeURIComponent(url)}`);
 
     // Check cache first
     const cached = metadataCache.get(apiUrl);

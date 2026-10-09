@@ -1,5 +1,6 @@
+import { getShopBaseUrl } from '@/config/base-path';
 import { getGithubLink, getNexusScoutLink, getTelegramLink, getTwitterLink } from '@/config/externalLinks';
-import { getAuthor, getDefaultUrl, getSiteName } from '@/config/metadata';
+import { getAuthor, getSiteName } from '@/config/metadata';
 import { escapeForInlineScript } from '@/libs/runtime-config/runtime-config';
 
 /**
@@ -10,7 +11,7 @@ import { escapeForInlineScript } from '@/libs/runtime-config/runtime-config';
  * over web technologies, described via its `documentation` link.
  */
 export function StructuredData() {
-  const siteUrl = getDefaultUrl();
+  const siteUrl = getShopBaseUrl();
   const nexusScoutUrl = getNexusScoutLink();
 
   const jsonLd = {

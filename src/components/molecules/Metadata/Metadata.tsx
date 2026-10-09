@@ -1,3 +1,4 @@
+import { getShopBaseUrl } from '@/config/base-path';
 import {
   getAuthor,
   getCreator,
@@ -69,7 +70,8 @@ export function Metadata({
   const defaultUrl = getDefaultUrl();
   const resolvedImage = image ?? getPreviewImage();
   const resolvedType = type ?? getType();
-  const resolvedUrl = url ?? defaultUrl;
+  const shopBaseUrl = getShopBaseUrl();
+  const resolvedUrl = url ?? shopBaseUrl;
   const resolvedSiteName = siteName ?? getSiteName();
   const resolvedLocale = locale ?? getLocale();
   const resolvedAuthor = author ?? getAuthor();
@@ -83,7 +85,8 @@ export function Metadata({
   const resolvedDescription = hasDescription ? description : '';
 
   return {
-    metadataBase: new URL(defaultUrl),
+    // Includes the mount path, so root-relative `canonical`, `url` and image paths resolve under it.
+    metadataBase: new URL(shopBaseUrl),
     title,
     description: hasDescription ? resolvedDescription : null,
     keywords: resolvedKeywords,

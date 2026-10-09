@@ -17,6 +17,7 @@ import {
 } from '@/atoms/Dialog/Dialog';
 import { Link } from '@/atoms/Link/Link';
 import { Typography } from '@/atoms/Typography/Typography';
+import { withBasePath } from '@/config/base-path';
 import { CommerceController } from '@/controllers/commerce/commerce';
 import type { CommerceListingRecord } from '@/libs/commerce/marketplace-records';
 import { Logger } from '@/libs/logger/logger';
@@ -117,7 +118,7 @@ export function MarketplaceListingOwnerPanel({ record, registrationStatus }: Mar
   };
 
   const copyLink = async () => {
-    const url = `${window.location.origin}${getMarketplaceListingRoute(record.ownerPubky, record.listingId)}`;
+    const url = `${window.location.origin}${withBasePath(getMarketplaceListingRoute(record.ownerPubky, record.listingId))}`;
     try {
       await navigator.clipboard.writeText(url);
       toast({ title: 'Link copied', description: 'Share it anywhere — the listing page is public.' });

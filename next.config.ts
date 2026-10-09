@@ -5,7 +5,37 @@ import packageJson from './package.json';
 import { buildInfoToEnv } from './src/libs/build-info/build-info';
 import { resolveBuildInfo } from './src/libs/build-info/resolve-build-info';
 import { buildDenyFramingRouteHeaders } from './src/libs/security/headers';
+import {
+  ASSET_PREFIX_ENV_VAR,
+  BASE_PATH_ENV_VAR,
+  isValidAssetPrefix,
+  isValidBasePath,
+  normalizeAssetPrefix,
+  normalizeBasePath,
+} from './src/libs/base-path/base-path';
 import { buildSocialLinkOutRedirects, parseSocialHost, resolveShopOrigins } from './src/libs/social-host/social-host';
+
+/**
+ * Mount path and asset prefix (see `src/libs/base-path/base-path.ts`). Both are
+ * baked into the build by Next.js, so they are read from the build environment.
+ * Unset keeps the Shop on the origin root, with no `basePath` or `assetPrefix`.
+ */
+export function resolveMountConfig(env: Record<string, string | undefined>) {
+  const basePath = normalizeBasePath(env[BASE_PATH_ENV_VAR]);
+  if (!isValidBasePath(basePath)) {
+    throw new Error(`${BASE_PATH_ENV_VAR} must be empty or a path like /shop (received ${JSON.stringify(basePath)})`);
+  }
+  const assetPrefix = normalizeAssetPrefix(env[ASSET_PREFIX_ENV_VAR]);
+  if (assetPrefix !== undefined && !isValidAssetPrefix(assetPrefix)) {
+    throw new Error(
+      `${ASSET_PREFIX_ENV_VAR} must be a path like /shop-static or an absolute http(s) URL without a trailing slash (received ${JSON.stringify(assetPrefix)})`,
+    );
+  }
+  return {
+    ...(basePath !== '' && { basePath }),
+    ...(assetPrefix !== undefined && { assetPrefix }),
+  };
+}
 
 export const redirects = async () => [
   {
@@ -32,6 +62,7 @@ export const redirects = async () => [
 ];
 
 const nextConfig: NextConfig = {
+  ...resolveMountConfig(process.env),
   env: {
     NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION ?? packageJson.version,
     // Served at /version.json and as <meta name="build"> (see docs/ecommerce/release.md).

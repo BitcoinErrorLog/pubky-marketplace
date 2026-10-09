@@ -1,9 +1,9 @@
 'use client';
 
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { UserRoundPlus } from 'lucide-react';
 import { APP_ROUTES } from '@/app/routes';
+import { BasePathImage as Image } from '@/atoms/BasePathImage/BasePathImage';
 import { Button } from '@/atoms/Button/Button';
 import { Container } from '@/atoms/Container/Container';
 import { Typography } from '@/atoms/Typography/Typography';

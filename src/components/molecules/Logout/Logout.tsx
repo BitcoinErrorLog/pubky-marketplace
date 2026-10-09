@@ -1,8 +1,8 @@
 'use client';
 
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { AUTH_ROUTES, ROOT_ROUTES } from '@/app/routes';
+import { BasePathImage as Image } from '@/atoms/BasePathImage/BasePathImage';
 import { Card } from '@/atoms/Card/Card';
 import { Container } from '@/atoms/Container/Container';
 import { PageHeader } from '@/atoms/PageHeader/PageHeader';

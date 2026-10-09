@@ -122,3 +122,51 @@ describe('social link-out env schema', () => {
     );
   });
 });
+
+describe('mount path env schema', () => {
+  const required = { NEXT_PUBLIC_APP_VERSION: '1.0.0' };
+
+  it('defaults to the origin root', () => {
+    const result = envSchema.safeParse(required);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.NEXT_PUBLIC_BASE_PATH).toBe('');
+      expect(result.data.NEXT_PUBLIC_ASSET_PREFIX).toBeUndefined();
+    }
+  });
+
+  it('exposes an unset mount path in the default test config', () => {
+    expect(Env.NEXT_PUBLIC_BASE_PATH).toBe('');
+    expect(Env.NEXT_PUBLIC_ASSET_PREFIX).toBeUndefined();
+  });
+
+  it('treats blank values as unset', () => {
+    const result = envSchema.safeParse({ ...required, NEXT_PUBLIC_BASE_PATH: '  ', NEXT_PUBLIC_ASSET_PREFIX: '' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.NEXT_PUBLIC_BASE_PATH).toBe('');
+      expect(result.data.NEXT_PUBLIC_ASSET_PREFIX).toBeUndefined();
+    }
+  });
+
+  it('accepts a mount path and an asset prefix', () => {
+    const result = envSchema.safeParse({
+      ...required,
+      NEXT_PUBLIC_BASE_PATH: '/shop',
+      NEXT_PUBLIC_ASSET_PREFIX: 'https://cdn.example.com/shop',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.NEXT_PUBLIC_BASE_PATH).toBe('/shop');
+      expect(result.data.NEXT_PUBLIC_ASSET_PREFIX).toBe('https://cdn.example.com/shop');
+    }
+  });
+
+  it.each(['/', '/shop/', 'shop', '/a/../b', '/shop?x=1'])('rejects the mount path %s', (value) => {
+    expect(envSchema.safeParse({ ...required, NEXT_PUBLIC_BASE_PATH: value }).success).toBe(false);
+  });
+
+  it.each(['/shop-static/', 'cdn.example.com', 'https://cdn.example.com/'])('rejects the asset prefix %s', (value) => {
+    expect(envSchema.safeParse({ ...required, NEXT_PUBLIC_ASSET_PREFIX: value }).success).toBe(false);
+  });
+});

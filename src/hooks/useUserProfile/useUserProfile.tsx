@@ -1,6 +1,6 @@
 'use client';
 
-import { getDefaultUrl } from '@/config/metadata';
+import { getShopBaseUrl } from '@/config/base-path';
 import { FileController } from '@/controllers/file/file';
 import { UserController } from '@/controllers/user/user';
 import { isLocalFirstQueryEnabled, useLocalFirstQuery } from '@/hooks/useLocalFirstQuery/useLocalFirstQuery';
@@ -65,7 +65,7 @@ export function useUserProfile(userId: string, options?: UseUserProfileOptions):
 
   // Build profile link using config (SSR-safe)
   // Use runtime config to avoid window.location.origin, which breaks SSR.
-  const link = `${getDefaultUrl()}/profile/${userId}`;
+  const link = `${getShopBaseUrl()}/profile/${userId}`;
 
   const profile: UserProfile = {
     name: userDetails.name ?? '',

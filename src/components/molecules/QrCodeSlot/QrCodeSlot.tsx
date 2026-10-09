@@ -1,6 +1,6 @@
-import Image from 'next/image';
 import { Loader2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import { BasePathImage as Image } from '@/atoms/BasePathImage/BasePathImage';
 import { Button } from '@/atoms/Button/Button';
 import { Container } from '@/atoms/Container/Container';
 import { Typography } from '@/atoms/Typography/Typography';

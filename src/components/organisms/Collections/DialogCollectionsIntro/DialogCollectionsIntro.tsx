@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import { BasePathImage as Image } from '@/atoms/BasePathImage/BasePathImage';
 import { Button } from '@/atoms/Button/Button';
 import {
   Dialog,

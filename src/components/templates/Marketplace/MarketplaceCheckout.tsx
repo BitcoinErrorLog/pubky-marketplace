@@ -16,6 +16,7 @@ import { Link } from '@/atoms/Link/Link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/atoms/Select/Select';
 import { Skeleton } from '@/atoms/Skeleton/Skeleton';
 import { Typography } from '@/atoms/Typography/Typography';
+import { withBasePath } from '@/config/base-path';
 import {
   getCommerceAdapterMode,
   getPaykitServerApi,
@@ -432,7 +433,7 @@ function MarketplaceCartCheckout() {
       }
       if (result.orderId) {
         setPayingOrderIds([result.orderId]);
-        window.history.replaceState(null, '', getMarketplaceCheckoutRoute(result.orderId));
+        window.history.replaceState(null, '', withBasePath(getMarketplaceCheckoutRoute(result.orderId)));
         setHashOrderId(result.orderId);
         await orders.refresh();
         return;
@@ -472,7 +473,7 @@ function MarketplaceCartCheckout() {
     if (!result.ok) return;
     setPayingOrderIds(result.orderIds);
     if (result.orderIds[0]) {
-      window.history.replaceState(null, '', getMarketplaceCheckoutRoute(result.orderIds[0]));
+      window.history.replaceState(null, '', withBasePath(getMarketplaceCheckoutRoute(result.orderIds[0])));
       setHashOrderId(result.orderIds[0]);
     }
     const fiatBound = result.boundOrders.filter((order) => order.fiatCheckoutUrl);

@@ -12,10 +12,10 @@
  *
  * Inspired by pubky-app's Join modal but uses Franky's design patterns.
  */
-import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, UserRoundPlus } from 'lucide-react';
 import { AUTH_ROUTES, ONBOARDING_ROUTES } from '@/app/routes';
+import { BasePathImage as Image } from '@/atoms/BasePathImage/BasePathImage';
 import { Button } from '@/atoms/Button/Button';
 import { Card } from '@/atoms/Card/Card';
 import { Container } from '@/atoms/Container/Container';

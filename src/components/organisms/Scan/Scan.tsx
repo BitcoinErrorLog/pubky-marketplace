@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Key, Loader2, RefreshCw } from 'lucide-react';
 import { AUTH_ROUTES, ONBOARDING_ROUTES } from '@/app/routes';
+import { BasePathImage as Image } from '@/atoms/BasePathImage/BasePathImage';
 import { Button } from '@/atoms/Button/Button';
 import { Card } from '@/atoms/Card/Card';
 import { Container } from '@/atoms/Container/Container';

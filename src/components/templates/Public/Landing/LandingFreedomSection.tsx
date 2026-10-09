@@ -5,6 +5,7 @@ import { ChevronRight } from 'lucide-react';
 import { Container } from '@/atoms/Container/Container';
 import { Heading } from '@/atoms/Heading/Heading';
 import { Typography } from '@/atoms/Typography/Typography';
+import { withBasePath } from '@/config/base-path';
 import { LANDING_FREEDOM_SECTION_ID } from './Landing.constants';
 
 const SLIDE_DURATION_MS = 6000;
@@ -113,7 +114,7 @@ export function LandingFreedomSection() {
               className={`absolute inset-x-0 bottom-0 h-[58%] bg-[length:auto_100%] bg-no-repeat opacity-0 transition-opacity duration-500 ease-in-out [background-position:calc(50%+100px)_100%] md:inset-0 md:h-auto md:bg-cover md:bg-center ${
                 activeSlide === index ? 'opacity-100' : ''
               }`}
-              style={{ backgroundImage: `url(${backgroundImage})` }}
+              style={{ backgroundImage: `url(${withBasePath(backgroundImage)})` }}
               aria-hidden
             />
           ))}

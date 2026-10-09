@@ -1,3 +1,4 @@
+import { withBasePath } from '@/config/base-path';
 import { getExchangeRateApi } from '@/config/network';
 import { ServerErrorCode } from '@/libs/error/error.codes';
 import { Err } from '@/libs/error/error.factories';
@@ -26,7 +27,7 @@ export class ExchangerateService {
     // sends no CORS headers, so a direct browser fetch is blocked on every
     // deployed origin. Server-side callers (and the proxy route itself) hit
     // the configured upstream directly.
-    const exchangeRateApi = typeof window === 'undefined' ? getExchangeRateApi() : '/api/fx-rate';
+    const exchangeRateApi = typeof window === 'undefined' ? getExchangeRateApi() : withBasePath('/api/fx-rate');
     const response = await safeFetch(
       exchangeRateApi,
       { method: HttpMethod.GET },

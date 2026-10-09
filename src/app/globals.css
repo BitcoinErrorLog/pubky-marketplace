@@ -782,7 +782,7 @@ body {
     bottom: calc((var(--landing-swirl-size) * -0.5) + var(--landing-swirl-offset-y));
     width: var(--landing-swirl-size);
     aspect-ratio: 960 / 976;
-    background-image: url('/images/bg-home.svg');
+    background-image: var(--landing-swirl-image, url('/images/bg-home.svg'));
     background-repeat: no-repeat;
     background-position: center;
     background-size: contain;

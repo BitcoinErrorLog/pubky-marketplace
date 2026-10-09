@@ -1,10 +1,10 @@
 'use client';
 
 import { useLayoutEffect, useState } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Gavel, ShieldCheck, Store, X } from 'lucide-react';
 import { MARKETPLACE_ROUTES } from '@/app/routes';
+import { BasePathImage as Image } from '@/atoms/BasePathImage/BasePathImage';
 import { Button } from '@/atoms/Button/Button';
 import { Card } from '@/atoms/Card/Card';
 import { Container } from '@/atoms/Container/Container';

@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { POST_ROUTES } from '@/app/routes';
+import { withBasePath } from '@/config/base-path';
 import { useCurrentUserProfile } from '@/hooks/useCurrentUserProfile/useCurrentUserProfile';
 import { postJson } from '@/libs/api/client-request';
 import { Logger } from '@/libs/logger/logger';
@@ -25,7 +26,7 @@ import type { UseReportPostReturn } from './useReportPost.types';
 export function useReportPost(postId: string): UseReportPostReturn {
   const { currentUserPubky, userDetails } = useCurrentUserProfile();
   const parsedId = parseCompositeId(postId);
-  const postUrl = `${window.location.origin}${POST_ROUTES.POST}/${parsedId.pubky}/${parsedId.id}`;
+  const postUrl = `${window.location.origin}${withBasePath(POST_ROUTES.POST)}/${parsedId.pubky}/${parsedId.id}`;
 
   const [step, setStep] = useState<ReportPostStep>(REPORT_POST_STEPS.ISSUE_SELECTION);
   const [selectedIssueType, setSelectedIssueType] = useState<ReportIssueType | null>(null);

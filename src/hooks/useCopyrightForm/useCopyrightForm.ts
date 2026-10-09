@@ -2,6 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { type FieldErrors, useForm } from 'react-hook-form';
+import { withBasePath } from '@/config/base-path';
 import { postJson } from '@/libs/api/client-request';
 import { toast } from '@/molecules/Toaster/use-toast';
 import { COPYRIGHT_ROLES, copyrightFormDefaultValues } from './useCopyrightForm.constants';
@@ -17,7 +18,7 @@ export function useCopyrightForm() {
   const submitForm = async (data: CopyrightFormData) => {
     try {
       const { role, ...rest } = data;
-      await postJson('/api/copyright', {
+      await postJson(withBasePath('/api/copyright'), {
         ...rest,
         isRightsOwner: role === COPYRIGHT_ROLES.RIGHTS_OWNER,
         isReportingOnBehalf: role === COPYRIGHT_ROLES.REPORTING_ON_BEHALF,

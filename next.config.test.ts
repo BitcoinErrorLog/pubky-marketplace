@@ -1,7 +1,7 @@
 import { getPathMatch } from 'next/dist/shared/lib/router/utils/path-match';
 import { prepareDestination } from 'next/dist/shared/lib/router/utils/prepare-destination';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { redirects } from './next.config';
+import { redirects, resolveMountConfig } from './next.config';
 
 type ConfiguredRedirect = Awaited<ReturnType<typeof redirects>>[number];
 
@@ -188,5 +188,35 @@ describe('Next redirects', () => {
       vi.stubEnv('NEXT_PUBLIC_SOCIAL_HOST', 'https://pubky.app/');
       await expect(redirects()).rejects.toThrow(/NEXT_PUBLIC_SOCIAL_HOST/);
     });
+  });
+});
+
+describe('resolveMountConfig', () => {
+  it('configures nothing when no mount path or asset prefix is set (the default)', () => {
+    expect(resolveMountConfig({})).toEqual({});
+    expect(resolveMountConfig({ NEXT_PUBLIC_BASE_PATH: '', NEXT_PUBLIC_ASSET_PREFIX: '  ' })).toEqual({});
+  });
+
+  it('sets the base path and the asset prefix when provided', () => {
+    expect(resolveMountConfig({ NEXT_PUBLIC_BASE_PATH: '/shop' })).toEqual({ basePath: '/shop' });
+    expect(
+      resolveMountConfig({
+        NEXT_PUBLIC_BASE_PATH: ' /shop ',
+        NEXT_PUBLIC_ASSET_PREFIX: 'https://cdn.example.com/shop',
+      }),
+    ).toEqual({ basePath: '/shop', assetPrefix: 'https://cdn.example.com/shop' });
+    expect(resolveMountConfig({ NEXT_PUBLIC_ASSET_PREFIX: '/shop-static' })).toEqual({ assetPrefix: '/shop-static' });
+  });
+
+  it('fails the build on an invalid base path', () => {
+    expect(() => resolveMountConfig({ NEXT_PUBLIC_BASE_PATH: '/shop/' })).toThrow(/NEXT_PUBLIC_BASE_PATH/);
+    expect(() => resolveMountConfig({ NEXT_PUBLIC_BASE_PATH: 'shop' })).toThrow(/NEXT_PUBLIC_BASE_PATH/);
+  });
+
+  it('fails the build on an invalid asset prefix', () => {
+    expect(() => resolveMountConfig({ NEXT_PUBLIC_ASSET_PREFIX: '/shop-static/' })).toThrow(/NEXT_PUBLIC_ASSET_PREFIX/);
+    expect(() => resolveMountConfig({ NEXT_PUBLIC_ASSET_PREFIX: 'cdn.example.com' })).toThrow(
+      /NEXT_PUBLIC_ASSET_PREFIX/,
+    );
   });
 });

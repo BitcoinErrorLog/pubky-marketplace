@@ -1,9 +1,9 @@
 'use client';
 
 import { ReactNode, useEffect, useState } from 'react';
-import Image from 'next/image';
 import { ArrowLeft, ArrowRight, Check, Eye, EyeOff } from 'lucide-react';
 import { Badge } from '@/atoms/Badge/Badge';
+import { BasePathImage as Image } from '@/atoms/BasePathImage/BasePathImage';
 import { Button } from '@/atoms/Button/Button';
 import { Container } from '@/atoms/Container/Container';
 import {

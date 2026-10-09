@@ -1,3 +1,4 @@
+import { withBasePath } from '@/config/base-path';
 import { getDefaultUrl, getPreviewImage } from '@/config/metadata';
 
 const DEFAULT_PREVIEW_URL = 'https://shop.pubky.app/preview.webp';
@@ -16,7 +17,7 @@ const DEFAULT_PREVIEW_URL = 'https://shop.pubky.app/preview.webp';
 export function renderFallbackOg(): Response {
   try {
     const preview = getPreviewImage();
-    const url = /^https?:\/\//.test(preview) ? preview : new URL(preview, getDefaultUrl()).toString();
+    const url = /^https?:\/\//.test(preview) ? preview : new URL(withBasePath(preview), getDefaultUrl()).toString();
     return Response.redirect(url, 307);
   } catch {
     return Response.redirect(DEFAULT_PREVIEW_URL, 307);
