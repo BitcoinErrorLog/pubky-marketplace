@@ -8,7 +8,7 @@ exports[`MarketplaceListingCard - Snapshots > matches the auction listing snapsh
   style="--card-hover-rotation: 0deg; --marketplace-card-index: 0;"
 >
   <div
-    class="flex flex-col rounded-xl bg-card text-card-foreground shadow-sm h-full gap-0 overflow-hidden border-0 py-0 transition-all group-hover:shadow-[0_24px_64px_-8px_rgba(0,0,0,0.8),0_8px_24px_rgba(0,0,0,0.5)]"
+    class="flex flex-col rounded-xl bg-card text-card-foreground shadow-sm h-full gap-0 overflow-hidden border-0 transition-all group-hover:shadow-[0_24px_64px_-8px_rgba(0,0,0,0.8),0_8px_24px_rgba(0,0,0,0.5)] p-0"
     data-slot="card"
     data-testid="card"
   >
@@ -122,7 +122,7 @@ exports[`MarketplaceListingCard - Snapshots > matches the auction listing snapsh
       </div>
     </div>
     <div
-      class="flex min-w-0 flex-1 flex-col gap-3 p-4"
+      class="flex min-w-0 flex-1 flex-col gap-3 p-6"
       data-slot="card-content"
     >
       <div
@@ -219,7 +219,7 @@ exports[`MarketplaceListingCard - Snapshots > matches the fixed-price listing sn
   style="--card-hover-rotation: 0deg; --marketplace-card-index: 0;"
 >
   <div
-    class="flex flex-col rounded-xl bg-card text-card-foreground shadow-sm h-full gap-0 overflow-hidden border-0 py-0 transition-all group-hover:shadow-[0_24px_64px_-8px_rgba(0,0,0,0.8),0_8px_24px_rgba(0,0,0,0.5)]"
+    class="flex flex-col rounded-xl bg-card text-card-foreground shadow-sm h-full gap-0 overflow-hidden border-0 transition-all group-hover:shadow-[0_24px_64px_-8px_rgba(0,0,0,0.8),0_8px_24px_rgba(0,0,0,0.5)] p-0"
     data-slot="card"
     data-testid="card"
   >
@@ -314,7 +314,7 @@ exports[`MarketplaceListingCard - Snapshots > matches the fixed-price listing sn
       </button>
     </div>
     <div
-      class="flex min-w-0 flex-1 flex-col gap-3 p-4"
+      class="flex min-w-0 flex-1 flex-col gap-3 p-6"
       data-slot="card-content"
     >
       <div

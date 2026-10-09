@@ -57,9 +57,11 @@ import {
   refundStateLabel,
 } from '@/libs/commerce/refund-copy';
 import { buildMarketplaceConversationAggregateId } from '@/libs/commerce/transaction-commands';
+import { MarketplaceEmptyState } from '@/molecules/Marketplace/MarketplaceEmptyState';
 import { ContentLayout } from '@/organisms/ContentLayout/ContentLayout';
 import { DropEditionBadge, DropEditionReceiptLine } from '@/organisms/Marketplace/DropEditionBadge';
 import { MarketplaceBitcoinAmountBreakdown } from '@/organisms/Marketplace/MarketplaceBitcoinAmountBreakdown';
+import { MarketplaceCheckoutItem } from '@/organisms/Marketplace/MarketplaceCheckoutItem';
 import { MarketplaceEncryptedConversationDialog } from '@/organisms/Marketplace/MarketplaceEncryptedConversationDialog';
 import { MarketplaceIndicativePrice } from '@/organisms/Marketplace/MarketplaceIndicativePrice';
 import { MarketplaceMyReviews } from '@/organisms/Marketplace/MarketplaceMyReviews';
@@ -70,10 +72,6 @@ import { MarketplacePaymentStatusCard } from '@/organisms/Marketplace/Marketplac
 import { MarketplaceReauthDialog } from '@/organisms/Marketplace/MarketplaceReauthDialog';
 import { MarketplaceSectionNav } from '@/organisms/Marketplace/MarketplaceSectionNav';
 import { MarketplaceSellerDigitalPanel } from '@/organisms/Marketplace/MarketplaceSellerDigitalPanel';
-import {
-  MarketplaceSessionRequiredCard,
-  SALES_LIST_SESSION_NOTE,
-} from '@/organisms/Marketplace/MarketplaceSessionRequiredCard';
 import type { MarketplaceOrder, MarketplacePayment } from '@/services/marketplace/marketplace';
 import { useAuthStore } from '@/stores/auth/auth.store';
 import { useCommerceStore } from '@/stores/commerce/commerce.store';
@@ -194,9 +192,8 @@ export function MarketplaceOrders() {
       showLeftMobileButton={false}
       showRightMobileButton={false}
       className="pb-28"
-      classNameWrapperContent="max-w-7xl"
     >
-      <Container overrideDefaults className="flex w-full flex-col gap-6 px-4 sm:px-6" data-surface="marketplace-orders">
+      <Container overrideDefaults className="flex w-full flex-col gap-6" data-surface="marketplace-orders">
         <MarketplaceSectionNav />
         <div>
           <Heading level={1} size="xl" className="text-4xl sm:text-6xl">
@@ -210,7 +207,7 @@ export function MarketplaceOrders() {
         </div>
 
         {!hasTransactionBackend ? (
-          <div className="flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed px-6 text-center">
+          <div className="flex min-h-64 flex-col items-center justify-center rounded-md px-6 text-center">
             <ReceiptText className="mb-3 size-10 text-muted-foreground" />
             <Heading level={2} size="md">
               Order timelines are not available here
@@ -222,9 +219,13 @@ export function MarketplaceOrders() {
         ) : isLoading ? (
           <Skeleton className="h-48 w-full" />
         ) : needsSession && error ? (
-          <MarketplaceSessionRequiredCard note={SALES_LIST_SESSION_NOTE} />
+          <MarketplaceEmptyState
+            icon={ReceiptText}
+            title="No orders yet"
+            description="Your purchases and sales will appear here."
+          />
         ) : error ? (
-          <div role="alert" className="rounded-xl border border-destructive/40 p-4">
+          <div role="alert" className="rounded-md border border-destructive/40 p-4">
             {error}
           </div>
         ) : orders.length ? (
@@ -234,8 +235,8 @@ export function MarketplaceOrders() {
                 <Heading level={2} size="sm" className="text-xl font-semibold">
                   From Activity
                 </Heading>
-                <Card id={orderAnchorId(linkedUnlistedOrder.id)} className="scroll-mt-24 border py-4">
-                  <CardContent className="grid gap-2 px-5">
+                <Card id={orderAnchorId(linkedUnlistedOrder.id)} className="scroll-mt-24 rounded-md p-0">
+                  <CardContent className="grid gap-2 p-6">
                     <div className="flex flex-wrap gap-2">
                       <Badge variant="outline" className="border-border/60 text-muted-foreground">
                         {currentUserPubky === linkedUnlistedOrder.buyerPubky ? 'Your purchase' : 'Your sale'}
@@ -264,22 +265,25 @@ export function MarketplaceOrders() {
                   Checkout in progress
                 </Heading>
                 {buyerCheckouts.map(({ order, payment }) => (
-                  <Card key={order.id} className="border py-4">
-                    <CardContent className="flex flex-wrap items-center justify-between gap-3 px-5">
-                      <div>
-                        <Typography as="p" className="font-semibold">
-                          {order.lines.map((line) => line.title).join(', ')}
-                        </Typography>
+                  <Card key={order.id} className="rounded-md p-0">
+                    <CardContent className="grid min-w-0 gap-4 p-6">
+                      <MarketplaceOrderReference order={order} isBuyer showPlacedAt />
+                      {order.lines.map((line, index) => (
+                        <MarketplaceCheckoutItem
+                          key={`${line.listingAggregateId}:${line.variantId ?? index}`}
+                          line={line}
+                        />
+                      ))}
+                      <div className="flex flex-wrap items-center justify-between gap-3">
                         <Typography as="p" className="text-sm text-muted-foreground">
                           {buyerCheckoutProgressCopy(order, payment, nowMs)}
                         </Typography>
-                        <MarketplaceOrderReference order={order} isBuyer showPlacedAt />
+                        <Button asChild className="rounded-full">
+                          <Link href={getMarketplaceCheckoutRoute(order.id)} overrideDefaults>
+                            {bitcoinPaymentHasBeenSeen(order, payment) ? 'View payment' : 'Continue checkout'}
+                          </Link>
+                        </Button>
                       </div>
-                      <Button asChild className="rounded-full">
-                        <Link href={getMarketplaceCheckoutRoute(order.id)} overrideDefaults>
-                          {bitcoinPaymentHasBeenSeen(order, payment) ? 'View payment' : 'Continue checkout'}
-                        </Link>
-                      </Button>
                     </CardContent>
                   </Card>
                 ))}
@@ -293,8 +297,8 @@ export function MarketplaceOrders() {
                 {sellerReservations.map(({ order, payment }) => {
                   const decision = sellerBitcoinDecision(order, payment);
                   return (
-                    <Card key={order.id} className="border py-4">
-                      <CardContent className="grid gap-2 px-5">
+                    <Card key={order.id} className="rounded-md p-0">
+                      <CardContent className="grid gap-2 p-6">
                         <div className="flex flex-wrap gap-2">
                           <Badge variant="outline" className="border-border/60 text-muted-foreground">
                             Reservation
@@ -361,8 +365,8 @@ export function MarketplaceOrders() {
                     const nextActorHint = getNextActorHint(order, payment, isBuyer);
                     const bitcoinBreakdown = bitcoinPaymentBreakdown(order);
                     return (
-                      <Card key={order.id} id={orderAnchorId(order.id)} className="scroll-mt-24 border py-5">
-                        <CardContent className="grid min-w-0 gap-5 px-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+                      <Card key={order.id} id={orderAnchorId(order.id)} className="scroll-mt-24 rounded-md p-0">
+                        <CardContent className="grid min-w-0 gap-5 p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
                           <div className="min-w-0">
                             <div className="mb-3 flex flex-wrap gap-2">
                               <Badge variant="outline" className="border-border/60 text-muted-foreground">
@@ -428,7 +432,7 @@ export function MarketplaceOrders() {
                             plainly, and their unilateral exit is named. */}
                             {isBuyer && order.fulfillment === 'pickup' && order.pickupTermsChanged && (
                               <div
-                                className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3"
+                                className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 p-3"
                                 role="status"
                               >
                                 <Typography as="p" className="text-sm text-amber-200">
@@ -507,7 +511,7 @@ export function MarketplaceOrders() {
                               </div>
                             )}
                             {order.deliveryAssumed && (
-                              <div className="mt-3 rounded-xl border border-brand/30 bg-brand/5 p-3">
+                              <div className="mt-3 rounded-md bg-brand/5 p-3">
                                 <Typography as="p" className="text-sm text-foreground">
                                   Marked delivered automatically after the delivery window; tell the seller if it
                                   hasn&apos;t arrived.
@@ -590,8 +594,8 @@ export function MarketplaceOrders() {
                   Abandoned
                 </Heading>
                 {abandonedCheckouts.map(({ order }) => (
-                  <Card key={order.id} className="border py-4">
-                    <CardContent className="grid gap-1 px-5">
+                  <Card key={order.id} className="rounded-md p-0">
+                    <CardContent className="grid gap-1 p-6">
                       <Typography as="p" className="font-semibold">
                         {order.lines.map((line) => line.title).join(', ')}
                       </Typography>
@@ -610,12 +614,11 @@ export function MarketplaceOrders() {
             )}
           </>
         ) : (
-          <div className="flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed text-center">
-            <ReceiptText className="mb-3 size-10 text-muted-foreground" />
-            <Heading level={2} size="md">
-              No orders yet
-            </Heading>
-          </div>
+          <MarketplaceEmptyState
+            icon={ReceiptText}
+            title="No orders yet"
+            description="Your purchases and sales will appear here."
+          />
         )}
 
         <MarketplaceMyReviews />

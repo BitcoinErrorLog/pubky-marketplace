@@ -19,6 +19,7 @@ import { useMarketplaceCatalog } from '@/hooks/useMarketplaceCatalog/useMarketpl
 import type { MarketplaceCatalogItem } from '@/hooks/useMarketplaceCatalog/useMarketplaceCatalog.utils';
 import { useMarketplaceDrops } from '@/hooks/useMarketplaceDrops/useMarketplaceDrops';
 import { useMarketplacePromoDismissal } from '@/hooks/useMarketplacePromoDismissal/useMarketplacePromoDismissal';
+import { useMarketplaceSellingAccess } from '@/hooks/useMarketplaceSellingAccess/useMarketplaceSellingAccess';
 import { useMarketplaceWatchDetection } from '@/hooks/useMarketplaceWatchDetection/useMarketplaceWatchDetection';
 import { useRequireAuth } from '@/hooks/useRequireAuth/useRequireAuth';
 import type { CommerceShopRecord } from '@/libs/commerce/marketplace-records';
@@ -30,6 +31,7 @@ import { MarketplaceFilters } from '@/organisms/Marketplace/MarketplaceFilters';
 import { MarketplaceListingCard } from '@/organisms/Marketplace/MarketplaceListingCard';
 import { MarketplaceSavedSearches } from '@/organisms/Marketplace/MarketplaceSavedSearches';
 import { MarketplaceSectionNav } from '@/organisms/Marketplace/MarketplaceSectionNav';
+import { MarketplaceSessionConnectDialog } from '@/organisms/Marketplace/MarketplaceSessionConnectDialog';
 import { useCommerceStore } from '@/stores/commerce/commerce.store';
 import { MarketplaceSkeleton } from './Marketplace.skeleton';
 import { DROPS_INDEX_CAVEAT } from './MarketplaceDrops';
@@ -46,6 +48,8 @@ export function Marketplace({
   const router = useRouter();
   const isMobile = useIsMobile({ breakpoint: 'sm' });
   const { requireAuth } = useRequireAuth();
+  const sellingAccess = useMarketplaceSellingAccess();
+  const [showSellingApproval, setShowSellingApproval] = useState(false);
   const query = useCommerceStore((state) => state.query);
   const setQuery = useCommerceStore((state) => state.setQuery);
   const saleFormat = useCommerceStore((state) => state.saleFormat);
@@ -141,7 +145,7 @@ export function Marketplace({
       showRightMobileButton={false}
       hasGradientBackground={false}
       className="marketplace-surface pb-28 lg:pb-16"
-      classNameWrapperContent="max-w-7xl overflow-visible lg:overflow-visible"
+      classNameWrapperContent="overflow-visible lg:overflow-visible"
     >
       <Container overrideDefaults className="flex w-full flex-col gap-6">
         <div className="sticky top-24 z-(--z-sticky-subnav) bg-background after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-16 after:bg-linear-to-b after:from-background/80 after:to-transparent after:content-[''] lg:top-(--header-offset-main)">
@@ -152,7 +156,7 @@ export function Marketplace({
             data-marketplace-promo=""
             aria-label="Marketplace promo"
             className={cn(
-              'marketplace-promo-enter relative overflow-hidden rounded-2xl bg-card p-6 sm:p-10',
+              'marketplace-promo-enter relative overflow-hidden rounded-md bg-card p-6 sm:p-10',
               isPromoDismissing && 'marketplace-promo-exit',
             )}
           >
@@ -185,7 +189,7 @@ export function Marketplace({
                       detail: 'Browser cached catalog records.',
                     },
                   ].map(({ icon: Icon, label, detail }) => (
-                    <Card key={label} className="flex-row items-start gap-4 bg-background p-5">
+                    <Card key={label} className="flex-row items-start gap-4 rounded-md bg-background p-6">
                       <div className="rounded-full bg-brand/15 p-2 text-brand">
                         <Icon className="size-5" />
                       </div>
@@ -244,7 +248,12 @@ export function Marketplace({
               <Button
                 size="sm"
                 className="ml-auto rounded-full text-xs font-bold"
-                onClick={() => requireAuth(() => router.push(MARKETPLACE_ROUTES.SELL))}
+                onClick={() =>
+                  requireAuth(() => {
+                    if (sellingAccess.checkAccess()) router.push(MARKETPLACE_ROUTES.SELL);
+                    else setShowSellingApproval(true);
+                  })
+                }
               >
                 <Store className="size-4" />
                 Sell an item
@@ -253,7 +262,7 @@ export function Marketplace({
           />
 
           {adapterMode === 'unavailable' && (
-            <div role="status" className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-amber-200">
+            <div role="status" className="rounded-md border border-amber-500/30 bg-amber-500/10 p-4 text-amber-200">
               Marketplace transactions are unavailable in this deployment. Public browsing remains read-only.
             </div>
           )}
@@ -302,7 +311,7 @@ export function Marketplace({
               )}
             </div>
           ) : (
-            <div className="flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed bg-card/40 p-8 text-center">
+            <div className="flex min-h-64 flex-col items-center justify-center rounded-md bg-card/40 p-6 text-center">
               <Store className="mb-4 size-10 text-muted-foreground" />
               <Heading level={2} size="md">
                 No listings match
@@ -314,6 +323,18 @@ export function Marketplace({
           )}
         </section>
       </Container>
+      {showSellingApproval && (
+        <MarketplaceSessionConnectDialog
+          intent="sell"
+          open={showSellingApproval}
+          onOpenChange={setShowSellingApproval}
+          hideTrigger
+          onConnected={() => {
+            setShowSellingApproval(false);
+            router.push(MARKETPLACE_ROUTES.SELL);
+          }}
+        />
+      )}
     </ContentLayout>
   );
 }

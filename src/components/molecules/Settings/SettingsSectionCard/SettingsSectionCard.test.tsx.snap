@@ -44,8 +44,8 @@ exports[`SettingsSectionCard - Snapshots > matches snapshot with custom classNam
     </div>
   </div>
   <div
-    class="flex w-full flex-col items-start gap-8 rounded-md border border-border bg-card p-6 shadow-lg md:gap-6"
-    data-testid="container"
+    class="w-full min-w-0 rounded-md border border-border bg-card p-6 shadow-lg flex flex-col items-start gap-8 md:gap-6"
+    data-slot="settings-section-content"
   >
     <div>
       Test content
@@ -104,8 +104,8 @@ exports[`SettingsSectionCard - Snapshots > matches snapshot with description 1`]
     </p>
   </div>
   <div
-    class="flex w-full flex-col items-start gap-8 rounded-md border border-border bg-card p-6 shadow-lg md:gap-6"
-    data-testid="container"
+    class="w-full min-w-0 rounded-md border border-border bg-card p-6 shadow-lg flex flex-col items-start gap-8 md:gap-6"
+    data-slot="settings-section-content"
   >
     <div>
       Test content
@@ -158,8 +158,8 @@ exports[`SettingsSectionCard - Snapshots > matches snapshot with icon and title 
     </div>
   </div>
   <div
-    class="flex w-full flex-col items-start gap-8 rounded-md border border-border bg-card p-6 shadow-lg md:gap-6"
-    data-testid="container"
+    class="w-full min-w-0 rounded-md border border-border bg-card p-6 shadow-lg flex flex-col items-start gap-8 md:gap-6"
+    data-slot="settings-section-content"
   >
     <div>
       Test content
@@ -174,8 +174,8 @@ exports[`SettingsSectionCard - Snapshots > matches snapshot without icon and tit
   data-testid="container"
 >
   <div
-    class="flex w-full flex-col items-start gap-8 rounded-md border border-border bg-card p-6 shadow-lg md:gap-6"
-    data-testid="container"
+    class="w-full min-w-0 rounded-md border border-border bg-card p-6 shadow-lg flex flex-col items-start gap-8 md:gap-6"
+    data-slot="settings-section-content"
   >
     <div>
       Test content only

@@ -718,7 +718,7 @@ describe('Marketplace listing detail — visual regression', () => {
     const screen = await renderForVRT(<MarketplaceListing sellerPubky={seller} listingId="boots_01" />, {
       viewport: { width: 1440, height: 1800 },
     });
-    await expect(screen.getByRole('button', { name: 'Sign in to buy' })).toBeVisible();
+    await expect(screen.getByRole('button', { name: 'Buy' })).toBeVisible();
     await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot('listing-logged-out-desktop');
   });
 
@@ -735,7 +735,7 @@ describe('Marketplace listing detail — visual regression', () => {
     const screen = await renderForVRT(<MarketplaceListing sellerPubky={seller} listingId="boots_01" />, {
       viewport: { width: 390, height: 1800 },
     });
-    await expect(screen.getByRole('button', { name: 'Sign in to buy' })).toBeVisible();
+    await expect(screen.getByRole('button', { name: 'Buy' })).toBeVisible();
     await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot(
       'listing-logged-out-mobile',
       VRT_DENSE_CHROME_SCREENSHOT,
@@ -765,8 +765,8 @@ describe('Marketplace listing detail — visual regression', () => {
     const screen = await renderForVRT(<MarketplaceListing sellerPubky={seller} listingId="boots_01" />, {
       viewport: { width: 1440, height: 1800 },
     });
-    await expect(screen.getByRole('link', { name: 'Held for you · view your order' })).toBeVisible();
-    await expect(screen.getByRole('button', { name: 'Held for you · view your order' })).toBeDisabled();
+    await expect(screen.getByRole('link', { name: 'Buy' })).toBeVisible();
+    await expect(screen.getByRole('button', { name: 'Held for you' })).toBeDisabled();
     await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot('listing-held-for-you-desktop');
   });
 
@@ -793,8 +793,8 @@ describe('Marketplace listing detail — visual regression', () => {
     const screen = await renderForVRT(<MarketplaceListing sellerPubky={seller} listingId="boots_01" />, {
       viewport: { width: 390, height: 2200 },
     });
-    await expect(screen.getByRole('link', { name: 'Held for you · view your order' })).toBeVisible();
-    await expect(screen.getByRole('button', { name: 'Held for you · view your order' })).toBeDisabled();
+    await expect(screen.getByRole('link', { name: 'Buy' })).toBeVisible();
+    await expect(screen.getByRole('button', { name: 'Held for you' })).toBeDisabled();
     await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot(
       'listing-held-for-you-mobile',
       VRT_DENSE_CHROME_SCREENSHOT,

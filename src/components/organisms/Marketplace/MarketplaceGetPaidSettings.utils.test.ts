@@ -231,10 +231,10 @@ describe('MarketplaceGetPaidSettings status derivation', () => {
     });
 
     it('writes the at-least-one sentence from the ready count only', () => {
-      expect(atLeastOneMethodSentence(0)).toMatch(/^Set up at least one method below to start selling\./);
-      expect(atLeastOneMethodSentence(1)).toMatch(/^1 method is ready to accept payments\./);
-      expect(atLeastOneMethodSentence(2)).toMatch(/^2 methods are ready to accept payments\./);
-      expect(atLeastOneMethodSentence(3)).toMatch(/^3 methods are ready to accept payments\./);
+      expect(atLeastOneMethodSentence(0)).toMatch(/^Add a payment method to start selling\./);
+      expect(atLeastOneMethodSentence(1)).toMatch(/^1 payment method set up\./);
+      expect(atLeastOneMethodSentence(2)).toMatch(/^2 payment methods set up\./);
+      expect(atLeastOneMethodSentence(3)).toMatch(/^3 payment methods set up\./);
     });
   });
 });

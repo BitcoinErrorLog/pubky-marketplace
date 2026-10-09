@@ -63,11 +63,11 @@ describe('bitcoin buyer status', () => {
     expect(progress).toBe(row.progress.includes('Seller confirms by') ? `${row.progress} ${COUNTDOWN}` : row.progress);
     expect(wallet.text).toBe(row.wallet);
     expect(buyerCheckoutBadgeLabel(order, payment)).toBe(
-      row.forbidsPayLabels ? PAYMENT_SEEN_LABEL : 'Reserved while you pay',
+      row.forbidsPayLabels ? PAYMENT_SEEN_LABEL : 'Awaiting payment · Item reserved',
     );
     if (row.forbidsPayLabels) {
-      expect(progress).not.toMatch(/Reserved while you pay|Pay by/);
-      expect(wallet.text).not.toMatch(/Reserved while you pay|Pay by|Open Bitkit to pay/);
+      expect(progress).not.toMatch(/Awaiting payment · Item reserved|Pay by/);
+      expect(wallet.text).not.toMatch(/Awaiting payment · Item reserved|Pay by|Open Bitkit to pay/);
     }
     if (!row.confirmationExists) {
       expect(progress).not.toMatch(/confirmed on-chain/);

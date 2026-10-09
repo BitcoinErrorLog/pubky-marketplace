@@ -160,9 +160,9 @@ describe('Marketplace edit listing in the app shell — visual regression', () =
         parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-offset-main')),
         0,
       );
-      for (const testId of ['listing-section-rail', 'listing-section-status-rail']) {
+      for (const testId of ['listing-section-rail']) {
         const rail = screen.getByTestId(testId).element() as HTMLElement;
-        const steps = Array.from(rail.querySelectorAll('a'));
+        const steps = Array.from(rail.querySelectorAll('button'));
         expect(steps).toHaveLength(5);
         for (const step of steps) {
           const rect = step.getBoundingClientRect();

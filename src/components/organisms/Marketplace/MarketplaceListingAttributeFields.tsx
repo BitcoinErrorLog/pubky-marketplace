@@ -107,11 +107,7 @@ function AttributeSelect({ field, form, formField, isPublishing }: AttributeInpu
               onValueChange={(value) => controller.onChange(value === NOT_SPECIFIED ? '' : value)}
               disabled={isPublishing}
             >
-              <SelectTrigger
-                id={inputId}
-                className="h-11 w-full rounded-md border px-3"
-                aria-invalid={!!fieldState.error}
-              >
+              <SelectTrigger theme="secondary" id={inputId} className="w-full" aria-invalid={!!fieldState.error}>
                 <SelectValue placeholder={field.required ? `Choose a ${field.label.toLowerCase()}` : 'Not specified'} />
               </SelectTrigger>
               <SelectContent>
@@ -207,6 +203,7 @@ function AttributeBrandInput({ field, form, formField, isPublishing }: Attribute
         render={({ field: controller, fieldState }) => (
           <>
             <Input
+              theme="dashed"
               id={inputId}
               list={datalistId}
               value={controller.value}
@@ -257,6 +254,7 @@ function AttributeTextInput({ field, form, formField, isPublishing }: AttributeI
         render={({ field: controller, fieldState }) => (
           <>
             <Input
+              theme="dashed"
               id={inputId}
               value={controller.value}
               placeholder={placeholder}

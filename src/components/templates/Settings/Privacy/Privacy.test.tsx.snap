@@ -45,8 +45,8 @@ exports[`Privacy - Snapshots > matches snapshot 1`] = `
     </p>
   </div>
   <div
-    class="flex w-full flex-col items-start gap-8 rounded-md border border-border bg-card p-6 shadow-lg md:gap-6"
-    data-testid="container"
+    class="w-full min-w-0 rounded-md border border-border bg-card p-6 shadow-lg flex flex-col items-start gap-8 md:gap-6"
+    data-slot="settings-section-content"
   >
     <div
       class="flex w-full flex-col items-start gap-6"

@@ -72,7 +72,7 @@ describe('MarketplaceMyShop', () => {
     expect(preview).toHaveTextContent('Vacation mode');
 
     await user.type(screen.getByLabelText('Shop name'), 'Satoshi Vintage');
-    await user.type(screen.getByLabelText('Shop bio'), 'Circular fashion and Bitcoin.');
+    await user.type(screen.getByLabelText('About your shop'), 'Circular fashion and Bitcoin.');
     await user.clear(screen.getByLabelText('Region'));
     await user.type(screen.getByLabelText('Region'), 'NY');
 

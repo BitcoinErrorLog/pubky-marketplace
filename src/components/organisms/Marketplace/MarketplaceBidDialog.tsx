@@ -82,7 +82,7 @@ export function MarketplaceBidDialog({
           className="w-fit rounded-full"
           disabled={isOwner || auctionPhase === 'ended' || (!projection?.auction && !isSessionRequired)}
         >
-          <Gavel className="mr-2 size-4" />
+          <Gavel className="size-4" />
           {isOwner ? 'You cannot bid on your own listing' : auctionPhase === 'ended' ? 'Auction ended' : 'Place a bid'}
         </Button>
       </DialogTrigger>
@@ -91,7 +91,7 @@ export function MarketplaceBidDialog({
           <DialogTitle>Set your maximum bid</DialogTitle>
         </DialogHeader>
         {projection?.auction && (
-          <div className="rounded-xl border bg-card p-4">
+          <div className="rounded-md bg-card p-6">
             <Typography as="p" className="text-sm text-muted-foreground">
               Current visible price
             </Typography>

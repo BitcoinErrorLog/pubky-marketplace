@@ -77,11 +77,11 @@ export function MarketplaceMessagingEnablePanel({
         <GrantSessionRefusal reason="messaging" />
       ) : enable.status === 'error' ? (
         <div className="grid gap-3">
-          <div role="alert" className="rounded-xl border border-destructive/40 p-4 text-sm">
+          <div role="alert" className="rounded-md border border-destructive/40 p-4 text-sm">
             {enable.errorMessage}
           </div>
           <Button className="w-fit rounded-full" onClick={enable.start}>
-            <RefreshCw className="mr-2 size-4" />
+            <RefreshCw className="size-4" />
             Try again
           </Button>
         </div>
@@ -119,11 +119,7 @@ export function MarketplaceMessagingEnablePanel({
               disabled={!enable.authorizationUrl || enable.isOpeningRing}
               aria-busy={enable.isOpeningRing}
             >
-              {enable.isOpeningRing ? (
-                <Loader2 className="mr-2 size-4 animate-spin" />
-              ) : (
-                <Smartphone className="mr-2 size-4" />
-              )}
+              {enable.isOpeningRing ? <Loader2 className="size-4 animate-spin" /> : <Smartphone className="size-4" />}
               {enable.isOpeningRing ? 'Opening Pubky Ring...' : 'Open in Pubky Ring'}
             </Button>
             <Button
@@ -132,7 +128,7 @@ export function MarketplaceMessagingEnablePanel({
               onClick={() => void copyUrl()}
               disabled={!enable.authorizationUrl}
             >
-              <Copy className="mr-2 size-4" />
+              <Copy className="size-4" />
               Copy link
             </Button>
           </div>
@@ -146,23 +142,25 @@ export function MarketplaceMessagingEnablePanel({
 export function MarketplaceMessagingEnableDialog({
   reconnect,
   onEnabled,
+  triggerVariant = 'secondary',
 }: {
   reconnect: boolean;
   onEnabled?: () => void | Promise<void>;
+  triggerVariant?: 'secondary' | 'outline';
 }) {
   const [open, setOpen] = useState(false);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="rounded-full">
-          <LockKeyhole className="mr-2 size-4" />
-          {reconnect ? 'Reconnect encrypted messaging' : 'Enable encrypted messaging'}
+        <Button variant={triggerVariant} className="rounded-full">
+          <LockKeyhole className="size-4" aria-hidden="true" />
+          {reconnect ? 'Reconnect messages' : 'Enable messages'}
         </Button>
       </DialogTrigger>
       <DialogContent className="border-border bg-popover">
         <DialogHeader>
-          <DialogTitle>{reconnect ? 'Reconnect encrypted messaging' : 'Enable encrypted messaging'}</DialogTitle>
+          <DialogTitle>{reconnect ? 'Reconnect messages' : 'Enable messages'}</DialogTitle>
         </DialogHeader>
         {open && (
           <MarketplaceMessagingEnablePanel

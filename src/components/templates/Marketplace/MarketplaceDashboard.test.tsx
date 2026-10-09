@@ -127,17 +127,14 @@ describe('MarketplaceDashboard', () => {
     paymentGate.reason = null;
   });
 
-  it('explains the marketplace approval on the seller dashboard', () => {
+  it('keeps the seller entry point available without an inline approval card', () => {
     dashboardState.needsSession = true;
     dashboardState.sessionError = 'A marketplace session is required.';
 
     render(<MarketplaceDashboard />);
 
-    expect(
-      screen.getByText(
-        'Your sales use this same approval, because the marketplace lists them only for a session it can tie to you.',
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'My shop' })).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('renders KPI metrics as a horizontal chip strip on mobile', () => {
@@ -160,7 +157,7 @@ describe('MarketplaceDashboard', () => {
 
     render(<MarketplaceDashboard />);
 
-    expect(screen.getByRole('heading', { name: 'Seller studio' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'My shop' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Inventory/ })).toHaveAttribute('href', MARKETPLACE_ROUTES.INVENTORY);
     const chips = screen.getByTestId('marketplace-dashboard-kpi-chips');
     expect(chips).toHaveAttribute('role', 'region');
@@ -316,7 +313,7 @@ describe('MarketplaceDashboard', () => {
     expect(dashboardFns.discardListingDraft).toHaveBeenCalledWith('draft_b');
   });
 
-  it('surfaces the payment-method precondition on Create listing / Sell an item', () => {
+  it('offers payment setup and selling actions without a duplicate setup notice', () => {
     viewport.isMobile = false;
     paymentGate.isDurable = true;
     paymentGate.ready = true;
@@ -333,18 +330,14 @@ describe('MarketplaceDashboard', () => {
 
     render(<MarketplaceDashboard />);
 
-    const notes = screen.getAllByTestId('create-listing-payment-precondition');
-    expect(notes.length).toBeGreaterThan(0);
-    for (const note of notes) {
-      expect(note).toHaveTextContent('Payment setup required');
-      expect(note).toHaveTextContent('Set up how you get paid first');
-    }
-    for (const link of screen.getAllByRole('link', { name: 'Sell an item' })) {
-      expect(link).toHaveAttribute('href', MARKETPLACE_ROUTES.SELL);
-    }
+    expect(screen.queryByTestId('create-listing-payment-precondition')).not.toBeInTheDocument();
+    expect(
+      within(screen.getByRole('navigation', { name: 'Shop actions' })).getByRole('link', { name: 'Payment settings' }),
+    ).toHaveAttribute('href', MARKETPLACE_ROUTES.SETTINGS);
+    expect(screen.getByRole('button', { name: 'Sell an item' })).toBeEnabled();
   });
 
-  it('styles Payment settings like the other studio actions and keeps the setup notice on that row', () => {
+  it('uses secondary buttons consistently for shop management actions', () => {
     viewport.isMobile = false;
     paymentGate.isDurable = true;
     paymentGate.ready = true;
@@ -361,20 +354,11 @@ describe('MarketplaceDashboard', () => {
 
     render(<MarketplaceDashboard />);
 
-    const settings = screen.getByRole('link', { name: 'Payment settings' });
-    const shop = screen.getByRole('link', { name: 'My shop' });
-    expect(settings.className).toContain('bg-secondary');
-    expect(settings.className).not.toContain('border-none');
-    expect(shop.className).toContain('bg-secondary');
-    expect(settings.parentElement?.className).toContain('items-center');
-    expect(settings.parentElement?.className).not.toContain('flex-col');
-
-    const note = settings.parentElement?.querySelector('[data-testid="create-listing-payment-precondition"]');
-    expect(note).not.toBeNull();
-    expect(note).toHaveTextContent('Payment setup required');
-    expect(note).toHaveTextContent('Set up how you get paid first');
-    const headerSell = screen.getAllByRole('link', { name: 'Sell an item' })[0];
-    expect(headerSell.parentElement?.contains(note as Node)).toBe(false);
+    const actions = within(screen.getByRole('navigation', { name: 'Shop actions' }));
+    for (const name of ['Payment settings', 'Storefront', 'Inventory', 'Shipping presets']) {
+      expect(actions.getByRole('link', { name })).toHaveClass('bg-secondary');
+    }
+    expect(screen.queryByTestId('create-listing-payment-precondition')).not.toBeInTheDocument();
   });
 
   it('shows Unlimited for a listing with an unlimited variant and a number for the rest', () => {

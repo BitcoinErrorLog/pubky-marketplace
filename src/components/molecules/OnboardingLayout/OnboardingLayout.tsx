@@ -11,7 +11,7 @@ export function OnboardingLayout({
   return (
     <Container
       size="container"
-      className="h-screen-without-page-header-onboarding items-stretch gap-0 px-6 pt-4 pb-0 lg:min-h-0 lg:items-start lg:pb-6"
+      className="h-screen-without-page-header-onboarding max-w-screen-xl items-stretch gap-0 px-6 pt-4 pb-0 lg:min-h-0 lg:items-start lg:px-10 lg:pb-6"
     >
       <div
         data-testid={testId}

@@ -142,6 +142,11 @@ vi.mock('@/stores/commerce/commerce.store', () => ({
   }),
 }));
 
+// These scenes exercise the approved composer; entry approval has separate coverage.
+vi.mock('@/hooks/useMarketplaceSellingAccess/useMarketplaceSellingAccess', () => ({
+  useMarketplaceSellingAccess: () => ({ allowed: true, ready: true, pubky: 'seller', checkAccess: () => true }),
+}));
+
 vi.mock('@/controllers/commerce/commerce', () => ({
   CommerceController: {
     ...createMarketplaceVrtCommerceController(),
@@ -272,7 +277,7 @@ describe('Marketplace sell studio — visual regression', () => {
     view.mediaItems = [];
     await renderForVRT(<MarketplaceSell />, { viewport: VRT_VIEWPORT_DESKTOP });
 
-    const rail = document.querySelector('[aria-label="Listing sections"]');
+    const rail = document.querySelector('[aria-label="Listing sections"]')?.closest('aside');
     const scrollingRoot = document.querySelector(`[data-testid="${VRT_ROOT_TESTID}"]`);
     expect(rail).not.toBeNull();
     expect(scrollingRoot).not.toBeNull();
@@ -292,7 +297,7 @@ describe('Marketplace sell studio — visual regression', () => {
     view.mediaItems = [];
 
     await renderForVRT(<MarketplaceSell />, { viewport: VRT_VIEWPORT_DESKTOP });
-    await expect(expectVrtSurface('seller-studio')).toMatchScreenshot('sell-empty-form-desktop');
+    await expect(await expectVrtSurface('seller-studio')).toMatchScreenshot('sell-empty-form-desktop');
   });
 
   it('renders the empty listing form at mobile viewport', async () => {
@@ -300,7 +305,7 @@ describe('Marketplace sell studio — visual regression', () => {
     view.mediaItems = [];
 
     await renderForVRT(<MarketplaceSell />, { viewport: VRT_VIEWPORT_MOBILE });
-    await expect(expectVrtSurface('seller-studio')).toMatchScreenshot(
+    await expect(await expectVrtSurface('seller-studio')).toMatchScreenshot(
       'sell-empty-form-mobile',
       VRT_DENSE_CHROME_SCREENSHOT,
     );
@@ -323,7 +328,7 @@ describe('Marketplace sell studio — visual regression', () => {
     expect(sellerPaymentConfig).toHaveBeenCalledWith('y'.repeat(52));
     expect(screen.container.querySelector('#title')).toBeNull();
     expect(screen.container.querySelector('[name="title"]')).toBeNull();
-    await expect(expectVrtSurface('listing-payment-setup')).toMatchScreenshot('sell-payment-setup-desktop');
+    await expect(await expectVrtSurface('listing-payment-setup')).toMatchScreenshot('sell-payment-setup-desktop');
   });
 
   it('renders the payment-method interstitial at mobile viewport', async () => {
@@ -341,7 +346,7 @@ describe('Marketplace sell studio — visual regression', () => {
       }
     });
     expect(screen.container.querySelector('#title')).toBeNull();
-    await expect(expectVrtSurface('listing-payment-setup')).toMatchScreenshot(
+    await expect(await expectVrtSurface('listing-payment-setup')).toMatchScreenshot(
       'sell-payment-setup-mobile',
       VRT_DENSE_CHROME_SCREENSHOT,
     );
@@ -401,7 +406,7 @@ describe('Marketplace sell studio — visual regression', () => {
         throw new Error('The preset picker has not rendered yet.');
       }
     });
-    await expect(expectVrtSurface('seller-studio')).toMatchScreenshot('sell-shipping-presets-desktop');
+    await expect(await expectVrtSurface('seller-studio')).toMatchScreenshot('sell-shipping-presets-desktop');
     view.shippingPresets = [];
   });
 
@@ -425,7 +430,7 @@ describe('Marketplace sell studio — visual regression', () => {
         throw new Error('The PayPal warning has not rendered yet.');
       }
     });
-    await expect(expectVrtSurface('listing-section-shipping')).toMatchScreenshot('sell-digital-delivery-desktop');
+    await expect(await expectVrtSurface('listing-section-shipping')).toMatchScreenshot('sell-digital-delivery-desktop');
   });
 
   it('renders unlimited stock on a digital-only variant at desktop viewport', async () => {
@@ -462,7 +467,7 @@ describe('Marketplace sell studio — visual regression', () => {
         throw new Error('Unlimited quantity has not rendered yet.');
       }
     });
-    await expect(expectVrtSurface('listing-section-price')).toMatchScreenshot('sell-unlimited-stock-desktop');
+    await expect(await expectVrtSurface('listing-section-price')).toMatchScreenshot('sell-unlimited-stock-desktop');
   });
 
   it('renders the restore prompt at desktop viewport', async () => {
@@ -478,7 +483,7 @@ describe('Marketplace sell studio — visual regression', () => {
     expect(screen.container.querySelector('[data-surface="listing-draft-restore-prompt"]')?.textContent).toContain(
       'Resume your draft from 3 min ago?',
     );
-    await expect(expectVrtSurface('listing-draft-restore-prompt')).toMatchScreenshot(
+    await expect(await expectVrtSurface('listing-draft-restore-prompt')).toMatchScreenshot(
       'sell-draft-restore-prompt-desktop',
     );
   });
@@ -496,7 +501,7 @@ describe('Marketplace sell studio — visual regression', () => {
     });
     const banner = screen.container.querySelector('[data-surface="listing-draft-restored"]');
     expect(banner?.textContent).toContain('including photos saved on it.');
-    await expect(expectVrtSurface('listing-draft-restored')).toMatchScreenshot('sell-draft-restored-desktop');
+    await expect(await expectVrtSurface('listing-draft-restored')).toMatchScreenshot('sell-draft-restored-desktop');
   });
 
   it('renders the seller-private auction reserve at desktop viewport', async () => {
@@ -522,7 +527,9 @@ describe('Marketplace sell studio — visual regression', () => {
       const input = screen.container.querySelector<HTMLInputElement>('#reservePrice');
       if (input?.value !== '200.00') throw new Error('Private reserve has not populated the form yet.');
     });
-    await expect(expectVrtSurface('listing-section-price')).toMatchScreenshot('sell-auction-private-reserve-desktop');
+    await expect(await expectVrtSurface('listing-section-price')).toMatchScreenshot(
+      'sell-auction-private-reserve-desktop',
+    );
   });
 
   it('renders the form with additional variants added at desktop viewport', async () => {
@@ -537,7 +544,7 @@ describe('Marketplace sell studio — visual regression', () => {
         throw new Error('Variant rows have not rendered yet.');
       }
     });
-    await expect(expectVrtSurface('seller-studio')).toMatchScreenshot('sell-variants-added-desktop');
+    await expect(await expectVrtSurface('seller-studio')).toMatchScreenshot('sell-variants-added-desktop');
   });
 
   it('renders the compose form with multiple ordered photos at desktop viewport', async () => {
@@ -549,7 +556,7 @@ describe('Marketplace sell studio — visual regression', () => {
     ];
 
     await renderForVRT(<MarketplaceSell />, { viewport: VRT_VIEWPORT_DESKTOP });
-    await expect(expectVrtSurface('seller-studio')).toMatchScreenshot('sell-photos-attached-desktop');
+    await expect(await expectVrtSurface('seller-studio')).toMatchScreenshot('sell-photos-attached-desktop');
   });
 
   it('renders the compose form with multiple ordered photos at mobile viewport', async () => {
@@ -560,7 +567,7 @@ describe('Marketplace sell studio — visual regression', () => {
     ];
 
     await renderForVRT(<MarketplaceSell />, { viewport: VRT_VIEWPORT_MOBILE });
-    await expect(expectVrtSurface('seller-studio')).toMatchScreenshot('sell-photos-attached-mobile');
+    await expect(await expectVrtSurface('seller-studio')).toMatchScreenshot('sell-photos-attached-mobile');
   });
 
   it('renders the photo list after a reorder moved a new cover first at desktop viewport', async () => {
@@ -574,7 +581,7 @@ describe('Marketplace sell studio — visual regression', () => {
     ];
 
     await renderForVRT(<MarketplaceSell />, { viewport: VRT_VIEWPORT_DESKTOP });
-    await expect(expectVrtSurface('seller-studio')).toMatchScreenshot('sell-photos-reordered-desktop');
+    await expect(await expectVrtSurface('seller-studio')).toMatchScreenshot('sell-photos-reordered-desktop');
   });
 
   it('renders the photo limit reached state at desktop viewport', async () => {
@@ -584,7 +591,7 @@ describe('Marketplace sell studio — visual regression', () => {
     );
 
     await renderForVRT(<MarketplaceSell />, { viewport: VRT_VIEWPORT_DESKTOP });
-    await expect(expectVrtSurface('seller-studio')).toMatchScreenshot('sell-photos-limit-desktop');
+    await expect(await expectVrtSurface('seller-studio')).toMatchScreenshot('sell-photos-limit-desktop');
   });
 
   // A restored draft for a sized fashion leaf: the category cascade shows
@@ -620,7 +627,7 @@ describe('Marketplace sell studio — visual regression', () => {
         throw new Error('The size field has not rendered yet.');
       }
     });
-    await expect(expectVrtSurface('seller-studio')).toMatchScreenshot('sell-attributes-fashion-desktop');
+    await expect(await expectVrtSurface('seller-studio')).toMatchScreenshot('sell-attributes-fashion-desktop');
     view.drafts = [];
   });
 
@@ -650,7 +657,7 @@ describe('Marketplace sell studio — visual regression', () => {
         throw new Error('The model field has not rendered yet.');
       }
     });
-    await expect(expectVrtSurface('seller-studio')).toMatchScreenshot('sell-attributes-electronics-desktop');
+    await expect(await expectVrtSurface('seller-studio')).toMatchScreenshot('sell-attributes-electronics-desktop');
     view.drafts = [];
   });
 
@@ -676,7 +683,7 @@ describe('Marketplace sell studio — visual regression', () => {
         throw new Error('The description checklist row has not rendered yet.');
       }
     });
-    await expect(expectVrtSurface('seller-studio')).toMatchScreenshot('sell-validation-errors-desktop');
+    await expect(await expectVrtSurface('seller-studio')).toMatchScreenshot('sell-validation-errors-desktop');
   });
 
   it('renders the seller studio with pickup enabled and a pickup-only draft at desktop viewport', async () => {
@@ -711,7 +718,7 @@ describe('Marketplace sell studio — visual regression', () => {
         throw new Error('Fulfillment still has a schema error.');
       }
     });
-    await expect(expectVrtSurface('listing-section-shipping')).toMatchScreenshot('sell-pickup-enabled-desktop');
+    await expect(await expectVrtSurface('listing-section-shipping')).toMatchScreenshot('sell-pickup-enabled-desktop');
     view.pickupAvailable = false;
     view.drafts = [];
   });
@@ -732,11 +739,11 @@ describe('Marketplace sell studio — visual regression', () => {
     });
     await resumeAutosavedDraft(screen);
     await vi.waitFor(() => {
-      if (!screen.container.querySelector('[data-surface="seller-publish-blocked"]')) {
+      if (!screen.container.querySelector('[data-surface="listing-publish-guard"]')) {
         throw new Error('The session publish guard has not rendered yet.');
       }
       const connect = [...screen.container.querySelectorAll('button')].find((button) =>
-        button.textContent?.includes('Connect marketplace session'),
+        button.textContent?.includes('Enable selling'),
       );
       if (!connect) {
         throw new Error('The session-connect control has not rendered yet.');
@@ -744,7 +751,7 @@ describe('Marketplace sell studio — visual regression', () => {
     });
     expect(screen.getByRole('button', { name: 'Publish listing' })).toBeDisabled();
     const connect = [...screen.container.querySelectorAll('button')].find((button) =>
-      button.textContent?.includes('Connect marketplace session'),
+      button.textContent?.includes('Enable selling'),
     );
     expect(connect).toBeDefined();
     await connect!.click();

@@ -620,8 +620,24 @@ export class CommerceApplication {
     if (getCommerceAdapterMode() !== 'sandbox') return false;
     const catalog = createCommerceSandboxCatalog();
     const seeded = await LocalCommerceService.seedSandboxCatalog(catalog);
-    await Promise.allSettled(catalog.listings.map((listing) => this.ensureListingRegistered(listing)));
-    return seeded;
+    let listings = catalog.listings;
+    if (!seeded) {
+      const existing = await Promise.all(
+        listings.map((listing) => LocalCommerceService.getListing(`${listing.ownerPubky}:${listing.listingId}`)),
+      );
+      // Preserve a non-sandbox catalog instead of claiming that seeding succeeded.
+      if (existing.some((listing) => !listing)) return false;
+      // Re-register existing demos after the in-memory service restarts.
+      listings = existing.map((listing) => listing!.record);
+    }
+    const registrations = await Promise.allSettled(listings.map((listing) => this.ensureListingRegistered(listing)));
+    if (registrations.some((result) => result.status === 'rejected' || !result.value)) {
+      throw Err.server(ServerErrorCode.SERVICE_UNAVAILABLE, 'Sandbox listings could not be prepared for checkout.', {
+        service: ErrorService.Marketplace,
+        operation: 'initializeSandboxCatalog',
+      });
+    }
+    return true;
   }
 
   static async executeMarketplaceCommand(actorPubky: string, command: MarketplaceCommand) {

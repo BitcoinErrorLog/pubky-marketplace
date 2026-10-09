@@ -22,9 +22,9 @@ import { formatBitcoinAwareMoney } from '@/libs/commerce/bitcoin-payment-code';
 import { isBuyerCheckoutInProgress } from '@/libs/commerce/checkout-phase';
 import { returnActivityTitles } from '@/libs/commerce/return-activity-titles';
 import { Logger } from '@/libs/logger/logger';
+import { MarketplaceEmptyState } from '@/molecules/Marketplace/MarketplaceEmptyState';
 import { ContentLayout } from '@/organisms/ContentLayout/ContentLayout';
 import { MarketplaceSectionNav } from '@/organisms/Marketplace/MarketplaceSectionNav';
-import { MarketplaceSessionRequiredCard } from '@/organisms/Marketplace/MarketplaceSessionRequiredCard';
 import {
   getWatchAlertDetail,
   getWatchAlertHeadline,
@@ -115,13 +115,8 @@ export function MarketplaceNotifications() {
       showLeftMobileButton={false}
       showRightMobileButton={false}
       className="pb-28"
-      classNameWrapperContent="max-w-7xl"
     >
-      <Container
-        overrideDefaults
-        className="flex w-full flex-col gap-6 px-4 sm:px-6"
-        data-surface="marketplace-transaction-history"
-      >
+      <Container overrideDefaults className="flex w-full flex-col gap-6" data-surface="marketplace-transaction-history">
         <MarketplaceSectionNav />
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -140,8 +135,8 @@ export function MarketplaceNotifications() {
         </div>
 
         {preferences && (
-          <Card className="border py-4">
-            <CardContent className="grid gap-4 px-5 sm:grid-cols-2">
+          <Card className="rounded-md p-0">
+            <CardContent className="grid gap-4 p-6 sm:grid-cols-2">
               {(
                 [
                   ['messages', 'Messages'],
@@ -174,8 +169,8 @@ export function MarketplaceNotifications() {
                 Detected by checks this device runs when you visit — not server events.
               </Typography>
             </div>
-            <Card className="border py-2">
-              <CardContent className="flex flex-col gap-1 px-4 py-2">
+            <Card className="rounded-md p-0">
+              <CardContent className="flex flex-col gap-1 p-6">
                 {watchAlerts.items.slice(0, WATCH_ALERTS_SECTION_LIMIT).map((alert) => (
                   <WatchAlertRow key={alert.id} alert={alert} />
                 ))}
@@ -194,15 +189,19 @@ export function MarketplaceNotifications() {
         {isLoading ? (
           <Skeleton className="h-32 w-full" />
         ) : needsSession && error ? (
-          <MarketplaceSessionRequiredCard />
+          <MarketplaceEmptyState
+            icon={Bell}
+            title="No commerce updates"
+            description="Updates about your marketplace activity will appear here."
+          />
         ) : error ? (
-          <div role="alert" className="rounded-xl border border-destructive/40 p-4">
+          <div role="alert" className="rounded-md border border-destructive/40 p-4">
             {error}
           </div>
         ) : notifications.length ? (
           <div className="flex flex-col gap-3">
             {integrityGapCount > 0 && (
-              <div role="status" className="rounded-xl border border-amber-500/40 p-4 text-sm">
+              <div role="status" className="rounded-md border border-amber-500/40 p-4 text-sm">
                 {integrityGapCount} unrecognized marketplace event{integrityGapCount === 1 ? '' : 's'} — history may be
                 incomplete.
               </div>
@@ -229,12 +228,11 @@ export function MarketplaceNotifications() {
             )}
           </div>
         ) : (
-          <div className="flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed text-center">
-            <Bell className="mb-3 size-10 text-muted-foreground" />
-            <Heading level={2} size="md">
-              No commerce updates
-            </Heading>
-          </div>
+          <MarketplaceEmptyState
+            icon={Bell}
+            title="No commerce updates"
+            description="Updates about your marketplace activity will appear here."
+          />
         )}
       </Container>
     </ContentLayout>
@@ -245,8 +243,8 @@ function KnownOrGapActivityRow({ type, createdAt }: { type: string; createdAt: s
   const label = marketplaceActivityLabel(type);
   if (!label) {
     return (
-      <Card className="border py-4">
-        <CardContent className="flex items-center gap-4 px-4">
+      <Card className="rounded-md p-0">
+        <CardContent className="flex items-center gap-4 p-6">
           <div className="rounded-full bg-amber-500/15 p-3 text-amber-600">
             <Bell className="size-5" />
           </div>
@@ -263,8 +261,8 @@ function KnownOrGapActivityRow({ type, createdAt }: { type: string; createdAt: s
   const href = activityRowHref(type as MarketplaceNotification['type'], null);
   return (
     <ActivityRowLink href={href} label={label}>
-      <Card className="border py-4">
-        <CardContent className="flex items-center gap-4 px-4">
+      <Card className="rounded-md p-0">
+        <CardContent className="flex items-center gap-4 p-6">
           <div className="rounded-full bg-brand/15 p-3 text-brand">
             <HandCoins className="size-5" />
           </div>
@@ -309,8 +307,8 @@ function NotificationCard({
   const href = activityRowHref(notification.type, notification.aggregateId, { canCheckout });
   return (
     <ActivityRowLink href={href} label={label}>
-      <Card className="border py-4">
-        <CardContent className="flex items-center gap-4 px-4">
+      <Card className="rounded-md p-0">
+        <CardContent className="flex items-center gap-4 p-6">
           <div className="rounded-full bg-brand/15 p-3 text-brand">
             <NotificationIcon type={notification.type} />
           </div>
@@ -340,7 +338,7 @@ function ActivityRowLink({ href, label, children }: { href: string; label: strin
       href={href}
       overrideDefaults
       aria-label={label}
-      className="block rounded-xl outline-none hover:ring-1 hover:ring-brand/40 focus-visible:ring-2 focus-visible:ring-brand"
+      className="block rounded-md outline-none hover:ring-1 hover:ring-brand/40 focus-visible:ring-2 focus-visible:ring-brand"
     >
       {children}
     </Link>

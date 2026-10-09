@@ -122,7 +122,7 @@ export function Logout() {
       : renderSuccessState();
 
   return (
-    <Container size="container" className="h-screen-without-page-header-auth-pages gap-0 px-6">
+    <Container size="container" className="h-screen-without-page-header-auth-pages max-w-screen-xl gap-0 px-6 lg:px-10">
       {content}
     </Container>
   );

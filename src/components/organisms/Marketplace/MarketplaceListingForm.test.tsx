@@ -50,6 +50,7 @@ const digitalCapability = vi.hoisted(() => ({
 // behavior (apply fills fields and untoggles free shipping) IS — so the hook
 // is mocked with one preset for that single test.
 const shippingPresetsMock = vi.hoisted(() => ({
+  saveFromFields: vi.fn(async () => true),
   presets: [] as Array<{
     id: string;
     owner_id: string;
@@ -67,7 +68,7 @@ vi.mock('@/hooks/useMarketplaceShippingPresets/useMarketplaceShippingPresets', (
   useMarketplaceShippingPresets: () => ({
     presets: shippingPresetsMock.presets,
     isLoading: false,
-    saveFromFields: vi.fn(async () => true),
+    saveFromFields: shippingPresetsMock.saveFromFields,
     remove: vi.fn(),
   }),
 }));
@@ -110,6 +111,7 @@ beforeEach(() => {
   // The shipping-preset picker renders only when presets exist; keep the
   // shared mock empty unless a test opts in (the snapshot stays picker-free).
   shippingPresetsMock.presets = [];
+  shippingPresetsMock.saveFromFields.mockReset().mockResolvedValue(true);
   pickupCapability.available = true;
   pickupCapability.pending = false;
   digitalCapability.available = true;
@@ -244,14 +246,14 @@ describe('MarketplaceListingForm', () => {
   it('keeps the section rail sticky', () => {
     render(<FormHarness />);
 
-    expect(screen.getByRole('navigation', { name: 'Listing sections' })).toHaveClass('sticky');
+    expect(screen.getByRole('navigation', { name: 'Listing sections' }).closest('aside')).toHaveClass('sticky');
   });
 
-  it('pins both step rails, and section jumps, below the main header', () => {
+  it('pins the section rail and section jumps below the main header', () => {
     render(<FormHarness />);
 
-    for (const name of ['Listing sections', 'Listing section status']) {
-      const rail = screen.getByRole('navigation', { name });
+    for (const name of ['Listing sections']) {
+      const rail = screen.getByRole('navigation', { name }).closest('aside');
       expect(rail).toHaveClass('top-(--header-offset-main)');
       expect(rail).not.toHaveClass('top-24');
     }
@@ -591,7 +593,7 @@ describe('MarketplaceListingForm pickup capability (§A7)', () => {
     expect(screen.getByText('Required to publish').parentElement).toHaveTextContent('Description');
   });
 
-  it('uses photo descriptions in the photos badge and publish requirements', () => {
+  it('allows publishing without optional photo descriptions', () => {
     render(
       <FormHarness
         fulfillment="pickup"
@@ -605,10 +607,10 @@ describe('MarketplaceListingForm pickup capability (§A7)', () => {
       />,
     );
 
-    expect(document.getElementById('listing-section-photos')).toHaveAttribute('data-section-complete', 'false');
-    expect(document.getElementById('listing-section-review')).toHaveAttribute('data-section-complete', 'false');
-    expect(screen.getByText('Required to publish').parentElement).toHaveTextContent('Photo descriptions');
-    expect(screen.getByRole('button', { name: 'Publish listing' })).toBeDisabled();
+    expect(document.getElementById('listing-section-photos')).toHaveAttribute('data-section-complete', 'true');
+    expect(document.getElementById('listing-section-review')).toHaveAttribute('data-section-complete', 'true');
+    expect(screen.queryByText('Photo descriptions')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Publish listing' })).toBeEnabled();
   });
 
   it('keeps physical listings unpublished until shipping fields are filled or pickup is chosen', () => {
@@ -677,7 +679,7 @@ describe('MarketplaceListingForm pickup capability (§A7)', () => {
     const media = buildMedia([photoItem('one')]);
     render(<FormHarness media={media} />);
 
-    await user.type(screen.getByLabelText('Photo 1 description'), 'F');
+    await user.type(screen.getByLabelText('Photo description'), 'F');
     expect(media.setAltText).toHaveBeenCalledWith('one', 'F');
   });
 
@@ -925,17 +927,60 @@ describe('MarketplaceListingForm free shipping', () => {
     expect(screen.getByRole('checkbox', { name: 'Free shipping' })).not.toBeChecked();
   });
 
-  it('focuses and announces the first invalid control when saving a preset', async () => {
-    const user = userEvent.setup();
-    render(<FormHarness />);
+  it.each([
+    { checked: true, saved: true, expected: 1 },
+    { checked: false, saved: true, expected: 0 },
+    { checked: true, saved: false, expected: 0 },
+  ])(
+    'saves only requested presets after successful listing save ($checked, $saved)',
+    async ({ checked, saved, expected }) => {
+      const user = userEvent.setup();
+      const onSubmit = vi.fn(async () => saved);
+      render(
+        <FormHarness
+          onSubmit={onSubmit}
+          media={buildMedia([photoItem('one')])}
+          defaultValues={{
+            title: 'Vintage boots',
+            description: 'Well cared for boots.',
+            categoryId: 'fashion',
+            price: '125.00',
+            currency: 'USD',
+            shippingLabel: 'Tracked',
+            shippingPrice: '12.00',
+            shippingMinDays: '3',
+            shippingMaxDays: '7',
+            packageWeight: '1200',
+            packageLength: '35',
+            packageWidth: '25',
+            packageHeight: '15',
+          }}
+        />,
+      );
+      const checkbox = screen.getByRole('checkbox', { name: 'Save delivery details as preset' });
+      expect(screen.queryByRole('button', { name: 'Save as preset' })).not.toBeInTheDocument();
+      if (checked) await user.click(checkbox);
+      expect(shippingPresetsMock.saveFromFields).not.toHaveBeenCalled();
+      await user.click(screen.getByRole('button', { name: 'Publish listing' }));
+      await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+      expect(shippingPresetsMock.saveFromFields).toHaveBeenCalledTimes(expected);
+      if (expected)
+        expect(shippingPresetsMock.saveFromFields).toHaveBeenCalledWith(null, {
+          shippingLabel: 'Tracked',
+          shippingPrice: '12.00',
+          shippingMinDays: '3',
+          shippingMaxDays: '7',
+        });
+    },
+  );
 
-    await user.click(screen.getByRole('button', { name: 'Save as preset' }));
-
-    expect(screen.getByLabelText(/Flat shipping/)).toHaveFocus();
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'Complete the shipping label, price, and delivery estimates before saving a preset.',
-    );
-  });
+  it.each([{ freeShipping: true }, { currency: 'BTC' as const }])(
+    'does not offer incompatible shipping presets (%j)',
+    (values) => {
+      render(<FormHarness defaultValues={values} />);
+      expect(screen.getByRole('checkbox', { name: 'Save delivery details as preset' })).toBeDisabled();
+    },
+  );
 });
 
 describe('MarketplaceListingForm publish gate vs schema', () => {
@@ -1020,7 +1065,7 @@ describe('MarketplaceListingForm durable publish guards at the button', () => {
 
   it.each([
     ['no-method', 'Payment method', 'Configure a payment method before publishing'],
-    ['session', 'Marketplace session', 'Connect a marketplace session before publishing'],
+    ['session', 'Selling approval', 'Enable selling to publish'],
     ['unsigned', 'Sign in', 'Sign in before publishing'],
     [
       'unverified',

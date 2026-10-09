@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ArrowLeft, CreditCard, Store, User, UserCheck, UserPlus } from 'lucide-react';
+import { ArrowLeft, LayoutDashboard, Store, User, UserCheck, UserPlus } from 'lucide-react';
 import { APP_ROUTES, getProfileRoute, MARKETPLACE_ROUTES, PROFILE_ROUTES } from '@/app/routes';
 import { TagKind } from '@/application/tag/tag.types';
 import { Button } from '@/atoms/Button/Button';
@@ -80,9 +80,8 @@ export function MarketplaceShop({ sellerPubky }: { sellerPubky: string }) {
       showLeftMobileButton={false}
       showRightMobileButton={false}
       className="pb-28 lg:pb-16"
-      classNameWrapperContent="max-w-7xl"
     >
-      <Container overrideDefaults className="flex w-full flex-col gap-6 px-4 sm:px-6 lg:px-8">
+      <Container overrideDefaults className="flex w-full flex-col gap-6">
         <Link
           href={APP_ROUTES.MARKETPLACE}
           overrideDefaults
@@ -114,11 +113,7 @@ export function MarketplaceShop({ sellerPubky }: { sellerPubky: string }) {
                 <div className="flex flex-col items-start gap-4 sm:items-end">
                   <div className="flex flex-wrap gap-2">
                     {isOwner ? (
-                      <Button asChild className="rounded-full">
-                        <Link href={MARKETPLACE_ROUTES.MY_SHOP} overrideDefaults>
-                          Edit shop
-                        </Link>
-                      </Button>
+                      <StorefrontOwnerActions />
                     ) : (
                       <Button
                         variant={follow.isFollowing ? 'default' : 'secondary'}
@@ -127,23 +122,19 @@ export function MarketplaceShop({ sellerPubky }: { sellerPubky: string }) {
                         disabled={follow.isMutating}
                         onClick={follow.toggle}
                       >
-                        {follow.isFollowing ? (
-                          <UserCheck className="mr-2 size-4" />
-                        ) : (
-                          <UserPlus className="mr-2 size-4" />
-                        )}
+                        {follow.isFollowing ? <UserCheck className="size-4" /> : <UserPlus className="size-4" />}
                         {follow.isFollowing ? 'Following' : 'Follow shop'}
                       </Button>
                     )}
                     <Button asChild variant="secondary" className="rounded-full">
                       {socialProfileUrl ? (
                         <a href={socialProfileUrl} data-cy="profile-on-pubky-link">
-                          <User className="mr-2 size-4" />
+                          <User className="size-4" />
                           {isOwner ? 'My profile on Pubky' : 'Profile on Pubky'}
                         </a>
                       ) : (
                         <Link href={profileRoute} overrideDefaults>
-                          <User className="mr-2 size-4" />
+                          <User className="size-4" />
                           {isOwner ? 'My profile' : 'Contact seller'}
                         </Link>
                       )}
@@ -175,53 +166,40 @@ export function MarketplaceShop({ sellerPubky }: { sellerPubky: string }) {
 
             {/* The section styles its own container and renders NOTHING when no
                 review index serves this deployment — no empty card shell. */}
-            <MarketplaceReviewsSection sellerPubky={sellerPubky} className="rounded-xl border bg-card p-5" />
+            <MarketplaceReviewsSection sellerPubky={sellerPubky} className="rounded-md bg-card p-5" />
           </>
         ) : (
           <>
-            <Card className="overflow-hidden border py-0">
-              <div className="h-28 bg-linear-to-r from-muted/60 via-card to-card sm:h-40" />
+            <Card className="overflow-hidden rounded-md p-0">
+              <div className="h-28 bg-linear-to-br from-brand/24 to-brand/8 sm:h-40" />
               <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-end sm:justify-between">
                 <div className="-mt-16">
-                  <div className="mb-4 flex size-20 items-center justify-center rounded-2xl border-4 border-card bg-muted text-muted-foreground shadow-lg">
-                    <User className="size-9" />
+                  <div className="mb-4 flex size-20 items-center justify-center rounded-2xl border-4 border-card bg-brand text-primary-foreground shadow-lg">
+                    <Store className="size-9" aria-hidden="true" />
                   </div>
                   <Heading level={1} size="xl" className="text-3xl break-all sm:text-5xl">
                     {sellerPubky.slice(0, 10)}…
                   </Heading>
                   <Typography as="p" className="mt-2 max-w-2xl text-muted-foreground">
                     {isOwner
-                      ? 'Set up your seller account to start listing.'
+                      ? 'Add a shop name, description, and images to personalize your storefront.'
                       : 'This seller hasn\u2019t set up a shop profile yet. Their owner-signed listings are below.'}
                   </Typography>
                   <MarketplaceReputationHeader sellerPubky={sellerPubky} variant="full" className="mt-3" />
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {isOwner ? (
-                    <>
-                      <Button asChild className="rounded-full">
-                        <Link href={MARKETPLACE_ROUTES.SETTINGS} overrideDefaults>
-                          <CreditCard className="mr-2 size-4" />
-                          Payment settings
-                        </Link>
-                      </Button>
-                      <Button asChild variant="secondary" className="rounded-full">
-                        <Link href={MARKETPLACE_ROUTES.MY_SHOP} overrideDefaults>
-                          <Store className="mr-2 size-4" />
-                          My Shop
-                        </Link>
-                      </Button>
-                    </>
+                    <StorefrontOwnerActions />
                   ) : (
                     <Button asChild variant="secondary" className="rounded-full">
                       {socialProfileUrl ? (
                         <a href={socialProfileUrl} data-cy="profile-on-pubky-link">
-                          <User className="mr-2 size-4" />
+                          <User className="size-4" />
                           Profile on Pubky
                         </a>
                       ) : (
                         <Link href={profileRoute} overrideDefaults>
-                          <User className="mr-2 size-4" />
+                          <User className="size-4" />
                           View seller profile
                         </Link>
                       )}
@@ -233,7 +211,7 @@ export function MarketplaceShop({ sellerPubky }: { sellerPubky: string }) {
 
             <ShopListingsGrid listings={listings} isOwner={isOwner} />
 
-            <MarketplaceReviewsSection sellerPubky={sellerPubky} className="rounded-xl border bg-card p-5" />
+            <MarketplaceReviewsSection sellerPubky={sellerPubky} className="rounded-md bg-card p-5" />
           </>
         )}
       </Container>
@@ -252,7 +230,7 @@ function ShopListingsGrid({
 }) {
   if (listings.length === 0) {
     return (
-      <div className="flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed bg-card/40 p-8 text-center">
+      <div className="flex min-h-64 flex-col items-center justify-center rounded-md bg-card/40 p-6 text-center">
         <Store className="mb-4 size-10 text-muted-foreground" />
         <Heading level={2} size="md">
           {isOwner ? 'No listings yet' : 'No listings from this seller yet'}
@@ -275,5 +253,24 @@ function ShopListingsGrid({
         <MarketplaceListingCard key={listing.id} listing={listing} shopName={shopName} />
       ))}
     </div>
+  );
+}
+
+function StorefrontOwnerActions() {
+  return (
+    <>
+      <Button asChild variant="secondary" className="rounded-full">
+        <Link href={MARKETPLACE_ROUTES.MY_SHOP} overrideDefaults>
+          <Store className="size-4" aria-hidden="true" />
+          Edit storefront
+        </Link>
+      </Button>
+      <Button asChild variant="secondary" className="rounded-full">
+        <Link href={MARKETPLACE_ROUTES.DASHBOARD} overrideDefaults>
+          <LayoutDashboard className="size-4" aria-hidden="true" />
+          Manage shop
+        </Link>
+      </Button>
+    </>
   );
 }

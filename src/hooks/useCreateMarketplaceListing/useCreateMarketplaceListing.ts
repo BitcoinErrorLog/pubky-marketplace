@@ -614,8 +614,6 @@ export function describeMediaFailure(reason: Extract<PrepareListingMediaResult, 
   switch (reason) {
     case 'no-photos':
       return 'Add at least one photo.';
-    case 'missing-alt-text':
-      return 'Every photo needs a description for screen readers.';
     case 'decode-failed':
       return 'A photo could not be processed. Remove it and try another file.';
   }

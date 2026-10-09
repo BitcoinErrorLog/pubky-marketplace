@@ -72,7 +72,7 @@ export function DropClaimPanel({
   );
 
   return (
-    <section aria-label="Claim" className="flex flex-col gap-3 rounded-xl border border-brand/40 bg-brand/5 p-4">
+    <section aria-label="Claim" className="flex flex-col gap-3 rounded-md bg-brand/5 p-4">
       <Heading level={2} size="sm" className="flex items-center gap-2 text-base">
         <Zap className="size-4 text-brand" />
         Claim
@@ -85,7 +85,7 @@ export function DropClaimPanel({
         <MarketplaceSessionRequiredCard />
       ) : !currentUserPubky ? (
         <Button size="lg" className="w-fit rounded-full" onClick={() => requireAuth(() => undefined)}>
-          <Zap className="mr-2 size-4" />
+          <Zap className="size-4" />
           Sign in to buy
         </Button>
       ) : (
@@ -99,7 +99,7 @@ export function DropClaimPanel({
               const mediaUrl = mediaUrls[index] ?? null;
               const price = listing?.sale.format === 'fixed_price' ? listing.sale.unitPrice : null;
               return (
-                <li key={listingId} className="flex items-center gap-3 rounded-lg border bg-card p-3">
+                <li key={listingId} className="flex items-center gap-3 rounded-md bg-card p-6">
                   {mediaUrl && (
                     <div className="relative size-12 shrink-0 overflow-hidden rounded-md">
                       {/* eslint-disable-next-line @next/next/no-img-element -- homeserver media bypasses Next image optimization */}
@@ -128,7 +128,7 @@ export function DropClaimPanel({
                           href={getMarketplaceCheckoutRoute(claim.claimedOrderIds?.get(compositeId))}
                           overrideDefaults
                         >
-                          <CheckCircle2 className="mr-2 size-4 text-brand" />
+                          <CheckCircle2 className="size-4 text-brand" />
                           Claimed — Continue checkout
                         </Link>
                       </Button>
@@ -141,7 +141,7 @@ export function DropClaimPanel({
                     </div>
                   ) : isOwner || allowanceSpent ? (
                     <Button size="sm" className="rounded-full" disabled>
-                      {allowanceSpent ? <CheckCircle2 className="mr-2 size-4" /> : <Zap className="mr-2 size-4" />}
+                      {allowanceSpent ? <CheckCircle2 className="size-4" /> : <Zap className="size-4" />}
                       {isOwner ? 'You cannot claim from your own drop' : 'Per-buyer limit reached'}
                     </Button>
                   ) : (
@@ -154,7 +154,7 @@ export function DropClaimPanel({
                         })}
                         overrideDefaults
                       >
-                        <Zap className="mr-2 size-4" />
+                        <Zap className="size-4" />
                         Claim one
                       </Link>
                     </Button>

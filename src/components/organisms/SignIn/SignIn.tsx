@@ -1,13 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { CheckCircle, Circle, Key, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/atoms/Button/Button';
-import { Card } from '@/atoms/Card/Card';
 import { Container } from '@/atoms/Container/Container';
 import { FooterLinks } from '@/atoms/FooterLinks/FooterLinks';
-import { Link } from '@/atoms/Link/Link';
 import { PageHeader } from '@/atoms/PageHeader/PageHeader';
 import { PageSubtitle } from '@/atoms/PageSubtitle/PageSubtitle';
 import { Typography } from '@/atoms/Typography/Typography';
@@ -17,17 +15,18 @@ import { Logger } from '@/libs/logger/logger';
 import { cn } from '@/libs/utils/utils';
 import { BalancedQrCard } from '@/molecules/BalancedQrCard/BalancedQrCard';
 import { ContentCard } from '@/molecules/Content/Content';
+import { IllustratedCard } from '@/molecules/IllustratedCard/IllustratedCard';
 import { Logo } from '@/molecules/Logo/Logo';
 import { MarketplaceApprovalDisclosure } from '@/molecules/MarketplaceApprovalDisclosure/MarketplaceApprovalDisclosure';
 import { PageTitle } from '@/molecules/Page/Page';
 import { PassportSignInButton } from '@/molecules/PassportSignInButton/PassportSignInButton';
 import { QrCodeSlot } from '@/molecules/QrCodeSlot/QrCodeSlot';
 import {
-  BITKIT_IDENTITY_HINT,
   SIGNER_AUTH_COPY,
   SignerAuthOption,
   SignerAuthorizeButton,
 } from '@/molecules/SignerAuthOption/SignerAuthOption';
+import { SignerToggle } from '@/molecules/SignerToggle/SignerToggle';
 import { toast } from '@/molecules/Toaster/use-toast';
 import { signInApprovalDisclosure } from '@/services/marketplace/marketplace-session-grant';
 import { useOnboardingStore } from '@/stores/onboarding/onboarding.store';
@@ -38,7 +37,7 @@ import type { SignInState } from '@/stores/signIn/signIn.types';
 const SIGN_IN_STEPS = [
   {
     key: 'profileChecked',
-    label: 'Verifying account',
+    label: 'Setting up',
   },
   {
     key: 'bootstrapFetched',
@@ -86,7 +85,7 @@ const SignInProgress = () => {
               <Typography
                 as="span"
                 className={cn(
-                  'text-base leading-normal font-light',
+                  'text-base leading-normal font-medium',
                   status === 'completed' && 'font-bold text-foreground',
                   status === 'running' && 'text-foreground',
                   status === 'pending' && 'text-muted-foreground',
@@ -129,21 +128,13 @@ function ringSignInDisclosure(ring: TSignerAuth): string | null {
   return ring.url ? signInApprovalDisclosure(ring.url) : null;
 }
 
-const SignInQrOption = ({
-  signer,
-  auth,
-  disclosure = null,
-}: {
-  signer: keyof typeof SIGNERS;
-  auth: TSignerAuth;
-  disclosure?: string | null;
-}) => (
+const SignInQrOption = ({ signer, auth }: { signer: keyof typeof SIGNERS; auth: TSignerAuth }) => (
   <SignerAuthOption
     copy={SIGNERS[signer]}
     auth={auth}
     onCopied={() => copyWithToast(auth.copyAuthUrl)}
     testId={`sign-in-${signer}-option`}
-    disclosure={disclosure}
+    qrOnly
   />
 );
 
@@ -152,48 +143,68 @@ const SignInAuthorizeButton = ({ signer, auth }: { signer: keyof typeof SIGNERS;
     copy={SIGNERS[signer]}
     auth={auth}
     testId={signer === 'ring' ? 'button' : 'sign-in-grant-button'}
+    authorizeLabel="Authorize"
   />
 );
 
-/**
- * Ring and Bitkit side by side, with "Continue with Google" (Pubky Passport)
- * below. Each signer runs its own flow; the first approval wins and the
- * controller cancels the others.
- */
+/** Keep both existing approval flows alive while displaying the selected signer. */
 const SignInBothSigners = ({ ring }: { ring: TSignerAuth }) => {
   const bitkit = useMobileAuth({ type: 'grant' });
+  const [signer, setSigner] = useState<keyof typeof SIGNERS>('ring');
+  const auth = signer === 'ring' ? ring : bitkit;
   const ringDisclosure = ringSignInDisclosure(ring);
+  const identityHint = SIGNERS[signer].identityHint;
   return (
-    <>
-      <Container size="container" className="hidden md:flex">
-        <SignInHeader signer="both" />
-        <Card
+    <Container size="container">
+      <SignInHeader signer="both" />
+      <div className="grid w-full gap-6 md:grid-cols-2">
+        <IllustratedCard
           data-testid="sign-in-qr-card"
-          className="w-full flex-row items-start justify-center gap-12 rounded-md p-6 lg:gap-24 lg:p-12"
+          className="rounded-md"
+          contentClassName="gap-3"
+          visualClassName="lg:hidden xl:flex"
+          visual={<Image src="/images/keyring.webp" alt="" width={192} height={192} className="size-48" priority />}
         >
-          <SignInQrOption signer="ring" auth={ring} disclosure={ringDisclosure} />
-          <SignInQrOption signer="bitkit" auth={bitkit} />
-        </Card>
-        <div className="flex w-full justify-center pt-6">
-          <PassportSignInButton />
-        </div>
-      </Container>
-
-      <Container size="container" className="md:hidden">
-        <SignInHeader signer="both" />
-        <ContentCard layout="column">
-          <Container className="flex-col items-center justify-center gap-4">
-            <SignInAuthorizeButton signer="ring" auth={ring} />
-            <MarketplaceApprovalDisclosure sentence={ringDisclosure} />
-            <SignInAuthorizeButton signer="bitkit" auth={bitkit} />
-            <Typography as="p" className="text-center text-sm text-muted-foreground">
-              {BITKIT_IDENTITY_HINT}
+          <div className="flex flex-col gap-3">
+            <Typography as="h2" size="lg">
+              Sovereign &amp; Secure
             </Typography>
-            <PassportSignInButton />
-          </Container>
-        </ContentCard>
-      </Container>
-    </>
+            <Typography className="text-secondary-foreground opacity-80">
+              <span className="hidden md:inline">Scan with your preferred keychain.</span>
+              <span className="md:hidden">Authorize with your keychain.</span>
+            </Typography>
+          </div>
+          <div className="flex flex-col items-start gap-4">
+            <SignerToggle value={signer} onValueChange={setSigner} label="Sign-in app" />
+            <div className="hidden w-full md:block">
+              <SignInQrOption signer={signer} auth={auth} />
+            </div>
+            <div className="w-full md:hidden">
+              <SignInAuthorizeButton signer={signer} auth={auth} />
+            </div>
+            {signer === 'ring' && <MarketplaceApprovalDisclosure sentence={ringDisclosure} />}
+            {identityHint && (
+              <Typography as="p" className="text-sm text-muted-foreground">
+                {identityHint}
+              </Typography>
+            )}
+          </div>
+        </IllustratedCard>
+        <IllustratedCard
+          className="rounded-md"
+          visualClassName="lg:hidden xl:flex"
+          visual={<Image src="/images/sign-in/cloud.webp" alt="" width={192} height={192} className="size-48" />}
+        >
+          <div className="flex flex-col gap-3">
+            <Typography as="h2" size="lg">
+              Quick &amp; Easy
+            </Typography>
+            <Typography className="text-secondary-foreground opacity-80">Use your existing sign-in methods.</Typography>
+          </div>
+          <PassportSignInButton />
+        </IllustratedCard>
+      </div>
+    </Container>
   );
 };
 
@@ -227,7 +238,7 @@ export const SignInContent = () => {
   ) : (
     <>
       <Key className="mr-2 size-4" />
-      {'Authorize with Pubky Ring'}
+      {'Authorize'}
     </>
   );
 
@@ -320,11 +331,7 @@ export const SignInFooter = () => {
   if (authUrlResolved) return null;
   return (
     <FooterLinks className="py-6">
-      {'Not able to sign in with '}
-      <Link href="https://pubkyring.app/" target="_blank" rel="noopener noreferrer">
-        {'Pubky Ring'}
-      </Link>
-      {'? Use the recovery phrase or encrypted file to restore your account.'}
+      {'Not able to sign in with a keychain? Use the recovery phrase or encrypted file to restore your account.'}
     </FooterLinks>
   );
 };
@@ -336,15 +343,13 @@ export const SignInHeader = ({ signer = 'ring' }: { signer?: 'ring' | 'both' }) 
         <span className="text-brand">{'Pubky.'}</span>
       </PageTitle>
       <PageSubtitle>
-        {'Authorize with '}
-        <span className="text-brand">{'Pubky Ring'}</span>
         {signer === 'both' ? (
+          'Choose your preferred sign-in method.'
+        ) : (
           <>
-            {' or '}
-            <span className="text-brand">{'Bitkit'}</span>
+            Authorize with <span className="text-brand">Pubky Ring</span> to sign in.
           </>
-        ) : null}
-        {' to sign in.'}
+        )}
       </PageSubtitle>
     </PageHeader>
   );

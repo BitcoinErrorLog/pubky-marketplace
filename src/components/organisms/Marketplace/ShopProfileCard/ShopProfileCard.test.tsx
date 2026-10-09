@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { ShopProfileCard } from './ShopProfileCard';
 
 describe('ShopProfileCard', () => {
-  it('renders the mini preview with compressed type and location', () => {
+  it('renders the editor preview with a subordinate heading and location', () => {
     render(
       <ShopProfileCard
         variant="mini"

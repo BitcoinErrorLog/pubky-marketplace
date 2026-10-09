@@ -2,16 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft, Package, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Package, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { MARKETPLACE_ROUTES } from '@/app/routes';
 import { Badge } from '@/atoms/Badge/Badge';
 import { Button } from '@/atoms/Button/Button';
 import { Card, CardContent } from '@/atoms/Card/Card';
 import { Container } from '@/atoms/Container/Container';
 import { Heading } from '@/atoms/Heading/Heading';
-import { Link } from '@/atoms/Link/Link';
 import { Skeleton } from '@/atoms/Skeleton/Skeleton';
 import { Typography } from '@/atoms/Typography/Typography';
 import { useMarketplaceShippingIntegration } from '@/hooks/useMarketplaceShippingIntegration/useMarketplaceShippingIntegration';
@@ -23,6 +21,8 @@ import { formatCommerceMoney } from '@/libs/commerce/format';
 import { isPlausibleShippoApiKey, type ShipFromAddress } from '@/libs/commerce/shipping';
 import type { CommerceShippingPresetModelSchema } from '@/models/commerce/commerce.schema';
 import { ControlledInputField } from '@/molecules/ControlledInputField/ControlledInputField';
+import { BackToMyShop } from '@/molecules/Marketplace/BackToMyShop';
+import { SettingsSectionContent } from '@/molecules/Settings/SettingsSectionContent/SettingsSectionContent';
 import { ContentLayout } from '@/organisms/ContentLayout/ContentLayout';
 
 const shippoFormSchema = z.object({
@@ -114,8 +114,8 @@ function ShippoIntegrationCard() {
   });
 
   return (
-    <Card className="border">
-      <CardContent className="grid gap-4 px-6">
+    <Card className="rounded-md p-0 shadow-lg">
+      <CardContent className="grid gap-6 p-6">
         <div>
           <div className="flex items-center gap-2">
             <Typography as="h2" className="text-xl font-semibold">
@@ -129,50 +129,57 @@ function ShippoIntegrationCard() {
             marketplace never touches the money.
           </Typography>
         </div>
-        {shipping.isLoading ? (
-          <Skeleton className="h-24 w-full" />
-        ) : (
-          <>
-            <ControlledInputField
-              name="shippoApiKey"
-              control={form.control}
-              label={shipping.config?.shippoApiKeySet ? 'Replace Shippo API token (optional)' : 'Shippo API token'}
-              placeholder="shippo_live_…"
-            />
-            <Typography as="h3" className="mt-1 font-semibold">
-              Ship-from address
-            </Typography>
-            <div className="grid gap-4 sm:grid-cols-2">
+        <SettingsSectionContent>
+          {shipping.isLoading ? (
+            <Skeleton className="h-24 w-full" />
+          ) : (
+            <>
               <ControlledInputField
-                name="fromName"
+                name="shippoApiKey"
                 control={form.control}
-                label="Name"
-                placeholder="Igor's Olive Farm"
+                label={shipping.config?.shippoApiKeySet ? 'Replace Shippo API token (optional)' : 'Shippo API token'}
+                placeholder="shippo_live_…"
               />
-              <ControlledInputField name="fromLine1" control={form.control} label="Street" placeholder="Maslinska 1" />
-              <ControlledInputField name="fromLine2" control={form.control} label="Street line 2 (optional)" />
-              <ControlledInputField name="fromCity" control={form.control} label="City" placeholder="Split" />
-              <ControlledInputField name="fromRegion" control={form.control} label="Region/State (optional)" />
-              <ControlledInputField
-                name="fromPostalCode"
-                control={form.control}
-                label="Postal code"
-                placeholder="21000"
-              />
-              <ControlledInputField
-                name="fromCountryCode"
-                control={form.control}
-                label="Country code"
-                placeholder="HR"
-              />
-              <ControlledInputField name="fromPhone" control={form.control} label="Phone (optional)" />
-              <ControlledInputField name="fromEmail" control={form.control} label="Email (optional)" />
-            </div>
-            <Button className="w-fit rounded-full" disabled={shipping.isSaving} onClick={() => void submit()}>
-              Save Shippo settings
-            </Button>
-          </>
-        )}
+              <Typography as="h3" className="mt-1 font-semibold">
+                Ship-from address
+              </Typography>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <ControlledInputField
+                  name="fromName"
+                  control={form.control}
+                  label="Name"
+                  placeholder="Igor's Olive Farm"
+                />
+                <ControlledInputField
+                  name="fromLine1"
+                  control={form.control}
+                  label="Street"
+                  placeholder="Maslinska 1"
+                />
+                <ControlledInputField name="fromLine2" control={form.control} label="Street line 2 (optional)" />
+                <ControlledInputField name="fromCity" control={form.control} label="City" placeholder="Split" />
+                <ControlledInputField name="fromRegion" control={form.control} label="Region/State (optional)" />
+                <ControlledInputField
+                  name="fromPostalCode"
+                  control={form.control}
+                  label="Postal code"
+                  placeholder="21000"
+                />
+                <ControlledInputField
+                  name="fromCountryCode"
+                  control={form.control}
+                  label="Country code"
+                  placeholder="HR"
+                />
+                <ControlledInputField name="fromPhone" control={form.control} label="Phone (optional)" />
+                <ControlledInputField name="fromEmail" control={form.control} label="Email (optional)" />
+              </div>
+              <Button className="w-fit rounded-full" disabled={shipping.isSaving} onClick={() => void submit()}>
+                Save Shippo settings
+              </Button>
+            </>
+          )}
+        </SettingsSectionContent>
       </CardContent>
     </Card>
   );
@@ -262,17 +269,9 @@ export function MarketplaceShippingSettings() {
       showLeftMobileButton={false}
       showRightMobileButton={false}
       className="pb-28"
-      classNameWrapperContent="max-w-7xl"
     >
-      <Container overrideDefaults className="flex w-full flex-col gap-6 px-4 sm:px-6">
-        <Link
-          href={MARKETPLACE_ROUTES.DASHBOARD}
-          overrideDefaults
-          className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground"
-        >
-          <ArrowLeft className="size-4" />
-          Seller studio
-        </Link>
+      <Container overrideDefaults className="flex w-full flex-col gap-6">
+        <BackToMyShop />
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <Badge className="mb-4">Seller studio</Badge>
@@ -287,7 +286,7 @@ export function MarketplaceShippingSettings() {
           </div>
           {editingId === null && (
             <Button className="rounded-full" onClick={beginCreate}>
-              <Plus className="mr-2 size-4" />
+              <Plus className="size-4" />
               Add preset
             </Button>
           )}
@@ -296,35 +295,47 @@ export function MarketplaceShippingSettings() {
         <ShippoIntegrationCard />
 
         {editingId !== null && (
-          <Card className="border">
-            <CardContent className="grid gap-4 px-6">
+          <Card className="rounded-md p-0 shadow-lg">
+            <CardContent className="grid gap-6 p-6">
               <Typography as="h2" className="text-xl font-semibold">
                 {editingId === 'new' ? 'New preset' : 'Edit preset'}
               </Typography>
-              <ControlledInputField
-                name="shippingLabel"
-                control={form.control}
-                label="Shipping label"
-                placeholder="Standard shipping"
-              />
-              <div className="grid gap-4 sm:grid-cols-3">
+              <SettingsSectionContent>
                 <ControlledInputField
-                  name="shippingPrice"
+                  name="shippingLabel"
                   control={form.control}
-                  label="Flat price (USD)"
-                  placeholder="12.00"
+                  label="Shipping label"
+                  placeholder="Standard shipping"
                 />
-                <ControlledInputField name="shippingMinDays" control={form.control} label="Min days" placeholder="3" />
-                <ControlledInputField name="shippingMaxDays" control={form.control} label="Max days" placeholder="7" />
-              </div>
-              <div className="flex gap-2">
-                <Button className="rounded-full" onClick={() => void submit()}>
-                  Save preset
-                </Button>
-                <Button variant="secondary" className="rounded-full" onClick={() => setEditingId(null)}>
-                  Cancel
-                </Button>
-              </div>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <ControlledInputField
+                    name="shippingPrice"
+                    control={form.control}
+                    label="Flat price (USD)"
+                    placeholder="12.00"
+                  />
+                  <ControlledInputField
+                    name="shippingMinDays"
+                    control={form.control}
+                    label="Min days"
+                    placeholder="3"
+                  />
+                  <ControlledInputField
+                    name="shippingMaxDays"
+                    control={form.control}
+                    label="Max days"
+                    placeholder="7"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button className="rounded-full" onClick={() => void submit()}>
+                    Save preset
+                  </Button>
+                  <Button variant="secondary" className="rounded-full" onClick={() => setEditingId(null)}>
+                    Cancel
+                  </Button>
+                </div>
+              </SettingsSectionContent>
             </CardContent>
           </Card>
         )}
@@ -334,8 +345,8 @@ export function MarketplaceShippingSettings() {
         ) : presets.length ? (
           <div className="grid gap-3">
             {presets.map((preset) => (
-              <Card key={preset.id} className="border py-4">
-                <CardContent className="flex flex-wrap items-center justify-between gap-4 px-5">
+              <Card key={preset.id} className="rounded-md p-0">
+                <CardContent className="flex flex-wrap items-center justify-between gap-4 p-6">
                   <div className="min-w-0">
                     <Typography as="h2" className="font-semibold">
                       {preset.label}
@@ -374,7 +385,7 @@ export function MarketplaceShippingSettings() {
             ))}
           </div>
         ) : editingId === null ? (
-          <div className="flex min-h-48 flex-col items-center justify-center rounded-xl border border-dashed text-center">
+          <div className="flex min-h-48 flex-col items-center justify-center rounded-md text-center">
             <Package className="mb-3 size-10 text-muted-foreground" />
             <Heading level={2} size="md">
               No shipping presets

@@ -1,6 +1,7 @@
 import { Container } from '@/atoms/Container/Container';
 import { Textarea } from '@/atoms/Textarea/Textarea';
 import { Typography } from '@/atoms/Typography/Typography';
+import { FORM_FIELD_SURFACE_CLASSES } from '@/config/forms';
 import { cn } from '@/libs/utils/utils';
 
 interface TextareaFieldProps {
@@ -53,8 +54,8 @@ export function TextareaField({
 
   const textAreaClasses = cn('h-25 px-5 py-4', textareaClassName);
   const containerClasses = cn(
-    'w-full flex-1 cursor-pointer flex-row items-center gap-0 rounded-md border font-medium',
-    variant === 'dashed' && '!bg-alpha-90/10 border-dashed',
+    'w-full flex-1 cursor-pointer flex-row items-center gap-0 rounded-md border bg-background font-medium',
+    variant === 'dashed' && FORM_FIELD_SURFACE_CLASSES,
   );
   const messageClasses = {
     default: 'text-muted-foreground',

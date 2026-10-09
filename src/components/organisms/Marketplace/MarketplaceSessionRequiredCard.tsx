@@ -3,7 +3,6 @@
 import { KeyRound } from 'lucide-react';
 import { Heading } from '@/atoms/Heading/Heading';
 import { Typography } from '@/atoms/Typography/Typography';
-import { useMarketplaceApprovalSigner } from '@/hooks/useMarketplaceApprovalSigner/useMarketplaceApprovalSigner';
 import { MarketplaceSessionConnectDialog } from './MarketplaceSessionConnectDialog';
 
 /**
@@ -23,23 +22,26 @@ export const SALES_LIST_SESSION_NOTE =
 export function MarketplaceSessionRequiredCard({
   onConnected,
   note,
+  intent = 'buy',
 }: {
   onConnected?: () => void | Promise<void>;
   note?: string;
+  intent?: 'buy' | 'sell';
 }) {
-  const signer = useMarketplaceApprovalSigner();
   return (
     <div
       role="alert"
-      className="flex min-h-56 flex-col items-center justify-center gap-4 rounded-xl border border-dashed px-6 py-8 text-center"
+      className="flex min-h-56 flex-col items-center justify-center gap-4 rounded-md border border-dashed px-6 py-8 text-center"
     >
       <KeyRound className="size-10 text-muted-foreground" />
       <div>
         <Heading level={2} size="md">
-          Approve purchases in {signer}
+          {intent === 'sell' ? 'Enable selling' : 'Enable purchases'}
         </Heading>
         <Typography as="p" className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">
-          One approval lets you buy, bid, and make offers on this marketplace. Nothing is charged until you pay.
+          {intent === 'sell'
+            ? 'Manage your listings, orders, and offers with one approval.'
+            : 'Buy, bid, and make offers with one approval.'}
         </Typography>
         {note ? (
           <Typography as="p" className="mx-auto max-w-lg text-sm text-muted-foreground">
@@ -47,7 +49,7 @@ export function MarketplaceSessionRequiredCard({
           </Typography>
         ) : null}
       </div>
-      <MarketplaceSessionConnectDialog triggerLabel={`Approve in ${signer}`} onConnected={onConnected} />
+      <MarketplaceSessionConnectDialog triggerLabel="Authorize" onConnected={onConnected} intent={intent} />
     </div>
   );
 }

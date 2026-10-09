@@ -21,6 +21,7 @@ import {
 import { useMarketplaceDrop } from '@/hooks/useMarketplaceDrop/useMarketplaceDrop';
 import { useMarketplaceDropClaim } from '@/hooks/useMarketplaceDropClaim/useMarketplaceDropClaim';
 import { useMarketplaceFirstMediaUrl } from '@/hooks/useMarketplaceMediaUrl/useMarketplaceMediaUrl';
+import { SettingsSectionContent } from '@/molecules/Settings/SettingsSectionContent/SettingsSectionContent';
 import { ContentLayout } from '@/organisms/ContentLayout/ContentLayout';
 import { DropClaimPanel } from '@/organisms/Marketplace/DropClaimPanel';
 import { DropCountdown } from '@/organisms/Marketplace/DropCountdown';
@@ -158,8 +159,8 @@ export function MarketplaceDrop({ sellerPubky, dropId }: MarketplaceDropProps) {
         </Typography>
       </div>
 
-      <Card className="gap-4 border py-5">
-        <CardContent className="flex items-center justify-between gap-4 px-5">
+      <Card className="gap-4 rounded-md p-0">
+        <CardContent className="flex items-center justify-between gap-4 p-6">
           <div>
             <Typography as="p" className="text-sm text-muted-foreground">
               Dropped by
@@ -170,7 +171,7 @@ export function MarketplaceDrop({ sellerPubky, dropId }: MarketplaceDropProps) {
           </div>
           <Button asChild variant="secondary" size="sm" className="rounded-full">
             <Link href={getMarketplaceShopRoute(sellerPubky)} overrideDefaults>
-              <Store className="mr-2 size-4" />
+              <Store className="size-4" />
               View shop
             </Link>
           </Button>
@@ -178,13 +179,13 @@ export function MarketplaceDrop({ sellerPubky, dropId }: MarketplaceDropProps) {
       </Card>
 
       {state === 'unavailable' && (
-        <div role="status" className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200">
+        <div role="status" className="rounded-md border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200">
           This drop cannot go live here. You can still view the announcement below.
         </div>
       )}
 
       {state === 'unregistered' && (
-        <div role="status" className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200">
+        <div role="status" className="rounded-md border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200">
           This drop is not ready yet. The start time is provisional, and availability is not confirmed.
         </div>
       )}
@@ -238,7 +239,7 @@ export function MarketplaceDrop({ sellerPubky, dropId }: MarketplaceDropProps) {
       )}
 
       {isEnded && projection && (
-        <section aria-label="Drop archive" className="flex flex-col gap-3 rounded-xl border bg-card p-5">
+        <section aria-label="Drop archive" className="grid min-w-0 gap-6 rounded-md bg-card p-6 shadow-lg">
           <Heading level={2} size="md" className="flex items-center gap-2">
             <Archive className="size-5 text-muted-foreground" />
             {DROP_ENDED_LABELS[state as keyof typeof DROP_ENDED_LABELS]}
@@ -246,40 +247,42 @@ export function MarketplaceDrop({ sellerPubky, dropId }: MarketplaceDropProps) {
           <Typography as="p" className="text-sm text-muted-foreground">
             {DROP_ENDED_DESCRIPTIONS[state as keyof typeof DROP_ENDED_DESCRIPTIONS]}
           </Typography>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <ArchiveFact label="Total quantity" value={String(projection.totalQuantity)} />
-            <ArchiveFact label="Per-buyer limit" value={String(projection.perBuyerLimit)} />
-            <ArchiveFact
-              label="Window"
-              value={`${new Date(projection.startsAt).toLocaleString()}${
-                projection.endsAt ? ` → ${new Date(projection.endsAt).toLocaleString()}` : ' → sold out / cancelled'
-              }`}
-            />
-          </div>
-          <Typography as="p" className="text-xs text-muted-foreground">
-            The final terms and outcome remain publicly available.
-          </Typography>
-          <div className="flex flex-wrap gap-3">
-            <Button
-              variant="secondary"
-              className="rounded-full"
-              disabled={shopFollow.isLoading || shopFollow.isMutating}
-              onClick={shopFollow.toggle}
-            >
-              <Bell className={shopFollow.isFollowing ? 'mr-2 size-4 fill-brand text-brand' : 'mr-2 size-4'} />
-              {shopFollow.isFollowing ? 'Watching seller' : 'Watch this seller'}
-            </Button>
-            <Button asChild className="rounded-full">
-              <Link href={APP_ROUTES.MARKETPLACE} overrideDefaults>
-                <Search className="mr-2 size-4" />
-                Browse similar
-              </Link>
-            </Button>
-          </div>
+          <SettingsSectionContent>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <ArchiveFact label="Total quantity" value={String(projection.totalQuantity)} />
+              <ArchiveFact label="Per-buyer limit" value={String(projection.perBuyerLimit)} />
+              <ArchiveFact
+                label="Window"
+                value={`${new Date(projection.startsAt).toLocaleString()}${
+                  projection.endsAt ? ` → ${new Date(projection.endsAt).toLocaleString()}` : ' → sold out / cancelled'
+                }`}
+              />
+            </div>
+            <Typography as="p" className="text-xs text-muted-foreground">
+              The final terms and outcome remain publicly available.
+            </Typography>
+            <div className="flex flex-wrap gap-3">
+              <Button
+                variant="secondary"
+                className="rounded-full"
+                disabled={shopFollow.isLoading || shopFollow.isMutating}
+                onClick={shopFollow.toggle}
+              >
+                <Bell className={shopFollow.isFollowing ? 'size-4 fill-brand text-brand' : 'size-4'} />
+                {shopFollow.isFollowing ? 'Watching seller' : 'Watch this seller'}
+              </Button>
+              <Button asChild className="rounded-full">
+                <Link href={APP_ROUTES.MARKETPLACE} overrideDefaults>
+                  <Search className="size-4" />
+                  Browse similar
+                </Link>
+              </Button>
+            </div>
+          </SettingsSectionContent>
         </section>
       )}
 
-      <footer className="mt-4 flex items-start gap-2 rounded-xl border border-dashed p-4">
+      <footer className="mt-4 flex items-start gap-2 rounded-md border border-dashed p-4">
         <ShieldCheck className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden="true" />
         <Typography as="p" className="text-xs text-muted-foreground">
           {DROP_NO_FAKE_PROMISE}
@@ -291,7 +294,7 @@ export function MarketplaceDrop({ sellerPubky, dropId }: MarketplaceDropProps) {
 
 function ArchiveFact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border bg-card/60 p-3">
+    <div className="rounded-md bg-card/60 p-6">
       <Typography as="p" className="text-xs text-muted-foreground">
         {label}
       </Typography>
@@ -310,9 +313,8 @@ function DropPageShell({ children }: { children: React.ReactNode }) {
       showLeftMobileButton={false}
       showRightMobileButton={false}
       className="pb-28 lg:pb-16"
-      classNameWrapperContent="max-w-7xl"
     >
-      <Container overrideDefaults className="flex w-full flex-col gap-6 px-4 sm:px-6 lg:px-8">
+      <Container overrideDefaults className="flex w-full flex-col gap-6">
         {children}
       </Container>
     </ContentLayout>

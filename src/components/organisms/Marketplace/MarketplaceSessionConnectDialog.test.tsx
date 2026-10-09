@@ -27,10 +27,11 @@ const view = vi.hoisted(() => ({
   requestsGrantReconnect: false,
   requestsGrantBootstrap: false,
   requestsPassport: false,
-  approvalSigner: 'Bitkit' as 'Bitkit' | 'Pubky Passport' | 'Pubky Ring' | 'Pubky Ring or Bitkit',
+  approvalSigner: 'Pubky Ring' as 'Bitkit' | 'Pubky Passport' | 'Pubky Ring' | 'Pubky Ring or Bitkit',
   passportRefused: false,
   isGrantSession: false,
   grantEnabled: false,
+  cancel: vi.fn(),
   start: vi.fn(),
   startPassport: vi.fn(),
 }));
@@ -47,6 +48,10 @@ vi.mock('@/hooks/useGrantSigner/useGrantSigner', async (importOriginal) => ({
   isPassportApprovalRefused: () => view.passportRefused,
 }));
 
+vi.mock('@/hooks/useMarketplaceApprovalSigner/useMarketplaceApprovalSigner', () => ({
+  useMarketplaceApprovalSigner: () => view.approvalSigner,
+}));
+
 vi.mock('@/hooks/useMarketplaceSessionConnect/useMarketplaceSessionConnect', () => ({
   useMarketplaceSessionConnect: () => ({
     status: view.status,
@@ -59,7 +64,7 @@ vi.mock('@/hooks/useMarketplaceSessionConnect/useMarketplaceSessionConnect', () 
     approvalSigner: view.approvalSigner,
     start: view.start,
     startPassport: view.startPassport,
-    cancel: vi.fn(),
+    cancel: view.cancel,
     copyAuthUrl: vi.fn(async () => {}),
     openInRing: vi.fn(),
     isOpeningRing: view.isOpeningRing,
@@ -91,10 +96,11 @@ describe('MarketplaceSessionConnectDialog', () => {
     view.requestsGrantReconnect = false;
     view.requestsGrantBootstrap = false;
     view.requestsPassport = false;
-    view.approvalSigner = 'Bitkit';
+    view.approvalSigner = 'Pubky Ring';
     view.passportRefused = false;
     view.isGrantSession = false;
     view.grantEnabled = false;
+    view.cancel.mockClear();
     view.start.mockClear();
     view.startPassport.mockClear();
   });
@@ -108,7 +114,7 @@ describe('MarketplaceSessionConnectDialog', () => {
 
     expect(screen.getByTestId('grant-session-refusal')).toBeInTheDocument();
     expect(screen.queryByLabelText('Copy authorization link')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /open in pubky ring/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /authorize with pubky ring/i })).not.toBeInTheDocument();
     expect(view.start).not.toHaveBeenCalled();
   });
 
@@ -119,19 +125,20 @@ describe('MarketplaceSessionConnectDialog', () => {
     view.grantEnabled = true;
     view.requestsGrantBootstrap = true;
     view.requestsFullGrant = false;
+    view.approvalSigner = 'Bitkit';
 
     render(<MarketplaceSessionConnectDialog autoOpen />);
 
     expect(view.start).toHaveBeenCalled();
     expect(screen.queryByTestId('grant-session-refusal')).not.toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Approve purchases in Bitkit' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Enable purchases' })).toBeInTheDocument();
     expect(
       screen.getByText(
         'Approve with Bitkit to connect the marketplace for the identity signed in to Shop. Nothing is charged until you pay.',
       ),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Open in Bitkit' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /open in pubky ring/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Authorize with Bitkit' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /authorize with pubky ring/i })).not.toBeInTheDocument();
     expect(screen.getByText('Waiting for approval in Bitkit…')).toBeInTheDocument();
     expect(screen.getByTestId('session-approval-disclosure')).toHaveTextContent(MARKETPLACE_DISCLOSURE_INVENTORY);
   });
@@ -147,16 +154,98 @@ describe('MarketplaceSessionConnectDialog', () => {
     render(<MarketplaceSessionConnectDialog autoOpen />);
 
     expect(view.start).toHaveBeenCalled();
-    expect(screen.getByRole('heading', { name: 'Approve purchases in Pubky Ring or Bitkit' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Enable purchases' })).toBeInTheDocument();
     expect(
       screen.getByText(
         'Approve with Pubky Ring or Bitkit, whichever holds the pubky signed in to Shop. Nothing is charged until you pay.',
       ),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Open in signer' })).toBeInTheDocument();
-    expect(screen.getByText('Waiting for approval on your signer…')).toBeInTheDocument();
-    expect(screen.queryByText(/Approve purchases in Pubky Ring$|Approve with Pubky Ring to connect/)).toBeNull();
-    expect(screen.queryByRole('button', { name: /open in pubky ring|open in bitkit/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Authorize with Pubky Ring' })).toBeInTheDocument();
+    expect(screen.getByText('Waiting for approval in Pubky Ring…')).toBeInTheDocument();
+    expect(screen.queryByText(/Approve with Pubky Ring to connect/)).toBeNull();
+    expect(screen.getByRole('radio', { name: 'Bitkit' })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: 'Authorize with Bitkit' })).not.toBeInTheDocument();
+  });
+
+  describe('Bitkit approval', () => {
+    function bitkitSession() {
+      view.status = 'awaiting';
+      view.authorizationUrl = grantUrl(MARKETPLACE_SESSION_GRANT);
+      view.isGrantSession = true;
+      view.grantEnabled = true;
+      view.requestsGrantBootstrap = true;
+      view.requestsFullGrant = false;
+      view.approvalSigner = 'Bitkit';
+    }
+
+    it('a Bitkit sign-in starts on the Bitkit tab and approves the same grant link', () => {
+      bitkitSession();
+
+      render(<MarketplaceSessionConnectDialog autoOpen />);
+
+      expect(view.start).toHaveBeenCalledOnce();
+      expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
+      expect(screen.getByRole('radio', { name: 'Bitkit' })).toBeChecked();
+      expect(screen.getByRole('radio', { name: 'Pubky Ring' })).toBeDisabled();
+      expect(screen.getByText('Use Bitkit to approve purchases for this sign-in.')).toBeInTheDocument();
+      expect(screen.getByLabelText('Copy authorization link')).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Authorize with Bitkit' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Copy link' })).toBeEnabled();
+      expect(screen.getByText('Waiting for approval in Bitkit…')).toBeInTheDocument();
+      expect(screen.getByTestId('session-approval-disclosure')).toHaveTextContent(MARKETPLACE_DISCLOSURE_PRIVATE_DATA);
+    });
+
+    it('a Bitkit sign-in reconnecting an older purchase session approves in Bitkit too', () => {
+      bitkitSession();
+      view.requestsGrantBootstrap = false;
+      view.requestsGrantReconnect = true;
+
+      render(<MarketplaceSessionConnectDialog autoOpen />);
+
+      expect(view.start).toHaveBeenCalledOnce();
+      expect(
+        screen.getByText(
+          'Approve with Bitkit to reconnect the marketplace session for the identity already signed in to Shop. Nothing is charged until you pay.',
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Authorize with Bitkit' })).toBeEnabled();
+      expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
+    });
+
+    it('a Ring sign-in can switch the approval app without restarting the grant link', () => {
+      view.status = 'awaiting';
+      view.authorizationUrl = grantUrl(MARKETPLACE_SESSION_GRANT);
+      view.grantEnabled = true;
+      view.requestsGrantBootstrap = true;
+      view.requestsFullGrant = false;
+      view.approvalSigner = 'Pubky Ring or Bitkit';
+
+      render(<MarketplaceSessionConnectDialog autoOpen />);
+      expect(screen.getByRole('radio', { name: 'Pubky Ring' })).toBeChecked();
+      expect(screen.getByRole('radio', { name: 'Bitkit' })).toBeEnabled();
+      view.cancel.mockClear();
+
+      fireEvent.click(screen.getByRole('radio', { name: 'Bitkit' }));
+
+      expect(screen.getByRole('radio', { name: 'Bitkit' })).toBeChecked();
+      expect(screen.getByRole('button', { name: 'Authorize with Bitkit' })).toBeEnabled();
+      expect(screen.getByLabelText('Copy authorization link')).toBeEnabled();
+      expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
+      expect(view.start).toHaveBeenCalledOnce();
+      expect(view.cancel).not.toHaveBeenCalled();
+    });
+
+    it('does not offer Bitkit for the Pubky Ring connect link, which Bitkit cannot parse', () => {
+      view.status = 'awaiting';
+      view.authorizationUrl = 'pubkyauth:///?relay=https%3A%2F%2Frelay.example.com%2Finbox&secret=x';
+      view.grantEnabled = false;
+
+      render(<MarketplaceSessionConnectDialog autoOpen />);
+
+      expect(screen.getByRole('radio', { name: 'Bitkit' })).toBeDisabled();
+      expect(screen.getByText('Bitkit cannot approve this request. Use Pubky Ring.')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Authorize with Pubky Ring' })).toBeEnabled();
+    });
   });
 
   it.each([
@@ -228,8 +317,12 @@ describe('MarketplaceSessionConnectDialog', () => {
 
     render(<MarketplaceSessionConnectDialog />);
 
-    expect(screen.getByRole('heading', { name: 'Approve purchases in Pubky Ring' })).toBeInTheDocument();
-    expect(screen.getByText('Approve with Pubky Ring to connect the marketplace on this device.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Enable purchases' })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Authorize with your keychain to let the marketplace handle your purchases and marketplace data.',
+      ),
+    ).toBeInTheDocument();
     expectOneDisclosure(MARKETPLACE_DISCLOSURE_PRIVATE_DATA);
   });
 
@@ -308,7 +401,7 @@ describe('MarketplaceSessionConnectDialog', () => {
     // The QR slot button (its aria-label is the copy affordance) must not
     // render — there is no URL on this surface to scan, copy, or open.
     expect(screen.queryByLabelText('Copy authorization link')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /open in pubky ring/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /authorize with pubky ring/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /copy link/i })).not.toBeInTheDocument();
   });
 
@@ -319,9 +412,13 @@ describe('MarketplaceSessionConnectDialog', () => {
     render(<MarketplaceSessionConnectDialog />);
 
     expect(screen.getByLabelText('Copy authorization link')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /open in pubky ring/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /authorize with pubky ring/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /copy link/i })).toBeInTheDocument();
-    expect(screen.getByText('Sign in to Pubky Shop.')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Authorize with your keychain to let the marketplace handle your purchases and marketplace data.',
+      ),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/permission list/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/compare it before approving/i)).not.toBeInTheDocument();
   });
@@ -331,9 +428,8 @@ describe('MarketplaceSessionConnectDialog', () => {
     view.requestsFullGrant = false;
     render(<MarketplaceSessionConnectDialog />);
 
-    expect(screen.getByRole('heading', { name: 'Approve purchases' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Enable purchases' })).toBeInTheDocument();
     expect(screen.getByText(/reconnect the marketplace session/i)).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Approve purchases in Pubky Ring' })).not.toBeInTheDocument();
   });
 
   describe('Pubky Passport sign-in', () => {
@@ -352,7 +448,7 @@ describe('MarketplaceSessionConnectDialog', () => {
 
       expect(view.start).toHaveBeenCalled();
       expect(view.startPassport).not.toHaveBeenCalled();
-      expect(screen.getByRole('heading', { name: 'Approve purchases in Pubky Passport' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Enable purchases' })).toBeInTheDocument();
       expect(
         screen.getByText(
           'Approve with Pubky Passport to connect the marketplace for the identity signed in to Shop. Nothing is charged until you pay.',
@@ -408,7 +504,7 @@ describe('MarketplaceSessionConnectDialog', () => {
 
       render(<MarketplaceSessionConnectDialog autoOpen />);
 
-      expect(screen.getByRole('heading', { name: 'Approve purchases' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Enable purchases' })).toBeInTheDocument();
       expect(
         screen.getByText(
           'Approve with Pubky Passport to reconnect the marketplace session for the identity already signed in to Shop. Nothing is charged until you pay.',

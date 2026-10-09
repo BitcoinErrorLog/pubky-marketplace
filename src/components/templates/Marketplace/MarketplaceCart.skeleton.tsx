@@ -7,8 +7,8 @@ export function MarketplaceCartSkeleton() {
     <div data-testid="marketplace-cart-skeleton" className="grid gap-6 lg:grid-cols-[1fr_420px]">
       <div className="flex flex-col gap-3">
         {Array.from({ length: 3 }, (_, index) => (
-          <Card key={index} className="border py-4">
-            <CardContent className="flex items-center gap-4 px-4">
+          <Card key={index} className="rounded-md p-0">
+            <CardContent className="flex items-center gap-4 p-6">
               <Skeleton className="size-20 shrink-0 rounded-xl" />
               <div className="flex min-w-0 flex-1 flex-col gap-2">
                 <Skeleton className="h-4 w-3/5" />
@@ -20,10 +20,10 @@ export function MarketplaceCartSkeleton() {
           </Card>
         ))}
       </div>
-      <Card className="h-fit border">
-        <CardContent className="grid gap-4 px-6">
+      <Card className="h-fit rounded-md p-0">
+        <CardContent className="grid gap-4 p-6">
           <Skeleton className="h-5 w-48" />
-          <Skeleton className="h-32 w-full rounded-xl" />
+          <Skeleton className="h-32 w-full rounded-md" />
           <Skeleton className="h-5 w-40" />
           <Skeleton className="h-11 w-full" />
           <Skeleton className="h-11 w-full" />

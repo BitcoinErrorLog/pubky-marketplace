@@ -77,8 +77,8 @@ export function DropStudioHome() {
         </div>
 
         {!studio.isDurable ? (
-          <Card className="border-dashed py-5">
-            <CardContent className="flex flex-col gap-2 px-5">
+          <Card className="rounded-md p-0">
+            <CardContent className="flex flex-col gap-2 p-6">
               <Typography as="p" className="font-semibold">
                 Drops are unavailable in this mode
               </Typography>
@@ -88,8 +88,8 @@ export function DropStudioHome() {
             </CardContent>
           </Card>
         ) : !currentUserPubky ? (
-          <Card className="border-dashed py-5">
-            <CardContent className="px-5">
+          <Card className="rounded-md p-0">
+            <CardContent className="p-6">
               <Typography as="p" className="text-sm text-muted-foreground">
                 Sign in to compose and run drops.
               </Typography>
@@ -101,7 +101,7 @@ export function DropStudioHome() {
               <div
                 role="status"
                 data-surface="drop-studio-session-bootstrap"
-                className="flex flex-col gap-3 rounded-xl border border-border p-4 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-3 rounded-md p-4 sm:flex-row sm:items-center sm:justify-between"
               >
                 <Typography as="p" className="text-sm">
                   Connect a marketplace session to read drop status.
@@ -119,12 +119,12 @@ export function DropStudioHome() {
               </Typography>
               {drops.isLoading && drops.rows.length === 0 ? (
                 <div className="flex flex-col gap-2">
-                  <Skeleton className="h-16 w-full rounded-lg" />
-                  <Skeleton className="h-16 w-full rounded-lg" />
+                  <Skeleton className="h-16 w-full rounded-md" />
+                  <Skeleton className="h-16 w-full rounded-md" />
                 </div>
               ) : drops.rows.length === 0 ? (
-                <Card className="border-dashed py-4">
-                  <CardContent className="px-5">
+                <Card className="rounded-md p-0">
+                  <CardContent className="p-6">
                     <Typography as="p" className="text-sm text-muted-foreground">
                       No drops published yet — compose your first one below.
                     </Typography>
@@ -172,7 +172,7 @@ function DropStudioHomeRow({ row, onRetry }: { row: OwnDropRow; onRetry: () => v
   const projection = row.projection;
   const statusLine = projection.status === 'unavailable' ? "Could not read this drop's status." : null;
   return (
-    <li className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-4 hover:border-brand/50">
+    <li className="flex flex-wrap items-center justify-between gap-3 rounded-md p-4">
       <Link
         href={`${MARKETPLACE_ROUTES.SELL_DROPS}/${row.dropId}`}
         overrideDefaults

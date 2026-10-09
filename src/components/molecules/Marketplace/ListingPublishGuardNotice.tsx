@@ -36,8 +36,8 @@ export function ListingPublishGuardNotice({
       data-surface={surface}
       className={
         density === 'action'
-          ? 'rounded-xl border border-amber-500/40 bg-amber-500/10 p-3'
-          : 'rounded-xl border border-amber-500/40 bg-amber-500/10 p-4'
+          ? 'rounded-md border border-amber-500/40 bg-amber-500/10 p-3'
+          : 'rounded-md border border-amber-500/40 bg-amber-500/10 p-4'
       }
       tabIndex={-1}
     >
@@ -60,7 +60,8 @@ export function ListingPublishGuardNotice({
       ) : needsSession ? (
         <div className="mt-3">
           <MarketplaceSessionConnectDialog
-            triggerLabel="Connect marketplace session"
+            triggerLabel="Enable selling"
+            intent="sell"
             onConnected={onSessionConnected}
           />
         </div>

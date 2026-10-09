@@ -195,10 +195,10 @@ describe('Marketplace edit listing — visual regression', () => {
     );
     expect(headerOffset).toBe(144);
     const rootTop = root.getBoundingClientRect().top;
-    for (const testId of ['listing-section-rail', 'listing-section-status-rail']) {
+    for (const testId of ['listing-section-rail']) {
       const rail = screen.getByTestId(testId).element() as HTMLElement;
-      expect(rail.getBoundingClientRect().top - rootTop).toBeCloseTo(headerOffset, 0);
-      const steps = Array.from(rail.querySelectorAll('a'));
+      expect(rail.closest('aside')!.getBoundingClientRect().top - rootTop).toBeCloseTo(headerOffset, 0);
+      const steps = Array.from(rail.querySelectorAll('button'));
       expect(steps).toHaveLength(5);
       for (const step of steps) {
         expect(step.getBoundingClientRect().top - rootTop).toBeGreaterThanOrEqual(headerOffset);
@@ -303,7 +303,9 @@ describe('Marketplace edit listing — visual regression', () => {
     });
     screen.container.querySelector('[data-testid="listing-delivery-options"]')?.scrollIntoView({ block: 'center' });
     await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot('edit-listing-digital-desktop');
-    await expect(expectVrtSurface('digital-delivery-editor')).toMatchScreenshot('edit-listing-digital-panel-desktop');
+    await expect(await expectVrtSurface('digital-delivery-editor')).toMatchScreenshot(
+      'edit-listing-digital-panel-desktop',
+    );
     view.digitalAvailable = false;
   });
 

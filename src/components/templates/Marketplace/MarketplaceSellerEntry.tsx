@@ -18,9 +18,8 @@ export function MarketplaceSellerEntry() {
       showLeftMobileButton={false}
       showRightMobileButton={false}
       className="pb-28 lg:pb-16"
-      classNameWrapperContent="max-w-7xl"
     >
-      <Container overrideDefaults className="flex w-full flex-col gap-6 px-4 sm:px-6 lg:px-8">
+      <Container overrideDefaults className="flex w-full flex-col gap-6">
         <Link
           href={APP_ROUTES.MARKETPLACE}
           overrideDefaults
@@ -30,8 +29,8 @@ export function MarketplaceSellerEntry() {
           Marketplace
         </Link>
 
-        <Card className="border-dashed">
-          <CardContent className="flex min-h-80 flex-col items-center justify-center gap-5 p-8 text-center">
+        <Card className="rounded-md p-0">
+          <CardContent className="flex min-h-80 flex-col items-center justify-center gap-5 p-6 text-center">
             <Store className="size-12 text-brand" />
             <div>
               <Heading level={1} size="lg">
@@ -44,13 +43,13 @@ export function MarketplaceSellerEntry() {
             <div className="flex flex-wrap justify-center gap-2">
               <Button asChild className="rounded-full">
                 <Link href={MARKETPLACE_ROUTES.SETTINGS} overrideDefaults>
-                  <CreditCard className="mr-2 size-4" />
+                  <CreditCard className="size-4" />
                   Payment settings
                 </Link>
               </Button>
               <Button asChild variant="secondary" className="rounded-full">
                 <Link href={MARKETPLACE_ROUTES.MY_SHOP} overrideDefaults>
-                  <Store className="mr-2 size-4" />
+                  <Store className="size-4" />
                   My Shop
                 </Link>
               </Button>

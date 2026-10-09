@@ -63,7 +63,7 @@ export function MarketplaceCommunityTags({ target, variant = 'card' }: Marketpla
     return (
       <div
         data-cy="marketplace-community-tags"
-        className="marketplace-item-details flex min-w-0 items-start gap-3 rounded-xl bg-card p-5 text-card-foreground shadow-sm sm:col-span-2"
+        className="marketplace-item-details flex min-w-0 items-start gap-3 rounded-md bg-card p-6 text-card-foreground shadow-sm sm:col-span-2"
       >
         <Tags className="size-5 shrink-0 text-brand" aria-hidden="true" />
         <div className="flex min-w-0 flex-1 flex-col gap-1">

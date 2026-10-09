@@ -87,12 +87,7 @@ export function MarketplaceSavedSearches() {
             Saved searches
           </Typography>
           {!isNaming && (
-            <Button
-              size="sm"
-              variant="secondary"
-              className="gap-2 self-start rounded-full"
-              onClick={() => setIsNaming(true)}
-            >
+            <Button size="sm" variant="secondary" className="self-start rounded-full" onClick={() => setIsNaming(true)}>
               <BookmarkPlus className="size-4" />
               Save Current Search
             </Button>
@@ -107,12 +102,13 @@ export function MarketplaceSavedSearches() {
               }}
             >
               <Input
+                theme="dashed"
                 autoFocus
                 value={name}
                 maxLength={COMMERCE_SAVED_SEARCH_NAME_MAX_CHARS}
                 placeholder="Name this search"
                 aria-label="Saved search name"
-                className="h-8 flex-1"
+                className="flex-1"
                 onChange={(event) => setName(event.target.value)}
               />
               <Button type="submit" size="sm" className="rounded-full" disabled={name.trim().length === 0 || isSaving}>
@@ -136,7 +132,7 @@ export function MarketplaceSavedSearches() {
           {searches.length > 0 ? (
             <ul className="flex flex-col gap-1">
               {searches.map((search) => (
-                <li key={search.id} className="flex items-center gap-1 rounded-lg px-2 py-1.5 hover:bg-muted/60">
+                <li key={search.id} className="flex items-center gap-1 rounded-md px-2 py-1.5 hover:bg-muted/60">
                   <button
                     type="button"
                     className="flex min-w-0 flex-1 items-center gap-2 text-left text-sm hover:text-brand focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"

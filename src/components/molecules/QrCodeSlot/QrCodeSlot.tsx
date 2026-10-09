@@ -1,13 +1,14 @@
 import Image from 'next/image';
 import { Loader2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import { Button } from '@/atoms/Button/Button';
 import { Container } from '@/atoms/Container/Container';
 import { Typography } from '@/atoms/Typography/Typography';
+import { Bitkit, PubkyIcon } from '@/icons';
 import { cn } from '@/libs/utils/utils';
 import type { QrCodeSlotProps } from './QrCodeSlot.types';
 
 const DEFAULT_QR_SIZE = 176;
-const DEFAULT_RING_LOGO_SIZE = 48;
 const HOVER_OPACITY = 'transition-opacity group-hover:opacity-90 group-active:opacity-80';
 
 export function QrCodeSlot({
@@ -17,12 +18,12 @@ export function QrCodeSlot({
   generatingLabel,
   clickToReloadLabel,
   size = DEFAULT_QR_SIZE,
+  fillWidth = false,
   activeQrHasHoverEffect = false,
   expiredReloadAction,
   showRingLogo = true,
+  logo = showRingLogo ? 'ring' : undefined,
 }: QrCodeSlotProps) {
-  const ringLogoSize = Math.round((DEFAULT_RING_LOGO_SIZE / DEFAULT_QR_SIZE) * size);
-
   if (isLoading || (!url && !isExpired)) {
     return (
       <Container className="items-center gap-2">
@@ -42,11 +43,16 @@ export function QrCodeSlot({
           alt=""
           width={size}
           height={size}
-          className={cn('rounded-md', HOVER_OPACITY)}
+          className={cn('rounded-md', fillWidth && 'h-auto w-full', HOVER_OPACITY)}
         />
-        <span className="absolute top-1/2 right-0 -translate-y-1/2 bg-card py-2 pr-4 pl-7 text-sm font-bold whitespace-nowrap text-foreground [clip-path:polygon(0%_0%,100%_0%,100%_100%,16px_100%)]">
-          {clickToReloadLabel}
-        </span>
+        <Button
+          asChild
+          variant="secondary"
+          size="sm"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+        >
+          <span>{clickToReloadLabel}</span>
+        </Button>
       </>
     );
 
@@ -70,18 +76,29 @@ export function QrCodeSlot({
   // never written to a DOM attribute where a CSS attribute selector can read it.
   return (
     <span data-testid="qr-auth-url" className="contents">
-      <QRCodeSVG value={url} size={size} className={cn(activeQrHasHoverEffect && HOVER_OPACITY)} />
-      {showRingLogo && (
-        <Image
-          src="/images/ring-logo.svg"
-          alt="Pubky Ring"
-          width={ringLogoSize}
-          height={ringLogoSize}
+      <QRCodeSVG
+        value={url}
+        size={size}
+        className={cn(fillWidth && 'h-auto w-full', activeQrHasHoverEffect && HOVER_OPACITY)}
+      />
+      {logo && (
+        <span
           className={cn(
-            'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+            'absolute top-1/2 left-1/2 flex size-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[#05050A]',
             activeQrHasHoverEffect && HOVER_OPACITY,
           )}
-        />
+        >
+          {logo === 'bitkit' ? (
+            <Bitkit size={24} className="size-6" role="img" aria-label="Bitkit" />
+          ) : (
+            <PubkyIcon
+              size={24}
+              className="size-6 text-white [&_path]:fill-current"
+              role="img"
+              aria-label="Pubky Ring"
+            />
+          )}
+        </span>
       )}
     </span>
   );

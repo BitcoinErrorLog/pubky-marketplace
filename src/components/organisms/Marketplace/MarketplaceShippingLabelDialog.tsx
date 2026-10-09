@@ -131,7 +131,7 @@ export function MarketplaceShippingLabelDialog({
   return (
     <>
       <Button size="sm" variant="secondary" className="rounded-full" onClick={() => void openDialog()}>
-        <Ship className="mr-2 size-4" />
+        <Ship className="size-4" />
         Shipping label
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
@@ -161,7 +161,7 @@ export function MarketplaceShippingLabelDialog({
               <div className="flex flex-wrap gap-2">
                 <Button asChild size="sm" className="rounded-full">
                   <a href={label.labelUrl} target="_blank" rel="noopener noreferrer">
-                    <Printer className="mr-2 size-4" />
+                    <Printer className="size-4" />
                     Print label
                   </a>
                 </Button>
@@ -173,7 +173,7 @@ export function MarketplaceShippingLabelDialog({
                     disabled={pending !== null}
                     onClick={() => void shipWithLabel()}
                   >
-                    {pending === 'ship' ? <LoaderCircle className="mr-2 size-4 animate-spin" /> : null}
+                    {pending === 'ship' ? <LoaderCircle className="size-4 animate-spin" /> : null}
                     Mark shipped with this tracking
                   </Button>
                 )}
@@ -199,26 +199,23 @@ export function MarketplaceShippingLabelDialog({
                       {fieldLabel}
                     </Label>
                     <Input
+                      theme="dashed"
                       id={id}
                       inputMode="numeric"
                       value={value}
                       onChange={(event) => setValue(event.target.value)}
-                      className="h-10"
                     />
                   </div>
                 ))}
               </div>
               <Button size="sm" className="w-fit rounded-full" disabled={pending !== null} onClick={() => void quote()}>
-                {pending === 'quote' ? <LoaderCircle className="mr-2 size-4 animate-spin" /> : null}
+                {pending === 'quote' ? <LoaderCircle className="size-4 animate-spin" /> : null}
                 Get rates
               </Button>
               {rates && (
                 <div className="grid gap-2">
                   {rates.map((rate) => (
-                    <div
-                      key={rate.rateId}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3"
-                    >
+                    <div key={rate.rateId} className="flex flex-wrap items-center justify-between gap-2 rounded-md p-3">
                       <div className="min-w-0">
                         <Typography as="p" className="text-sm font-medium">
                           {rate.provider} {rate.servicelevel}
@@ -234,7 +231,7 @@ export function MarketplaceShippingLabelDialog({
                         disabled={pending !== null}
                         onClick={() => void buy(rate)}
                       >
-                        {pending === 'buy' ? <LoaderCircle className="mr-2 size-4 animate-spin" /> : null}
+                        {pending === 'buy' ? <LoaderCircle className="size-4 animate-spin" /> : null}
                         Buy for {rate.amount} {rate.currency}
                       </Button>
                     </div>

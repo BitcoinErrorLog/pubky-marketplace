@@ -50,10 +50,10 @@ export function DropRemindMe({ record, projection, dropUrl }: DropRemindMeProps)
   };
 
   return (
-    <section aria-label="Remind me" className="flex flex-col gap-3 rounded-xl border bg-card p-4">
+    <section aria-label="Remind me" className="flex flex-col gap-3 rounded-md bg-card p-6">
       <div className="flex flex-wrap gap-2">
         <Button variant="secondary" size="sm" className="rounded-full" onClick={downloadCalendarFile}>
-          <CalendarPlus className="mr-2 size-4" />
+          <CalendarPlus className="size-4" />
           Add to calendar (.ics)
         </Button>
         <Button
@@ -64,11 +64,7 @@ export function DropRemindMe({ record, projection, dropUrl }: DropRemindMeProps)
           disabled={follow.isMutating}
           onClick={() => void follow.toggle()}
         >
-          {follow.isMutating ? (
-            <LoaderCircle className="mr-2 size-4 animate-spin" />
-          ) : (
-            <BellRing className="mr-2 size-4" />
-          )}
+          {follow.isMutating ? <LoaderCircle className="size-4 animate-spin" /> : <BellRing className="size-4" />}
           {follow.isFollowing ? 'Watching this seller' : 'Watch this seller'}
         </Button>
       </div>

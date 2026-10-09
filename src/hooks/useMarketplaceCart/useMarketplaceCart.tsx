@@ -175,8 +175,52 @@ export function useMarketplaceCart() {
     }
   };
 
-  const remove = async (listingId: string, variantId: string, awardId?: string) => {
-    await CommerceController.commitDeleteCartItem(listingId, variantId, awardId);
+  const remove = async (listingId: string, variantId: string, awardId?: string, showUndo = true) => {
+    const removedItem = items?.find(
+      (item) => item.listingId === listingId && item.variantId === variantId && (item.awardId ?? undefined) === awardId,
+    );
+    try {
+      await CommerceController.commitDeleteCartItem(listingId, variantId, awardId);
+    } catch {
+      toast({ variant: 'error', description: 'Could not remove this item.' });
+      return;
+    }
+    if (!showUndo || !removedItem || useAuthStore.getState().currentUserPubky !== currentUserPubky) return;
+
+    let undone = false;
+    const undo = async () => {
+      if (undone || useAuthStore.getState().currentUserPubky !== currentUserPubky) return;
+      undone = true;
+      try {
+        // Leave an item that was already re-added unchanged.
+        const currentItems = await CommerceController.getCartItems();
+        if (useAuthStore.getState().currentUserPubky !== currentUserPubky) return;
+        if (currentItems.some((item) => item.id === removedItem.id)) return;
+        if (removedItem.awardId) {
+          await CommerceController.commitUpsertAwardCartItem(
+            listingId,
+            variantId,
+            removedItem.quantity,
+            removedItem.awardId,
+            removedItem.awardOfferRevision,
+          );
+        } else {
+          await CommerceController.commitUpsertCartItem(listingId, variantId, removedItem.quantity);
+        }
+      } catch {
+        toast({ variant: 'error', description: 'Could not restore this item. Please add it again.' });
+      }
+    };
+
+    toast({
+      title: 'Item removed',
+      duration: 5_000,
+      action: (
+        <ToastAction altText={`Restore ${removedItem.listing.record.title} to cart`} onClick={() => void undo()}>
+          Undo
+        </ToastAction>
+      ),
+    });
   };
 
   const clear = async () => {

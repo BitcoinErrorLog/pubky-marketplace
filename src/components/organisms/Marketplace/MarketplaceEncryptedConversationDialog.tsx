@@ -98,7 +98,7 @@ export function MarketplaceEncryptedConversationDialog({
         )}
 
         {conversation.status === 'not-enrolled' && (
-          <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed px-6 py-8 text-center">
+          <div className="flex flex-col items-center gap-2 rounded-md px-6 py-8 text-center">
             <ShieldAlert className="size-8 text-muted-foreground" aria-hidden />
             <Typography as="p" className="text-sm text-muted-foreground">
               {notEnrolledCopy}
@@ -108,11 +108,7 @@ export function MarketplaceEncryptedConversationDialog({
 
         {conversation.status === 'handshaking-initiator' && (
           <EncryptedConversationBody conversation={conversation}>
-            <Typography
-              as="p"
-              role="status"
-              className="rounded-lg border border-dashed px-3 py-2 text-sm text-muted-foreground"
-            >
+            <Typography as="p" role="status" className="rounded-md px-3 py-2 text-sm text-muted-foreground">
               {MESSAGING_COPY.handshakeInitiator}
             </Typography>
           </EncryptedConversationBody>
@@ -120,11 +116,7 @@ export function MarketplaceEncryptedConversationDialog({
 
         {conversation.status === 'handshaking-responder' && (
           <EncryptedConversationBody conversation={conversation}>
-            <Typography
-              as="p"
-              role="status"
-              className="rounded-lg border border-dashed px-3 py-2 text-sm text-muted-foreground"
-            >
+            <Typography as="p" role="status" className="rounded-md px-3 py-2 text-sm text-muted-foreground">
               {MESSAGING_COPY.handshakeResponder}
             </Typography>
           </EncryptedConversationBody>
@@ -142,11 +134,7 @@ export function MarketplaceEncryptedConversationDialog({
 
         {conversation.status === 'recovery-needed' && (
           <EncryptedConversationBody conversation={conversation}>
-            <Typography
-              as="p"
-              role="status"
-              className="rounded-lg border border-dashed px-3 py-2 text-sm text-muted-foreground"
-            >
+            <Typography as="p" role="status" className="rounded-md px-3 py-2 text-sm text-muted-foreground">
               {MESSAGING_COPY.linkRecoveryNeeded}
             </Typography>
           </EncryptedConversationBody>
@@ -154,11 +142,7 @@ export function MarketplaceEncryptedConversationDialog({
 
         {conversation.status === 'unreachable' && (
           <EncryptedConversationBody conversation={conversation}>
-            <Typography
-              as="p"
-              role="status"
-              className="rounded-lg border border-dashed px-3 py-2 text-sm text-muted-foreground"
-            >
+            <Typography as="p" role="status" className="rounded-md px-3 py-2 text-sm text-muted-foreground">
               {MESSAGING_COPY.counterpartyUnreachable}
             </Typography>
           </EncryptedConversationBody>
@@ -168,7 +152,7 @@ export function MarketplaceEncryptedConversationDialog({
 
         {conversation.status === 'error' && (
           <div className="grid gap-3">
-            <div role="alert" className="rounded-xl border border-destructive/40 p-4 text-sm">
+            <div role="alert" className="rounded-md border border-destructive/40 p-4 text-sm">
               {conversation.errorMessage}
             </div>
             <Button className="w-fit rounded-full" onClick={conversation.refresh}>

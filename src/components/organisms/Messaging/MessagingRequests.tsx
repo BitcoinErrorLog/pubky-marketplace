@@ -84,7 +84,7 @@ function MessagingRequestRow({
   );
 
   return (
-    <Card className="border py-4">
+    <Card className="py-4">
       <CardContent className="flex flex-col gap-3 px-4 sm:flex-row sm:items-center">
         {listing ? (
           <MarketplaceEncryptedConversationDialog
@@ -154,23 +154,35 @@ export function isMuteListUnconfirmed(status: string | null | undefined): boolea
 export function MessagingMutesNotice({
   status,
   onRetry,
+  compact = false,
 }: {
   status: 'ready' | 'unavailable' | 'needs_approval' | 'needs_reauth' | 'error' | null;
   onRetry: () => void;
+  compact?: boolean;
 }) {
   if (!isMuteListUnconfirmed(status)) return null;
   const approval = status === 'needs_approval' || status === 'needs_reauth';
   return (
     <div
-      className="flex flex-col items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/5 p-4"
+      className={
+        compact
+          ? 'flex flex-col items-center gap-4 py-6 text-center'
+          : 'flex flex-col items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/5 p-4'
+      }
       data-testid="messaging-mutes-notice"
     >
-      <Typography as="p" role="status" className="text-sm">
-        {approval ? MESSAGING_COPY.mutesNeedApproval : MESSAGING_COPY.mutesUnavailable}
+      <Typography as="p" role="status" className="text-sm text-muted-foreground">
+        {approval
+          ? compact
+            ? 'Authorize to send and receive messages.'
+            : MESSAGING_COPY.mutesNeedApproval
+          : MESSAGING_COPY.mutesUnavailable}
       </Typography>
       {approval ? (
         <MarketplaceReauthDialog
-          triggerLabel={MESSAGING_COPY.approvePrivateSync}
+          triggerLabel={compact ? 'Enable messages' : MESSAGING_COPY.approvePrivateSync}
+          triggerVariant={compact ? 'outline' : 'default'}
+          intent={compact ? 'messages' : undefined}
           refusal={status === 'needs_reauth' ? 'homeserver' : 'purchase_session'}
           onReauthenticated={onRetry}
         />
