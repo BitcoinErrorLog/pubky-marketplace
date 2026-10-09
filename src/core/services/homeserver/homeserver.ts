@@ -4,6 +4,7 @@ import {
   AuthToken,
   Capabilities,
   Client,
+  type EncryptionKeys,
   GrantAuthFlow,
   Keypair,
   Pubky,
@@ -18,6 +19,8 @@ import {
   CAPABILITIES,
   capabilitiesMatchFullGrant,
   capabilitiesMatchRingCookieGrant,
+  isPrivKeysRequested,
+  KEYED_CAPABILITIES,
   RING_COOKIE_CAPABILITIES,
   SHOP_GRANT_CLIENT_ID,
 } from '@/config/app';
@@ -739,21 +742,35 @@ export class HomeserverService {
    * @param xCallback Optional return destinations carried in the URL (Pubky
    * Passport's callback page). They are navigation hints only: the session
    * still arrives through the encrypted relay.
+   * @param options.withPrivKeys Whether to also ask for the `e` action on the
+   * Shop's private tree (a signed approval that can carry scoped encryption
+   * keys). Defaults to {@link isPrivKeysRequested}; `false` is the separate
+   * sign-in without keys that signers or homeservers without `e` need.
    */
-  static async generateGrantAuthUrl(xCallback?: XCallbackParams): Promise<TGenerateAuthUrlResult> {
-    return await this.startGrantAuthFlow(() => AuthFlowKind.signin(), 'generateGrantAuthUrl', xCallback);
+  static async generateGrantAuthUrl(
+    xCallback?: XCallbackParams,
+    options: { withPrivKeys?: boolean } = {},
+  ): Promise<TGenerateAuthUrlResult> {
+    return await this.startGrantAuthFlow(
+      () => AuthFlowKind.signin(),
+      'generateGrantAuthUrl',
+      xCallback,
+      options.withPrivKeys ?? isPrivKeysRequested(),
+    );
   }
 
   private static async startGrantAuthFlow(
     kind: () => AuthFlowKind,
     operation: string,
-    xCallback?: XCallbackParams,
+    xCallback: XCallbackParams | undefined,
+    withPrivKeys: boolean,
   ): Promise<TGenerateAuthUrlResult> {
     try {
-      const flow = await GrantAuthFlow.startDelegated(CAPABILITIES, kind(), {
+      const flow = await GrantAuthFlow.startDelegated(withPrivKeys ? KEYED_CAPABILITIES : CAPABILITIES, kind(), {
         clientId: SHOP_GRANT_CLIENT_ID,
         relay: getDefaultHttpRelay(),
         ...(xCallback ? { xCallback } : {}),
+        ...(withPrivKeys ? { approvalFormat: 'signedApprovalV1' as const } : {}),
       });
       const approval = createCancelableAuthApproval(flow);
       return {
@@ -764,6 +781,38 @@ export class HomeserverService {
     } catch (error) {
       return handleError({ error, additionalContext: { operation } });
     }
+  }
+
+  /**
+   * The scoped encryption keys a grant session was approved with, or null for
+   * a cookie session, a bare grant, and an approval whose signer declined
+   * `e`. The caller owns the copy and must `free()` it. They exist only for a
+   * session approved through a signed approval (see {@link generateGrantAuthUrl}).
+   */
+  static getSessionEncryptionKeys(session: Session | null | undefined): EncryptionKeys | null {
+    const grant = session?.grant;
+    if (!grant) return null;
+    try {
+      const keys = grant.encryptionKeys;
+      if (!keys) return null;
+      if (keys.scopes.length === 0) {
+        keys.free();
+        return null;
+      }
+      return keys;
+    } finally {
+      grant.free();
+    }
+  }
+
+  /**
+   * {@link getSessionEncryptionKeys} for the signed-in session, and only when
+   * that session belongs to `ownerPubky`. The caller must `free()` the copy.
+   */
+  static getCurrentSessionEncryptionKeys(ownerPubky: string): EncryptionKeys | null {
+    const session = useAuthStore.getState().selectSession();
+    if (!session || session.info.publicKey.z32() !== ownerPubky) return null;
+    return this.getSessionEncryptionKeys(session);
   }
 
   /** Whether a session is backed by a grant (Bitkit or Pubky Passport sign-in) rather than a homeserver cookie. */

@@ -375,8 +375,13 @@ export class AuthApplication {
   }
 
   /** Grant sign-in URL (`pubkyauth://signin_grant`) for signers such as Bitkit and Pubky Passport. */
-  static async generateGrantAuthUrl(xCallback?: XCallbackParams): Promise<TGenerateAuthUrlResult> {
-    return await HomeserverService.generateGrantAuthUrl(xCallback);
+  static async generateGrantAuthUrl(
+    xCallback?: XCallbackParams,
+    options?: { withPrivKeys?: boolean },
+  ): Promise<TGenerateAuthUrlResult> {
+    return options === undefined
+      ? await HomeserverService.generateGrantAuthUrl(xCallback)
+      : await HomeserverService.generateGrantAuthUrl(xCallback, options);
   }
 
   static isGrantSignInAvailable(): boolean {

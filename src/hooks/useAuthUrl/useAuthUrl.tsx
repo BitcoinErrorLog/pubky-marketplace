@@ -39,6 +39,7 @@ export function useAuthUrl(options: UseAuthUrlOptions = {}): UseAuthUrlReturn {
   const autoFetch = options.autoFetch ?? true;
   const type = options.type ?? 'signin';
   const inviteCode = options.type === 'signup' ? options.inviteCode : '';
+  const withPrivKeys = options.type === 'grant' ? options.withPrivKeys : undefined;
 
   const [url, setUrl] = useState('');
   const [isLoading, setIsLoading] = useState(autoFetch);
@@ -56,7 +57,9 @@ export function useAuthUrl(options: UseAuthUrlOptions = {}): UseAuthUrlReturn {
         type === 'signup'
           ? await AuthController.getSignupAuthUrl(inviteCode)
           : type === 'grant'
-            ? await AuthController.getGrantAuthUrl()
+            ? await (withPrivKeys === undefined
+                ? AuthController.getGrantAuthUrl()
+                : AuthController.getGrantAuthUrl({ withPrivKeys }))
             : await AuthController.getAuthUrl();
 
       awaitApproval
@@ -121,7 +124,7 @@ export function useAuthUrl(options: UseAuthUrlOptions = {}): UseAuthUrlReturn {
         setIsLoading(false);
       }
     }
-  }, [type, inviteCode]);
+  }, [type, inviteCode, withPrivKeys]);
 
   const copyAuthUrl = useCallback(async (): Promise<void> => {
     if (!url) return;

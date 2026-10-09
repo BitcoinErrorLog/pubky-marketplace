@@ -96,6 +96,12 @@ vi.mock('@/hooks/useGrantSignInAvailable/useGrantSignInAvailable', () => ({
   useGrantSignInAvailable: vi.fn(() => false),
 }));
 
+const privKeys = vi.hoisted(() => ({ requested: false }));
+vi.mock('@/config/app', async () => {
+  const actual = await vi.importActual<typeof import('@/config/app')>('@/config/app');
+  return { ...actual, isPrivKeysRequested: () => privKeys.requested };
+});
+
 const passport = vi.hoisted(() => ({ isAvailable: false, isPending: false, start: vi.fn() }));
 vi.mock('@/hooks/usePassportSignIn/usePassportSignIn', () => ({
   usePassportSignIn: () => passport,
@@ -617,6 +623,62 @@ describe('SignInContent - Bitkit grant sign-in', () => {
 
     expect(bitkitCopy).toHaveBeenCalledTimes(1);
     expect(ringCopy).not.toHaveBeenCalled();
+  });
+});
+
+describe('SignInContent - Bitkit sign-in without scoped keys', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetMockSignInState();
+    resetMobileAuthMock();
+    vi.mocked(useGrantSignInAvailable).mockReturnValue(true);
+    privKeys.requested = true;
+  });
+
+  afterEach(() => {
+    privKeys.requested = false;
+    vi.mocked(useGrantSignInAvailable).mockReturnValue(false);
+  });
+
+  const withoutKeys = () => screen.queryByTestId('sign-in-without-keys-button');
+
+  it('offers the sign-in without keys only beside the Bitkit QR, and only when keys are requested', async () => {
+    await act(async () => {
+      render(<SignInContent />);
+    });
+    expect(withoutKeys()).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Bitkit' }));
+    expect(withoutKeys()).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Pubky Ring' }));
+    expect(withoutKeys()).not.toBeInTheDocument();
+  });
+
+  it('does not offer it when the deploy does not request keys', async () => {
+    privKeys.requested = false;
+    await act(async () => {
+      render(<SignInContent />);
+    });
+    fireEvent.click(screen.getByRole('radio', { name: 'Bitkit' }));
+    expect(withoutKeys()).not.toBeInTheDocument();
+    expect(useMobileAuth).not.toHaveBeenCalledWith({ type: 'grant', withPrivKeys: false });
+  });
+
+  it('asks for the Bitkit grant with keys until the user chooses to sign in without them', async () => {
+    await act(async () => {
+      render(<SignInContent />);
+    });
+    expect(useMobileAuth).toHaveBeenCalledWith({ type: 'grant' });
+    expect(useMobileAuth).not.toHaveBeenCalledWith({ type: 'grant', withPrivKeys: false });
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Bitkit' }));
+    await act(async () => {
+      fireEvent.click(withoutKeys() as HTMLElement);
+    });
+
+    expect(useMobileAuth).toHaveBeenLastCalledWith({ type: 'grant', withPrivKeys: false });
+    expect(withoutKeys()).not.toBeInTheDocument();
   });
 });
 

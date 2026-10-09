@@ -953,8 +953,14 @@ export class AuthController {
    * session skips the marketplace redeem (it carries no AuthToken) and is
    * saved to BrowserSessionStore at completion.
    */
-  static async getGrantAuthUrl(): Promise<TGenerateAuthUrlResult> {
-    return await this.beginGrantCeremony(() => AuthApplication.generateGrantAuthUrl(), 'bitkit');
+  static async getGrantAuthUrl(options?: { withPrivKeys?: boolean }): Promise<TGenerateAuthUrlResult> {
+    return await this.beginGrantCeremony(
+      () =>
+        options === undefined
+          ? AuthApplication.generateGrantAuthUrl()
+          : AuthApplication.generateGrantAuthUrl(undefined, options),
+      'bitkit',
+    );
   }
 
   /**
@@ -964,8 +970,17 @@ export class AuthController {
    * session is recorded as Passport-approved so its purchase grant is
    * requested from Passport too.
    */
-  static async getPassportGrantAuthUrl(xCallback?: XCallbackParams): Promise<TGenerateAuthUrlResult> {
-    return await this.beginGrantCeremony(() => AuthApplication.generateGrantAuthUrl(xCallback), 'passport');
+  static async getPassportGrantAuthUrl(
+    xCallback?: XCallbackParams,
+    options?: { withPrivKeys?: boolean },
+  ): Promise<TGenerateAuthUrlResult> {
+    return await this.beginGrantCeremony(
+      () =>
+        options === undefined
+          ? AuthApplication.generateGrantAuthUrl(xCallback)
+          : AuthApplication.generateGrantAuthUrl(xCallback, options),
+      'passport',
+    );
   }
 
   private static async beginGrantCeremony(

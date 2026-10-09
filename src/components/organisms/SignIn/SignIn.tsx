@@ -9,6 +9,7 @@ import { FooterLinks } from '@/atoms/FooterLinks/FooterLinks';
 import { PageHeader } from '@/atoms/PageHeader/PageHeader';
 import { PageSubtitle } from '@/atoms/PageSubtitle/PageSubtitle';
 import { Typography } from '@/atoms/Typography/Typography';
+import { isPrivKeysRequested } from '@/config/app';
 import { useGrantSignInAvailable } from '@/hooks/useGrantSignInAvailable/useGrantSignInAvailable';
 import { useMobileAuth } from '@/hooks/useMobileAuth/useMobileAuth';
 import { Logger } from '@/libs/logger/logger';
@@ -149,8 +150,10 @@ const SignInAuthorizeButton = ({ signer, auth }: { signer: keyof typeof SIGNERS;
 
 /** Keep both existing approval flows alive while displaying the selected signer. */
 const SignInBothSigners = ({ ring }: { ring: TSignerAuth }) => {
-  const bitkit = useMobileAuth({ type: 'grant' });
+  const [withoutKeys, setWithoutKeys] = useState(false);
+  const bitkit = useMobileAuth(withoutKeys ? { type: 'grant', withPrivKeys: false } : { type: 'grant' });
   const [signer, setSigner] = useState<keyof typeof SIGNERS>('ring');
+  const offersWithoutKeys = signer === 'bitkit' && !withoutKeys && isPrivKeysRequested();
   const auth = signer === 'ring' ? ring : bitkit;
   const ringDisclosure = ringSignInDisclosure(ring);
   const identityHint = SIGNERS[signer].identityHint;
@@ -187,6 +190,17 @@ const SignInBothSigners = ({ ring }: { ring: TSignerAuth }) => {
               <Typography as="p" className="text-sm text-muted-foreground">
                 {identityHint}
               </Typography>
+            )}
+            {offersWithoutKeys && (
+              <Button
+                type="button"
+                variant="link"
+                className="h-auto border-none p-0 text-left text-sm whitespace-normal shadow-none"
+                onClick={() => setWithoutKeys(true)}
+                data-testid="sign-in-without-keys-button"
+              >
+                Your signer can&apos;t share private-data keys? Sign in without them.
+              </Button>
             )}
           </div>
         </IllustratedCard>

@@ -392,6 +392,24 @@ describe('useAuthUrl', () => {
     expect(mockToast).not.toHaveBeenCalled();
   });
 
+  it('asks the controller for the grant with the deploy default, or without scoped keys when told to', async () => {
+    mockGetGrantAuthUrl.mockResolvedValue({
+      authorizationUrl: 'pubkyauth://signin_grant?x',
+      awaitApproval: new Promise<Session>(() => {}),
+      cancelAuthFlow: createCancelAuthFlow(),
+    });
+
+    const { result, rerender } = renderHook((props: { withPrivKeys?: boolean }) =>
+      useAuthUrl({ type: 'grant', ...props }),
+    );
+    await waitFor(() => expect(result.current.url).toBe('pubkyauth://signin_grant?x'));
+    expect(mockGetGrantAuthUrl).toHaveBeenLastCalledWith();
+
+    rerender({ withPrivKeys: false });
+    await waitFor(() => expect(mockGetGrantAuthUrl).toHaveBeenCalledTimes(2));
+    expect(mockGetGrantAuthUrl).toHaveBeenLastCalledWith({ withPrivKeys: false });
+  });
+
   it('does not cancel active auth flow on unmount', async () => {
     mockGetAuthUrl.mockResolvedValue({
       authorizationUrl: 'pubkyring://authorize?token=unmount',

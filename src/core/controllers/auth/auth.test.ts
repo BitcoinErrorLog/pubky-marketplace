@@ -6,7 +6,7 @@ import { BootstrapApplication } from '@/application/bootstrap/bootstrap';
 import { CommerceApplication } from '@/application/commerce/commerce';
 import { SettingsApplication } from '@/application/settings/settings';
 import { postStreamQueue } from '@/application/stream/posts/muting/post-stream-queue';
-import { CAPABILITIES } from '@/config/app';
+import { CAPABILITIES, KEYED_CAPABILITIES, PRIV_KEYS_SCOPE_DECLINED } from '@/config/app';
 import { MUTE_SYNC_CURSOR_STORAGE_PREFIX } from '@/config/mute-sync';
 import { AUTH_EPOCH_KEY, bumpAuthEpoch, readAuthEpoch, subscribeSignedOut } from '@/controllers/auth/auth-epoch';
 import { resetAuthFinalizationLockForTests } from '@/controllers/auth/auth-finalization-lock';
@@ -2512,6 +2512,30 @@ describe('AuthController', () => {
       expect(authStore.init).toHaveBeenCalledWith(
         expect.objectContaining({ session, grantSessionRecordId: 'rec-passport', grantSigner: 'passport' }),
       );
+    });
+
+    it('accepts an approval that carries the scoped-keys scope, as approved or with e declined', async () => {
+      for (const capabilities of [KEYED_CAPABILITIES, `${CAPABILITIES},${PRIV_KEYS_SCOPE_DECLINED}`]) {
+        const session = grantSession(capabilities.split(','));
+        vi.spyOn(useAuthStore, 'getState').mockReturnValue(grantAuthStore());
+        await expect(approveGrantSignIn(session)).resolves.toBe(session);
+      }
+    });
+
+    it('passes the request for keys, or the sign-in without them, through to the application', async () => {
+      const generate = vi.spyOn(AuthApplication, 'generateGrantAuthUrl').mockResolvedValue({
+        authorizationUrl: 'pubkyauth://signin_grant?caps=x&relay=r&secret=s&cid=shop.pubky.app&cpk=k',
+        awaitApproval: new Promise<Session>(() => undefined),
+        cancelAuthFlow: vi.fn(),
+      });
+
+      await AuthController.getGrantAuthUrl();
+      expect(generate).toHaveBeenLastCalledWith();
+      await AuthController.getGrantAuthUrl({ withPrivKeys: false });
+      expect(generate).toHaveBeenLastCalledWith(undefined, { withPrivKeys: false });
+      await AuthController.getPassportGrantAuthUrl({ xSource: 'Pubky Shop' }, { withPrivKeys: false });
+      expect(generate).toHaveBeenLastCalledWith({ xSource: 'Pubky Shop' }, { withPrivKeys: false });
+      AuthController.cancelAllAuthFlows();
     });
 
     it('an approval narrower than the Shop grant is signed out and never saved', async () => {

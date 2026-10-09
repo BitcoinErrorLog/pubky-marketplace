@@ -1,6 +1,6 @@
 import type { Keypair, PublicKey, Session } from '@synonymdev/pubky';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { CAPABILITIES, RING_COOKIE_CAPABILITIES } from '@/config/app';
+import { CAPABILITIES, KEYED_CAPABILITIES, RING_COOKIE_CAPABILITIES } from '@/config/app';
 import { AppError } from '@/libs/error/error';
 import {
   AuthErrorCode,
@@ -1145,6 +1145,158 @@ describe('HomeserverService', () => {
 
       it('reports grant sign-in availability from the SDK', () => {
         expect(HomeserverService.isGrantSignInAvailable()).toBe(true);
+      });
+
+      describe('scoped encryption keys', () => {
+        const startFlow = () => {
+          mockState.grantStartDelegated.mockResolvedValue({
+            authorizationUrl: 'pubkyauth://signin_grant?caps=x&relay=r&secret=s&cid=shop.pubky.app&cpk=k',
+            tryPollOnce: vi.fn().mockResolvedValue(undefined),
+            free: vi.fn(),
+          });
+        };
+
+        async function withKeysGate(run: () => Promise<void>): Promise<void> {
+          process.env.PUBKY_RUNTIME_PRIV_ENCRYPTION_KEYS = 'true';
+          process.env.PUBKY_RUNTIME_PRIV_ENCRYPTION_KEYS_HOMESERVERS = JSON.stringify(['test-homeserver-key']);
+          vi.resetModules();
+          ({ HomeserverService } = await import('@/services/homeserver/homeserver'));
+          try {
+            await run();
+          } finally {
+            delete process.env.PUBKY_RUNTIME_PRIV_ENCRYPTION_KEYS;
+            delete process.env.PUBKY_RUNTIME_PRIV_ENCRYPTION_KEYS_HOMESERVERS;
+          }
+        }
+
+        it('asks for e on the Shop private tree, with signed approvals, when the deploy enabled it', async () => {
+          startFlow();
+          await withKeysGate(async () => {
+            const { cancelAuthFlow, awaitApproval } = await HomeserverService.generateGrantAuthUrl();
+            awaitApproval.catch(() => undefined);
+            cancelAuthFlow();
+          });
+
+          expect(mockState.grantStartDelegated).toHaveBeenCalledWith(KEYED_CAPABILITIES, 'signin-kind', {
+            clientId: 'shop.pubky.app',
+            relay: expect.any(String),
+            approvalFormat: 'signedApprovalV1',
+          });
+          expect(KEYED_CAPABILITIES).toContain('/priv/pubky.app/marketplace/:rwe');
+        });
+
+        it('still carries the Passport return destinations beside the keyed request', async () => {
+          startFlow();
+          const xCallback = { xSource: 'Pubky Shop' };
+          await withKeysGate(async () => {
+            const { cancelAuthFlow, awaitApproval } = await HomeserverService.generateGrantAuthUrl(xCallback);
+            awaitApproval.catch(() => undefined);
+            cancelAuthFlow();
+          });
+
+          expect(mockState.grantStartDelegated).toHaveBeenCalledWith(KEYED_CAPABILITIES, 'signin-kind', {
+            clientId: 'shop.pubky.app',
+            relay: expect.any(String),
+            xCallback,
+            approvalFormat: 'signedApprovalV1',
+          });
+        });
+
+        it('makes the separate sign-in without keys when asked, even while the deploy requests keys', async () => {
+          startFlow();
+          await withKeysGate(async () => {
+            const { cancelAuthFlow, awaitApproval } = await HomeserverService.generateGrantAuthUrl(undefined, {
+              withPrivKeys: false,
+            });
+            awaitApproval.catch(() => undefined);
+            cancelAuthFlow();
+          });
+
+          expect(mockState.grantStartDelegated).toHaveBeenCalledWith(CAPABILITIES, 'signin-kind', {
+            clientId: 'shop.pubky.app',
+            relay: expect.any(String),
+          });
+        });
+
+        it('requests no keys by default, and never with the switch on but another homeserver listed', async () => {
+          startFlow();
+          const { cancelAuthFlow, awaitApproval } = await HomeserverService.generateGrantAuthUrl();
+          awaitApproval.catch(() => undefined);
+          cancelAuthFlow();
+          expect(mockState.grantStartDelegated).toHaveBeenLastCalledWith(CAPABILITIES, 'signin-kind', {
+            clientId: 'shop.pubky.app',
+            relay: expect.any(String),
+          });
+
+          process.env.PUBKY_RUNTIME_PRIV_ENCRYPTION_KEYS = 'true';
+          process.env.PUBKY_RUNTIME_PRIV_ENCRYPTION_KEYS_HOMESERVERS = JSON.stringify(['some-other-homeserver']);
+          try {
+            vi.resetModules();
+            ({ HomeserverService } = await import('@/services/homeserver/homeserver'));
+            startFlow();
+            const other = await HomeserverService.generateGrantAuthUrl();
+            other.awaitApproval.catch(() => undefined);
+            other.cancelAuthFlow();
+          } finally {
+            delete process.env.PUBKY_RUNTIME_PRIV_ENCRYPTION_KEYS;
+            delete process.env.PUBKY_RUNTIME_PRIV_ENCRYPTION_KEYS_HOMESERVERS;
+          }
+          expect(mockState.grantStartDelegated).toHaveBeenLastCalledWith(CAPABILITIES, 'signin-kind', {
+            clientId: 'shop.pubky.app',
+            relay: expect.any(String),
+          });
+        });
+      });
+    });
+
+    describe('getSessionEncryptionKeys', () => {
+      function sessionWithGrant(grant: unknown): Session {
+        return asOpaque<Session>({ grant, info: { publicKey: { z32: () => 'o'.repeat(52) } } });
+      }
+
+      it('hands out an owned copy of the delivered keys and frees the grant view', () => {
+        const keys = { scopes: ['/priv/pubky.app/marketplace/'], free: vi.fn() };
+        const grant = { encryptionKeys: keys, free: vi.fn() };
+
+        expect(HomeserverService.getSessionEncryptionKeys(sessionWithGrant(grant))).toBe(keys);
+        expect(grant.free).toHaveBeenCalledOnce();
+        expect(keys.free).not.toHaveBeenCalled();
+      });
+
+      it('has none for a cookie session, a bare grant, or a signer that declined e', () => {
+        expect(HomeserverService.getSessionEncryptionKeys(null)).toBeNull();
+        expect(HomeserverService.getSessionEncryptionKeys(sessionWithGrant(undefined))).toBeNull();
+
+        const bare = { encryptionKeys: undefined, free: vi.fn() };
+        expect(HomeserverService.getSessionEncryptionKeys(sessionWithGrant(bare))).toBeNull();
+        expect(bare.free).toHaveBeenCalledOnce();
+
+        const declined = { scopes: [] as string[], free: vi.fn() };
+        const declinedGrant = { encryptionKeys: declined, free: vi.fn() };
+        expect(HomeserverService.getSessionEncryptionKeys(sessionWithGrant(declinedGrant))).toBeNull();
+        expect(declined.free).toHaveBeenCalledOnce();
+        expect(declinedGrant.free).toHaveBeenCalledOnce();
+      });
+
+      it('frees the grant view even when reading the keys throws', () => {
+        const grant = {
+          get encryptionKeys(): never {
+            throw new Error('wasm');
+          },
+          free: vi.fn(),
+        };
+        expect(() => HomeserverService.getSessionEncryptionKeys(sessionWithGrant(grant))).toThrow('wasm');
+        expect(grant.free).toHaveBeenCalledOnce();
+      });
+
+      it('gives the signed-in session keys only to the session owner', () => {
+        const keys = { scopes: ['/priv/pubky.app/marketplace/'], free: vi.fn() };
+        mockState.currentSession = sessionWithGrant({ encryptionKeys: keys, free: vi.fn() });
+
+        expect(HomeserverService.getCurrentSessionEncryptionKeys('o'.repeat(52))).toBe(keys);
+        expect(HomeserverService.getCurrentSessionEncryptionKeys('p'.repeat(52))).toBeNull();
+        mockState.currentSession = null;
+        expect(HomeserverService.getCurrentSessionEncryptionKeys('o'.repeat(52))).toBeNull();
       });
     });
 

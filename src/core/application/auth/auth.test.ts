@@ -2,7 +2,7 @@ import type { AuthToken, Keypair, Session } from '@synonymdev/pubky';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthApplication, isDefinitiveSessionAuthFailure } from '@/application/auth/auth';
 import type { THomeserverAuthenticateParams } from '@/application/auth/auth.types';
-import { CAPABILITIES } from '@/config/app';
+import { CAPABILITIES, KEYED_CAPABILITIES, PRIV_KEYS_SCOPE_DECLINED } from '@/config/app';
 import { getHomeserver, isStagingHomeserverDeploy } from '@/config/network';
 import { AppError } from '@/libs/error/error';
 import { AuthErrorCode, ClientErrorCode, NetworkErrorCode, ServerErrorCode } from '@/libs/error/error.codes';
@@ -291,6 +291,32 @@ describe('AuthApplication', () => {
         expect(result).toEqual({ status: 'restored', session });
         expect(restoreGrantSpy).toHaveBeenCalledWith('rec-1');
         expect(cookieRestoreSpy).not.toHaveBeenCalled();
+      });
+
+      it('reload restores a grant session approved with scoped keys, or with e declined', async () => {
+        vi.spyOn(HomeserverService, 'assertUserHomeserverAllowed').mockResolvedValue(undefined);
+        for (const capabilities of [KEYED_CAPABILITIES, `${CAPABILITIES},${PRIV_KEYS_SCOPE_DECLINED}`]) {
+          const session = grantSession(capabilities.split(','));
+          vi.spyOn(HomeserverService, 'restoreGrantSession').mockResolvedValue(session);
+          const removeSpy = vi.spyOn(HomeserverService, 'removeGrantSession').mockResolvedValue(undefined);
+
+          const result = await AuthApplication.restorePersistedSession({ authStore: grantStore() });
+
+          expect(result).toEqual({ status: 'restored', session });
+          expect(removeSpy).not.toHaveBeenCalled();
+        }
+      });
+
+      it('a stored grant that adds e to another scope is signed out and its record removed', async () => {
+        const session = grantSession([...CAPABILITIES.split(','), '/priv/pubky.app/:rwe']);
+        vi.spyOn(HomeserverService, 'restoreGrantSession').mockResolvedValue(session);
+        vi.spyOn(HomeserverService, 'logout').mockResolvedValue(undefined);
+        const removeSpy = vi.spyOn(HomeserverService, 'removeGrantSession').mockResolvedValue(undefined);
+
+        expect(await AuthApplication.restorePersistedSession({ authStore: grantStore() })).toEqual({
+          status: 'signed-out',
+        });
+        expect(removeSpy).toHaveBeenCalledWith('rec-1');
       });
 
       it('a stored grant narrower than the Shop grant is signed out and its record removed', async () => {
