@@ -153,6 +153,7 @@ Launch blockers, deadlines and open decisions are in the launch plan (top sectio
     - Ring 1.19 still signs in, and that sign-in also creates the purchase session, so buying works right after a Ring sign-in.
     - Accounts created with the Ring sign-up QR need one sign-in with Ring.
     - Ring 1.19 users fix this by updating to Ring 2.0. No Shop workaround is planned.
+    - New Shop accounts are created from the Ring sign-up QR (a cookie session); the create QR becomes a `signup_grant` QR only once [bitkit-android#1448](https://github.com/synonymdev/bitkit-android/issues/1448) and [bitkit-ios#902](https://github.com/synonymdev/bitkit-ios/issues/902) are fixed in a released Bitkit (decision CQ1, 9 Oct).
   - **No single sign-on with pubky.app.**
     - The target design is **delegated grants through a Passport agent**: [pubky-sso-design.md](../sso/pubky-sso-design.md), team version [sso-proposal-for-team.md](../sso/sso-proposal-for-team.md), summary in launch plan §3.
       - The signer approves once per browser.
