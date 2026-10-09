@@ -1,4 +1,4 @@
-import { getShopBaseUrl } from '@/config/base-path';
+import { getBasePath, getShopBaseUrl, withBasePath } from '@/config/base-path';
 import {
   getAuthor,
   getCreator,
@@ -42,7 +42,9 @@ interface MetadataProps {
 
 export function getPWAConfig() {
   return {
-    manifest: '/manifest.json',
+    // The manifest claims the whole origin (`scope: "/"`), so a Shop mounted under a base path
+    // on another app's origin must not advertise one: the host app owns installability there.
+    ...(getBasePath() === '' && { manifest: '/manifest.json' }),
     appleWebApp: {
       capable: true,
       statusBarStyle: 'black' as const,
@@ -68,10 +70,10 @@ export function Metadata({
   omitImages = false,
 }: MetadataProps) {
   const defaultUrl = getDefaultUrl();
-  const resolvedImage = image ?? getPreviewImage();
+  const resolvedImage = withBasePath(image ?? getPreviewImage());
   const resolvedType = type ?? getType();
   const shopBaseUrl = getShopBaseUrl();
-  const resolvedUrl = url ?? shopBaseUrl;
+  const resolvedUrl = url === undefined ? shopBaseUrl : withBasePath(url);
   const resolvedSiteName = siteName ?? getSiteName();
   const resolvedLocale = locale ?? getLocale();
   const resolvedAuthor = author ?? getAuthor();
@@ -85,20 +87,21 @@ export function Metadata({
   const resolvedDescription = hasDescription ? description : '';
 
   return {
-    // Includes the mount path, so root-relative `canonical`, `url` and image paths resolve under it.
-    metadataBase: new URL(shopBaseUrl),
+    // The origin only: Next.js prepends the base path itself to the dynamic OG and Twitter image
+    // routes, so a base path here would double it. Root-relative values below are prefixed explicitly.
+    metadataBase: new URL(defaultUrl),
     title,
     description: hasDescription ? resolvedDescription : null,
     keywords: resolvedKeywords,
     authors: [{ name: resolvedAuthor }],
     creator: resolvedAuthor,
     icons: {
-      icon: favicon,
-      shortcut: favicon,
+      icon: withBasePath(favicon),
+      shortcut: withBasePath(favicon),
       apple: [
-        { url: '/images/manifest/web-app-manifest-180x180.png', sizes: '180x180', type: 'image/png' },
-        { url: '/images/manifest/web-app-manifest-152x152.png', sizes: '152x152', type: 'image/png' },
-        { url: '/images/manifest/web-app-manifest-144x144.png', sizes: '144x144', type: 'image/png' },
+        { url: withBasePath('/images/manifest/web-app-manifest-180x180.png'), sizes: '180x180', type: 'image/png' },
+        { url: withBasePath('/images/manifest/web-app-manifest-152x152.png'), sizes: '152x152', type: 'image/png' },
+        { url: withBasePath('/images/manifest/web-app-manifest-144x144.png'), sizes: '144x144', type: 'image/png' },
       ],
     },
     openGraph: {

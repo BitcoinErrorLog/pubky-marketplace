@@ -1,6 +1,7 @@
 import { permanentRedirect } from 'next/navigation';
 import type { Metadata as NextMetadata } from 'next';
 import { getCollectionRoute, POST_ROUTES } from '@/app/routes';
+import { withBasePath } from '@/config/base-path';
 import { fetchUserAndPostForMetadata } from '@/libs/post/postMetadata';
 import { deriveTextPreview } from '@/libs/post/postPreview';
 import { truncateByGraphemes } from '@/libs/utils/truncate';
@@ -31,7 +32,7 @@ export async function generateMetadata({ params }: PostPageProps): Promise<NextM
     // Collection-kind posts canonicalize to /collections (the page also redirects
     // there) so crawlers/search engines consolidate onto the canonical URL.
     if (post.kind === 'collection') {
-      return { alternates: { canonical: getCollectionRoute(userId, postId) } };
+      return { alternates: { canonical: withBasePath(getCollectionRoute(userId, postId)) } };
     }
 
     const username = resolveDisplayName(user);
