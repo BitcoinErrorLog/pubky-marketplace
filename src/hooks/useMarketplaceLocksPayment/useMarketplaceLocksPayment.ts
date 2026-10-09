@@ -70,8 +70,8 @@ export function useMarketplaceLocksPayment({
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [delivery, setDelivery] = useState<MarketplaceLocksDelivery | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // Bumped by resumePolling to restart a bounded poll that reached its limit.
-  const [pollEpoch, setPollEpoch] = useState(0);
+  // An explicit resume starts a new read window for this payment only.
+  const [pollResume, setPollResume] = useState<{ paymentId: string; boundAt: number } | null>(null);
   const [pollExhausted, setPollExhausted] = useState(false);
   const [admission, setAdmission] = useState<LocksAdmissionView | null>(null);
   const deliveryRef = useRef<MarketplaceLocksDelivery | null>(null);
@@ -97,9 +97,12 @@ export function useMarketplaceLocksPayment({
   useEffect(() => {
     if (!enabled || !payment || !correlation) return;
     if (payment.state !== 'awaiting_entitlement' && payment.state !== 'detected') return;
-    const boundAt = correlation.window_expires_at
-      ? Date.parse(correlation.window_expires_at) + 60_000
-      : Date.now() + LOCKS_POLL_FALLBACK_BOUND_MS;
+    const boundAt =
+      pollResume?.paymentId === payment.id
+        ? pollResume.boundAt
+        : correlation.window_expires_at
+          ? Date.parse(correlation.window_expires_at) + 60_000
+          : Date.now() + LOCKS_POLL_FALLBACK_BOUND_MS;
     let active = true;
     setPollExhausted(false);
     const timer = window.setInterval(() => {
@@ -116,7 +119,7 @@ export function useMarketplaceLocksPayment({
       window.clearInterval(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, payment?.id, payment?.state, correlation?.id, correlation?.window_expires_at, pollEpoch]);
+  }, [enabled, payment?.id, payment?.state, correlation?.id, correlation?.window_expires_at, pollResume]);
 
   // Bounded polling of the Lock Server task while the request is in flight.
   // It stops at the first terminal answer and never resubmits the bundle.
@@ -126,19 +129,31 @@ export function useMarketplaceLocksPayment({
       return;
     }
     if (payment.state !== 'awaiting_entitlement' && payment.state !== 'detected') return;
-    const boundAt = correlation.window_expires_at
-      ? Date.parse(correlation.window_expires_at) + 60_000
-      : Date.now() + LOCKS_POLL_FALLBACK_BOUND_MS;
+    const boundAt =
+      pollResume?.paymentId === payment.id
+        ? pollResume.boundAt
+        : correlation.window_expires_at
+          ? Date.parse(correlation.window_expires_at) + 60_000
+          : Date.now() + LOCKS_POLL_FALLBACK_BOUND_MS;
     let active = true;
     let timer: number | undefined;
+    let reading = false;
     const read = async () => {
+      // Serialize reads so an older pending response cannot erase a terminal result.
+      if (!active || reading) return;
+      reading = true;
       try {
         const next = await CommerceController.fetchMarketplaceLocksAdmission(payment.id);
         if (!active) return;
         setAdmission(next);
-        if (next && next.kind !== 'in_flight') window.clearInterval(timer);
+        if (next && next.kind !== 'in_flight') {
+          active = false;
+          window.clearInterval(timer);
+        }
       } catch {
         // The order projection stays the source of payment progress.
+      } finally {
+        reading = false;
       }
     };
     void read();
@@ -162,7 +177,7 @@ export function useMarketplaceLocksPayment({
     correlation?.id,
     correlation?.registered,
     correlation?.window_expires_at,
-    pollEpoch,
+    pollResume,
   ]);
 
   useEffect(() => {
@@ -236,8 +251,9 @@ export function useMarketplaceLocksPayment({
   };
 
   const resumePolling = () => {
+    if (!enabled || !payment) return;
     setPollExhausted(false);
-    setPollEpoch((epoch) => epoch + 1);
+    setPollResume({ paymentId: payment.id, boundAt: Date.now() + LOCKS_POLL_FALLBACK_BOUND_MS });
   };
 
   return {

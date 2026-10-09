@@ -18,6 +18,14 @@ import {
 } from './checkout-hold';
 
 describe('checkout-hold copy', () => {
+  it('asks a Bitcoin buyer to settle a pending payment before ordering again, without claiming a wallet guards it', () => {
+    expect(CHECKOUT_HOLD_COPY.pendingBitcoinPaymentBuyer).toBe(
+      'If a payment is still pending in Bitkit, another wallet or another device, let it finish or resolve it before you order again.',
+    );
+    expect(CHECKOUT_HOLD_COPY.pendingBitcoinPaymentBuyer).not.toMatch(/duplicate|dedup|prevent|block/i);
+    expect(CHECKOUT_HOLD_COPY.expiredNoLateMoney).toBe('Payment window elapsed. The item is available again.');
+  });
+
   it('formats hold deadlines in en-US UTC', () => {
     expect(formatHoldDeadline('2026-08-20T21:15:00.000Z')).toBe('Aug 20, 2026, 9:15 PM UTC');
   });

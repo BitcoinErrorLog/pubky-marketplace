@@ -49,4 +49,17 @@ describe('locksAdmissionView', () => {
     expect(locksAdmissionView({ ...base, status: 'completed' })).toEqual({ kind: 'settled' });
     expect(locksAdmissionView({ ...base, status: 'expired' })).toEqual({ kind: 'settled' });
   });
+
+  it.each(['content lock unavailable', 'verification failed'])(
+    'does not infer whether money moved from the post-admission failure %j',
+    (message) => {
+      const view = locksAdmissionView({ ...base, status: 'failed', failure_message: message });
+      expect(view.kind).toBe('failed');
+      if (view.kind !== 'failed') throw new Error('Expected a failed task');
+      const copy = locksAdmissionFailureCopy(view.failure);
+      expect(copy).not.toMatch(/nothing was charged|could not be created/i);
+      expect(copy).toMatch(/check your wallet/i);
+      expect(copy).toBe(LOCKS_ADMISSION_COPY.failed);
+    },
+  );
 });

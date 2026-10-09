@@ -11,6 +11,8 @@ export const CHECKOUT_HOLD_COPY = {
   heldForYouOfferCta: 'Held for you · continue checkout',
   heldWhileAnotherPays: 'Held while another buyer pays',
   expiredNoLateMoney: 'Payment window elapsed. The item is available again.',
+  pendingBitcoinPaymentBuyer:
+    'If a payment is still pending in Bitkit, another wallet or another device, let it finish or resolve it before you order again.',
   lateCompleteBuyer:
     'Your payment arrived after the hold window. The item was still available, so this order is now paid.',
   lateCompleteSeller: 'A late payment completed this order. The item is sold.',

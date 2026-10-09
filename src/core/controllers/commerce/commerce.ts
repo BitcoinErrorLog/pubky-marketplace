@@ -79,6 +79,10 @@ export class CommerceController {
     return await CommerceApplication.fetchShop(CommerceRecordNormalizer.pubky(ownerPubky));
   }
 
+  static async refreshShop(ownerPubky: unknown) {
+    return await CommerceApplication.refreshShop(CommerceRecordNormalizer.pubky(ownerPubky));
+  }
+
   static async getOrFetchShop(ownerPubky: unknown) {
     return await CommerceApplication.getOrFetchShop(CommerceRecordNormalizer.pubky(ownerPubky));
   }

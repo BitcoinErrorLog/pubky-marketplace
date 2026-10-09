@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { marketplaceOrderSchema } from '@/core/services/marketplace/marketplace-projections';
+import { CHECKOUT_HOLD_COPY } from '@/libs/commerce/checkout-hold';
 import projectionSamples from '@/libs/commerce/contracts/samples/projections.json';
 import { toCamelCaseWire } from '@/libs/commerce/wire-casing';
 import {
@@ -131,6 +132,12 @@ describe('bitcoin buyer status', () => {
     expect(wallet.text).toMatch(/^Sent to your wallet\. Open Bitkit to pay\./);
     expect(wallet.text).toMatch(/check that the seller is one of your Bitkit contacts/);
     expect(wallet.text).not.toMatch(/[Dd]elivered/);
+  });
+
+  it('ends the sent copy by asking the buyer to settle a pending payment before ordering again', () => {
+    const unpaid = { ...seenOrder, paykitRequestState: 'pending' as const };
+    const wallet = buyerBitcoinWalletCopy(unpaid, { state: 'awaiting_entitlement' });
+    expect(wallet.text.endsWith(CHECKOUT_HOLD_COPY.pendingBitcoinPaymentBuyer)).toBe(true);
   });
 
   describe('paid order confirmation', () => {

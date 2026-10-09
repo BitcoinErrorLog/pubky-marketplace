@@ -768,7 +768,7 @@ describe('MarketplacePaymentStatusCard', () => {
       expect(screen.getByText('Awaiting payment')).toBeInTheDocument();
       expect(screen.queryByText('Payment seen')).not.toBeInTheDocument();
       expect(screen.getByTestId('paykit-delivery-status')).toHaveTextContent(
-        "Sent to your wallet. Open Bitkit to pay. If the request isn't there, check that the seller is one of your Bitkit contacts. If you have already sent the payment, this page updates as soon as the marketplace sees the transaction.",
+        "Sent to your wallet. Open Bitkit to pay. If the request isn't there, check that the seller is one of your Bitkit contacts. If you have already sent the payment, this page updates as soon as the marketplace sees the transaction. If a payment is still pending in Bitkit, another wallet or another device, let it finish or resolve it before you order again.",
       );
     });
 
@@ -1093,6 +1093,39 @@ describe('MarketplacePaymentStatusCard', () => {
 
     expect(screen.getByText(CHECKOUT_HOLD_COPY.expiredNoLateMoney)).toBeInTheDocument();
     expect(screen.queryByText(/reconciled manually/)).not.toBeInTheDocument();
+  });
+
+  it('asks a Bitcoin buyer to settle a pending payment after the window elapsed, and nobody else', () => {
+    const payment = createPaymentFixture('expired');
+    const elapsed = (paymentMethod: 'bitcoin' | 'paypal') =>
+      createOrderFixture('cancelled', {
+        paymentId: payment.id,
+        paymentMethod,
+        cancellationReason: 'payment window elapsed',
+      });
+    const card = (paymentMethod: 'bitcoin' | 'paypal', isBuyer: boolean) => (
+      <MarketplacePaymentStatusCard
+        order={elapsed(paymentMethod)}
+        payment={payment}
+        isBuyer={isBuyer}
+        adapterMode="transaction-service"
+        advancePayment={async () => false}
+        onPaymentChanged={() => {}}
+      />
+    );
+
+    const { rerender } = render(card('bitcoin', true));
+    expect(screen.getByText(CHECKOUT_HOLD_COPY.expiredNoLateMoney)).toBeInTheDocument();
+    expect(screen.getByTestId('bitcoin-pending-payment-note')).toHaveTextContent(
+      CHECKOUT_HOLD_COPY.pendingBitcoinPaymentBuyer,
+    );
+
+    rerender(card('paypal', true));
+    expect(screen.getByText(CHECKOUT_HOLD_COPY.expiredNoLateMoney)).toBeInTheDocument();
+    expect(screen.queryByTestId('bitcoin-pending-payment-note')).not.toBeInTheDocument();
+
+    rerender(card('bitcoin', false));
+    expect(screen.queryByTestId('bitcoin-pending-payment-note')).not.toBeInTheDocument();
   });
 
   describe('paid Bitcoin order', () => {

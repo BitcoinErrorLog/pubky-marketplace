@@ -449,6 +449,36 @@ export class LocalCommerceService {
     });
   }
 
+  static async cacheRefreshedShop(
+    record: CommerceShopRecord,
+    previousRecord: CommerceShopRecord | null,
+  ): Promise<CommerceShopRecord> {
+    try {
+      return await db.transaction('rw', CommerceShopModel.table, async () => {
+        // A publication may have started or completed while the read was in flight.
+        const local = await this.getShop(record.ownerPubky);
+        if (
+          local &&
+          (local.sync_status !== 'synced' ||
+            local.revision > record.revision ||
+            // Two open editors can publish different records at the same revision.
+            (local.revision === record.revision && JSON.stringify(local.record) !== JSON.stringify(previousRecord)))
+        )
+          return local.record;
+        await this.upsertShop(record, 'synced');
+        return record;
+      });
+    } catch (error) {
+      if (isAppError(error)) throw error;
+      throw Err.database(DatabaseErrorCode.WRITE_FAILED, 'Failed to cache refreshed shop', {
+        service: ErrorService.Local,
+        operation: 'cacheRefreshedShop',
+        context: { table: CommerceShopModel.table.name, id: record.ownerPubky },
+        cause: error,
+      });
+    }
+  }
+
   static async stageShopSync(record: CommerceShopRecord, job: CommerceSyncJobModelSchema): Promise<void> {
     this.assertSyncJobIdentity(job, record.ownerPubky, record.ownerPubky, 'shop');
     const shop = {
