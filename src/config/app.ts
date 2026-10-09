@@ -1,5 +1,10 @@
+import { getHomeserver } from '@/config/network';
 import { Env } from '@/libs/env/env';
-import { getSingleApprovalSignIn } from '@/libs/runtime-config/runtime-config';
+import {
+  getPrivEncryptionKeysEnabled,
+  getPrivEncryptionKeysHomeservers,
+  getSingleApprovalSignIn,
+} from '@/libs/runtime-config/runtime-config';
 
 export const APP_VERSION = Env.NEXT_PUBLIC_APP_VERSION;
 
@@ -19,6 +24,33 @@ export const APP_VERSION = Env.NEXT_PUBLIC_APP_VERSION;
  * superset of it.
  */
 export const CAPABILITIES = '/pub/pubky.app/:rw,/pub/paykit/:rw,/priv/pubky.app/:rw';
+
+/**
+ * The Shop's scope for scoped encryption keys (priv-encryption Phase 4):
+ * read, write and the `e` action on the Shop's own private tree only. `e` is
+ * on no other scope, and `/priv/pubky.app/` stays `rw` so the key file and
+ * the encrypted records sit under a scope that already exists today.
+ */
+export const PRIV_KEYS_SCOPE = '/priv/pubky.app/marketplace/:rwe';
+
+/**
+ * What a signer approves for {@link PRIV_KEYS_SCOPE} when the user declines
+ * `e` but approves storage; the approval then carries no keys.
+ */
+export const PRIV_KEYS_SCOPE_DECLINED = '/priv/pubky.app/marketplace/:rw';
+
+/** The grant sign-in request when scoped encryption keys are asked for. */
+export const KEYED_CAPABILITIES = `${CAPABILITIES},${PRIV_KEYS_SCOPE}`;
+
+/**
+ * Whether the grant sign-in asks the signer for `e`: the runtime switch is on
+ * and the deploy's homeserver is listed as running scoped keys. The
+ * homeserver does not advertise the capability, and one that predates it
+ * rejects the whole grant after the user approved, so both must hold.
+ */
+export function isPrivKeysRequested(): boolean {
+  return getPrivEncryptionKeysEnabled() && getPrivEncryptionKeysHomeservers().includes(getHomeserver());
+}
 
 /** Client id Bitkit shows on its Authorize screen for the Shop's grant sign-in. */
 export const SHOP_GRANT_CLIENT_ID = 'shop.pubky.app';
@@ -62,9 +94,18 @@ function capabilitiesMatchSet(capabilities: readonly string[], expectedSet: stri
   return expected.every((entry) => incomingSet.has(entry));
 }
 
-/** Order-insensitive set equality with {@link CAPABILITIES} split on commas. */
+/**
+ * Order-insensitive set equality with the Shop grant: {@link CAPABILITIES}
+ * alone, or with {@link PRIV_KEYS_SCOPE} as requested or as a signer leaves it
+ * when the user declined `e`. A session approved before keys were requested
+ * and one approved after both hold the full grant.
+ */
 export function capabilitiesMatchFullGrant(capabilities: readonly string[]): boolean {
-  return capabilitiesMatchSet(capabilities, CAPABILITIES);
+  return (
+    capabilitiesMatchSet(capabilities, CAPABILITIES) ||
+    capabilitiesMatchSet(capabilities, KEYED_CAPABILITIES) ||
+    capabilitiesMatchSet(capabilities, `${CAPABILITIES},${PRIV_KEYS_SCOPE_DECLINED}`)
+  );
 }
 
 /** Order-insensitive set equality with {@link RING_COOKIE_CAPABILITIES} split on commas. */

@@ -1,11 +1,18 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { resetRuntimeConfigForTests } from '@/libs/runtime-config/runtime-config';
+import { PUBKY_RUNTIME_ENV_NAMES } from '@/libs/runtime-config/runtime-config.schema';
 import ringCookie from '@/test/fixtures/auth/ring-cookie-signin.pubky-common-0.11.json';
 import {
   CAPABILITIES,
   capabilitiesMatchFullGrant,
   capabilitiesMatchRingCookieGrant,
+  isPrivKeysRequested,
+  KEYED_CAPABILITIES,
+  PRIV_KEYS_SCOPE,
+  PRIV_KEYS_SCOPE_DECLINED,
   RING_COOKIE_CAPABILITIES,
 } from './app';
+import { getHomeserver } from './network';
 
 describe('capabilitiesMatchFullGrant', () => {
   const full = CAPABILITIES.split(',');
@@ -72,5 +79,77 @@ describe('capabilitiesMatchRingCookieGrant', () => {
     ['an extra entry', [...ring, '/:rw']],
   ])('refuses %s', (_label, capabilities) => {
     expect(capabilitiesMatchRingCookieGrant(capabilities)).toBe(false);
+  });
+});
+
+describe('scoped encryption keys in the grant request', () => {
+  it('asks for e on the Shop private tree only, keeping every existing scope', () => {
+    expect(PRIV_KEYS_SCOPE).toBe('/priv/pubky.app/marketplace/:rwe');
+    expect(KEYED_CAPABILITIES).toBe(`${CAPABILITIES},${PRIV_KEYS_SCOPE}`);
+    const withE = KEYED_CAPABILITIES.split(',').filter((entry) => entry.split(':')[1]?.includes('e'));
+    expect(withE).toEqual([PRIV_KEYS_SCOPE]);
+  });
+
+  it('keeps the Ring cookie set free of e: a cookie session cannot carry keys', () => {
+    expect(RING_COOKIE_CAPABILITIES).not.toContain(':rwe');
+    expect(RING_COOKIE_CAPABILITIES.split(',').every((entry) => !entry.split(':')[1]?.includes('e'))).toBe(true);
+  });
+
+  describe('capabilitiesMatchFullGrant', () => {
+    it('accepts a session approved without keys, with keys, and with e declined', () => {
+      expect(capabilitiesMatchFullGrant(CAPABILITIES.split(','))).toBe(true);
+      expect(capabilitiesMatchFullGrant(KEYED_CAPABILITIES.split(','))).toBe(true);
+      expect(capabilitiesMatchFullGrant([...CAPABILITIES.split(','), PRIV_KEYS_SCOPE_DECLINED])).toBe(true);
+      expect(capabilitiesMatchFullGrant([...KEYED_CAPABILITIES.split(',')].reverse())).toBe(true);
+    });
+
+    it('still refuses a grant that lacks a Shop scope, adds another e scope, or widens e', () => {
+      expect(capabilitiesMatchFullGrant(KEYED_CAPABILITIES.split(',').slice(1))).toBe(false);
+      expect(capabilitiesMatchFullGrant([...CAPABILITIES.split(','), '/priv/pubky.app/:rwe'])).toBe(false);
+      expect(capabilitiesMatchFullGrant([...CAPABILITIES.split(','), '/priv/pubky.app/marketplace/:e'])).toBe(false);
+      expect(capabilitiesMatchFullGrant([...KEYED_CAPABILITIES.split(','), '/pub/other/:rw'])).toBe(false);
+    });
+  });
+
+  describe('isPrivKeysRequested', () => {
+    beforeEach(() => resetRuntimeConfigForTests());
+    afterEach(() => {
+      delete process.env[PUBKY_RUNTIME_ENV_NAMES.privEncryptionKeys];
+      delete process.env[PUBKY_RUNTIME_ENV_NAMES.privEncryptionKeysHomeservers];
+      resetRuntimeConfigForTests();
+    });
+
+    const HOMESERVER = getHomeserver();
+    const listed = () => JSON.stringify([HOMESERVER]);
+    const unlisted = () => JSON.stringify(['another-homeserver-key']);
+
+    it('is off by default', () => {
+      expect(isPrivKeysRequested()).toBe(false);
+    });
+
+    it('needs the switch and the deploy homeserver on the list', () => {
+      process.env[PUBKY_RUNTIME_ENV_NAMES.privEncryptionKeys] = 'true';
+      expect(isPrivKeysRequested()).toBe(false);
+
+      resetRuntimeConfigForTests();
+      process.env[PUBKY_RUNTIME_ENV_NAMES.privEncryptionKeys] = 'true';
+      process.env[PUBKY_RUNTIME_ENV_NAMES.privEncryptionKeysHomeservers] = unlisted();
+      expect(isPrivKeysRequested()).toBe(false);
+
+      resetRuntimeConfigForTests();
+      process.env[PUBKY_RUNTIME_ENV_NAMES.privEncryptionKeys] = 'true';
+      process.env[PUBKY_RUNTIME_ENV_NAMES.privEncryptionKeysHomeservers] = listed();
+      expect(isPrivKeysRequested()).toBe(true);
+    });
+
+    it('stays off when the list names the homeserver but the switch is off', () => {
+      process.env[PUBKY_RUNTIME_ENV_NAMES.privEncryptionKeysHomeservers] = listed();
+      expect(isPrivKeysRequested()).toBe(false);
+
+      resetRuntimeConfigForTests();
+      process.env[PUBKY_RUNTIME_ENV_NAMES.privEncryptionKeys] = 'false';
+      process.env[PUBKY_RUNTIME_ENV_NAMES.privEncryptionKeysHomeservers] = listed();
+      expect(isPrivKeysRequested()).toBe(false);
+    });
   });
 });

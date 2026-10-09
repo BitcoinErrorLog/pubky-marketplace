@@ -139,6 +139,21 @@ const optionalStringArrayFromString = (label: string) =>
     // Unset / blank strings stay `undefined` so the value-schema default still applies.
     .pipe(z.array(nonEmptyStringValue).optional());
 
+const optionalHomeserverArrayFromString = (label: string) =>
+  z
+    .string()
+    .optional()
+    .transform((val, ctx) => {
+      if (val === undefined || val.trim() === '') return undefined;
+      try {
+        return parseJsonStringArray(val, label);
+      } catch (error) {
+        ctx.addIssue({ code: 'custom', message: `Invalid ${label} value: ${(error as Error).message}` });
+        return z.NEVER;
+      }
+    })
+    .pipe(z.array(homeserverValue).optional());
+
 /**
  * Optional-tier env strings: a missing OR empty/whitespace value means "unset".
  * The outer `.optional()` keeps the key optional in the OUTPUT type too, so the env-input
@@ -260,6 +275,8 @@ export const APP_RUNTIME_DEFAULTS = {
   marketplaceGrantFlowEnabled: false,
   marketplaceGrantPollMilliseconds: 1_000,
   passportSignIn: true,
+  privEncryptionKeys: false,
+  privEncryptionKeysHomeservers: [] as string[],
   preludeSdkTimeoutMs: 5_000,
   previewImage: '/preview.webp',
   siteName: 'Pubky App',
@@ -380,6 +397,24 @@ export const runtimeConfigValueSchema = networkConfigValueSchema.extend({
    * signs users up on this deploy's homeserver (see `getPassportOrigin`).
    */
   passportUrl: passportUrlValue.optional(),
+  /**
+   * Whether the Shop's grant sign-in asks the signer for the `e` action on
+   * `/priv/pubky.app/marketplace/` (priv-encryption Phase 4), so the user's
+   * data key is wrapped under a key only the signer can derive. Off by
+   * default: a homeserver without scoped-key support rejects the grant after
+   * the user has approved it. Also requires the deploy's homeserver to be
+   * listed in `privEncryptionKeysHomeservers`.
+   */
+  privEncryptionKeys: z.boolean().default(APP_RUNTIME_DEFAULTS.privEncryptionKeys),
+  /**
+   * Public keys (in the form of `homeserver`) of the homeservers known to run a release with
+   * scoped encryption keys. The homeserver does not advertise the capability
+   * in `/info`, so the operator lists it here once it is deployed. The `e`
+   * request is made only while the deploy's configured homeserver is listed.
+   */
+  privEncryptionKeysHomeservers: z
+    .array(homeserverValue)
+    .default([...APP_RUNTIME_DEFAULTS.privEncryptionKeysHomeservers]),
   preludeSdkKey: nonEmptyStringValue.optional(),
   preludeSdkTimeoutMs: positiveIntValue.default(APP_RUNTIME_DEFAULTS.preludeSdkTimeoutMs),
   plausibleDomain: nonEmptyStringValue.optional(),
@@ -464,6 +499,8 @@ export const runtimeEnvInputSchema = z
     marketplaceGrantPollMilliseconds: optionalPositiveIntFromString,
     passportSignIn: optionalBooleanFromString,
     passportUrl: optionalPassportUrlFromString,
+    privEncryptionKeys: optionalBooleanFromString,
+    privEncryptionKeysHomeservers: optionalHomeserverArrayFromString('PRIV_ENCRYPTION_KEYS_HOMESERVERS'),
     preludeSdkKey: optionalTrimmedString,
     preludeSdkTimeoutMs: optionalPositiveIntFromString,
     plausibleDomain: optionalTrimmedString,
@@ -555,6 +592,8 @@ export const runtimeEnvInputSchemaWithDefaults = z
     marketplaceGrantPollMilliseconds: optionalPositiveIntFromString,
     passportSignIn: optionalBooleanFromString,
     passportUrl: optionalDevPassportUrlFromString,
+    privEncryptionKeys: optionalBooleanFromString,
+    privEncryptionKeysHomeservers: optionalHomeserverArrayFromString('PRIV_ENCRYPTION_KEYS_HOMESERVERS'),
     preludeSdkKey: optionalTrimmedString,
     preludeSdkTimeoutMs: optionalPositiveIntFromString,
     plausibleDomain: optionalTrimmedString,
@@ -638,6 +677,8 @@ export const PUBKY_RUNTIME_ENV_NAMES: Record<keyof RuntimeConfig, string> = {
   marketplaceGrantPollMilliseconds: 'PUBKY_RUNTIME_MARKETPLACE_GRANT_POLL_MILLISECONDS',
   passportSignIn: 'PUBKY_RUNTIME_PASSPORT_SIGN_IN',
   passportUrl: 'PUBKY_RUNTIME_PASSPORT_URL',
+  privEncryptionKeys: 'PUBKY_RUNTIME_PRIV_ENCRYPTION_KEYS',
+  privEncryptionKeysHomeservers: 'PUBKY_RUNTIME_PRIV_ENCRYPTION_KEYS_HOMESERVERS',
   preludeSdkKey: 'PUBKY_RUNTIME_PRELUDE_SDK_KEY',
   preludeSdkTimeoutMs: 'PUBKY_RUNTIME_PRELUDE_SDK_TIMEOUT_MS',
   plausibleDomain: 'PUBKY_RUNTIME_PLAUSIBLE_DOMAIN',

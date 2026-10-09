@@ -9,6 +9,8 @@ import {
   getPassportOrigin,
   getPassportSignInEnabled,
   getPaykitSetupUrl,
+  getPrivEncryptionKeysEnabled,
+  getPrivEncryptionKeysHomeservers,
   getRuntimeConfig,
   getSentryDsn,
   getSentryEnvironment,
@@ -215,6 +217,33 @@ describe('runtime-config resolver', () => {
       resetRuntimeConfigForTests();
       process.env[PUBKY_RUNTIME_ENV_NAMES.passportSignIn] = 'false';
       expect(getPassportSignInEnabled()).toBe(false);
+    });
+
+    it('does not request scoped encryption keys unless the deploy opts in', () => {
+      expect(getPrivEncryptionKeysEnabled()).toBe(false);
+      expect(getPrivEncryptionKeysHomeservers()).toEqual([]);
+
+      resetRuntimeConfigForTests();
+      process.env[PUBKY_RUNTIME_ENV_NAMES.privEncryptionKeys] = 'true';
+      process.env[PUBKY_RUNTIME_ENV_NAMES.privEncryptionKeysHomeservers] = JSON.stringify(['y'.repeat(52)]);
+      expect(getPrivEncryptionKeysEnabled()).toBe(true);
+      expect(getPrivEncryptionKeysHomeservers()).toEqual(['y'.repeat(52)]);
+    });
+
+    it('rejects a scoped-keys homeserver list that is not a JSON array of non-empty strings', () => {
+      for (const value of ['not json', '{"a":1}', '[1]', '[""]']) {
+        resetRuntimeConfigForTests();
+        process.env[PUBKY_RUNTIME_ENV_NAMES.privEncryptionKeysHomeservers] = value;
+        expect(() => readServerConfig(), value).toThrow();
+      }
+    });
+
+    it('strict deployed parse succeeds with the scoped-keys values unset', () => {
+      simulateDeployedEnv();
+      setAllRuntimeEnv();
+      const config = readServerConfig();
+      expect(config.privEncryptionKeys).toBe(false);
+      expect(config.privEncryptionKeysHomeservers).toEqual([]);
     });
 
     it('a deployed container takes only an https:// Passport override', () => {
