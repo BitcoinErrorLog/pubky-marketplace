@@ -8,6 +8,7 @@ import {
   BITCOIN_WALLET_SENT_COPY,
   bitcoinConfirmationExists,
   bitcoinPaidConfirmation,
+  bitcoinPaymentHasBeenSeen,
   bitcoinSeenBadgeLabel,
   buyerBitcoinWalletCopy,
   buyerCheckoutBadgeLabel,
@@ -243,5 +244,24 @@ describe('bitcoin buyer status', () => {
       expect(bitcoinConfirmationExists(order, { state: 'awaiting_entitlement', confirmations: 0 })).toBe(false);
       expect(bitcoinConfirmationExists(order, { state: 'expired', confirmations: 0 })).toBe(false);
     });
+  });
+});
+
+describe('a USDT attempt on Paykit is never read as a Bitcoin order', () => {
+  const usdtOrder = { ...seenOrder, paymentMethod: 'usdt' as const };
+
+  it('shows no Bitcoin seen, confirmed or seller-confirm state for a USDT order that carries a Paykit request state', () => {
+    expect(bitcoinPaymentHasBeenSeen(usdtOrder, { state: 'awaiting_entitlement' })).toBe(false);
+    expect(bitcoinSeenBadgeLabel(usdtOrder, { state: 'awaiting_entitlement' })).toBeNull();
+    expect(sellerBitcoinDecision(usdtOrder, { state: 'manual_review' })).toBeNull();
+    expect(bitcoinPaidConfirmation(usdtOrder, { state: 'confirmed', confirmations: 1 })).toBeNull();
+    expect(buyerCheckoutBadgeLabel(usdtOrder, { state: 'awaiting_entitlement' })).not.toBe(PAYMENT_SEEN_LABEL);
+  });
+
+  it('keeps the reserved-while-you-pay line, never the Bitcoin seller-confirm line, for a pending USDT checkout', () => {
+    const progress = buyerCheckoutProgressCopy(usdtOrder, { state: 'awaiting_entitlement' }, NOW);
+
+    expect(progress).toMatch(/^Awaiting payment · Item reserved · /);
+    expect(progress).not.toMatch(/Seller confirms by|on-chain|Bitcoin/i);
   });
 });

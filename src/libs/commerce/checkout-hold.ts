@@ -20,6 +20,8 @@ export const CHECKOUT_HOLD_COPY = {
     'Your payment arrived after another buyer took this item. This order cannot be completed. The seller must return your funds.',
   refundRequiredBitcoinSeller:
     'Return the observed bitcoin to the buyer. This marketplace cannot reverse Bitcoin. Message the buyer for a return address, send the transaction, then record it as an external refund.',
+  refundRequiredUsdtSeller:
+    'Return the received USDT to the buyer. This marketplace cannot reverse an Arbitrum transfer. Send it from Bitkit, then record the refund.',
   refundRequiredPaypalSeller:
     'Refund this PayPal payment from your PayPal account. This marketplace cannot refund PayPal. Then record the refund.',
   refundRequiredStripeSeller: 'Refund this card payment from the account that received it. Then record the refund.',
@@ -78,6 +80,7 @@ export function isHoldExpiredNoLateMoney(
 export function refundRequiredSellerCopy(paymentMethod: string | null | undefined): string {
   if (paymentMethod === 'paypal') return CHECKOUT_HOLD_COPY.refundRequiredPaypalSeller;
   if (paymentMethod === 'stripe') return CHECKOUT_HOLD_COPY.refundRequiredStripeSeller;
+  if (paymentMethod === 'usdt') return CHECKOUT_HOLD_COPY.refundRequiredUsdtSeller;
   return CHECKOUT_HOLD_COPY.refundRequiredBitcoinSeller;
 }
 
