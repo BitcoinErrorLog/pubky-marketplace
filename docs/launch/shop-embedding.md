@@ -97,6 +97,8 @@ Replace each with `navigateTop(authorizationUrl)`. The Paykit setup and Lock Ser
 
 The Shop is embedded when the page is framed **and** the deployment allows framing (`PUBKY_RUNTIME_FRAME_ANCESTORS` is not empty), when `PUBKY_RUNTIME_EMBEDDED=true`, or when the URL has `?embedded=1` (read once per page load). A frame the deployment does not allow keeps the normal layout: that is how the Cypress and Vitest browser harnesses, which run the page in an iframe, stay unchanged. Embedded, the Shop renders no header, no mobile header, no mobile footer and no floating action button: the host app owns the page chrome. The marketplace section bar (Marketplace, Messages, Watchlist, Cart, Offers, Orders, Activity, My shop) is page content and stays, so every Shop destination remains reachable.
 
+The document also gets `data-shop-embedded="true"`, which collapses the header offsets (`--header-offset-main`, `--header-offset-mobile`, the marketplace sub-navigation's fixed mobile offset) so sticky elements stick to the top of the frame instead of leaving a gap where the Shop header used to be.
+
 A deployment that sets `PUBKY_RUNTIME_EMBEDDED=true` renders this from the first byte. A page detected only in the browser (framed, or `?embedded=1`) shows the Shop chrome for a moment, then drops it right after hydration.
 
 ## Service worker

@@ -3,6 +3,7 @@ import Script from 'next/script';
 import { Container } from '@/atoms/Container/Container';
 import { PLAUSIBLE_QUERYLESS_PAGE_BOOTSTRAP } from '@/libs/observability/plausible-page-url';
 import {
+  getEmbeddedFlag,
   getPlausibleDomain,
   getPlausibleScriptUrl,
   serializeRuntimeConfig,
@@ -23,7 +24,7 @@ export function RootContainer({ children }: RootContainerProps) {
   const plausibleScriptUrl = getPlausibleScriptUrl();
 
   return (
-    <Container as="html" lang="en-US" dir="ltr">
+    <Container as="html" lang="en-US" dir="ltr" {...(getEmbeddedFlag() && { 'data-shop-embedded': 'true' })}>
       <Container as="body" className={`${interTight.variable} antialiased`}>
         {/*
           Publish runtime config before any Next.js bundle executes. This must stay a RAW

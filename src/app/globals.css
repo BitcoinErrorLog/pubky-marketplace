@@ -1086,3 +1086,17 @@ body {
     color: black;
   }
 }
+
+/*
+ * Embedded in a host app (see EmbeddedDocumentFlag): the host owns the page chrome, so nothing sits
+ * above the content to offset sticky elements from. The two header offsets collapse, and the
+ * marketplace sub-navigation's mobile offset (Tailwind `top-24`, a fixed 96px) follows.
+ */
+html[data-shop-embedded] {
+  --header-offset-main: 0px;
+  --header-offset-mobile: 0px;
+}
+
+html[data-shop-embedded] .sticky.top-24 {
+  top: 0;
+}
