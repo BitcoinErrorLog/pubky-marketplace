@@ -1,0 +1,1 @@
+A digital purchase is withheld while PayPal has reversed the payment or refunded part of it. The buyer's order page says "The payment was reversed, so the download is disabled." (or that PayPal refunded the payment), and the seller's Show email is replaced by the same reason. A canceled reversal brings the download back.

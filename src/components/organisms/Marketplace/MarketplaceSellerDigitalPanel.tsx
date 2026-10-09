@@ -5,7 +5,7 @@ import { Heading } from '@/atoms/Heading/Heading';
 import { Skeleton } from '@/atoms/Skeleton/Skeleton';
 import { Typography } from '@/atoms/Typography/Typography';
 import { useSellerDigitalDelivery } from '@/hooks/useSellerDigitalDelivery/useSellerDigitalDelivery';
-import { DIGITAL_SELLER_COPY, isDigitalOrderEnded } from '@/libs/commerce/digital';
+import { DIGITAL_SELLER_COPY, digitalPaymentTakenBack, isDigitalOrderEnded } from '@/libs/commerce/digital';
 import { SETTINGS_SECTION_CONTENT_CLASSNAME } from '@/molecules/Settings/SettingsSectionContent/SettingsSectionContent';
 import type { MarketplaceOrder } from '@/services/marketplace/marketplace';
 
@@ -27,8 +27,12 @@ export function MarketplaceSellerDigitalPanel({
   const evidenceLines = evidence.status === 'ready' ? evidence.lines : [];
   if (delivery.channels.length === 0 && evidence.status !== 'failed' && evidenceLines.length === 0) return null;
   const paid = order.state === 'paid';
+  const takenBack = digitalPaymentTakenBack(order);
   const canShowEmail =
-    delivery.channels.includes('email') && order.receiptId !== null && !isDigitalOrderEnded(order.state);
+    delivery.channels.includes('email') &&
+    order.receiptId !== null &&
+    !isDigitalOrderEnded(order.state) &&
+    takenBack === null;
 
   return (
     <section
@@ -53,6 +57,16 @@ export function MarketplaceSellerDigitalPanel({
             {DIGITAL_SELLER_COPY.evidenceRetry}
           </Button>
         </div>
+      )}
+      {takenBack && delivery.channels.includes('email') && (
+        <Typography
+          as="p"
+          role="status"
+          className="text-sm text-muted-foreground"
+          data-testid="seller-digital-withheld"
+        >
+          {takenBack === 'payment_reversed' ? DIGITAL_SELLER_COPY.emailReversed : DIGITAL_SELLER_COPY.emailRefunded}
+        </Typography>
       )}
       {email.status === 'loading' && <Skeleton className="h-5 w-64" aria-label="Loading the buyer's email" />}
       {email.status === 'shown' && (

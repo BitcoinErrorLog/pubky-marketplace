@@ -118,6 +118,32 @@ describe('MarketplaceSellerDigitalPanel (digital delivery design §3 "Seller\u20
     expect(screen.queryByRole('button', { name: 'Show email' })).not.toBeInTheDocument();
   });
 
+  it('offers no Show email while a PayPal reversal or refund withholds it, and says why', () => {
+    const { unmount } = render(
+      <MarketplaceSellerDigitalPanel
+        order={{ ...sellerOrder('paid', ['email']), paymentReversedAt: '2026-09-27T10:00:00.000Z' }}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: 'Show email' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('seller-digital-withheld')).toHaveTextContent(
+      "The payment was reversed, so the buyer's email is no longer available.",
+    );
+    unmount();
+
+    render(
+      <MarketplaceSellerDigitalPanel
+        order={{
+          ...sellerOrder('paid', ['email']),
+          externalRefund: { amountMinor: 4_000, transactionId: 'a'.repeat(17), recordedAt: '2026-09-27T10:00:00.000Z' },
+        }}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: 'Show email' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('seller-digital-withheld')).toHaveTextContent(
+      "PayPal refunded this payment, so the buyer's email is no longer available.",
+    );
+  });
+
   it('removes a shown address from the page when the same order is refunded (F8)', async () => {
     const user = userEvent.setup();
     const paid = sellerOrder('paid', ['email']);

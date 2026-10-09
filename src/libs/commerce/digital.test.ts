@@ -28,6 +28,7 @@ import {
   digitalFileTooLargeCopy,
   digitalOrderEmailLine,
   digitalOrderManualChannels,
+  digitalPaymentTakenBack,
   formatDigitalFileSize,
   isDigitalDeliveryLink,
   isDigitalOrderEnded,
@@ -275,6 +276,8 @@ describe('digital delivery seller setup contract (§2, §6 C1–C5)', () => {
 
   it('classifies only the fixed read refusals', () => {
     expect(classifyDigitalReadRefusal('not_paid')).toBe('not_paid');
+    expect(classifyDigitalReadRefusal('payment_reversed')).toBe('payment_reversed');
+    expect(classifyDigitalReadRefusal('payment_refunded')).toBe('payment_refunded');
     expect(classifyDigitalReadRefusal('something_else')).toBeNull();
     expect(classifyDigitalReadRefusal(7)).toBeNull();
   });
@@ -561,6 +564,12 @@ describe('seller delivery actions (§3 "Seller\u2019s orders", §4.3, §6 E8, E9
     expect(DIGITAL_DELIVER_REFUSAL_COPY.changed).toBe('This order changed. Refresh to see the latest.');
     expect(sellerDeliveryEmailReadCopy('not_paid')).toBe("The buyer's email appears once payment is confirmed.");
     expect(sellerDeliveryEmailReadCopy('email_missing')).toBe("Waiting for the buyer's email.");
+    expect(sellerDeliveryEmailReadCopy('payment_reversed')).toBe(
+      "The payment was reversed, so the buyer's email is no longer available.",
+    );
+    expect(sellerDeliveryEmailReadCopy('payment_refunded')).toBe(
+      "PayPal refunded this payment, so the buyer's email is no longer available.",
+    );
     expect(sellerDeliveryEmailReadCopy('delivery_ended')).toBe('This order was cancelled or refunded.');
   });
 
@@ -608,5 +617,27 @@ describe('seller delivery evidence (§3 "Seller\u2019s orders")', () => {
       expect.stringMatching(/^Marked delivered Sep 26, \d\d:\d\d$/),
     ]);
     expect(digitalEvidenceLines(none, [{ digitalKind: 'email' }])).toEqual([]);
+  });
+});
+
+describe('digitalPaymentTakenBack (DD3, mirrors the service)', () => {
+  const refund = { amountMinor: 4_000, transactionId: 'a'.repeat(17), recordedAt: '2026-09-27T10:00:00.000Z' };
+
+  it('flags an outstanding reversal in any state', () => {
+    for (const state of ['paid', 'delivered', 'completed', 'refunded_external']) {
+      expect(digitalPaymentTakenBack({ state, paymentReversedAt: '2026-09-27T10:00:00.000Z' }), state).toBe(
+        'payment_reversed',
+      );
+    }
+  });
+
+  it('flags a PayPal refund only while the order has not ended', () => {
+    expect(digitalPaymentTakenBack({ state: 'delivered', externalRefund: refund })).toBe('payment_refunded');
+    expect(digitalPaymentTakenBack({ state: 'refunded_external', externalRefund: refund })).toBeNull();
+  });
+
+  it('flags nothing on an untouched order or after a canceled reversal', () => {
+    expect(digitalPaymentTakenBack({ state: 'delivered' })).toBeNull();
+    expect(digitalPaymentTakenBack({ state: 'delivered', paymentReversedAt: null, externalRefund: null })).toBeNull();
   });
 });
