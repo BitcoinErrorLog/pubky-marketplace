@@ -28,6 +28,7 @@ Route `https://pubky.app/shop` and everything under it to the Shop deployment, w
 - **Headers.** Pass `Host` and `X-Forwarded-Proto: https` through. The Shop's grant bridge checks the browser `Origin` against its allow-list, so `Origin` must arrive unmodified.
 - **Cookies.** The Shop's bridge cookies are `__Host-`prefixed, `Secure`, `HttpOnly`, `SameSite=Strict`, `Path=/`. On `pubky.app` they are sent to App routes too. They do not clash by name, but the App must not clear or overwrite cookies it did not set.
 - **Redirects.** `/shop` redirects to `/shop/marketplace`.
+- **Vercel cron.** If the embedded build runs on Vercel, the cron in `vercel.json` (`/api/marketplace/grant-cleanup`) must point at the prefixed path (`/shop/api/marketplace/grant-cleanup`) in that deployment's config.
 - **Socials.** Leave `NEXT_PUBLIC_SOCIAL_HOST` unset in the embedded build. With it set, `/shop/home` and the other social routes answer a 307 to the App and would load the App inside the frame.
 
 The Shop exposes no manifest and registers no service worker under a base path (see [Service worker](#service-worker)), so the App's manifest and worker are the only ones on the origin.
