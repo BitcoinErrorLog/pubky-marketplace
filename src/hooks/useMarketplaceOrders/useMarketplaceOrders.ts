@@ -18,6 +18,8 @@ import {
   classifyMarketplacePickupCommandRefusal,
   isMarketplaceRevisionConflict,
 } from '@/libs/commerce/transaction-commands';
+import { PAYMENT_NOT_FINAL_COPY } from '@/libs/commerce/usdt-buyer-status';
+import { isPaymentNotFinalRefusal } from '@/libs/commerce/usdt-settlement-contract';
 import { isMarketplaceSessionRequiredError } from '@/libs/error/error.utils';
 import { toast } from '@/molecules/Toaster/use-toast';
 import type { MarketplaceOrder, MarketplacePayment, MarketplaceReceipt } from '@/services/marketplace/marketplace';
@@ -150,6 +152,10 @@ export function useMarketplaceOrders() {
             variant: 'error',
             description: orderChangedMessage(order, current),
           });
+          return false;
+        }
+        if (isPaymentNotFinalRefusal(response)) {
+          toast({ variant: 'error', description: PAYMENT_NOT_FINAL_COPY });
           return false;
         }
         const pickupRefusal = classifyMarketplacePickupCommandRefusal(response);

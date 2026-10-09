@@ -1,8 +1,10 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CommerceController } from '@/controllers/commerce/commerce';
+import { PAYMENT_NOT_FINAL_COPY } from '@/libs/commerce/usdt-buyer-status';
 import { toast } from '@/molecules/Toaster/use-toast';
 import { createOrderFixture } from '@/test/fixtures/commerce/orders';
+import { USDT_WIRE_PAYMENT_NOT_FINAL_REFUSAL } from '@/test/fixtures/commerce/usdt-orders';
 import { usePickupOrderActions } from './usePickupOrderActions';
 
 const controllerState = vi.hoisted(() => ({
@@ -70,6 +72,32 @@ describe('usePickupOrderActions', () => {
 
     expect(outcome).toBe('terms_blocked');
     expect(toast).not.toHaveBeenCalled();
+  });
+
+  it('toasts the payment_not_final copy when mark ready is refused before a USDT payment is final', async () => {
+    controllerState.markReadyResponse = USDT_WIRE_PAYMENT_NOT_FINAL_REFUSAL;
+    const { result } = renderActions();
+
+    let succeeded = true;
+    await act(async () => {
+      succeeded = await result.current.markReady();
+    });
+
+    expect(succeeded).toBe(false);
+    expect(toast).toHaveBeenCalledWith({ variant: 'error', description: PAYMENT_NOT_FINAL_COPY });
+  });
+
+  it('toasts the payment_not_final copy when the handover is refused before a USDT payment is final', async () => {
+    controllerState.confirmResponse = USDT_WIRE_PAYMENT_NOT_FINAL_REFUSAL;
+    const { result } = renderActions();
+
+    let outcome: unknown;
+    await act(async () => {
+      outcome = await result.current.confirmHandover();
+    });
+
+    expect(outcome).toBe(false);
+    expect(toast).toHaveBeenCalledWith({ variant: 'error', description: PAYMENT_NOT_FINAL_COPY });
   });
 
   it('toasts static pickup-refusal copy and never the server message when the envelope echoes a meeting address', async () => {

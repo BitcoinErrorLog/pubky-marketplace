@@ -5,6 +5,8 @@ import { CommerceController } from '@/controllers/commerce/commerce';
 import { MARKETPLACE_FAILURE_MESSAGES } from '@/libs/commerce/failure-messages';
 import { classifyMarketplacePickupRefusal, pickupRefusalToastDescription } from '@/libs/commerce/pickup';
 import { buildMarketplaceOrderAggregateId, isMarketplaceRevisionConflict } from '@/libs/commerce/transaction-commands';
+import { PAYMENT_NOT_FINAL_COPY } from '@/libs/commerce/usdt-buyer-status';
+import { isPaymentNotFinalRefusal } from '@/libs/commerce/usdt-settlement-contract';
 import { isMarketplaceSessionRequiredError } from '@/libs/error/error.utils';
 import { toast } from '@/molecules/Toaster/use-toast';
 import type { MarketplaceOrder } from '@/services/marketplace/marketplace';
@@ -73,7 +75,12 @@ export function usePickupOrderActions(
           });
           return false;
         }
-        toast({ variant: 'error', description: pickupRefusalToastDescription(response.error.message) });
+        toast({
+          variant: 'error',
+          description: isPaymentNotFinalRefusal(response)
+            ? PAYMENT_NOT_FINAL_COPY
+            : pickupRefusalToastDescription(response.error.message),
+        });
         return false;
       }
       toast({ title: 'Ready for pickup', description: 'The buyer was notified that the order is ready to collect.' });
@@ -98,7 +105,12 @@ export function usePickupOrderActions(
         if (classifyMarketplacePickupRefusal(response.error.message) === 'terms_change_unresolved') {
           return 'terms_blocked';
         }
-        toast({ variant: 'error', description: pickupRefusalToastDescription(response.error.message) });
+        toast({
+          variant: 'error',
+          description: isPaymentNotFinalRefusal(response)
+            ? PAYMENT_NOT_FINAL_COPY
+            : pickupRefusalToastDescription(response.error.message),
+        });
         return false;
       }
       toast({ title: 'Handover confirmed', description: 'The pickup is complete — the order is delivered.' });

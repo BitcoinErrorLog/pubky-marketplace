@@ -1350,3 +1350,83 @@ describe('MarketplaceOrders Activity link to an order no section lists', () => {
     expect(await screen.findByTestId('marketplace-linked-order-state')).toHaveTextContent('Cancelled before payment');
   });
 });
+
+describe('MarketplaceOrders USDT orders', () => {
+  const usdtFields = {
+    paymentMethod: 'usdt' as const,
+    paymentAsset: 'USDT' as const,
+    paymentNetwork: 'arbitrum-one' as const,
+    paymentAmountMinor: 137_000_000,
+    paymentExponent: 6,
+    paymentQuoteBasis: 'parity' as const,
+  };
+
+  beforeEach(() => {
+    ordersState.currentUserPubky = CURRENT_USER;
+    ordersState.orders = [];
+    ordersState.adapterMode = 'transaction-service';
+    ordersState.needsSession = false;
+    ordersState.error = null;
+    useMarketplaceDisplayStore.setState({ showFxEstimate: true, measurementSystem: null });
+  });
+
+  it('never shows the indicative bitcoin estimate on a USDT-paid USD order', async () => {
+    ordersState.orders = [orderView('paid', 'USDT boots', 'buyer', { ...usdtFields, paymentFinality: 'final' })];
+
+    render(<MarketplaceOrders />);
+    await userEvent.setup().click(screen.getByRole('tab', { name: /All 1/i }));
+
+    expect(await screen.findByText('USDT boots × 1')).toBeInTheDocument();
+    expect(screen.queryByText('≈ ₿137,000')).not.toBeInTheDocument();
+  });
+
+  it('writes the paid-as line on the order and in the receipt', async () => {
+    const view = orderView('paid', 'USDT receipt boots', 'buyer', { ...usdtFields, paymentFinality: 'final' });
+    ordersState.orders = [{ ...view, receipt: createReceiptFixture() }];
+
+    render(<MarketplaceOrders />);
+    await userEvent.setup().click(screen.getByRole('tab', { name: /All 1/i }));
+
+    const summary = await screen.findByTestId('usdt-payment-summary');
+    expect(within(summary).getByTestId('usdt-paid-as')).toHaveTextContent('$137.00, paid as 137.000000 USDT');
+    expect(within(summary).getByTestId('usdt-network')).toHaveTextContent('USDT0 on Arbitrum One');
+    expect(within(screen.getByTestId('order-receipt-details')).getByTestId('order-receipt-usdt-paid-as')).toHaveTextContent(
+      '$137.00, paid as 137.000000 USDT',
+    );
+    expect(screen.getByTestId('order-receipt-details')).not.toHaveTextContent(/Bitcoin|₿/);
+  });
+
+  it('tells the seller to hold the shipment until Arbitrum finalizes, then that shipping is open', async () => {
+    ordersState.orders = [
+      orderView('paid', 'USDT pending boots', 'seller', { ...usdtFields, paymentFinality: 'pending' }),
+    ];
+    const { unmount } = render(<MarketplaceOrders />);
+    await userEvent.setup().click(screen.getByRole('tab', { name: /All 1/i }));
+    expect(await screen.findByTestId('usdt-phase-copy')).toHaveTextContent(
+      "Payment received. Don't ship yet: Arbitrum hasn't finalized it. Shipping unlocks on its own.",
+    );
+    expect(screen.getByRole('button', { name: 'Add tracking' })).toBeDisabled();
+    unmount();
+
+    ordersState.orders = [orderView('paid', 'USDT final boots', 'seller', { ...usdtFields, paymentFinality: 'final' })];
+    render(<MarketplaceOrders />);
+    await userEvent.setup().click(screen.getByRole('tab', { name: /All 1/i }));
+    expect(await screen.findByTestId('usdt-phase-copy')).toHaveTextContent('Payment final. You can ship.');
+    expect(screen.getByRole('button', { name: 'Add tracking' })).toBeEnabled();
+  });
+
+  it('keeps Bitcoin, PayPal and unbound orders free of any USDT surface', async () => {
+    ordersState.orders = [
+      orderView('paid', 'Bitcoin boots', 'buyer', { paymentMethod: 'bitcoin' }),
+      orderView('paid', 'PayPal boots', 'buyer', { paymentMethod: 'paypal' }),
+      orderView('paid', 'Locked boots', 'buyer', { paymentMethod: null }),
+    ];
+
+    const { container } = render(<MarketplaceOrders />);
+    await userEvent.setup().click(screen.getByRole('tab', { name: /All 3/i }));
+
+    expect(await screen.findByText('Bitcoin boots × 1')).toBeInTheDocument();
+    expect(container).not.toHaveTextContent(/USDT|Arbitrum/);
+    expect(screen.queryByTestId('usdt-payment-summary')).not.toBeInTheDocument();
+  });
+});

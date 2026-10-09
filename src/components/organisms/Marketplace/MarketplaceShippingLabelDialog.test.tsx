@@ -8,6 +8,7 @@ import { ClientErrorCode } from '@/libs/error/error.codes';
 import { ErrorCategory, ErrorService } from '@/libs/error/error.types';
 import { toast } from '@/molecules/Toaster/use-toast';
 import { createOrderFixture } from '@/test/fixtures/commerce/orders';
+import { createUsdtOrderFixture } from '@/test/fixtures/commerce/usdt-orders';
 import { MarketplaceShippingLabelDialog } from './MarketplaceShippingLabelDialog';
 
 vi.mock('@/controllers/commerce/commerce', () => ({
@@ -133,5 +134,38 @@ describe('MarketplaceShippingLabelDialog', () => {
     vi.spyOn(commerceConfig, 'getCommerceAdapterMode').mockReturnValue('sandbox');
     renderDialog();
     expect(screen.queryByRole('button', { name: /Shipping label/ })).not.toBeInTheDocument();
+  });
+});
+
+describe('MarketplaceShippingLabelDialog on a USDT order', () => {
+  it.each(['received', 'rechecking'] as const)(
+    'keeps Mark shipped disabled with the payment_not_final copy while the payment is %s',
+    async (phase) => {
+      mockedController.getShippingLabel.mockResolvedValue(LABEL);
+      const { order } = createUsdtOrderFixture(phase);
+      const actOnOrder = vi.fn(async () => true);
+      render(<MarketplaceShippingLabelDialog order={order} actOnOrder={actOnOrder} />);
+      await userEvent.click(screen.getByRole('button', { name: /Shipping label/ }));
+      await screen.findByRole('link', { name: /Print label/ });
+
+      expect(screen.getByRole('button', { name: 'Mark shipped with this tracking' })).toBeDisabled();
+      expect(screen.getByTestId('usdt-payment-not-final')).toHaveTextContent(
+        "Wait to ship: this USDT payment isn't final on Arbitrum yet. This usually takes a few minutes.",
+      );
+      expect(actOnOrder).not.toHaveBeenCalled();
+    },
+  );
+
+  it('ships with the purchased tracking once the payment is final', async () => {
+    mockedController.getShippingLabel.mockResolvedValue(LABEL);
+    const { order } = createUsdtOrderFixture('final');
+    const actOnOrder = vi.fn(async () => true);
+    render(<MarketplaceShippingLabelDialog order={order} actOnOrder={actOnOrder} />);
+    await userEvent.click(screen.getByRole('button', { name: /Shipping label/ }));
+    await screen.findByRole('link', { name: /Print label/ });
+
+    expect(screen.queryByTestId('usdt-payment-not-final')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Mark shipped with this tracking' }));
+    expect(actOnOrder).toHaveBeenCalledWith(order, 'fulfillment.ship', expect.any(Object));
   });
 });

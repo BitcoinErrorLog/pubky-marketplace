@@ -2,11 +2,13 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CommerceController } from '@/controllers/commerce/commerce';
 import { MARKETPLACE_FAILURE_MESSAGES } from '@/libs/commerce/failure-messages';
+import { PAYMENT_NOT_FINAL_COPY } from '@/libs/commerce/usdt-buyer-status';
 import { AppError } from '@/libs/error/error';
 import { AuthErrorCode, ClientErrorCode } from '@/libs/error/error.codes';
 import { ErrorCategory, ErrorService } from '@/libs/error/error.types';
 import type { MarketplaceOrder } from '@/services/marketplace/marketplace';
 import { useCommerceStore } from '@/stores/commerce/commerce.store';
+import { USDT_WIRE_PAYMENT_NOT_FINAL_REFUSAL } from '@/test/fixtures/commerce/usdt-orders';
 import { useMarketplaceOrders } from './useMarketplaceOrders';
 
 const BUYER = 'b'.repeat(52);
@@ -372,6 +374,29 @@ describe('useMarketplaceOrders', () => {
     });
     expect(JSON.stringify(vi.mocked(toast).mock.calls)).not.toContain('14 Oak Lane');
   });
+
+  it.each(['fulfillment.ship', 'fulfillment.mark_ready', 'fulfillment.confirm_pickup'])(
+    'shows the payment_not_final copy, never the server message, when %s is refused on a USDT order',
+    async (kind) => {
+      const { result } = renderHook(() => useMarketplaceOrders());
+      await waitFor(() => expect(result.current.orders).toHaveLength(1));
+      const order = result.current.orders[0].order;
+      const { toast } = await import('@/molecules/Toaster/use-toast');
+      vi.mocked(toast).mockClear();
+
+      vi.mocked(CommerceController.executeMarketplaceCommand).mockResolvedValueOnce(
+        USDT_WIRE_PAYMENT_NOT_FINAL_REFUSAL,
+      );
+      let succeeded = true;
+      await act(async () => {
+        succeeded = await result.current.actOnOrder(order, kind, {});
+      });
+
+      expect(succeeded).toBe(false);
+      expect(vi.mocked(toast)).toHaveBeenCalledWith({ variant: 'error', description: PAYMENT_NOT_FINAL_COPY });
+      expect(JSON.stringify(vi.mocked(toast).mock.calls)).not.toContain('The payment is not final.');
+    },
+  );
 
   it('shows a plain refund refusal and keeps markup off the toast', async () => {
     const { result } = renderHook(() => useMarketplaceOrders());

@@ -7,6 +7,7 @@ import {
   PAYMENT_SELLER_CONFIRMED_LABEL,
 } from '@/libs/commerce/bitcoin-buyer-status';
 import { type BuyerVisiblePaymentStatus, buyerVisiblePaymentStatus } from '@/libs/commerce/locks-payment';
+import { USDT_PHASE_BADGE_LABEL, usdtSettlementPhase } from '@/libs/commerce/usdt-buyer-status';
 import type { MarketplaceOrder, MarketplacePayment } from '@/services/marketplace/marketplace';
 
 const BUYER_VISIBLE_STATUS_LABELS: Record<BuyerVisiblePaymentStatus, string> = {
@@ -35,9 +36,14 @@ export function MarketplacePaymentStatusBadge({
       ? PAYMENT_SELLER_CONFIRMED_LABEL
       : PAYMENT_CONFIRMED_ON_CHAIN_LABEL
     : null;
+  const usdtPhase = usdtSettlementPhase(order, payment);
+  const usdtBadge = usdtPhase !== null && usdtPhase !== 'awaiting' ? USDT_PHASE_BADGE_LABEL[usdtPhase] : null;
+  // A reorged USDT payment stays paid but is not settled, so it never wears the confirmed check.
+  const settled = visibleStatus === 'confirmed' && usdtPhase !== 'rechecking';
   const visibleStatusLabel =
     seenBadge ??
     paidBitcoinBadge ??
+    usdtBadge ??
     (isTerminal && visibleStatus === 'awaiting_entitlement'
       ? order.state === 'cancelled'
         ? 'Order cancelled'
@@ -46,10 +52,10 @@ export function MarketplacePaymentStatusBadge({
 
   return (
     <Badge
-      variant={visibleStatus === 'confirmed' ? 'default' : 'outline'}
-      className={visibleStatus === 'confirmed' ? 'bg-brand text-primary-foreground' : undefined}
+      variant={settled ? 'default' : 'outline'}
+      className={settled ? 'bg-brand text-primary-foreground' : undefined}
     >
-      {visibleStatus === 'confirmed' && <Check aria-hidden="true" />}
+      {settled && <Check aria-hidden="true" />}
       {visibleStatusLabel}
     </Badge>
   );
