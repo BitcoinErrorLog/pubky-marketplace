@@ -1,10 +1,11 @@
+import { isShopEmbedded } from '@/config/embedded';
 import { isFramed } from '@/libs/embedded/embedded';
 
 /**
  * How a navigation left the Shop. Returned so callers and tests can tell a
  * real top-window navigation from a degraded one.
  *
- *  - `self`: the Shop is the top window; the page itself navigated.
+ *  - `self`: the Shop is the top window, or not embedded; the page itself navigated.
  *  - `top`: the Shop is framed and the top window navigated.
  *  - `tab`: the top window could not be driven, so the URL opened in a new tab.
  *  - `frame`: last resort; only the frame navigated.
@@ -52,10 +53,15 @@ function topOriginOf(win: NavigableWindow): string | null {
  *     that cannot show the destination.
  *  4. The frame itself.
  *
- * Outside a frame it is a plain `window.location.assign`.
+ * When the Shop is not embedded, or not framed, it is a plain `window.location.assign`.
  */
-export function navigateTop(url: string, win: NavigableWindow = window): NavigateTopResult {
-  if (!isFramed(win)) {
+export function navigateTop(
+  url: string,
+  win: NavigableWindow = window,
+  embedded: boolean = isShopEmbedded(),
+): NavigateTopResult {
+  // A frame the Shop was not configured to be embedded in (a test harness) navigates itself.
+  if (!embedded || !isFramed(win)) {
     win.location.assign(url);
     return 'self';
   }

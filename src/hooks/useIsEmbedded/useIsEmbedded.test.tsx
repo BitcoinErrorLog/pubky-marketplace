@@ -8,7 +8,7 @@ const runtime = vi.hoisted(() => ({ embedded: false }));
 
 vi.mock('@/libs/runtime-config/runtime-config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/libs/runtime-config/runtime-config')>();
-  return { ...actual, getEmbeddedFlag: () => runtime.embedded };
+  return { ...actual, getEmbeddedFlag: () => runtime.embedded, getFrameAncestors: () => [] };
 });
 
 function Probe() {

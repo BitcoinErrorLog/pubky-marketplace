@@ -3,8 +3,12 @@
  * iframe such as `https://pubky.app/shop`) rather than as a top-level page?
  *
  * Three independent signals, any of which makes the Shop embedded:
- *  1. The page is framed: `window.self !== window.top`. This is the real
- *     condition and needs no configuration.
+ *  1. The page is framed (`window.self !== window.top`) AND the deployment
+ *     allows framing (`PUBKY_RUNTIME_FRAME_ANCESTORS` is not empty). With the
+ *     default policy (`frame-ancestors 'none'`) the Shop cannot legitimately be
+ *     framed, so a framed page there is a test harness (Cypress and the
+ *     Vitest browser both run the page in an iframe) and must keep the normal
+ *     layout.
  *  2. The deployer forced it (`PUBKY_RUNTIME_EMBEDDED=true`). It is the only
  *     signal the server knows, so it is also what server rendering uses.
  *  3. The URL carries `?embedded=1`. It lets the host page, a test harness or
@@ -51,13 +55,22 @@ export function resetEmbeddedForTests(): void {
   queryFlagAtLoad = null;
 }
 
+export interface EmbeddedSignals {
+  /** The deployer override (`PUBKY_RUNTIME_EMBEDDED`). */
+  forced: boolean;
+  /** Whether the deployment allows framing at all (`PUBKY_RUNTIME_FRAME_ANCESTORS` is not empty). */
+  framingAllowed: boolean;
+}
+
 /**
- * Client-side embedded check. `runtimeFlag` is the deployer override
- * (`getEmbeddedFlag()`); the caller passes it so this module stays free of
- * runtime-config imports and testable on its own.
+ * Client-side embedded check. The caller passes the configuration signals, so
+ * this module stays free of runtime-config imports and testable on its own.
  */
-export function isEmbedded(runtimeFlag: boolean, win: Window | undefined = globalThis.window): boolean {
-  if (runtimeFlag) return true;
+export function isEmbedded(
+  { forced, framingAllowed }: EmbeddedSignals,
+  win: Window | undefined = globalThis.window,
+): boolean {
+  if (forced) return true;
   if (!win) return false;
-  return isFramed(win) || readQueryFlagOnce(win);
+  return (framingAllowed && isFramed(win)) || readQueryFlagOnce(win);
 }

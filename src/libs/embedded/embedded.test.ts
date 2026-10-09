@@ -47,32 +47,40 @@ describe('hasEmbeddedQueryFlag', () => {
 });
 
 describe('isEmbedded', () => {
+  const none = { forced: false, framingAllowed: false };
+  const allowed = { forced: false, framingAllowed: true };
+
   afterEach(() => resetEmbeddedForTests());
 
   it('is false for a plain top-level page', () => {
-    expect(isEmbedded(false, topLevel())).toBe(false);
+    expect(isEmbedded(none, topLevel())).toBe(false);
+    expect(isEmbedded(allowed, topLevel())).toBe(false);
   });
 
   it('is true when the deployer forces it, even without a window', () => {
-    expect(isEmbedded(true, topLevel())).toBe(true);
-    expect(isEmbedded(true, undefined)).toBe(true);
+    expect(isEmbedded({ forced: true, framingAllowed: false }, topLevel())).toBe(true);
+    expect(isEmbedded({ forced: true, framingAllowed: false }, undefined)).toBe(true);
   });
 
-  it('is true when the page is framed', () => {
-    expect(isEmbedded(false, framed())).toBe(true);
+  it('is true when the page is framed and the deployment allows framing', () => {
+    expect(isEmbedded(allowed, framed())).toBe(true);
+  });
+
+  it('ignores a frame the deployment does not allow: that is a test harness, not a host app', () => {
+    expect(isEmbedded(none, framed())).toBe(false);
   });
 
   it('is true when the URL carries embedded=1', () => {
-    expect(isEmbedded(false, topLevel('?embedded=1'))).toBe(true);
+    expect(isEmbedded(none, topLevel('?embedded=1'))).toBe(true);
   });
 
   it('keeps the URL flag for the whole page load once read, as client navigation drops the query', () => {
-    expect(isEmbedded(false, topLevel('?embedded=1'))).toBe(true);
-    expect(isEmbedded(false, topLevel(''))).toBe(true);
+    expect(isEmbedded(none, topLevel('?embedded=1'))).toBe(true);
+    expect(isEmbedded(none, topLevel(''))).toBe(true);
   });
 
   it('does not make a never-flagged page embedded later', () => {
-    expect(isEmbedded(false, topLevel(''))).toBe(false);
-    expect(isEmbedded(false, topLevel('?embedded=1'))).toBe(false);
+    expect(isEmbedded(none, topLevel(''))).toBe(false);
+    expect(isEmbedded(none, topLevel('?embedded=1'))).toBe(false);
   });
 });

@@ -38,23 +38,32 @@ function makeFramed({
 }
 
 describe('navigateTop', () => {
+  it('assigns the frame itself when the Shop is not embedded, whatever frames it (a test harness)', () => {
+    const topLocation = { origin: 'https://harness.test', href: 'https://harness.test/', assign: vi.fn() };
+    const win = makeFramed({ frameOrigin: 'https://harness.test', top: { location: topLocation } });
+
+    expect(navigateTop('https://www.paypal.com/checkoutnow?token=abc', win, false)).toBe('self');
+    expect(win.location.assign).toHaveBeenCalledWith('https://www.paypal.com/checkoutnow?token=abc');
+    expect(topLocation.assign).not.toHaveBeenCalled();
+  });
+
   it('assigns the page itself when the Shop is the top window', () => {
     const win = makeTopLevel();
-    expect(navigateTop('https://www.paypal.com/checkoutnow?token=abc', win)).toBe('self');
+    expect(navigateTop('https://www.paypal.com/checkoutnow?token=abc', win, true)).toBe('self');
     expect(win.location.assign).toHaveBeenCalledWith('https://www.paypal.com/checkoutnow?token=abc');
     expect(win.open).not.toHaveBeenCalled();
   });
 
   it('assigns a custom-scheme deep link on the page itself when it is not framed', () => {
     const win = makeTopLevel();
-    expect(navigateTop('pubkyauth://?secret=x', win)).toBe('self');
+    expect(navigateTop('pubkyauth://?secret=x', win, true)).toBe('self');
     expect(win.location.assign).toHaveBeenCalledWith('pubkyauth://?secret=x');
   });
 
   it('drives the same-origin top window with location.assign when framed', () => {
     const topLocation = { origin: 'https://pubky.app', href: 'https://pubky.app/shop', assign: vi.fn() };
     const win = makeFramed({ top: { location: topLocation } });
-    expect(navigateTop('https://www.paypal.com/checkoutnow?token=abc', win)).toBe('top');
+    expect(navigateTop('https://www.paypal.com/checkoutnow?token=abc', win, true)).toBe('top');
     expect(topLocation.assign).toHaveBeenCalledWith('https://www.paypal.com/checkoutnow?token=abc');
     expect(win.location.assign).not.toHaveBeenCalled();
     expect(win.open).not.toHaveBeenCalled();
@@ -63,7 +72,7 @@ describe('navigateTop', () => {
   it('leaves a custom-scheme deep link to the same-origin top window when framed', () => {
     const topLocation = { origin: 'https://pubky.app', href: 'https://pubky.app/shop', assign: vi.fn() };
     const win = makeFramed({ top: { location: topLocation } });
-    expect(navigateTop('pubkyauth://?secret=x', win)).toBe('top');
+    expect(navigateTop('pubkyauth://?secret=x', win, true)).toBe('top');
     expect(topLocation.assign).toHaveBeenCalledWith('pubkyauth://?secret=x');
   });
 
@@ -78,7 +87,7 @@ describe('navigateTop', () => {
       },
     };
     const win = makeFramed({ frameOrigin: 'https://shop.pubky.app', top: { location: topLocation } });
-    expect(navigateTop('https://www.paypal.com/checkoutnow?token=abc', win)).toBe('top');
+    expect(navigateTop('https://www.paypal.com/checkoutnow?token=abc', win, true)).toBe('top');
     expect(hrefSetter).toHaveBeenCalledWith('https://www.paypal.com/checkoutnow?token=abc');
     expect(win.location.assign).not.toHaveBeenCalled();
   });
@@ -93,7 +102,7 @@ describe('navigateTop', () => {
       },
     };
     const win = makeFramed({ frameOrigin: 'https://shop.pubky.app', top: { location: topLocation } });
-    expect(navigateTop('https://www.paypal.com/checkoutnow?token=abc', win)).toBe('tab');
+    expect(navigateTop('https://www.paypal.com/checkoutnow?token=abc', win, true)).toBe('tab');
     expect(win.open).toHaveBeenCalledWith(
       'https://www.paypal.com/checkoutnow?token=abc',
       '_blank',
@@ -112,7 +121,7 @@ describe('navigateTop', () => {
       },
     };
     const win = makeFramed({ frameOrigin: 'https://shop.pubky.app', top: { location: topLocation }, openResult: null });
-    expect(navigateTop('https://www.paypal.com/checkoutnow?token=abc', win)).toBe('frame');
+    expect(navigateTop('https://www.paypal.com/checkoutnow?token=abc', win, true)).toBe('frame');
     expect(win.location.assign).toHaveBeenCalledWith('https://www.paypal.com/checkoutnow?token=abc');
   });
 
@@ -126,7 +135,7 @@ describe('navigateTop', () => {
       },
     };
     const win = makeFramed({ frameOrigin: 'https://shop.pubky.app', top: { location: topLocation } });
-    expect(navigateTop('pubkyauth://?secret=x', win)).toBe('frame');
+    expect(navigateTop('pubkyauth://?secret=x', win, true)).toBe('frame');
     expect(win.open).not.toHaveBeenCalled();
     expect(win.location.assign).toHaveBeenCalledWith('pubkyauth://?secret=x');
   });
@@ -145,7 +154,7 @@ describe('navigateTop', () => {
         },
       },
     });
-    expect(navigateTop('/marketplace/orders', win)).toBe('tab');
+    expect(navigateTop('/marketplace/orders', win, true)).toBe('tab');
     expect(win.open).toHaveBeenCalledWith('https://shop.pubky.app/marketplace/orders', '_blank', 'noopener,noreferrer');
   });
 });
