@@ -4,7 +4,6 @@ import { withSentryConfig } from '@sentry/nextjs';
 import packageJson from './package.json';
 import { buildInfoToEnv } from './src/libs/build-info/build-info';
 import { resolveBuildInfo } from './src/libs/build-info/resolve-build-info';
-import { buildDenyFramingRouteHeaders } from './src/libs/security/headers';
 import {
   ASSET_PREFIX_ENV_VAR,
   BASE_PATH_ENV_VAR,
@@ -88,12 +87,9 @@ const nextConfig: NextConfig = {
   },
   // Only use standalone output when building for Docker (set NEXT_STANDALONE=true)
   ...(process.env.NEXT_STANDALONE === 'true' && { output: 'standalone' }),
-  // Clickjacking defence: Shop embeds pubky.app's /session-bridge, but nothing
-  // legitimate embeds Shop — deny framing on every route. COOP keeps the
-  // opener of popups Shop opens (Pubky Passport).
-  async headers() {
-    return buildDenyFramingRouteHeaders();
-  },
+  // Framing and opener headers are set per request by `src/proxy.ts`: the
+  // frame-ancestors allow-list is a runtime value (`PUBKY_RUNTIME_FRAME_ANCESTORS`),
+  // which `headers()` could only freeze at build time.
   redirects,
   webpack: (config, { isServer }) => {
     if (isServer) {
