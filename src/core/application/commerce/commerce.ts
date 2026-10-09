@@ -394,6 +394,15 @@ export class CommerceApplication {
     return CommerceRecordNormalizer.shop(await CommerceHomeserverService.fetchJson(url));
   }
 
+  /** Refresh published settings without discarding an unpublished local edit. */
+  static async refreshShop(ownerPubky: string): Promise<CommerceShopRecord> {
+    const local = await LocalCommerceService.getShop(ownerPubky);
+    if (local && local.sync_status !== 'synced') return local.record;
+
+    const record = await this.fetchShop(ownerPubky);
+    return await LocalCommerceService.cacheRefreshedShop(record, local?.record ?? null);
+  }
+
   static async getOrFetchShop(ownerPubky: string): Promise<CommerceShopRecord> {
     const local = await LocalCommerceService.getShop(ownerPubky);
     if (local) return local.record;

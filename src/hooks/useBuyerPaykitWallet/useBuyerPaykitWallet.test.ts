@@ -57,4 +57,25 @@ describe('useBuyerPaykitWallet', () => {
     const { result } = renderHook(() => useBuyerPaykitWallet(BUYER, true));
     await waitFor(() => expect(result.current.state).toBe('unknown'));
   });
+
+  it('checks again when Bitcoin is reselected instead of reusing a previous payable verdict', async () => {
+    controller.fetchBuyerPaykitWallet.mockResolvedValueOnce('payable');
+    const { result, rerender } = renderHook(({ enabled }) => useBuyerPaykitWallet(BUYER, enabled), {
+      initialProps: { enabled: true },
+    });
+    await waitFor(() => expect(result.current.state).toBe('payable'));
+    rerender({ enabled: false });
+    expect(result.current.state).toBe('idle');
+    let finishRead!: (value: BuyerPaykitWallet) => void;
+    controller.fetchBuyerPaykitWallet.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishRead = resolve;
+        }),
+    );
+    rerender({ enabled: true });
+    expect(result.current.state).toBe('checking');
+    await act(async () => finishRead('unsupported'));
+    expect(result.current.state).toBe('unsupported');
+  });
 });

@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CommerceController } from '@/controllers/commerce/commerce';
+import type { LocksAdmissionView } from '@/libs/commerce/locks-lifecycle';
 import type { CommerceDigitalLock } from '@/libs/commerce/marketplace-records';
 import { createOrderFixture, createPaymentFixture } from '@/test/fixtures/commerce/orders';
 import { useMarketplaceLocksPayment } from './useMarketplaceLocksPayment';
@@ -232,6 +233,8 @@ describe('useMarketplaceLocksPayment', () => {
 
     act(() => result.current.resumePolling());
     expect(result.current.pollExhausted).toBe(false);
+    await waitFor(() => expect(onPaymentChanged).toHaveBeenCalled());
+    expect(CommerceController.beginMarketplaceLocksPayment).not.toHaveBeenCalled();
   });
 
   it('polls the Lock Server task after a pending submit, shows wallet setup, and never resubmits (pubky/locks#72)', async () => {
@@ -269,5 +272,60 @@ describe('useMarketplaceLocksPayment', () => {
     await new Promise((resolve) => setTimeout(resolve, 150));
     expect(CommerceController.fetchMarketplaceLocksAdmission).not.toHaveBeenCalled();
     expect(result.current.admission).toBeNull();
+  });
+
+  describe('slow admission responses', () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    it('waits for an in-flight read before polling again and preserves the terminal result', async () => {
+      vi.mocked(CommerceController.getMarketplaceLocksCorrelation).mockResolvedValue(makeCorrelation(true));
+      let resolveFirst!: (value: LocksAdmissionView) => void;
+      const firstRead = new Promise<LocksAdmissionView>((resolve) => {
+        resolveFirst = resolve;
+      });
+      vi.mocked(CommerceController.fetchMarketplaceLocksAdmission)
+        .mockReturnValueOnce(firstRead)
+        .mockResolvedValue({ kind: 'failed', failure: 'reader_not_payable' });
+      const { result } = renderHook(() =>
+        useMarketplaceLocksPayment({ order, payment, digitalLock, isBuyer: true, onPaymentChanged: vi.fn() }),
+      );
+      await act(async () => {});
+      await act(async () => vi.advanceTimersByTimeAsync(150));
+      expect(CommerceController.fetchMarketplaceLocksAdmission).toHaveBeenCalledTimes(1);
+
+      await act(async () => resolveFirst({ kind: 'in_flight', readerWalletSetupNeeded: true }));
+      await act(async () => vi.advanceTimersByTimeAsync(50));
+      expect(result.current.admission).toEqual({ kind: 'failed', failure: 'reader_not_payable' });
+      await act(async () => vi.advanceTimersByTimeAsync(200));
+      expect(result.current.admission).toEqual({ kind: 'failed', failure: 'reader_not_payable' });
+      expect(CommerceController.fetchMarketplaceLocksAdmission).toHaveBeenCalledTimes(2);
+      expect(CommerceController.beginMarketplaceLocksPayment).not.toHaveBeenCalled();
+    });
+
+    it('bounds explicitly resumed polling and allows another bounded resume', async () => {
+      vi.mocked(CommerceController.getMarketplaceLocksCorrelation).mockResolvedValue(
+        makeCorrelation(true, new Date(Date.now() - 3_600_000).toISOString()),
+      );
+      const onPaymentChanged = vi.fn();
+      const { result } = renderHook(() =>
+        useMarketplaceLocksPayment({ order, payment, digitalLock, isBuyer: true, onPaymentChanged }),
+      );
+      await act(async () => {});
+      await act(async () => vi.advanceTimersByTimeAsync(50));
+      expect(result.current.pollExhausted).toBe(true);
+      act(() => result.current.resumePolling());
+      await act(async () => vi.advanceTimersByTimeAsync(50));
+      expect(onPaymentChanged).toHaveBeenCalled();
+      await act(async () => vi.advanceTimersByTimeAsync(15 * 60_000));
+      expect(result.current.pollExhausted).toBe(true);
+      const reads = onPaymentChanged.mock.calls.length;
+      await act(async () => vi.advanceTimersByTimeAsync(1_000));
+      expect(onPaymentChanged).toHaveBeenCalledTimes(reads);
+      act(() => result.current.resumePolling());
+      await act(async () => vi.advanceTimersByTimeAsync(50));
+      expect(onPaymentChanged).toHaveBeenCalledTimes(reads + 1);
+      expect(CommerceController.beginMarketplaceLocksPayment).not.toHaveBeenCalled();
+    });
   });
 });

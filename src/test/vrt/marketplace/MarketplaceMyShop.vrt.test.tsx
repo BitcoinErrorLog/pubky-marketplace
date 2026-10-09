@@ -1,7 +1,7 @@
 // Intentional import order — browser-mode mock factories rely on stable aliases.
 /* eslint-disable simple-import-sort/imports */
 import { createMarketplaceVrtAuthStore } from '@/test/mocks/marketplace-vrt';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderForVRT, VRT_ROOT_TESTID } from '@/test-utils/vrt';
 import { VRT_VIEWPORT_DESKTOP, VRT_VIEWPORT_MOBILE } from '@/test-utils/vrt.viewports';
 import { MarketplaceMyShop } from '@/templates/Marketplace/MarketplaceMyShop';
@@ -27,6 +27,7 @@ const view = vi.hoisted(() => ({
   configured: false,
   isLoading: false,
   withImages: false,
+  loadError: false,
 }));
 
 // Deterministic solid-color previews for the images-set editor state.
@@ -67,6 +68,8 @@ vi.mock('@/hooks/useMarketplaceShopSettings/useMarketplaceShopSettings', async (
       form: useForm({ defaultValues: view.configured ? configuredShop : marketplaceShopSettingsDefaults }),
       revision: view.configured ? 3 : 0,
       isLoading: view.isLoading,
+      loadError: view.loadError,
+      reload: vi.fn(),
       isSaving: false,
       hasShop: view.configured,
       avatar: imageSlot(view.withImages ? AVATAR_DATA_URL : null),
@@ -81,6 +84,9 @@ vi.mock('@/organisms/ContentLayout/ContentLayout', () => ({
 }));
 
 describe('Marketplace my shop — visual regression', () => {
+  beforeEach(() => {
+    view.loadError = false;
+  });
   it('renders the create-shop state for a seller without a shop at desktop viewport', async () => {
     view.configured = false;
     view.isLoading = false;
@@ -124,5 +130,17 @@ describe('Marketplace my shop — visual regression', () => {
 
     const screen = await renderForVRT(<MarketplaceMyShop />, { viewport: VRT_VIEWPORT_DESKTOP, disableHover: true });
     await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot('my-shop-loading-desktop');
+  });
+
+  it.each([
+    ['desktop', VRT_VIEWPORT_DESKTOP],
+    ['mobile', VRT_VIEWPORT_MOBILE],
+  ] as const)('renders the load-error recovery at %s viewport', async (name, viewport) => {
+    view.configured = false;
+    view.isLoading = false;
+    view.withImages = false;
+    view.loadError = true;
+    const screen = await renderForVRT(<MarketplaceMyShop />, { viewport, disableHover: true });
+    await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot(`my-shop-load-error-${name}`);
   });
 });

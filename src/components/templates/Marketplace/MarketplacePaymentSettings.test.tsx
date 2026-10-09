@@ -155,6 +155,23 @@ describe('MarketplacePaymentSettings', () => {
     expect(screen.queryByText(/this prototype/i)).not.toBeInTheDocument();
   });
 
+  it('shows an enabled Bitcoin rail honestly and lets the seller turn it off without reconnecting', async () => {
+    mockedController.getMyPaymentConfig.mockResolvedValue({ ...EMPTY_CONFIG, bitcoinEnabled: true });
+    await renderSettings();
+    const bitcoin = screen.getByRole('switch', { name: 'Accept bitcoin' });
+    expect(bitcoin).toBeChecked();
+    expect(bitcoin).toBeEnabled();
+    await userEvent.click(bitcoin);
+    await userEvent.click(screen.getAllByRole('button', { name: 'Save payment settings' })[0]);
+    await waitFor(() =>
+      expect(mockedController.putMyPaymentConfig).toHaveBeenCalledWith(
+        expect.objectContaining({ bitcoinEnabled: false }),
+      ),
+    );
+    expect(bitcoin).not.toBeChecked();
+    expect(bitcoin).toBeDisabled();
+  });
+
   it('renders PayPal and Bitcoin and does not show a card rail', async () => {
     await renderSettings();
 
@@ -258,8 +275,8 @@ describe('MarketplacePaymentSettings', () => {
     expect(screen.getByText(/^Lock Server:/)).toBeInTheDocument();
   });
 
-  it('keeps Accept bitcoin off and disabled until both bitcoin steps are Connected', async () => {
-    mockedController.getMyPaymentConfig.mockResolvedValue({ ...EMPTY_CONFIG, bitcoinEnabled: true });
+  it('keeps enabling Bitcoin disabled until both setup steps are Connected', async () => {
+    mockedController.getMyPaymentConfig.mockResolvedValue(EMPTY_CONFIG);
     mockedController.isOwnPaykitAccountClaimed.mockResolvedValue(true);
 
     await renderSettings();
@@ -419,7 +436,8 @@ describe('MarketplacePaymentSettings', () => {
     await renderSettings();
 
     expect(screen.getByTestId('payment-method-status-bitcoin')).toHaveTextContent('Needs attention');
-    expect(screen.getByRole('switch', { name: 'Accept bitcoin' })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: 'Accept bitcoin' })).toBeEnabled();
+    expect(screen.getByRole('switch', { name: 'Accept bitcoin' })).toBeChecked();
     expect(screen.queryByText(/Creator authority connected/)).not.toBeInTheDocument();
 
     await user.click(screen.getAllByRole('button', { name: 'Save payment settings' })[1]);
@@ -826,8 +844,8 @@ describe('MarketplacePaymentSettings', () => {
     await waitFor(() => expect(screen.getAllByRole('button', { name: 'Save payment settings' })[1]).toBeEnabled());
 
     const accept = screen.getByRole('switch', { name: 'Accept bitcoin' });
-    expect(accept).toBeDisabled();
-    expect(accept).not.toBeChecked();
+    expect(accept).toBeEnabled();
+    expect(accept).toBeChecked();
 
     await user.click(screen.getAllByRole('button', { name: 'Save payment settings' })[1]);
 
