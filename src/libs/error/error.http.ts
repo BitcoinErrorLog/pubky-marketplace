@@ -23,6 +23,7 @@ import { ErrorService } from './error.types';
  * @param operation - Which operation failed
  * @param endpoint - The endpoint URL (for context)
  * @param retryAfter - Optional retry-after value for rate limit errors
+ * @param extraContext - Optional extra context merged into the error context
  * @returns AppError with appropriate category and code based on status
  *
  * @example
@@ -37,8 +38,9 @@ export function httpStatusCodeToError(
   operation: string,
   endpoint: string,
   retryAfter?: number,
+  extraContext?: Record<string, unknown>,
 ): AppError {
-  const baseParams = { service, operation, context: { endpoint, statusCode } };
+  const baseParams = { service, operation, context: { endpoint, statusCode, ...extraContext } };
 
   // 5xx Server Errors
   if (statusCode >= HttpStatusCode.INTERNAL_SERVER_ERROR) {
@@ -117,6 +119,7 @@ export function httpStatusCodeToError(
  * @param service - Which service produced the error
  * @param operation - Which operation failed
  * @param endpoint - The endpoint URL (for context)
+ * @param extraContext - Optional extra context merged into the error context
  * @returns AppError with appropriate category and code based on status
  *
  * @example
@@ -131,11 +134,20 @@ export function httpResponseToError(
   service: ErrorService,
   operation: string,
   endpoint: string,
+  extraContext?: Record<string, unknown>,
 ): AppError {
   const { status, statusText } = response;
   const retryAfter = parseRetryAfterHeader(response.headers.get('retry-after'));
 
-  return httpStatusCodeToError(status, statusText || 'Request failed', service, operation, endpoint, retryAfter);
+  return httpStatusCodeToError(
+    status,
+    statusText || 'Request failed',
+    service,
+    operation,
+    endpoint,
+    retryAfter,
+    extraContext,
+  );
 }
 
 /**

@@ -173,6 +173,7 @@ describe('CommerceApplication Locks payment start (pubky/locks#72 no-resubmit ru
       {
         kind: 'in_flight',
         readerWalletSetupNeeded: true,
+        stalled: false,
       },
     );
     await expect(CommerceApplication.fetchMarketplaceLocksAdmission(ORDER_FIXTURE_BUYER, 'payment-1')).resolves.toEqual(
@@ -186,5 +187,46 @@ describe('CommerceApplication Locks payment start (pubky/locks#72 no-resubmit ru
     ).resolves.toBeNull();
     expect(find).toHaveBeenCalledTimes(3);
     expect(LocksGatewayService.submitPaykitProof).toHaveBeenCalledTimes(1);
+  });
+
+  it('reads a pending task past its admission deadline as stalled, and an expired one by its terminal reason', async () => {
+    vi.spyOn(LocksGatewayService, 'submitPaykitProof').mockResolvedValue(pendingLifecycle());
+    vi.spyOn(LocksGatewayService, 'findVerification')
+      .mockResolvedValueOnce({
+        ...pendingLifecycle(),
+        admission_deadline_at: new Date(Date.now() - 10 * 60_000).toISOString(),
+      })
+      .mockResolvedValueOnce({
+        ...pendingLifecycle(),
+        admission_deadline_at: new Date(Date.now() + 5 * 60_000).toISOString(),
+      })
+      .mockResolvedValueOnce({
+        ...pendingLifecycle(),
+        status: 'expired',
+        failure_message: null,
+        terminal_reason: 'payment_request_rejected',
+      });
+    await begin();
+
+    await expect(CommerceApplication.fetchMarketplaceLocksAdmission(ORDER_FIXTURE_BUYER, 'payment-1')).resolves.toEqual(
+      {
+        kind: 'in_flight',
+        readerWalletSetupNeeded: false,
+        stalled: true,
+      },
+    );
+    await expect(CommerceApplication.fetchMarketplaceLocksAdmission(ORDER_FIXTURE_BUYER, 'payment-1')).resolves.toEqual(
+      {
+        kind: 'in_flight',
+        readerWalletSetupNeeded: false,
+        stalled: false,
+      },
+    );
+    await expect(CommerceApplication.fetchMarketplaceLocksAdmission(ORDER_FIXTURE_BUYER, 'payment-1')).resolves.toEqual(
+      {
+        kind: 'expired',
+        reason: 'payment_request_rejected',
+      },
+    );
   });
 });
