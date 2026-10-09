@@ -139,7 +139,7 @@ jobs:
           # Dockerfile source-map upload step; public builds without them skip upload.
           build_args: |
             NEXT_PUBLIC_DB_VERSION=3
-            NEXT_PUBLIC_DB_NAME=franky
+            NEXT_PUBLIC_DB_NAME=shop-franky
             NEXT_PUBLIC_DEBUG_MODE=false
             NEXT_PUBLIC_APP_VERSION=${{ github.sha }}
             SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
