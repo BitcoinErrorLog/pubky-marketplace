@@ -1380,39 +1380,52 @@ describe('MarketplaceOrders USDT orders', () => {
     expect(screen.queryByText('≈ ₿137,000')).not.toBeInTheDocument();
   });
 
-  it('writes the paid-as line on the order and in the receipt', async () => {
+  it('writes the paid-as line in the receipt', async () => {
     const view = orderView('paid', 'USDT receipt boots', 'buyer', { ...usdtFields, paymentFinality: 'final' });
     ordersState.orders = [{ ...view, receipt: createReceiptFixture() }];
 
     render(<MarketplaceOrders />);
     await userEvent.setup().click(screen.getByRole('tab', { name: /All 1/i }));
 
-    const summary = await screen.findByTestId('usdt-payment-summary');
-    expect(within(summary).getByTestId('usdt-paid-as')).toHaveTextContent('$137.00, paid as 137.000000 USDT');
-    expect(within(summary).getByTestId('usdt-network')).toHaveTextContent('USDT0 on Arbitrum One');
-    expect(within(screen.getByTestId('order-receipt-details')).getByTestId('order-receipt-usdt-paid-as')).toHaveTextContent(
-      '$137.00, paid as 137.000000 USDT',
-    );
+    expect(
+      within(await screen.findByTestId('order-receipt-details')).getByTestId('order-receipt-usdt-paid-as'),
+    ).toHaveTextContent('$137.00, paid as 137.000000 USDT');
     expect(screen.getByTestId('order-receipt-details')).not.toHaveTextContent(/Bitcoin|₿/);
   });
 
-  it('tells the seller to hold the shipment until Arbitrum finalizes, then that shipping is open', async () => {
+  it('holds Add tracking back for the seller until Arbitrum finalizes, then opens it', async () => {
     ordersState.orders = [
       orderView('paid', 'USDT pending boots', 'seller', { ...usdtFields, paymentFinality: 'pending' }),
     ];
     const { unmount } = render(<MarketplaceOrders />);
     await userEvent.setup().click(screen.getByRole('tab', { name: /All 1/i }));
-    expect(await screen.findByTestId('usdt-phase-copy')).toHaveTextContent(
-      "Payment received. Don't ship yet: Arbitrum hasn't finalized it. Shipping unlocks on its own.",
-    );
-    expect(screen.getByRole('button', { name: 'Add tracking' })).toBeDisabled();
+    expect(await screen.findByRole('button', { name: 'Add tracking' })).toBeDisabled();
+    expect(screen.getByTestId('usdt-payment-not-final')).toBeInTheDocument();
     unmount();
 
     ordersState.orders = [orderView('paid', 'USDT final boots', 'seller', { ...usdtFields, paymentFinality: 'final' })];
     render(<MarketplaceOrders />);
     await userEvent.setup().click(screen.getByRole('tab', { name: /All 1/i }));
-    expect(await screen.findByTestId('usdt-phase-copy')).toHaveTextContent('Payment final. You can ship.');
-    expect(screen.getByRole('button', { name: 'Add tracking' })).toBeEnabled();
+    expect(await screen.findByRole('button', { name: 'Add tracking' })).toBeEnabled();
+    expect(screen.queryByTestId('usdt-payment-not-final')).not.toBeInTheDocument();
+  });
+
+  it('tells a seller with an unpaid USDT reservation that the buyer has not paid yet', async () => {
+    ordersState.orders = [
+      orderView(
+        'pending_payment',
+        'USDT reserved boots',
+        'seller',
+        { ...usdtFields, holdExpiresAt: '2026-09-13T20:00:00.000Z' },
+        'awaiting_entitlement',
+      ),
+    ];
+
+    render(<MarketplaceOrders />);
+
+    expect(await screen.findByTestId('marketplace-reservations')).toHaveTextContent(
+      "Waiting for the buyer's USDT payment",
+    );
   });
 
   it('keeps Bitcoin, PayPal and unbound orders free of any USDT surface', async () => {
@@ -1427,6 +1440,5 @@ describe('MarketplaceOrders USDT orders', () => {
 
     expect(await screen.findByText('Bitcoin boots × 1')).toBeInTheDocument();
     expect(container).not.toHaveTextContent(/USDT|Arbitrum/);
-    expect(screen.queryByTestId('usdt-payment-summary')).not.toBeInTheDocument();
   });
 });

@@ -20,8 +20,7 @@ vi.mock('@/controllers/commerce/commerce', () => ({
 
 vi.mock('@/molecules/Toaster/use-toast', () => ({ toast: vi.fn() }));
 
-const NOT_FINAL =
-  "Wait to ship: this USDT payment isn't final on Arbitrum yet. This usually takes a few minutes.";
+const NOT_FINAL = "Wait to ship: this USDT payment isn't final on Arbitrum yet. This usually takes a few minutes.";
 
 function renderActions(order: MarketplaceOrder, isBuyer: boolean) {
   return render(
@@ -42,12 +41,15 @@ const pickupOrder = (phase: UsdtOrderPhase, state: 'paid' | 'ready_for_pickup' =
 });
 
 describe('MarketplaceOrderActions — USDT finality gate (shipping)', () => {
-  it.each(['received', 'rechecking'] as const)('disables Add tracking with the payment_not_final copy while %s', (phase) => {
-    renderActions(shippedOrder(phase), false);
+  it.each(['received', 'rechecking'] as const)(
+    'disables Add tracking with the payment_not_final copy while %s',
+    (phase) => {
+      renderActions(shippedOrder(phase), false);
 
-    expect(screen.getByRole('button', { name: 'Add tracking' })).toBeDisabled();
-    expect(screen.getByTestId('usdt-payment-not-final')).toHaveTextContent(NOT_FINAL);
-  });
+      expect(screen.getByRole('button', { name: 'Add tracking' })).toBeDisabled();
+      expect(screen.getByTestId('usdt-payment-not-final')).toHaveTextContent(NOT_FINAL);
+    },
+  );
 
   it('enables Add tracking once the payment is final', () => {
     renderActions(shippedOrder('final'), false);

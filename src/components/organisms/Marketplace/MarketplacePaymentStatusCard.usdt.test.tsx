@@ -127,7 +127,7 @@ describe('MarketplacePaymentStatusCard — USDT orders', () => {
     expect(screen.getByTestId('usdt-phase-copy')).toHaveTextContent(USDT_BUYER_PHASE_COPY.received);
   });
 
-  it("tells the seller not to ship until Arbitrum finalizes the payment, and that it unlocks on its own", () => {
+  it('tells the seller not to ship until Arbitrum finalizes the payment, and that it unlocks on its own', () => {
     renderPhase('received', false);
 
     expect(screen.getByTestId('usdt-phase-copy')).toHaveTextContent(USDT_SELLER_PHASE_COPY.received);
@@ -230,7 +230,9 @@ describe('MarketplacePaymentStatusCard — method picker', () => {
     renderCard(order, payment, true);
 
     const button = screen.getByRole('button', { name: /Continue with USDT/ });
-    expect(within(button.parentElement as HTMLElement).getByRole('button', { name: /Continue with Bitcoin/ })).toBeVisible();
+    expect(
+      within(button.parentElement as HTMLElement).getByRole('button', { name: /Continue with Bitcoin/ }),
+    ).toBeVisible();
     await userEvent.setup().click(button);
 
     expect(methodPayment.bind).toHaveBeenCalledWith('usdt');

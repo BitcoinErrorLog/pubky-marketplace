@@ -1368,7 +1368,12 @@ describe('MarketplaceTransactionService read projections', () => {
 
       await expect(MarketplaceTransactionService.bindPaymentMethod(ACTOR, ORDER_ID, 'usdt')).rejects.toMatchObject({
         message: "This seller can't take USDT right now. Choose another payment method, or contact the seller.",
-        context: { statusCode: 409, reason: 'usdt_seller_not_ready', serviceCode: 'INVALID_STATE', paymentMethod: 'usdt' },
+        context: {
+          statusCode: 409,
+          reason: 'usdt_seller_not_ready',
+          serviceCode: 'INVALID_STATE',
+          paymentMethod: 'usdt',
+        },
       });
       const [, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit];
       expect(JSON.parse(init.body as string)).toEqual({ method: 'usdt' });
@@ -1380,7 +1385,8 @@ describe('MarketplaceTransactionService read projections', () => {
         }),
       );
       await expect(MarketplaceTransactionService.bindPaymentMethod(ACTOR, ORDER_ID, 'usdt')).rejects.toMatchObject({
-        message: 'Connect Bitkit to pay with USDT: this account has no Paykit wallet that can receive a payment request.',
+        message:
+          'Connect Bitkit to pay with USDT: this account has no Paykit wallet that can receive a payment request.',
       });
     });
 

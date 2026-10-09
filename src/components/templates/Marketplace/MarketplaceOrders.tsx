@@ -421,12 +421,6 @@ export function MarketplaceOrders() {
                                 {formatCommerceMoney(order.shipping)}
                               </Typography>
                             )}
-                            <MarketplaceUsdtPaymentSummary
-                              order={order}
-                              payment={payment}
-                              isBuyer={isBuyer}
-                              className="mt-2"
-                            />
                             <MarketplaceOrderReference order={order} isBuyer={isBuyer} showPlacedAt />
                             {order.state === 'pending_payment' &&
                               order.holdExpiresAt &&

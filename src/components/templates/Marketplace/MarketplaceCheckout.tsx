@@ -267,9 +267,7 @@ function MarketplaceCartCheckout() {
   // An accepted offer without a merchandise total is withheld, so it prices nothing here.
   const usdtOffered = totalSubtotals.every((money) => money !== undefined) && isUsdPricedTotals(totalSubtotals);
   const availableCheckoutMethods = checkoutRails(
-    isSandbox
-      ? SANDBOX_CHECKOUT_RAILS
-      : (sharedMethods ?? []).filter((method) => method !== 'usdt' || usdtOffered),
+    isSandbox ? SANDBOX_CHECKOUT_RAILS : (sharedMethods ?? []).filter((method) => method !== 'usdt' || usdtOffered),
   );
   const selectedMethod =
     preferredMethod && availableCheckoutMethods.includes(preferredMethod)
@@ -750,7 +748,9 @@ function MarketplaceCartCheckout() {
                               {price && (
                                 <Typography as="p" className="mt-1 font-bold text-brand">
                                   {formatCommerceMoney(price)}{' '}
-                                  {!usdtSelected && <MarketplaceIndicativePrice money={price} className="font-normal" />}
+                                  {!usdtSelected && (
+                                    <MarketplaceIndicativePrice money={price} className="font-normal" />
+                                  )}
                                 </Typography>
                               )}
                               {checkout.fulfillmentForItem(item.id) === 'digital' && (
@@ -906,7 +906,9 @@ function MarketplaceCartCheckout() {
                                 className="flex flex-col items-end font-bold"
                               >
                                 {formatCommerceMoney(subtotal)}
-                                {!usdtSelected && <MarketplaceIndicativePrice money={subtotal} className="font-normal" />}
+                                {!usdtSelected && (
+                                  <MarketplaceIndicativePrice money={subtotal} className="font-normal" />
+                                )}
                               </Typography>
                             ))}
                           </div>
@@ -962,7 +964,9 @@ function MarketplaceCartCheckout() {
                                 className="flex flex-col items-end font-bold"
                               >
                                 {formatCommerceMoney(subtotal)}
-                                {!usdtSelected && <MarketplaceIndicativePrice money={subtotal} className="font-normal" />}
+                                {!usdtSelected && (
+                                  <MarketplaceIndicativePrice money={subtotal} className="font-normal" />
+                                )}
                               </Typography>
                             ))}
                           </div>
@@ -1034,7 +1038,11 @@ function MarketplaceCartCheckout() {
                       )}
                       {usdtMillionths !== null && (
                         <div className="grid gap-1" data-testid="marketplace-checkout-usdt-amount-note">
-                          <Typography as="p" className="text-sm font-medium" data-testid="marketplace-checkout-usdt-amount">
+                          <Typography
+                            as="p"
+                            className="text-sm font-medium"
+                            data-testid="marketplace-checkout-usdt-amount"
+                          >
                             {formatUsdt(usdtMillionths)} · {USDT_NETWORK_LABEL} · pay with Bitkit
                           </Typography>
                           <Typography as="p" className="text-xs text-muted-foreground">

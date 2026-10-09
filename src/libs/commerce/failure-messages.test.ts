@@ -6,6 +6,7 @@ import { ErrorCategory, ErrorService } from '@/libs/error/error.types';
 import {
   isReaderWalletSetupNeeded,
   MARKETPLACE_FAILURE_MESSAGES,
+  MARKETPLACE_PAYMENT_METHOD_REASON_MESSAGES,
   marketplaceBootstrapFailureMessage,
   marketplaceCheckoutRefusalMessage,
   marketplaceDropRefusalMessage,
@@ -14,7 +15,6 @@ import {
   marketplaceOfferFailureMessage,
   marketplacePaymentMethodFailureMessage,
   marketplacePaymentMethodReasonMessage,
-  MARKETPLACE_PAYMENT_METHOD_REASON_MESSAGES,
   USDT_PAYMENT_METHOD_REASON_MESSAGES,
 } from './failure-messages';
 

@@ -75,7 +75,12 @@ import {
   bitcoinWalletUnverifiedBody,
 } from '@/libs/commerce/paykit-wallet';
 import { buildMarketplaceOrderAggregateId } from '@/libs/commerce/transaction-commands';
-import { USDT_BUYER_PHASE_COPY, USDT_FUNDS_HINT, USDT_WALLET_HINT, usdtPhaseCopy } from '@/libs/commerce/usdt-buyer-status';
+import {
+  USDT_BUYER_PHASE_COPY,
+  USDT_FUNDS_HINT,
+  USDT_WALLET_HINT,
+  usdtPhaseCopy,
+} from '@/libs/commerce/usdt-buyer-status';
 import { getDeployEnv } from '@/libs/runtime-config/runtime-config';
 import { cn } from '@/libs/utils/utils';
 import { MarketplacePaymentStatusBadge } from '@/molecules/Marketplace/MarketplacePaymentStatusBadge';
@@ -330,14 +335,11 @@ export function MarketplacePaymentStatusCard({
           {CHECKOUT_HOLD_COPY.pendingBitcoinPaymentBuyer}
         </Typography>
       )}
-      {visibleStatus === 'expired' &&
-        isBuyer &&
-        isPaykitRail &&
-        order.paykitDeliveryState !== 'delivered' && (
-          <Typography as="p" role="alert" className="text-sm text-amber-300" data-testid="paykit-delivery-failed">
-            {PAYKIT_DELIVERY_FAILED_COPY}
-          </Typography>
-        )}
+      {visibleStatus === 'expired' && isBuyer && isPaykitRail && order.paykitDeliveryState !== 'delivered' && (
+        <Typography as="p" role="alert" className="text-sm text-amber-300" data-testid="paykit-delivery-failed">
+          {PAYKIT_DELIVERY_FAILED_COPY}
+        </Typography>
+      )}
       {visibleStatus === 'manual_review' && !refundRequired && (
         <Typography as="p" className="text-sm text-muted-foreground" data-testid="payment-manual-review-copy">
           {isBuyer && order.paymentMethod === 'bitcoin'
