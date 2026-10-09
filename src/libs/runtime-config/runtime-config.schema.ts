@@ -186,6 +186,54 @@ const optionalPassportUrlFromString = optionalTrimmedString.pipe(
 );
 const optionalDevPassportUrlFromString = optionalTrimmedString.pipe(passportUrlValue.optional());
 
+/**
+ * One `frame-ancestors` source: the `'self'` keyword or an exact origin. Wildcards, paths and
+ * `'none'` are rejected so a typo cannot widen who may frame the Shop; an empty list already
+ * means "nobody".
+ */
+export const FRAME_ANCESTOR_SELF = "'self'";
+function parseFrameAncestorToken(raw: string, allowLocalHttp: boolean): string | null {
+  const token = raw.trim();
+  if (token === 'self' || token === FRAME_ANCESTOR_SELF) return FRAME_ANCESTOR_SELF;
+  let url: URL;
+  try {
+    url = new URL(token);
+  } catch {
+    return null;
+  }
+  if (url.origin !== token || token.includes('*')) return null;
+  if (url.protocol === 'https:') return token;
+  return allowLocalHttp && url.protocol === 'http:' && LOCAL_DEV_HOSTNAMES.has(url.hostname) ? token : null;
+}
+
+const frameAncestorValue = z.string().refine((value) => parseFrameAncestorToken(value, true) === value, {
+  message: "Expected 'self' or an exact https:// origin (http://localhost only in local development)",
+});
+
+/** Env form: a space- or comma-separated list. Blank or unset means the default (no ancestors). */
+const optionalFrameAncestorsFromString = (allowLocalHttp: boolean) =>
+  z
+    .string()
+    .optional()
+    .transform((val, ctx) => {
+      if (val === undefined || val.trim() === '') return undefined;
+      const tokens = val.split(/[\s,]+/).filter((token) => token !== '');
+      const parsed: string[] = [];
+      for (const token of tokens) {
+        const normalized = parseFrameAncestorToken(token, allowLocalHttp);
+        if (normalized === null) {
+          ctx.addIssue({
+            code: 'custom',
+            message: `Invalid FRAME_ANCESTORS source ${JSON.stringify(token)}: expected 'self' or an exact https:// origin`,
+          });
+          return z.NEVER;
+        }
+        if (!parsed.includes(normalized)) parsed.push(normalized);
+      }
+      return parsed;
+    })
+    .pipe(z.array(frameAncestorValue).optional());
+
 /** Rates validate eagerly (bad number/range throws here); the default applies in the value schema. */
 const sampleRateFromString = z
   .string()
@@ -291,6 +339,8 @@ export const APP_RUNTIME_DEFAULTS = {
   marketplaceGrantPollMilliseconds: 1_000,
   passportSignIn: true,
   usdtPaymentsEnabled: false,
+  frameAncestors: [] as string[],
+  embedded: false,
   preludeSdkTimeoutMs: 5_000,
   previewImage: '/preview.webp',
   siteName: 'Pubky App',
@@ -420,6 +470,23 @@ export const runtimeConfigValueSchema = networkConfigValueSchema.extend({
    * signs users up on this deploy's homeserver (see `getPassportOrigin`).
    */
   passportUrl: passportUrlValue.optional(),
+  /**
+   * Origins allowed to frame the Shop (`Content-Security-Policy: frame-ancestors`). Empty (the
+   * default) denies framing everywhere, as before. See `src/libs/security/headers.ts`.
+   */
+  frameAncestors: z.array(frameAncestorValue).default([...APP_RUNTIME_DEFAULTS.frameAncestors]),
+  /**
+   * Force the embedded layout and behaviour (no Shop header/footer, top-window navigation, no
+   * service worker) even when the page is not detected as framed. Framed pages are detected
+   * without this flag. See `src/libs/embedded/embedded.ts`.
+   */
+  embedded: z.boolean().default(APP_RUNTIME_DEFAULTS.embedded),
+  /**
+   * Whether this origin's pre-namespace browser storage (`franky`, `auth-store`, ...) belongs
+   * to the Shop and is migrated into the Shop namespace. Absent means "yes unless the Shop is
+   * mounted under a base path" (see `getStorageAdoptLegacy`).
+   */
+  storageAdoptLegacy: z.boolean().optional(),
   preludeSdkKey: nonEmptyStringValue.optional(),
   preludeSdkTimeoutMs: positiveIntValue.default(APP_RUNTIME_DEFAULTS.preludeSdkTimeoutMs),
   plausibleDomain: nonEmptyStringValue.optional(),
@@ -506,6 +573,9 @@ export const runtimeEnvInputSchema = z
     passportSignIn: optionalBooleanFromString,
     usdtPaymentsEnabled: optionalBooleanFromString,
     passportUrl: optionalPassportUrlFromString,
+    frameAncestors: optionalFrameAncestorsFromString(false),
+    embedded: optionalBooleanFromString,
+    storageAdoptLegacy: optionalBooleanFromString,
     preludeSdkKey: optionalTrimmedString,
     preludeSdkTimeoutMs: optionalPositiveIntFromString,
     plausibleDomain: optionalTrimmedString,
@@ -600,6 +670,9 @@ export const runtimeEnvInputSchemaWithDefaults = z
     passportSignIn: optionalBooleanFromString,
     usdtPaymentsEnabled: optionalBooleanFromString,
     passportUrl: optionalDevPassportUrlFromString,
+    frameAncestors: optionalFrameAncestorsFromString(true),
+    embedded: optionalBooleanFromString,
+    storageAdoptLegacy: optionalBooleanFromString,
     preludeSdkKey: optionalTrimmedString,
     preludeSdkTimeoutMs: optionalPositiveIntFromString,
     plausibleDomain: optionalTrimmedString,
@@ -686,6 +759,9 @@ export const PUBKY_RUNTIME_ENV_NAMES: Record<keyof RuntimeConfig, string> = {
   passportSignIn: 'PUBKY_RUNTIME_PASSPORT_SIGN_IN',
   usdtPaymentsEnabled: 'PUBKY_RUNTIME_USDT_PAYMENTS_ENABLED',
   passportUrl: 'PUBKY_RUNTIME_PASSPORT_URL',
+  frameAncestors: 'PUBKY_RUNTIME_FRAME_ANCESTORS',
+  embedded: 'PUBKY_RUNTIME_EMBEDDED',
+  storageAdoptLegacy: 'PUBKY_RUNTIME_STORAGE_ADOPT_LEGACY',
   preludeSdkKey: 'PUBKY_RUNTIME_PRELUDE_SDK_KEY',
   preludeSdkTimeoutMs: 'PUBKY_RUNTIME_PRELUDE_SDK_TIMEOUT_MS',
   plausibleDomain: 'PUBKY_RUNTIME_PLAUSIBLE_DOMAIN',
