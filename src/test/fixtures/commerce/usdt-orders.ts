@@ -32,6 +32,16 @@ export const USDT_WIRE_PAYMENT_NOT_FINAL_REFUSAL = {
   error: { code: 'INVALID_STATE', message: 'The payment is not final.', reason: 'payment_not_final' },
 } as const;
 
+/** The parsed asset-bearing fields every bound USDT order carries, for scenes that build their own order. */
+export const USDT_ORDER_FIELDS = {
+  paymentMethod: 'usdt',
+  paymentAsset: 'USDT',
+  paymentNetwork: 'arbitrum-one',
+  paymentAmountMinor: 137_000_000,
+  paymentExponent: 6,
+  paymentQuoteBasis: 'parity',
+} as const satisfies Partial<MarketplaceOrder>;
+
 export type UsdtOrderPhase = 'awaiting' | 'received' | 'final' | 'rechecking';
 
 const FINALITY_BY_PHASE: Record<Exclude<UsdtOrderPhase, 'awaiting'>, PaymentFinality> = {
@@ -52,12 +62,7 @@ export function createUsdtOrderFixture(
   });
   const order = createOrderFixture(awaiting ? 'pending_payment' : 'paid', {
     paymentId: payment.id,
-    paymentMethod: 'usdt',
-    paymentAsset: 'USDT',
-    paymentNetwork: 'arbitrum-one',
-    paymentAmountMinor: 137_000_000,
-    paymentExponent: 6,
-    paymentQuoteBasis: 'parity',
+    ...USDT_ORDER_FIELDS,
     ...(awaiting ? { holdExpiresAt: '2026-08-20T21:15:00.000Z' } : { paymentFinality: FINALITY_BY_PHASE[phase] }),
     ...overrides,
   });
