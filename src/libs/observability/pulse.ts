@@ -83,6 +83,8 @@ export const pulseScreenName = createScreenNameMapper(
     '/offline',
     '/profile/tags',
     '/marketplace/sandbox',
+    // Legacy page that only redirects to MARKETPLACE_ROUTES.MY_SHOP; named so a hit on it is not '/unknown'.
+    '/marketplace/my-shop',
     ...Object.values(APP_ROUTES).filter((route) => route !== APP_ROUTES.FEED),
     ...[
       AUTH_ROUTES,
