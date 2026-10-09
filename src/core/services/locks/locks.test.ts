@@ -467,15 +467,23 @@ describe('LocksGatewayService', () => {
       }
     });
 
-    it('tolerates a trailing slash and drops stray query or hash from the configured setup URL', () => {
-      paykitSetupConfig.setupUrl = 'https://paykit.example.com/setup/?stale=1#embed';
-      try {
-        const built = new URL(LocksGatewayService.buildPaykitReconnectUrl(returnTo, 'opaque-state', creator));
-        expect(built.pathname).toBe('/setup/reconnect');
-        expect(built.searchParams.has('stale')).toBe(false);
-        expect(built.hash).toBe('');
-      } finally {
-        paykitSetupConfig.setupUrl = 'https://paykit.example.com/setup';
+    it('builds /setup/reconnect from the configured origin, whatever path or query the setup URL carries', () => {
+      for (const configured of [
+        'https://paykit.example.com/setup/?stale=1#embed',
+        'https://paykit.example.com/setup',
+        'https://paykit.example.com',
+        'https://paykit.example.com/custom/setup',
+      ]) {
+        paykitSetupConfig.setupUrl = configured;
+        try {
+          const built = new URL(LocksGatewayService.buildPaykitReconnectUrl(returnTo, 'opaque-state', creator));
+          expect(built.origin).toBe('https://paykit.example.com');
+          expect(built.pathname).toBe('/setup/reconnect');
+          expect([...built.searchParams.keys()]).toEqual(['creator', 'return_to', 'state']);
+          expect(built.hash).toBe('');
+        } finally {
+          paykitSetupConfig.setupUrl = 'https://paykit.example.com/setup';
+        }
       }
     });
   });
