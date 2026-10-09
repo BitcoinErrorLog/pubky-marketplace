@@ -1036,7 +1036,7 @@ export class MarketplaceTransactionService {
       'bindPaymentMethod',
       actor,
       `/v0/orders/${encodeURIComponent(orderId)}/payment-method`,
-      { method: 'POST', body: { method } },
+      { method: 'POST', body: { method }, boundPaymentMethod: method },
     );
     return this.parseOrderEnvelope('bindPaymentMethod', raw);
   }
@@ -1236,7 +1236,13 @@ export class MarketplaceTransactionService {
     operation: string,
     actor: string,
     path: string,
-    request: { method: 'PUT' | 'POST'; body: unknown; headers?: Record<string, string> },
+    request: {
+      method: 'PUT' | 'POST';
+      body: unknown;
+      headers?: Record<string, string>;
+      /** The rail a bind chose, so a refusal reads in that rail's copy. */
+      boundPaymentMethod?: PaymentMethodKind;
+    },
   ): Promise<unknown> {
     this.assertTransactionServiceMode(operation);
     const session = this.requireSession(operation, actor);
@@ -1261,7 +1267,7 @@ export class MarketplaceTransactionService {
     if (operation === 'confirmBitcoinPayment' || operation === 'resolveBitcoinPayment') {
       await this.throwSellerPaymentReviewError(response, operation);
     } else {
-      await this.throwPaymentMethodError(response, operation);
+      await this.throwPaymentMethodError(response, operation, request.boundPaymentMethod);
     }
     const raw = await parseResponseOrThrow<unknown>(response, ErrorService.Marketplace, operation, url);
     return toCamelCaseWire(raw);
@@ -1326,7 +1332,11 @@ export class MarketplaceTransactionService {
    * to a static client string — never copy `error.message`, which can echo a
    * rejected Stripe restricted key or other private value into logs and the reporter.
    */
-  private static async throwPaymentMethodError(response: Response, operation: string): Promise<void> {
+  private static async throwPaymentMethodError(
+    response: Response,
+    operation: string,
+    boundPaymentMethod?: PaymentMethodKind,
+  ): Promise<void> {
     if (response.ok) return;
     let reason: string | undefined;
     let serviceCode: string | undefined;
@@ -1338,15 +1348,21 @@ export class MarketplaceTransactionService {
       // A non-JSON failure body falls through to the generic parse error.
       return;
     }
-    throw Err.client(ClientErrorCode.BAD_REQUEST, marketplacePaymentMethodReasonMessage(reason ?? serviceCode), {
-      service: ErrorService.Marketplace,
-      operation,
-      context: {
-        statusCode: response.status,
-        ...(reason ? { reason } : {}),
-        ...(serviceCode ? { serviceCode } : {}),
+    const usdtBind = boundPaymentMethod === 'usdt';
+    throw Err.client(
+      ClientErrorCode.BAD_REQUEST,
+      marketplacePaymentMethodReasonMessage(reason ?? serviceCode, boundPaymentMethod),
+      {
+        service: ErrorService.Marketplace,
+        operation,
+        context: {
+          statusCode: response.status,
+          ...(reason ? { reason } : {}),
+          ...(serviceCode ? { serviceCode } : {}),
+          ...(usdtBind ? { paymentMethod: 'usdt' } : {}),
+        },
       },
-    });
+    );
   }
 
   private static parseOrderEnvelope(operation: string, raw: unknown): MarketplaceOrder {

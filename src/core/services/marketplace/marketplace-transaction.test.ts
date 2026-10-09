@@ -1352,6 +1352,52 @@ describe('MarketplaceTransactionService read projections', () => {
       expect(fetch).toHaveBeenCalledTimes(1);
     });
 
+    it('sends usdt as the bind method and reads each USDT refusal in USDT copy, tagged with the rail', async () => {
+      await establishSession();
+      vi.mocked(fetch).mockClear();
+      vi.mocked(fetch).mockResolvedValueOnce(
+        jsonResponse(409, {
+          ok: false,
+          error: {
+            code: 'INVALID_STATE',
+            message: 'SENTINEL_SERVER_TEXT',
+            reason: 'usdt_seller_not_ready',
+          },
+        }),
+      );
+
+      await expect(MarketplaceTransactionService.bindPaymentMethod(ACTOR, ORDER_ID, 'usdt')).rejects.toMatchObject({
+        message: "This seller can't take USDT right now. Choose another payment method, or contact the seller.",
+        context: { statusCode: 409, reason: 'usdt_seller_not_ready', serviceCode: 'INVALID_STATE', paymentMethod: 'usdt' },
+      });
+      const [, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit];
+      expect(JSON.parse(init.body as string)).toEqual({ method: 'usdt' });
+
+      vi.mocked(fetch).mockResolvedValueOnce(
+        jsonResponse(409, {
+          ok: false,
+          error: { code: 'INVALID_STATE', message: 'SENTINEL', reason: 'buyer_paykit_wallet_required' },
+        }),
+      );
+      await expect(MarketplaceTransactionService.bindPaymentMethod(ACTOR, ORDER_ID, 'usdt')).rejects.toMatchObject({
+        message: 'Connect Bitkit to pay with USDT: this account has no Paykit wallet that can receive a payment request.',
+      });
+    });
+
+    it('leaves the Bitcoin refusal context untouched: no rail tag', async () => {
+      await establishSession();
+      vi.mocked(fetch).mockResolvedValueOnce(
+        jsonResponse(409, {
+          ok: false,
+          error: { code: 'INVALID_STATE', message: 'SENTINEL', reason: 'buyer_paykit_wallet_required' },
+        }),
+      );
+
+      await expect(MarketplaceTransactionService.bindPaymentMethod(ACTOR, ORDER_ID, 'bitcoin')).rejects.toSatisfy(
+        (error: { context?: Record<string, unknown> }) => !('paymentMethod' in (error.context ?? {})),
+      );
+    });
+
     it('surfaces capability_required, method_unavailable, and CAS revision conflict as static copy', async () => {
       await establishSession();
       vi.mocked(fetch).mockResolvedValueOnce(

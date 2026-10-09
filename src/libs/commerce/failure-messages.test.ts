@@ -14,6 +14,8 @@ import {
   marketplaceOfferFailureMessage,
   marketplacePaymentMethodFailureMessage,
   marketplacePaymentMethodReasonMessage,
+  MARKETPLACE_PAYMENT_METHOD_REASON_MESSAGES,
+  USDT_PAYMENT_METHOD_REASON_MESSAGES,
 } from './failure-messages';
 
 describe('marketplaceFailureMessage', () => {
@@ -252,6 +254,96 @@ describe('marketplacePaymentMethodFailureMessage', () => {
 
     it('reads an unknown refusal reason as the caller fallback, never the wire message', () => {
       expect(marketplacePaymentMethodFailureMessage(bindRefusal('something_new'), 'fallback')).toBe('fallback');
+    });
+  });
+
+  describe('USDT bind refusals', () => {
+    const usdtRefusal = (reason: string) =>
+      new AppError({
+        category: ErrorCategory.Client,
+        code: ClientErrorCode.BAD_REQUEST,
+        message: 'SENTINEL_SERVER_TEXT',
+        service: ErrorService.Marketplace,
+        operation: 'bindPaymentMethod',
+        context: { statusCode: 409, reason, paymentMethod: 'usdt' },
+      });
+
+    it.each([
+      ['usdt_unavailable', "USDT payments aren't available right now. Choose another payment method."],
+      [
+        'usdt_seller_not_ready',
+        "This seller can't take USDT right now. Choose another payment method, or contact the seller.",
+      ],
+      [
+        'buyer_usdt_wallet_required',
+        "Your wallet doesn't support USDT yet. Pay with a Bitkit version that supports USDT, or choose another payment method.",
+      ],
+      [
+        'buyer_paykit_wallet_required',
+        'Connect Bitkit to pay with USDT: this account has no Paykit wallet that can receive a payment request.',
+      ],
+      ['paykit_rejected', 'The USDT payment request was refused. Try again, or choose another payment method.'],
+      [
+        'paykit_unavailable',
+        'USDT payment requests are unavailable right now. If you haven’t set up Bitkit for this Pubky account yet, do that first. Then try again shortly.',
+      ],
+      [
+        'seller_account_unclaimed',
+        "This seller can't take USDT right now. Choose another payment method, or contact the seller.",
+      ],
+    ])('maps the %s refusal to USDT copy that never names Bitcoin', (reason, copy) => {
+      const message = marketplacePaymentMethodFailureMessage(usdtRefusal(reason), 'fallback');
+      expect(message).toBe(copy);
+      expect(message).not.toMatch(/Bitcoin|SENTINEL/);
+    });
+
+    it('keeps the Bitcoin string for the same reason on a Bitcoin bind', () => {
+      const bitcoinBind = new AppError({
+        category: ErrorCategory.Client,
+        code: ClientErrorCode.BAD_REQUEST,
+        message: 'SENTINEL',
+        service: ErrorService.Marketplace,
+        operation: 'bindPaymentMethod',
+        context: { statusCode: 409, reason: 'buyer_paykit_wallet_required' },
+      });
+      expect(marketplacePaymentMethodFailureMessage(bitcoinBind, 'fallback')).toBe(
+        'Connect Bitkit to pay with Bitcoin: this account has no Paykit wallet that can receive a payment request.',
+      );
+    });
+
+    it('reads the rail from the bind when the service error is built', () => {
+      expect(marketplacePaymentMethodReasonMessage('paykit_rejected', 'usdt')).toBe(
+        'The USDT payment request was refused. Try again, or choose another payment method.',
+      );
+      expect(marketplacePaymentMethodReasonMessage('paykit_rejected', 'bitcoin')).toBe(
+        'The Bitcoin payment request was refused. Try again, or choose another payment method.',
+      );
+      expect(marketplacePaymentMethodReasonMessage('paykit_rejected')).toBe(
+        'The Bitcoin payment request was refused. Try again, or choose another payment method.',
+      );
+    });
+
+    it('reads a USDT-only reason without a rail as its own copy, never the generic refusal', () => {
+      expect(marketplacePaymentMethodReasonMessage('usdt_unavailable')).toBe(
+        "USDT payments aren't available right now. Choose another payment method.",
+      );
+    });
+
+    it('adds exactly the USDT reasons to the closed set, each with a USDT override only where a Bitcoin string exists', () => {
+      for (const reason of ['usdt_unavailable', 'usdt_seller_not_ready', 'buyer_usdt_wallet_required']) {
+        expect(MARKETPLACE_PAYMENT_METHOD_REASON_MESSAGES.has(reason)).toBe(true);
+        expect(USDT_PAYMENT_METHOD_REASON_MESSAGES.has(reason)).toBe(false);
+      }
+      for (const reason of USDT_PAYMENT_METHOD_REASON_MESSAGES.keys()) {
+        expect(MARKETPLACE_PAYMENT_METHOD_REASON_MESSAGES.has(reason)).toBe(true);
+      }
+      for (const [reason, copy] of MARKETPLACE_PAYMENT_METHOD_REASON_MESSAGES) {
+        if (reason.startsWith('usdt_') || reason === 'buyer_usdt_wallet_required') expect(copy).toMatch(/USDT/);
+      }
+    });
+
+    it('keeps the reader wallet setup refusal rail-neutral', () => {
+      expect(isReaderWalletSetupNeeded(usdtRefusal('buyer_paykit_wallet_setup_needed'))).toBe(true);
     });
   });
 
