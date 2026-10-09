@@ -3,7 +3,10 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CAPABILITIES, RING_COOKIE_CAPABILITIES } from '@/config/app';
 import type { UseStepUpReauthReturn } from '@/hooks/useStepUpReauth/useStepUpReauth.types';
-import { MARKETPLACE_DISCLOSURE_RING_SIGN_IN } from '@/services/marketplace/marketplace-session-grant';
+import {
+  MARKETPLACE_DISCLOSURE_PRIVATE_DATA,
+  MARKETPLACE_DISCLOSURE_RING_SIGN_IN,
+} from '@/services/marketplace/marketplace-session-grant';
 import ringCapture from '@/test/fixtures/auth/ring-signin-url.sdk-0.8.0.json';
 import { MarketplaceReauthDialog } from './MarketplaceReauthDialog';
 
@@ -125,15 +128,35 @@ describe('MarketplaceReauthDialog', () => {
     expect(screen.queryByText(/permission list/i)).not.toBeInTheDocument();
   });
 
-  it.each([false, true])('blocks unsupported Bitkit re-approval (bootstrap: %s)', async (bootstrap) => {
+  it('re-approves a Bitkit sign-in through the marketplace grant any Pubky signer can approve', async () => {
     signIn.isGrantSession = true;
-    connect.bootstrap = bootstrap;
     render(<MarketplaceReauthDialog refusal="homeserver" triggerLabel="Sign in again" />);
-    await userEvent.click(screen.getByRole('button', { name: 'Sign in again' }));
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Sign in again' }));
+
     expect(reauth.start).not.toHaveBeenCalled();
-    expect(connect.start).not.toHaveBeenCalled();
-    expect(screen.getByText('Support for Bitkit is coming soon.')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Copy authorization link')).not.toBeInTheDocument();
+    expect(connect.start).toHaveBeenCalledOnce();
+    expect(screen.queryByTestId('grant-session-refusal')).not.toBeInTheDocument();
+    expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Approve with Bitkit to reconnect the marketplace session for the identity already signed in to Shop. Nothing is charged until you pay.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Authorize with Bitkit' })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: /authorize with pubky ring/i })).not.toBeInTheDocument();
+  });
+
+  it('offers Bitkit to a Bitkit sign-in that has no marketplace session yet', async () => {
+    signIn.isGrantSession = true;
+    connect.bootstrap = true;
+    render(<MarketplaceReauthDialog refusal="homeserver" triggerLabel="Sign in again" />);
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Sign in again' }));
+
+    expect(reauth.start).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Authorize with Bitkit' })).toBeEnabled();
+    expect(screen.getByTestId('session-approval-disclosure')).toHaveTextContent(MARKETPLACE_DISCLOSURE_PRIVATE_DATA);
   });
 
   it.each([
@@ -148,15 +171,9 @@ describe('MarketplaceReauthDialog', () => {
       await userEvent.setup().click(screen.getByRole('button', { name: 'Approve private sync' }));
 
       expect(reauth.start).not.toHaveBeenCalled();
-      if (isGrantSession) {
-        expect(connect.start).not.toHaveBeenCalled();
-        expect(screen.getByText('Support for Bitkit is coming soon.')).toBeInTheDocument();
-      } else {
-        expect(connect.start).toHaveBeenCalledOnce();
-        expect(screen.getByTestId('session-approval-disclosure')).toHaveTextContent(
-          'Authorize with your keychain to let the marketplace handle your purchases and marketplace data.',
-        );
-      }
+      expect(connect.start).toHaveBeenCalledOnce();
+      expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
+      expect(screen.getByTestId('session-approval-disclosure')).toHaveTextContent(MARKETPLACE_DISCLOSURE_PRIVATE_DATA);
     },
   );
 });

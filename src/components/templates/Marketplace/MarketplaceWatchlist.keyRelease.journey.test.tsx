@@ -16,6 +16,7 @@ import { resetRuntimeConfigForTests } from '@/libs/runtime-config/runtime-config
 import { HomeserverService } from '@/services/homeserver/homeserver';
 import { MarketplaceSessionService } from '@/services/marketplace/marketplace-session';
 import {
+  MARKETPLACE_DISCLOSURE_PRIVATE_DATA,
   MARKETPLACE_PREVIOUS_SESSION_GRANT,
   MARKETPLACE_SESSION_GRANT,
 } from '@/services/marketplace/marketplace-session-grant';
@@ -225,27 +226,19 @@ describe('#49 key-release refusal → marketplace approval → grant link (watch
   });
 
   it.each([
-    ['a Bitkit', 'an inventory-only purchase session', 'reconnect', true, 'Approve purchases', 'Open in signer'],
-    ['a Bitkit', 'no purchase session', 'bootstrap', true, 'Approve purchases in Bitkit', 'Open in Bitkit'],
-    [
-      'a Pubky Ring (cookie)',
-      'no purchase session',
-      'bootstrap',
-      true,
-      'Approve purchases in Pubky Ring or Bitkit',
-      'Open in signer',
-    ],
+    ['a Bitkit', 'an inventory-only purchase session', 'reconnect', true, 'Authorize with Bitkit'],
+    ['a Bitkit', 'no purchase session', 'bootstrap', true, 'Authorize with Bitkit'],
+    ['a Pubky Ring (cookie)', 'no purchase session', 'bootstrap', true, 'Authorize with Pubky Ring'],
     [
       'a Pubky Ring (cookie)',
       'an inventory-only purchase session the BFF has not paired',
       'reconnect',
       false,
-      'Approve purchases in Pubky Ring or Bitkit',
-      'Open in signer',
+      'Authorize with Pubky Ring',
     ],
   ] as const)(
     '%s sign-in with %s approves a grant link and then syncs',
-    async (signIn, _label, flow, bffPaired, _dialogTitle, _openLabel) => {
+    async (signIn, _label, flow, bffPaired, openLabel) => {
       const signer = { approved: false, bffPaired };
       const requests = installNetwork(signer);
       const stepUp = vi.spyOn(HomeserverService, 'generateAuthUrl');
@@ -288,22 +281,14 @@ describe('#49 key-release refusal → marketplace approval → grant link (watch
 
       const dialog = await screen.findByRole('dialog');
       expect(await within(dialog).findByRole('heading', { name: 'Enable device sync' })).toBeInTheDocument();
-      if (signIn === 'a Bitkit') {
-        expect(within(dialog).getByText('Support for Bitkit is coming soon.')).toBeInTheDocument();
-        expect(within(dialog).queryByLabelText('Copy authorization link')).not.toBeInTheDocument();
-        expect(within(dialog).getByRole('radio', { name: 'Pubky Ring' })).toBeDisabled();
-        expect(stepUp).not.toHaveBeenCalled();
-        expect(ringConnect).not.toHaveBeenCalled();
-        expect(useCommerceStore.getState().watchlistSyncStatus).toBe('needs_marketplace_approval');
-        return;
-      }
-      expect(await within(dialog).findByRole('button', { name: 'Authorize with Pubky Ring' })).toBeEnabled();
+      expect(await within(dialog).findByRole('button', { name: openLabel })).toBeEnabled();
+      expect(within(dialog).queryByText(/coming soon/i)).not.toBeInTheDocument();
       expect(ringConnect).not.toHaveBeenCalled();
       expect(requests.some((request) => request.path === '/api/marketplace/bootstrap-challenges')).toBe(
         flow === 'bootstrap' || !bffPaired,
       );
       expect(within(dialog).getByTestId('session-approval-disclosure')).toHaveTextContent(
-        'Authorize with your keychain to sync your watchlist across devices and enable selling and buying.',
+        MARKETPLACE_DISCLOSURE_PRIVATE_DATA,
       );
       expect(stepUp).not.toHaveBeenCalled();
 

@@ -20,6 +20,8 @@ import { type SignerOption, SignerToggle } from '@/molecules/SignerToggle/Signer
 import { toast } from '@/molecules/Toaster/use-toast';
 import { marketplaceApprovalDisclosure } from '@/services/marketplace/marketplace-session-grant';
 
+const BITKIT_UNAVAILABLE = 'Bitkit cannot approve this sign-in request. Use Pubky Ring.';
+
 const APPROVAL_COPY = {
   buy: {
     title: 'Enable purchases',
@@ -97,9 +99,10 @@ export function MarketplaceSessionConnectDialog({
   const grantFlowEnabled = getMarketplaceGrantFlowEnabled();
   const approvalSigner = useMarketplaceApprovalSigner();
   const isGrantSession = useIsGrantSession();
-  const [signer, setSigner] = useState<SignerOption>(
-    approvalSigner === 'Bitkit' || (isGrantSession && approvalSigner !== 'Pubky Passport') ? 'bitkit' : 'ring',
-  );
+  const [signerChoice, setSignerChoice] = useState<SignerOption | null>(null);
+  const signer: SignerOption =
+    signerChoice ??
+    (approvalSigner === 'Bitkit' || (isGrantSession && approvalSigner !== 'Pubky Passport') ? 'bitkit' : 'ring');
   const session = useMarketplaceSessionConnect({
     onConnected: () => {
       toast({
@@ -113,7 +116,6 @@ export function MarketplaceSessionConnectDialog({
   // Referencing `session.start`/`session.cancel` directly keeps the effect
   // dependency-stable: both are useCallback-memoized in the hook.
   const { start, cancel } = session;
-  const showBitkitComingSoon = signer === 'bitkit' && !session.requestsPassport;
   useEffect(() => {
     if (autoOpen) setInternalOpen(true);
   }, [autoOpen]);
@@ -123,12 +125,12 @@ export function MarketplaceSessionConnectDialog({
   // off, and a Passport sign-in also while the deploy switched Passport off.
   const refusesGrantSession = isGrantSession && (!grantFlowEnabled || isPassportApprovalRefused());
   useEffect(() => {
-    if (open && !showBitkitComingSoon) {
+    if (open) {
       if (!refusesGrantSession) start();
       return;
     }
     cancel();
-  }, [open, start, cancel, refusesGrantSession, showBitkitComingSoon]);
+  }, [open, start, cancel, refusesGrantSession]);
 
   const copyUrl = async () => {
     try {
@@ -158,14 +160,29 @@ export function MarketplaceSessionConnectDialog({
   const showsGrantSignerHint =
     approvalLapsed && !requestsPassport && (requestsGrantBootstrap || requestsGrantReconnect);
   const selectedSignerName = signer === 'ring' ? 'Pubky Ring' : 'Bitkit';
+  // The grant link is one link either phone signer can approve; the toggle only
+  // says which app to use. A Bitkit sign-in has no Ring identity to approve it,
+  // and the AuthToken connect (grant flow off) is a Pubky Ring link Bitkit rejects.
+  const approvesWithGrantLink = requestsGrantBootstrap || requestsGrantReconnect;
   const ringUnavailable = isGrantSession ? copy.ringUnavailable : undefined;
+  const bitkitUnavailable = approvesWithGrantLink ? undefined : BITKIT_UNAVAILABLE;
+  const introCopy = requestsGrantBootstrap
+    ? bootstrapSigner
+      ? `Approve with ${bootstrapSigner} to connect the marketplace for the identity signed in to Shop. Nothing is charged until you pay.`
+      : 'Approve with Pubky Ring or Bitkit, whichever holds the pubky signed in to Shop. Nothing is charged until you pay.'
+    : requestsGrantReconnect
+      ? requestsPassport
+        ? 'Approve with Pubky Passport to reconnect the marketplace session for the identity already signed in to Shop. Nothing is charged until you pay.'
+        : `Approve with ${selectedSignerName} to reconnect the marketplace session for the identity already signed in to Shop. Nothing is charged until you pay.`
+      : ['awaiting', 'creating'].includes(session.status)
+        ? copy.description
+        : null;
   const retry = () => {
     session.start();
     if (requestsPassport) session.startPassport();
   };
   const approvalDisclosure = session.authorizationUrl ? marketplaceApprovalDisclosure(session.authorizationUrl) : null;
   const showCopyLink =
-    !showBitkitComingSoon &&
     !refusesGrantSession &&
     !requestsPassport &&
     !['error', 'mismatch', 'expired', 'cancelled', 'joined'].includes(session.status);
@@ -185,32 +202,22 @@ export function MarketplaceSessionConnectDialog({
           <DialogTitle>{copy.title}</DialogTitle>
         </DialogHeader>
 
-        {!showBitkitComingSoon && (requestsGrantBootstrap || requestsGrantReconnect) && (
+        {introCopy && (
           <Typography as="p" className="text-sm text-muted-foreground">
-            {requestsGrantBootstrap
-              ? bootstrapSigner
-                ? `Approve with ${bootstrapSigner} to connect the marketplace for the identity signed in to Shop. Nothing is charged until you pay.`
-                : 'Approve with Pubky Ring or Bitkit, whichever holds the pubky signed in to Shop. Nothing is charged until you pay.'
-              : requestsPassport
-                ? 'Approve with Pubky Passport to reconnect the marketplace session for the identity already signed in to Shop. Nothing is charged until you pay.'
-                : `Approve with ${selectedSignerName} to reconnect the marketplace session for the identity already signed in to Shop. Nothing is charged until you pay.`}
+            {introCopy}
           </Typography>
         )}
 
-        {(!refusesGrantSession || showBitkitComingSoon) && !requestsPassport && session.status !== 'joined' && (
+        {!refusesGrantSession && !requestsPassport && session.status !== 'joined' && (
           <div className="mx-auto grid w-full max-w-xs gap-2">
             <SignerToggle
               value={signer}
-              onValueChange={(nextSigner) => {
-                if (nextSigner === signer) return;
-                session.cancel();
-                setSigner(nextSigner);
-              }}
-              disabledReasons={{ ring: ringUnavailable }}
+              onValueChange={setSignerChoice}
+              disabledReasons={{ ring: ringUnavailable, bitkit: bitkitUnavailable }}
             />
-            {ringUnavailable && !showBitkitComingSoon && (
+            {(ringUnavailable ?? bitkitUnavailable) && (
               <Typography as="p" className="text-center text-sm text-muted-foreground">
-                {ringUnavailable}
+                {ringUnavailable ?? bitkitUnavailable}
               </Typography>
             )}
           </div>
@@ -218,12 +225,6 @@ export function MarketplaceSessionConnectDialog({
 
         {refusesGrantSession ? (
           <GrantSessionRefusal />
-        ) : showBitkitComingSoon ? (
-          <div className="flex min-h-48 items-center justify-center" role="status">
-            <Typography as="p" className="max-w-xs text-center text-sm text-muted-foreground">
-              Support for Bitkit is coming soon.
-            </Typography>
-          </div>
         ) : ['error', 'mismatch', 'expired', 'cancelled'].includes(session.status) ? (
           <div className="grid gap-3">
             <div role="alert" className="flex items-center gap-3 rounded-md bg-destructive/60 px-6 py-3">
@@ -283,12 +284,12 @@ export function MarketplaceSessionConnectDialog({
               />
             </button>
 
-            <MarketplaceApprovalDisclosure sentence={copy.description} />
+            <MarketplaceApprovalDisclosure sentence={approvalDisclosure} />
 
             {session.status === 'awaiting' && (
               <div className="flex items-center gap-2 text-sm font-bold text-muted-foreground" aria-live="polite">
                 <Loader2 className="size-4 animate-spin motion-reduce:animate-none" />
-                Waiting for approval...
+                {`Waiting for approval in ${selectedSignerName}…`}
               </div>
             )}
             {['creating', 'verifying', 'claiming'].includes(session.status) && (

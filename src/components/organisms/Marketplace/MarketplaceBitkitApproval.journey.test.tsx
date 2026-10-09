@@ -6,6 +6,7 @@ import { resetRuntimeConfigForTests } from '@/libs/runtime-config/runtime-config
 import { beginMarketplaceBootstrapFlow } from '@/services/marketplace/marketplace-bootstrap-client';
 import { beginMarketplaceGrantFlow } from '@/services/marketplace/marketplace-grant-client';
 import { MarketplaceSessionService } from '@/services/marketplace/marketplace-session';
+import { MARKETPLACE_DISCLOSURE_PRIVATE_DATA } from '@/services/marketplace/marketplace-session-grant';
 import { useAuthStore } from '@/stores/auth/auth.store';
 import { useCommerceStore } from '@/stores/commerce/commerce.store';
 import parityCapture from '@/test/fixtures/auth/marketplace-grant-priv-parity.staging.json';
@@ -44,7 +45,30 @@ vi.mock('@/hooks/useStepUpReauth/useStepUpReauth', () => ({
 
 const PUBKY = 'y'.repeat(52);
 const CURRENT_TOKEN = 'W'.repeat(43);
+const CLAIMED_TOKEN = 'C'.repeat(43);
 const FUTURE = new Date(Date.now() + 86_400_000).toISOString();
+const SERVICE_CID = 'marketplace.staging.shop.pubky.app';
+
+function grantUrl(caps: string): string {
+  return `pubkyauth://signin_grant?caps=${encodeURIComponent(caps)}&relay=r&secret=s&cid=${SERVICE_CID}&cpk=k`;
+}
+
+function deferredGrantFlow(url: string) {
+  let resolve!: (result: {
+    status: 'connected';
+    token: string;
+    pubky: string;
+    capabilities: string;
+    expires_at: string;
+  }) => void;
+  const pending = new Promise<Parameters<typeof resolve>[0]>((done) => {
+    resolve = done;
+  });
+  return {
+    flow: { authorizationUrl: url, awaitResult: vi.fn(() => pending), cancel: vi.fn().mockResolvedValue(undefined) },
+    resolve,
+  };
+}
 
 function signIn(kind: 'bitkit' | 'ring') {
   useAuthStore.setState({
@@ -83,25 +107,70 @@ describe('#49 Bitkit approval journeys (real hooks)', () => {
     useAuthStore.setState({ currentUserPubky: null, session: null });
   });
 
-  it.each([false, true])('keeps unsupported Bitkit approval blocked (existing session: %s)', async (existing) => {
+  it('a Bitkit buyer with no purchase session approves purchases in Bitkit', async () => {
     signIn('bitkit');
-    if (existing) seedPurchaseSession(parityCapture.previous_request.homeserver_verified);
+    const bootstrap = deferredGrantFlow(grantUrl(parityCapture.parity_request.caps));
+    vi.mocked(beginMarketplaceBootstrapFlow).mockResolvedValue(bootstrap.flow);
     const user = userEvent.setup();
-    render(
-      existing ? (
-        <MarketplaceReauthDialog refusal="homeserver" triggerLabel="Sign in again" />
-      ) : (
-        <MarketplaceSessionRequiredCard />
+
+    render(<MarketplaceSessionRequiredCard />);
+    expect(screen.getByRole('heading', { name: 'Enable purchases' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Authorize' }));
+
+    await waitFor(() => expect(beginMarketplaceBootstrapFlow).toHaveBeenCalledWith({ pubky: PUBKY }));
+    expect(await screen.findByRole('button', { name: 'Authorize with Bitkit' })).toBeEnabled();
+    expect(screen.getByTestId('session-approval-disclosure')).toHaveTextContent(MARKETPLACE_DISCLOSURE_PRIVATE_DATA);
+    expect(screen.queryByRole('button', { name: /authorize with pubky ring/i })).not.toBeInTheDocument();
+
+    bootstrap.resolve({
+      status: 'connected',
+      token: CLAIMED_TOKEN,
+      pubky: PUBKY,
+      capabilities: parityCapture.parity_request.homeserver_verified,
+      expires_at: FUTURE,
+    });
+    await waitFor(() =>
+      expect(useCommerceStore.getState().marketplaceSession?.capabilities).toBe(
+        parityCapture.parity_request.homeserver_verified,
       ),
     );
-    await user.click(screen.getByRole('button', { name: existing ? 'Sign in again' : 'Authorize' }));
-    expect(screen.getByText('Support for Bitkit is coming soon.')).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: 'Pubky Ring' })).toBeDisabled();
-    expect(screen.queryByLabelText('Copy authorization link')).not.toBeInTheDocument();
-    expect(beginMarketplaceBootstrapFlow).not.toHaveBeenCalled();
-    expect(beginMarketplaceGrantFlow).not.toHaveBeenCalled();
+    expect(MarketplaceSessionService.getActiveSession()?.token).toBe(CLAIMED_TOKEN);
+  });
+
+  it('a Bitkit sign-in whose purchase session predates /priv re-approves in Bitkit or Ring', async () => {
+    signIn('bitkit');
+    seedPurchaseSession(parityCapture.previous_request.homeserver_verified);
+    const reconnect = deferredGrantFlow(grantUrl(parityCapture.parity_request.caps));
+    vi.mocked(beginMarketplaceGrantFlow).mockResolvedValue(reconnect.flow);
+    const onReauthenticated = vi.fn();
+    const user = userEvent.setup();
+
+    render(
+      <MarketplaceReauthDialog
+        refusal="homeserver"
+        triggerLabel="Sign in again"
+        onReauthenticated={onReauthenticated}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Sign in again' }));
+
+    await waitFor(() => expect(beginMarketplaceGrantFlow).toHaveBeenCalledTimes(1));
+    expect(await screen.findByRole('button', { name: 'Authorize with Bitkit' })).toBeEnabled();
+    expect(screen.getByTestId('session-approval-disclosure')).toHaveTextContent(MARKETPLACE_DISCLOSURE_PRIVATE_DATA);
     expect(ringStepUp.start).not.toHaveBeenCalled();
-    expect(MarketplaceSessionService.getActiveSession()?.token ?? null).toBe(existing ? CURRENT_TOKEN : null);
+
+    reconnect.resolve({
+      status: 'connected',
+      token: CLAIMED_TOKEN,
+      pubky: PUBKY,
+      capabilities: parityCapture.parity_request.homeserver_verified,
+      expires_at: FUTURE,
+    });
+    await waitFor(() => expect(onReauthenticated).toHaveBeenCalledTimes(1));
+    expect(MarketplaceSessionService.getActiveSession()?.token).toBe(CLAIMED_TOKEN);
+    expect(useCommerceStore.getState().marketplaceSession?.capabilities).toBe(
+      parityCapture.parity_request.homeserver_verified,
+    );
   });
 
   it.each([
