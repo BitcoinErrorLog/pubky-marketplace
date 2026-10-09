@@ -456,6 +456,43 @@ describe('useMarketplaceOrders', () => {
     expect(JSON.stringify(vi.mocked(toast).mock.calls)).not.toContain('The external refund cannot be recorded.');
   });
 
+  it.each([
+    [
+      'refund.record_external',
+      'invalid_refund_reference',
+      'Enter the Arbitrum transaction hash (0x followed by 64 characters).',
+    ],
+    [
+      'refund.record_external',
+      'refund_destination_required',
+      "Ask the buyer to confirm a refund address first. It's on their order page.",
+    ],
+    [
+      'refund.confirm_destination',
+      'invalid_refund_destination',
+      "That isn't a valid Arbitrum address. Check it and try again.",
+    ],
+  ] as const)('maps the USDT refusal reason on %s (%s) to its static copy', async (kind, reason, copy) => {
+    const { result } = renderHook(() => useMarketplaceOrders());
+    await waitFor(() => expect(result.current.orders).toHaveLength(1));
+    const order = result.current.orders[0].order;
+    const { toast } = await import('@/molecules/Toaster/use-toast');
+    vi.mocked(toast).mockClear();
+    vi.mocked(CommerceController.executeMarketplaceCommand).mockResolvedValueOnce({
+      ok: false,
+      error: { code: 'INVALID_COMMAND', message: 'rejected 0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed', reason },
+    });
+
+    let succeeded = true;
+    await act(async () => {
+      succeeded = await result.current.actOnOrder(order, kind, { address: '0x1' });
+    });
+
+    expect(succeeded).toBe(false);
+    expect(vi.mocked(toast)).toHaveBeenCalledWith({ variant: 'error', description: copy });
+    expect(JSON.stringify(vi.mocked(toast).mock.calls)).not.toContain('5aAeb');
+  });
+
   it('flags needsSession on a session-required load failure and refetches once a session connects', async () => {
     config.mode = 'transaction-service';
     vi.mocked(CommerceController.getMarketplaceOrders).mockRejectedValue(sessionRequiredError());

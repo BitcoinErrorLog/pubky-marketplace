@@ -19,6 +19,7 @@ import {
   isMarketplaceRevisionConflict,
 } from '@/libs/commerce/transaction-commands';
 import { PAYMENT_NOT_FINAL_COPY } from '@/libs/commerce/usdt-buyer-status';
+import { CONFIRM_REFUND_DESTINATION_KIND, usdtRefundRefusalMessage } from '@/libs/commerce/usdt-refund';
 import { isPaymentNotFinalRefusal } from '@/libs/commerce/usdt-settlement-contract';
 import { isMarketplaceSessionRequiredError } from '@/libs/error/error.utils';
 import { toast } from '@/molecules/Toaster/use-toast';
@@ -165,7 +166,12 @@ export function useMarketplaceOrders() {
           kind === 'pickup_details.set' ||
           kind === 'pickup_details.clear' ||
           (kind === 'order.cancel_request' && order.fulfillment === 'pickup');
-        const refundRefusal = kind === 'refund.record_external' ? plainRefundRefusal(response.error.message) : null;
+        const usdtRefusal =
+          kind === 'refund.record_external' || kind === CONFIRM_REFUND_DESTINATION_KIND
+            ? usdtRefundRefusalMessage(response.error)
+            : null;
+        const refundRefusal =
+          usdtRefusal ?? (kind === 'refund.record_external' ? plainRefundRefusal(response.error.message) : null);
         toast({
           variant: 'error',
           description:
