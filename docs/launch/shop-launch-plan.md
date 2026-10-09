@@ -470,6 +470,7 @@ There are two options:
 - **paykit-server#23:** review and merge on the fork. It was closed on 1 Oct without merging.
 - **#49:** Bitkit scanning the sign-up QR is supported.
 - **D1:** link-out behind a flag that John switches on (shipped in v0.6.45, flag off).
+- **Create account QR (CQ1, 9 Oct):** the Shop keeps the single Ring sign-up QR ([#94](https://github.com/pubky/pubky-marketplace/issues/94), v0.6.48); Bitkit accepts it and purchase approval is a grant link either way. It moves to a `signup_grant` QR only after [bitkit-android#1448](https://github.com/synonymdev/bitkit-android/issues/1448) and [bitkit-ios#902](https://github.com/synonymdev/bitkit-ios/issues/902) are fixed in a released Bitkit, because approving `signup_grant` with an existing identity republishes `_pubky` to the QR's homeserver.
 
 ### Made 2 Oct, on Ben's Paykit answers
 

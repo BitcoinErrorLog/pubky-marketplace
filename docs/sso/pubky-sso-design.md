@@ -50,6 +50,7 @@ Identity is the user's key. Authorization is a grant: a statement signed by that
   - Bitkit users get a grant session (`client_id` `shop.pubky.app`, non-extractable key).
   - The marketplace service authenticates a legacy `AuthToken`, whose bytes are posted to both the homeserver and the service ([`single-approval.md`](https://github.com/BitcoinErrorLog/pubky-app/blob/release/shop-v0.6.8/docs/ecommerce/single-approval.md)).
   - A purchase approval after sign-in is a `signin_grant` link since [pubky-marketplace#94](https://github.com/pubky/pubky-marketplace/pull/94) (merged, next Shop release), whichever way the user signed in. It needs Ring 2.0 or later, or Bitkit; Ring 1.19 users just need to update. A Ring 1.19 sign-in already creates the purchase session, so those users can still buy straight after signing in. Accounts created with the Ring sign-up QR need one sign-in with Ring.
+  - New Shop accounts are created from the Ring sign-up QR (a cookie session); the create QR becomes a `signup_grant` QR only once [bitkit-android#1448](https://github.com/synonymdev/bitkit-android/issues/1448) and [bitkit-ios#902](https://github.com/synonymdev/bitkit-ios/issues/902) are fixed in a released Bitkit (decision CQ1, 9 Oct).
 
 **The signers.**
 
