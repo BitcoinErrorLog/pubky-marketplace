@@ -12,7 +12,7 @@ const sdkMocks = vi.hoisted(() => ({
   generateBundleId: vi.fn(),
 }));
 
-vi.mock('locks-sdk-wasm', () => ({
+vi.mock('@synonymdev/locks-sdk', () => ({
   default: sdkMocks.init,
   BundleId: { generate: sdkMocks.generateBundleId },
 }));
@@ -52,7 +52,7 @@ describe('LocksGatewayService', () => {
     sdkMocks.generateBundleId.mockReturnValue({ toString: () => BUNDLE_ID });
   });
 
-  it('generates bundle ids through the vendored SDK and initializes the WASM module once', async () => {
+  it('generates bundle ids through the SDK and initializes the WASM module once', async () => {
     await expect(LocksGatewayService.generateBundleId()).resolves.toBe(BUNDLE_ID);
     await expect(LocksGatewayService.generateBundleId()).resolves.toBe(BUNDLE_ID);
 

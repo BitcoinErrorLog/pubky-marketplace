@@ -99,7 +99,7 @@ jobs:
             nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
             nextjs-${{ runner.os }}-
 
-      - name: Smoke test vendored Locks SDK
+      - name: Smoke test Locks SDK package
         run: node scripts/locks-sdk-smoke.mjs
 
       - name: Smoke test vendored paykit-wasm messaging binding

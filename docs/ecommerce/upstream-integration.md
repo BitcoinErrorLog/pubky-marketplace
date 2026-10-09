@@ -66,14 +66,12 @@ Hard boundaries:
 
 `@synonymdev/pubky` is already a published browser JS/WASM dependency.
 
-Locks has a real browser JS/WASM binding under `locks-sdk/bindings/js`, but it is unpublished. Integration therefore requires:
+Locks has a real browser JS/WASM binding under `locks-sdk/bindings/js`. It is published to npm as `@synonymdev/locks-sdk` (release-candidate builds under the `rc` dist-tag; `latest` still points at an old rc5). Integration therefore requires:
 
-1. Pin the audited or later reviewed Locks commit.
-2. Build the generated package with the upstream Rust/wasm-pack toolchain.
-3. Record source commit, tool versions, package checksum, license, and generation command.
-4. Vendor the generated artifact or publish it to a controlled immutable registry.
-5. Load it only in a client component through a dynamic import.
-6. Run its generated API smoke test before the Next.js build.
+1. Pin an exact, reviewed `@synonymdev/locks-sdk` version in `package.json` (no range); `package-lock.json` records the tarball integrity hash.
+2. Record the source commit (npm `gitHead`, equal to the upstream release tag), license, and artifact checksums in [`locks-sdk-provenance.md`](locks-sdk-provenance.md).
+3. Load it only in a client component through a dynamic import.
+4. Run its generated API smoke test before the Next.js build.
 
 Do not create hand-written substitutes for Locks canonicalization, identifiers, proof payloads, credentials, or session handling.
 
@@ -273,7 +271,7 @@ Before completion, run the pinned upstream smoke suites plus a composed buyer/se
 
 ## Blockers tracked as work
 
-- Build and package the unpublished Locks JS/WASM binding reproducibly.
+- Keep the exact-pinned `@synonymdev/locks-sdk` release candidate current with the Lock Server release the Shop targets (re-pin procedure in [`locks-sdk-provenance.md`](locks-sdk-provenance.md)).
 - Add a protocol-real local Compose overlay; neither Pubky Docker nor Locks Compose alone is complete.
 - Implement Marketplace Transaction Service verification of the Locks lifecycle without exposing bearer material.
 - Define private marketplace messaging: use Paykit encrypted links through a Rust adapter or adopt another reviewed encrypted Pubky protocol.
