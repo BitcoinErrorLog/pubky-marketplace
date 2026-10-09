@@ -20,6 +20,7 @@ import {
   commercePubkySchema,
   createCommerceCommandSchema,
 } from './transaction-contracts';
+import { isValidArbitrumAddress } from './usdt-refund';
 
 const auctionTermsSchema = z
   .object({
@@ -577,6 +578,22 @@ export const recordExternalRefundCommandSchema = createCommerceCommandSchema(
 );
 
 /**
+ * `refund.confirm_destination` (buyer, own USDT order only): the Arbitrum One
+ * address the buyer wants a refund sent to. The buyer may replace it until the
+ * seller records a refund; the service then refuses with `INVALID_STATE`
+ * (plan §2.6, service S6). A mixed-case address must carry a valid EIP-55
+ * checksum.
+ */
+export const confirmRefundDestinationCommandSchema = createCommerceCommandSchema(
+  'refund.confirm_destination',
+  orderIdPayload
+    .extend({
+      address: z.string().trim().refine(isValidArbitrumAddress, { message: 'Enter a valid Arbitrum address.' }),
+    })
+    .strict(),
+);
+
+/**
  * Review terms shared by `review.create` and `review.update`, mirroring the
  * service's single `ReviewTermsPayload` validator: an integer rating 1–5 and
  * trimmed text of 1–5,000 characters against the reviewed order.
@@ -660,6 +677,7 @@ export const marketplaceCommandSchema = z.union([
   approveReturnCommandSchema,
   receiveReturnCommandSchema,
   recordExternalRefundCommandSchema,
+  confirmRefundDestinationCommandSchema,
   createReviewCommandSchema,
   updateReviewCommandSchema,
 ]);
@@ -753,6 +771,7 @@ export type RequestReturnCommand = z.infer<typeof requestReturnCommandSchema>;
 export type ApproveReturnCommand = z.infer<typeof approveReturnCommandSchema>;
 export type ReceiveReturnCommand = z.infer<typeof receiveReturnCommandSchema>;
 export type RecordExternalRefundCommand = z.infer<typeof recordExternalRefundCommandSchema>;
+export type ConfirmRefundDestinationCommand = z.infer<typeof confirmRefundDestinationCommandSchema>;
 export type CreateReviewCommand = z.infer<typeof createReviewCommandSchema>;
 export type UpdateReviewCommand = z.infer<typeof updateReviewCommandSchema>;
 export type MarketplaceCommand = z.infer<typeof marketplaceCommandSchema>;

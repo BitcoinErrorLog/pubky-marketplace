@@ -125,6 +125,26 @@ export function createBitcoinQuotedOrderFixture(): MarketplaceOrder {
   });
 }
 
+/**
+ * A durable-service order paid in USDT: the order total is the USD price of
+ * record, and the payment attempt carries the exact parity amount in
+ * millionths (13,700 cents = 137.000000 USDT).
+ */
+export function createUsdtOrderFixture(
+  state: MarketplaceOrder['state'],
+  overrides: Partial<MarketplaceOrder> = {},
+): MarketplaceOrder {
+  return createOrderFixture(state, {
+    paymentMethod: 'usdt',
+    paymentAsset: 'USDT',
+    paymentNetwork: 'arbitrum-one',
+    paymentAmountMinor: 137_000_000,
+    paymentExponent: 6,
+    paymentQuoteBasis: 'parity',
+    ...overrides,
+  });
+}
+
 export function createPaymentFixture(
   state: MarketplacePayment['state'],
   overrides: Partial<MarketplacePayment> = {},
