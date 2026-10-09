@@ -94,7 +94,11 @@ describe('navigateTop', () => {
     };
     const win = makeFramed({ frameOrigin: 'https://shop.pubky.app', top: { location: topLocation } });
     expect(navigateTop('https://www.paypal.com/checkoutnow?token=abc', win)).toBe('tab');
-    expect(win.open).toHaveBeenCalledWith('https://www.paypal.com/checkoutnow?token=abc', '_blank', 'noopener,noreferrer');
+    expect(win.open).toHaveBeenCalledWith(
+      'https://www.paypal.com/checkoutnow?token=abc',
+      '_blank',
+      'noopener,noreferrer',
+    );
     expect(win.location.assign).not.toHaveBeenCalled();
   });
 
@@ -142,10 +146,6 @@ describe('navigateTop', () => {
       },
     });
     expect(navigateTop('/marketplace/orders', win)).toBe('tab');
-    expect(win.open).toHaveBeenCalledWith(
-      'https://shop.pubky.app/marketplace/orders',
-      '_blank',
-      'noopener,noreferrer',
-    );
+    expect(win.open).toHaveBeenCalledWith('https://shop.pubky.app/marketplace/orders', '_blank', 'noopener,noreferrer');
   });
 });

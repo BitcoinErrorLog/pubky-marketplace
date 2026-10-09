@@ -6,7 +6,6 @@ import { BasePathImage } from './BasePathImage';
 vi.mock('next/image', () => ({
   __esModule: true,
   default: ({ src, alt }: { src: unknown; alt: string }) => (
-     
     <img src={typeof src === 'string' ? src : (src as { src: string }).src} alt={alt} />
   ),
 }));
