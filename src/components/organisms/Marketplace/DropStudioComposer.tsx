@@ -28,6 +28,7 @@ import { formatCommerceMoney } from '@/libs/commerce/format';
 import { ControlledInputField } from '@/molecules/ControlledInputField/ControlledInputField';
 import { ControlledTextareaField } from '@/molecules/ControlledTextareaField/ControlledTextareaField';
 import { RequiredToPublishSummary } from '@/molecules/Marketplace/RequiredToPublishSummary';
+import { SettingsSectionContent } from '@/molecules/Settings/SettingsSectionContent/SettingsSectionContent';
 import { DropStudioPreviewCard } from '@/organisms/Marketplace/DropStudioPreviewCard';
 
 export interface DropStudioComposerProps {
@@ -81,29 +82,35 @@ export function DropStudioComposer({ studio }: DropStudioComposerProps) {
         });
       }}
     >
-      <section className="flex flex-col gap-4">
+      <section className="grid min-w-0 gap-6 rounded-md bg-card p-6 shadow-lg">
         <Typography as="h2" className="text-xl font-semibold">
           Announce
         </Typography>
-        <ControlledInputField
-          name={DROP_STUDIO_FIELDS.TITLE}
-          control={form.control}
-          label="Drop title"
-          placeholder="Winter capsule — 100 numbered pieces"
-          maxLength={DROP_TITLE_MAX_CHARS}
-          disabled={isPublishing}
-        />
-        <ControlledTextareaField
-          name={DROP_STUDIO_FIELDS.DESCRIPTION}
-          control={form.control}
-          label="Description"
-          placeholder="What is dropping, and why it matters."
-          maxLength={DROP_DESCRIPTION_MAX_CHARS}
-          disabled={isPublishing}
-        />
+        <SettingsSectionContent>
+          <ControlledInputField
+            name={DROP_STUDIO_FIELDS.TITLE}
+            control={form.control}
+            label="Drop title"
+            placeholder="Winter capsule — 100 numbered pieces"
+            maxLength={DROP_TITLE_MAX_CHARS}
+            disabled={isPublishing}
+          />
+          <ControlledTextareaField
+            name={DROP_STUDIO_FIELDS.DESCRIPTION}
+            control={form.control}
+            label="Description"
+            placeholder="What is dropping, and why it matters."
+            maxLength={DROP_DESCRIPTION_MAX_CHARS}
+            disabled={isPublishing}
+          />
+        </SettingsSectionContent>
       </section>
 
-      <section id={DROP_STUDIO_FIELDS.LISTING_IDS} tabIndex={-1} className="flex flex-col gap-3">
+      <section
+        id={DROP_STUDIO_FIELDS.LISTING_IDS}
+        tabIndex={-1}
+        className="grid min-w-0 gap-6 rounded-md bg-card p-6 shadow-lg"
+      >
         <Typography as="h2" className="text-xl font-semibold">
           Listings in this drop
         </Typography>
@@ -111,212 +118,224 @@ export function DropStudioComposer({ studio }: DropStudioComposerProps) {
           A drop bundles up to {DROP_MAX_LISTINGS} of your published listings. Each listing must be ready to sell before
           launch.
         </Typography>
-        {studio.catalog === 'loading' ? (
-          <Card className="border-dashed py-4">
-            <CardContent className="flex items-center gap-2 px-5 text-sm text-muted-foreground">
-              <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden />
-              Loading your listings…
-            </CardContent>
-          </Card>
-        ) : studio.catalog === 'unavailable' ? (
-          <Card className="border-dashed py-4">
-            <CardContent className="flex flex-col gap-3 px-5">
-              <Typography as="p" className="text-sm text-muted-foreground">
-                Your catalog could not be loaded — retry.
-              </Typography>
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                className="w-fit rounded-full"
-                onClick={studio.retryCatalog}
-              >
-                <RefreshCw className="mr-1.5 size-3.5" />
-                Retry
-              </Button>
-            </CardContent>
-          </Card>
-        ) : listings.length === 0 ? (
-          <Card className="border-dashed py-4">
-            <CardContent className="flex flex-col gap-2 px-5">
-              <Typography as="p" className="text-sm text-muted-foreground">
-                You have no active listings to bundle yet.
-              </Typography>
-              <Link href={MARKETPLACE_ROUTES.SELL} className="inline-flex items-center gap-1 text-sm">
-                Create a listing first
-                <ExternalLink className="size-3.5" />
-              </Link>
-            </CardContent>
-          </Card>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {listings.map((listing) => {
-              const isSelected = selectedListingIds.includes(listing.listing_id);
-              return (
-                <li
-                  key={listing.listing_id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3"
+        <SettingsSectionContent>
+          {studio.catalog === 'loading' ? (
+            <Card className="rounded-md p-0">
+              <CardContent className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
+                <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden />
+                Loading your listings…
+              </CardContent>
+            </Card>
+          ) : studio.catalog === 'unavailable' ? (
+            <Card className="rounded-md p-0">
+              <CardContent className="flex flex-col gap-3 p-6">
+                <Typography as="p" className="text-sm text-muted-foreground">
+                  Your catalog could not be loaded — retry.
+                </Typography>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  className="w-fit rounded-full"
+                  onClick={studio.retryCatalog}
                 >
-                  <div className="flex items-center gap-3">
-                    <Checkbox
-                      id={`drop-listing-${listing.listing_id}`}
-                      checked={isSelected}
-                      disabled={isPublishing || (!isSelected && selectedListingIds.length >= DROP_MAX_LISTINGS)}
-                      onCheckedChange={(checked) => toggleListing(listing.listing_id, checked === true)}
-                      aria-label={`Include ${listing.record.title} in the drop`}
-                    />
-                    <Label htmlFor={`drop-listing-${listing.listing_id}`} className="cursor-pointer">
-                      <span className="font-medium">{listing.record.title}</span>
-                      <span className="ml-2 text-sm text-muted-foreground">
-                        {listing.record.sale.format === 'fixed_price'
-                          ? formatCommerceMoney(listing.record.sale.unitPrice)
-                          : 'Auction'}
-                      </span>
-                    </Label>
-                  </div>
-                  {isSelected && (
-                    <DropStudioListingRegistrationChip
-                      state={registration[listing.listing_id] ?? 'checking'}
-                      onRegister={() => void studio.registerListing(listing.listing_id)}
-                      disabled={isPublishing}
-                    />
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-        {form.formState.errors.listingIds && (
-          <Typography as="p" role="alert" className="text-sm text-destructive">
-            {form.formState.errors.listingIds.message}
-          </Typography>
-        )}
+                  <RefreshCw className="size-3.5" />
+                  Retry
+                </Button>
+              </CardContent>
+            </Card>
+          ) : listings.length === 0 ? (
+            <Card className="rounded-md p-0">
+              <CardContent className="flex flex-col gap-2 p-6">
+                <Typography as="p" className="text-sm text-muted-foreground">
+                  You have no active listings to bundle yet.
+                </Typography>
+                <Link href={MARKETPLACE_ROUTES.SELL} className="inline-flex items-center gap-1 text-sm">
+                  Create a listing first
+                  <ExternalLink className="size-3.5" />
+                </Link>
+              </CardContent>
+            </Card>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {listings.map((listing) => {
+                const isSelected = selectedListingIds.includes(listing.listing_id);
+                return (
+                  <li
+                    key={listing.listing_id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-md p-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        id={`drop-listing-${listing.listing_id}`}
+                        checked={isSelected}
+                        disabled={isPublishing || (!isSelected && selectedListingIds.length >= DROP_MAX_LISTINGS)}
+                        onCheckedChange={(checked) => toggleListing(listing.listing_id, checked === true)}
+                        aria-label={`Include ${listing.record.title} in the drop`}
+                      />
+                      <Label htmlFor={`drop-listing-${listing.listing_id}`} className="cursor-pointer">
+                        <span className="font-medium">{listing.record.title}</span>
+                        <span className="ml-2 text-sm text-muted-foreground">
+                          {listing.record.sale.format === 'fixed_price'
+                            ? formatCommerceMoney(listing.record.sale.unitPrice)
+                            : 'Auction'}
+                        </span>
+                      </Label>
+                    </div>
+                    {isSelected && (
+                      <DropStudioListingRegistrationChip
+                        state={registration[listing.listing_id] ?? 'checking'}
+                        onRegister={() => void studio.registerListing(listing.listing_id)}
+                        disabled={isPublishing}
+                      />
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          {form.formState.errors.listingIds && (
+            <Typography as="p" role="alert" className="text-sm text-destructive">
+              {form.formState.errors.listingIds.message}
+            </Typography>
+          )}
+        </SettingsSectionContent>
       </section>
 
-      <section className="flex flex-col gap-4">
+      <section className="grid min-w-0 gap-6 rounded-md bg-card p-6 shadow-lg">
         <Typography as="h2" className="text-xl font-semibold">
           Schedule
         </Typography>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <DropStudioScheduleField
-            form={form}
-            name={DROP_STUDIO_FIELDS.STARTS_AT}
-            label="Launch (your local time)"
-            value={startsAtLocal}
-            disabled={isPublishing}
-          />
-          <DropStudioScheduleField
-            form={form}
-            name={DROP_STUDIO_FIELDS.ENDS_AT}
-            label="End (optional — empty runs until sell-out or cancel)"
-            value={endsAtLocal}
-            disabled={isPublishing}
-          />
-        </div>
-        <Typography as="p" className="text-sm text-muted-foreground">
-          Server time governs. These times are your stated intent in the published record; the transaction
-          service&apos;s clock decides when the drop is actually live and when it ends.
-        </Typography>
+        <SettingsSectionContent>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <DropStudioScheduleField
+              form={form}
+              name={DROP_STUDIO_FIELDS.STARTS_AT}
+              label="Launch (your local time)"
+              value={startsAtLocal}
+              disabled={isPublishing}
+            />
+            <DropStudioScheduleField
+              form={form}
+              name={DROP_STUDIO_FIELDS.ENDS_AT}
+              label="End (optional — empty runs until sell-out or cancel)"
+              value={endsAtLocal}
+              disabled={isPublishing}
+            />
+          </div>
+          <Typography as="p" className="text-sm text-muted-foreground">
+            Server time governs. These times are your stated intent in the published record; the transaction
+            service&apos;s clock decides when the drop is actually live and when it ends.
+          </Typography>
+        </SettingsSectionContent>
       </section>
 
-      <section className="flex flex-col gap-4">
+      <section className="grid min-w-0 gap-6 rounded-md bg-card p-6 shadow-lg">
         <Typography as="h2" className="text-xl font-semibold">
           Caps
         </Typography>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <ControlledInputField
-            name={DROP_STUDIO_FIELDS.TOTAL_QUANTITY}
-            control={form.control}
-            label="Total quantity"
-            labelHint={`1 to ${DROP_MAX_TOTAL_QUANTITY.toLocaleString('en-US')} units across the whole drop`}
-            placeholder="How many units in total"
-            disabled={isPublishing}
-          />
-          <ControlledInputField
-            name={DROP_STUDIO_FIELDS.PER_BUYER_LIMIT}
-            control={form.control}
-            label="Per-buyer limit"
-            labelHint={`1 to ${DROP_MAX_PER_BUYER_LIMIT} units per buyer, never more than the total`}
-            placeholder="1"
-            disabled={isPublishing}
-          />
-        </div>
-        <Typography as="p" className="text-sm text-muted-foreground">
-          The service enforces both caps under concurrency. Per-buyer limits bound enthusiasm, not sybils — creating
-          pubkys is free, and this UI will not claim otherwise.
-        </Typography>
+        <SettingsSectionContent>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <ControlledInputField
+              name={DROP_STUDIO_FIELDS.TOTAL_QUANTITY}
+              control={form.control}
+              label="Total quantity"
+              labelHint={`1 to ${DROP_MAX_TOTAL_QUANTITY.toLocaleString('en-US')} units across the whole drop`}
+              placeholder="How many units in total"
+              disabled={isPublishing}
+            />
+            <ControlledInputField
+              name={DROP_STUDIO_FIELDS.PER_BUYER_LIMIT}
+              control={form.control}
+              label="Per-buyer limit"
+              labelHint={`1 to ${DROP_MAX_PER_BUYER_LIMIT} units per buyer, never more than the total`}
+              placeholder="1"
+              disabled={isPublishing}
+            />
+          </div>
+          <Typography as="p" className="text-sm text-muted-foreground">
+            The service enforces both caps under concurrency. Per-buyer limits bound enthusiasm, not sybils — creating
+            pubkys is free, and this UI will not claim otherwise.
+          </Typography>
+        </SettingsSectionContent>
       </section>
 
-      <section className="flex flex-col gap-3">
+      <section className="grid min-w-0 gap-6 rounded-md bg-card p-6 shadow-lg">
         <Typography as="h2" className="text-xl font-semibold">
           Stock display
         </Typography>
-        <Controller
-          name={DROP_STUDIO_FIELDS.STOCK_DISPLAY}
-          control={form.control}
-          render={({ field }) => (
-            <RadioGroup value={field.value} onValueChange={field.onChange} disabled={isPublishing}>
-              <RadioGroupItem
-                value="exact"
-                variant="box"
-                label="Exact"
-                description="Buyers see the exact remaining count, straight from the service."
-              />
-              <RadioGroupItem
-                value="bands"
-                variant="box"
-                label="Bands"
-                description="Buyers see coarse, truthful bands — plenty / low / last few."
-              />
-              <RadioGroupItem
-                value="hidden"
-                variant="box"
-                label="Hidden"
-                description="Buyers see no stock level at all."
-              />
-            </RadioGroup>
-          )}
-        />
-        <Typography as="p" className="text-sm text-muted-foreground">
-          Whichever you pick, stock is never invented: the redaction happens server-side, exact numbers stay
-          seller-only, and &ldquo;sold out&rdquo; only ever comes from the service.
-        </Typography>
+        <SettingsSectionContent>
+          <Controller
+            name={DROP_STUDIO_FIELDS.STOCK_DISPLAY}
+            control={form.control}
+            render={({ field }) => (
+              <RadioGroup value={field.value} onValueChange={field.onChange} disabled={isPublishing}>
+                <RadioGroupItem
+                  value="exact"
+                  variant="box"
+                  label="Exact"
+                  description="Buyers see the exact remaining count, straight from the service."
+                />
+                <RadioGroupItem
+                  value="bands"
+                  variant="box"
+                  label="Bands"
+                  description="Buyers see coarse, truthful bands — plenty / low / last few."
+                />
+                <RadioGroupItem
+                  value="hidden"
+                  variant="box"
+                  label="Hidden"
+                  description="Buyers see no stock level at all."
+                />
+              </RadioGroup>
+            )}
+          />
+          <Typography as="p" className="text-sm text-muted-foreground">
+            Whichever you pick, stock is never invented: the redaction happens server-side, exact numbers stay
+            seller-only, and &ldquo;sold out&rdquo; only ever comes from the service.
+          </Typography>
+        </SettingsSectionContent>
       </section>
 
-      <section className="flex flex-col gap-2">
+      <section className="grid min-w-0 gap-6 rounded-md bg-card p-6 shadow-lg">
         <Typography as="h2" className="text-xl font-semibold">
           Format
         </Typography>
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary">FCFS</Badge>
+        <SettingsSectionContent>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary">FCFS</Badge>
+            <Typography as="p" className="text-sm text-muted-foreground">
+              FCFS is a race — the service answers instantly, first come first served.
+            </Typography>
+          </div>
           <Typography as="p" className="text-sm text-muted-foreground">
-            FCFS is a race — the service answers instantly, first come first served.
+            The drop&apos;s terms are locked at launch. Listings release only after the drop ends.
           </Typography>
-        </div>
-        <Typography as="p" className="text-sm text-muted-foreground">
-          The drop&apos;s terms are locked at launch. Listings release only after the drop ends.
-        </Typography>
+        </SettingsSectionContent>
       </section>
 
-      <section className="flex flex-col gap-3">
+      <section className="grid min-w-0 gap-6 rounded-md bg-card p-6 shadow-lg">
         <Typography as="h2" className="text-xl font-semibold">
           Preview as shopper
         </Typography>
-        <DropStudioPreviewCard
-          title={title}
-          description={description}
-          mediaUri={previewMediaUri}
-          startsAtIso={toPreviewIso(startsAtLocal)}
-          endsAtIso={
-            endsAtLocal !== '' && !Number.isNaN(Date.parse(endsAtLocal)) ? new Date(endsAtLocal).toISOString() : null
-          }
-          listingCount={selectedListingIds.length}
-        />
+        <SettingsSectionContent>
+          <DropStudioPreviewCard
+            title={title}
+            description={description}
+            mediaUri={previewMediaUri}
+            startsAtIso={toPreviewIso(startsAtLocal)}
+            endsAtIso={
+              endsAtLocal !== '' && !Number.isNaN(Date.parse(endsAtLocal)) ? new Date(endsAtLocal).toISOString() : null
+            }
+            listingCount={selectedListingIds.length}
+          />
+        </SettingsSectionContent>
       </section>
 
       <section className="flex flex-col gap-3">
         {studio.publishErrors.length > 0 && (
-          <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 p-4">
+          <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/5 p-4">
             <Typography as="p" className="text-sm font-semibold text-destructive">
               The drop record is not valid yet:
             </Typography>
@@ -335,7 +354,7 @@ export function DropStudioComposer({ studio }: DropStudioComposerProps) {
           </Typography>
         )}
         {publishIssues.length > 0 && (
-          <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3" role="alert">
+          <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3" role="alert">
             <RequiredToPublishSummary
               items={publishIssues.map(({ field, label, message }) => ({
                 id: field,
@@ -406,7 +425,7 @@ function DropStudioPublishTruths({ studio }: { studio: UseDropStudioResult }) {
   if (publishStatus.record === 'idle' || publishStatus.record === 'publishing') return null;
   const statusLabel = publishStatus.record === 'ok' && publishStatus.sync === 'ok' ? 'Scheduled' : 'Draft';
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-border p-4" role="status">
+    <div className="flex flex-col gap-2 rounded-md p-4" role="status">
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant={statusLabel === 'Scheduled' ? 'secondary' : 'outline'}>{statusLabel}</Badge>
         <Typography as="p" className="text-sm text-muted-foreground">
@@ -415,7 +434,7 @@ function DropStudioPublishTruths({ studio }: { studio: UseDropStudioResult }) {
             : 'The drop is not registered with the service yet.'}
         </Typography>
       </div>
-      <details className="rounded-md border border-border/70 p-3">
+      <details className="rounded-md p-3">
         <summary className="cursor-pointer text-sm font-medium">Technical details</summary>
         <div className="mt-3 flex flex-col gap-2">
           <DropStudioTruthRow
@@ -435,7 +454,7 @@ function DropStudioPublishTruths({ studio }: { studio: UseDropStudioResult }) {
                 className="rounded-full"
                 onClick={() => void studio.retrySync()}
               >
-                <RefreshCw className="mr-1.5 size-3.5" />
+                <RefreshCw className="size-3.5" />
                 Retry registration
               </Button>
             )}
@@ -531,6 +550,7 @@ function DropStudioScheduleField({
         render={({ field }) => (
           <div className="flex items-center gap-2">
             <Input
+              theme="dashed"
               id={`drop-${name}`}
               type="datetime-local"
               value={field.value}

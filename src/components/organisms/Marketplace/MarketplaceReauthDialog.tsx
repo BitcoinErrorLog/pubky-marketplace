@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Copy, KeyRound, Loader2, RefreshCw, Smartphone } from 'lucide-react';
+import { Copy, KeyRound, Loader2, type LucideIcon, RefreshCw, Smartphone } from 'lucide-react';
 import { Button } from '@/atoms/Button/Button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/atoms/Dialog/Dialog';
 import { Typography } from '@/atoms/Typography/Typography';
@@ -24,6 +24,9 @@ export type MarketplaceReauthRefusal = 'homeserver' | 'purchase_session';
 
 type MarketplaceReauthDialogProps = {
   triggerLabel: string;
+  triggerVariant?: 'default' | 'secondary' | 'outline';
+  triggerIcon?: LucideIcon;
+  intent?: 'sync' | 'messages';
   refusal: MarketplaceReauthRefusal;
   onReauthenticated?: () => void | Promise<void>;
 };
@@ -43,12 +46,35 @@ type MarketplaceReauthDialogProps = {
  * (`AuthController.getStepUpAuthUrl` refuses it) and always holds the full
  * grant, so it gets the marketplace session approval there too.
  */
-export function MarketplaceReauthDialog({ triggerLabel, refusal, onReauthenticated }: MarketplaceReauthDialogProps) {
+export function MarketplaceReauthDialog({
+  triggerLabel,
+  triggerVariant,
+  triggerIcon,
+  intent,
+  refusal,
+  onReauthenticated,
+}: MarketplaceReauthDialogProps) {
   const isGrantSession = useIsGrantSession();
   if (refusal === 'purchase_session' || isGrantSession) {
-    return <MarketplaceSessionConnectDialog triggerLabel={triggerLabel} onConnected={onReauthenticated} />;
+    return (
+      <MarketplaceSessionConnectDialog
+        triggerLabel={triggerLabel}
+        triggerVariant={triggerVariant}
+        triggerIcon={triggerIcon}
+        intent={intent}
+        onConnected={onReauthenticated}
+      />
+    );
   }
-  return <HomeserverStepUpDialog triggerLabel={triggerLabel} onReauthenticated={onReauthenticated} />;
+  return (
+    <HomeserverStepUpDialog
+      triggerLabel={triggerLabel}
+      triggerVariant={triggerVariant}
+      triggerIcon={triggerIcon}
+      intent={intent}
+      onReauthenticated={onReauthenticated}
+    />
+  );
 }
 
 /**
@@ -62,7 +88,13 @@ export function MarketplaceReauthDialog({ triggerLabel, refusal, onReauthenticat
  * (superset-grant) one, which is what makes watchlist sync, receipts, and
  * messaging cookie-resume capable without a reload.
  */
-function HomeserverStepUpDialog({ triggerLabel, onReauthenticated }: Omit<MarketplaceReauthDialogProps, 'refusal'>) {
+function HomeserverStepUpDialog({
+  triggerLabel,
+  triggerVariant = 'secondary',
+  triggerIcon: TriggerIcon = KeyRound,
+  intent,
+  onReauthenticated,
+}: Omit<MarketplaceReauthDialogProps, 'refusal'>) {
   const [open, setOpen] = useState(false);
   const reauth = useStepUpReauth({
     onReauthenticated: async () => {
@@ -101,27 +133,33 @@ function HomeserverStepUpDialog({ triggerLabel, onReauthenticated }: Omit<Market
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="secondary" size="sm" className="rounded-full">
-          <KeyRound className="mr-2 size-4" />
+        <Button variant={triggerVariant} size="sm" className="rounded-full">
+          <TriggerIcon className="size-4" aria-hidden="true" />
           {triggerLabel}
         </Button>
       </DialogTrigger>
       <DialogContent className="border-border bg-popover">
         <DialogHeader>
-          <DialogTitle>Sign in again</DialogTitle>
+          <DialogTitle>
+            {intent === 'sync' ? 'Enable device sync' : intent === 'messages' ? 'Enable messages' : 'Sign in again'}
+          </DialogTitle>
         </DialogHeader>
 
         <Typography as="p" className="text-sm text-muted-foreground">
-          Sign in again for this device.
+          {intent === 'sync'
+            ? 'Authorize with your keychain to sync your watchlist across devices and enable selling and buying.'
+            : intent === 'messages'
+              ? 'Authorize with your keychain to access your messaging preferences and marketplace data.'
+              : 'Sign in again for this device.'}
         </Typography>
 
         {reauth.status === 'error' ? (
           <div className="grid gap-3">
-            <div role="alert" className="rounded-xl border border-destructive/40 p-4 text-sm">
+            <div role="alert" className="rounded-md border border-destructive/40 p-4 text-sm">
               {reauth.errorMessage}
             </div>
             <Button className="w-fit rounded-full" onClick={reauth.start}>
-              <RefreshCw className="mr-2 size-4" />
+              <RefreshCw className="size-4" />
               Try again
             </Button>
           </div>
@@ -161,11 +199,7 @@ function HomeserverStepUpDialog({ triggerLabel, onReauthenticated }: Omit<Market
                 disabled={!reauth.authorizationUrl || reauth.isOpeningRing}
                 aria-busy={reauth.isOpeningRing}
               >
-                {reauth.isOpeningRing ? (
-                  <Loader2 className="mr-2 size-4 animate-spin" />
-                ) : (
-                  <Smartphone className="mr-2 size-4" />
-                )}
+                {reauth.isOpeningRing ? <Loader2 className="size-4 animate-spin" /> : <Smartphone className="size-4" />}
                 {reauth.isOpeningRing ? 'Opening Pubky Ring...' : 'Open in Pubky Ring'}
               </Button>
               <Button
@@ -174,7 +208,7 @@ function HomeserverStepUpDialog({ triggerLabel, onReauthenticated }: Omit<Market
                 onClick={() => void copyUrl()}
                 disabled={!reauth.authorizationUrl}
               >
-                <Copy className="mr-2 size-4" />
+                <Copy className="size-4" />
                 Copy link
               </Button>
             </div>

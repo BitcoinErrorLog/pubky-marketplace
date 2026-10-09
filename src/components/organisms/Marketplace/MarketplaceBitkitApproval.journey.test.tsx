@@ -114,13 +114,13 @@ describe('#49 Bitkit approval journeys (real hooks)', () => {
     const user = userEvent.setup();
 
     render(<MarketplaceSessionRequiredCard />);
-    expect(screen.getByRole('heading', { name: 'Approve purchases in Bitkit' })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Approve in Bitkit' }));
+    expect(screen.getByRole('heading', { name: 'Enable purchases' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Authorize' }));
 
     await waitFor(() => expect(beginMarketplaceBootstrapFlow).toHaveBeenCalledWith({ pubky: PUBKY }));
-    expect(await screen.findByRole('button', { name: 'Open in Bitkit' })).toBeEnabled();
+    expect(await screen.findByRole('button', { name: 'Authorize with Bitkit' })).toBeEnabled();
     expect(screen.getByTestId('session-approval-disclosure')).toHaveTextContent(MARKETPLACE_DISCLOSURE_PRIVATE_DATA);
-    expect(screen.queryByRole('button', { name: /open in pubky ring/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /authorize with pubky ring/i })).not.toBeInTheDocument();
 
     bootstrap.resolve({
       status: 'connected',
@@ -155,7 +155,7 @@ describe('#49 Bitkit approval journeys (real hooks)', () => {
     await user.click(screen.getByRole('button', { name: 'Sign in again' }));
 
     await waitFor(() => expect(beginMarketplaceGrantFlow).toHaveBeenCalledTimes(1));
-    expect(await screen.findByRole('button', { name: 'Open in signer' })).toBeEnabled();
+    expect(await screen.findByRole('button', { name: 'Authorize with Bitkit' })).toBeEnabled();
     expect(screen.getByTestId('session-approval-disclosure')).toHaveTextContent(MARKETPLACE_DISCLOSURE_PRIVATE_DATA);
     expect(ringStepUp.start).not.toHaveBeenCalled();
 

@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { Container } from '@/atoms/Container/Container';
 import { Input } from '@/atoms/Input/Input';
 import { Typography } from '@/atoms/Typography/Typography';
+import { FORM_FIELD_SURFACE_CLASSES } from '@/config/forms';
 import { cn } from '@/libs/utils/utils';
 
 interface InputFieldProps {
@@ -80,7 +81,7 @@ export function InputField({
   'aria-haspopup': ariaHasPopup,
 }: InputFieldProps) {
   const resolvedLoadingText = loadingText ?? 'Loading...';
-  const containerClasses = variant === 'dashed' && 'border-dashed';
+  const containerClasses = variant === 'dashed' && FORM_FIELD_SURFACE_CLASSES;
   const statusClasses = {
     default: '',
     success: 'border-brand text-brand',
@@ -102,7 +103,7 @@ export function InputField({
     <>
       <Container
         className={cn(
-          '!bg-alpha-90/10 mx-0 mb-2 w-full cursor-pointer flex-row items-center gap-0 rounded-md border bg-transparent',
+          'mx-0 mb-2 w-full cursor-pointer flex-row items-center gap-0 rounded-md border !bg-background',
           icon && iconPosition === 'left' ? 'pl-4.5' : 'pl-2',
           containerClasses,
           statusClasses[status],

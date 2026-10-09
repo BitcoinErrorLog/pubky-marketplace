@@ -65,6 +65,12 @@ vi.mock('@/organisms/Marketplace/MarketplaceSessionConnectDialog', () => ({
     ),
 }));
 
+// Entry approval is covered by MarketplaceSell.approval.test.tsx; these tests
+// exercise the already-open composer, including publish-time expiry.
+vi.mock('@/hooks/useMarketplaceSellingAccess/useMarketplaceSellingAccess', () => ({
+  useMarketplaceSellingAccess: () => ({ allowed: true, ready: true, pubky: 'seller', checkAccess: () => true }),
+}));
+
 vi.mock('@/hooks/useMarketplaceCartCount/useMarketplaceCartCount', () => ({
   useMarketplaceCartCount: () => 0,
 }));
@@ -323,7 +329,7 @@ describe('MarketplaceSell payment-method entrance', () => {
     createListing.publishBlocked = 'session';
     render(<MarketplaceSell />);
 
-    const connectButtons = screen.getAllByRole('button', { name: 'Connect marketplace session' });
+    const connectButtons = screen.getAllByRole('button', { name: 'Enable selling' });
     expect(connectButtons.length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByRole('heading', { name: 'Approve purchases in Pubky Ring' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Approve in Pubky Ring' })).not.toBeInTheDocument();

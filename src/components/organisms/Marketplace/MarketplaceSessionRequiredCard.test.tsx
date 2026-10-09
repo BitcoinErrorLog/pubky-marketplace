@@ -35,8 +35,8 @@ describe('MarketplaceSessionRequiredCard', () => {
   it('names Pubky Ring for a Ring sign-in', () => {
     render(<MarketplaceSessionRequiredCard />);
 
-    expect(screen.getByRole('heading', { name: 'Approve purchases in Pubky Ring' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Approve in Pubky Ring' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Enable purchases' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Authorize' })).toBeInTheDocument();
   });
 
   it('names Bitkit for a Bitkit sign-in that can bootstrap', () => {
@@ -44,8 +44,8 @@ describe('MarketplaceSessionRequiredCard', () => {
     view.grantEnabled = true;
     render(<MarketplaceSessionRequiredCard />);
 
-    expect(screen.getByRole('heading', { name: 'Approve purchases in Bitkit' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Approve in Bitkit' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Enable purchases' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Authorize' })).toBeInTheDocument();
   });
 
   it('names Pubky Passport for a Passport sign-in that can bootstrap', () => {
@@ -54,8 +54,8 @@ describe('MarketplaceSessionRequiredCard', () => {
     view.grantEnabled = true;
     render(<MarketplaceSessionRequiredCard />);
 
-    expect(screen.getByRole('heading', { name: 'Approve purchases in Pubky Passport' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Approve in Pubky Passport' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Enable purchases' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Authorize' })).toBeInTheDocument();
   });
 
   it('keeps Pubky Ring copy for a Passport sign-in while Passport is switched off', () => {
@@ -65,7 +65,7 @@ describe('MarketplaceSessionRequiredCard', () => {
     view.passportEnabled = false;
     render(<MarketplaceSessionRequiredCard />);
 
-    expect(screen.getByRole('heading', { name: 'Approve purchases in Pubky Ring' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Enable purchases' })).toBeInTheDocument();
     expect(screen.queryByText(/Pubky Passport/)).not.toBeInTheDocument();
   });
 
@@ -79,6 +79,6 @@ describe('MarketplaceSessionRequiredCard', () => {
     view.isGrantSession = true;
     render(<MarketplaceSessionRequiredCard />);
 
-    expect(screen.getByRole('heading', { name: 'Approve purchases in Pubky Ring' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Enable purchases' })).toBeInTheDocument();
   });
 });

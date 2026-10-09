@@ -148,6 +148,7 @@ vi.mock('@/libs/runtime-config/runtime-config', async (importOriginal) => {
 });
 vi.mock('@/controllers/commerce/commerce', () => ({
   CommerceController: {
+    getShop: vi.fn(async () => null),
     getSellerPaymentConfig: vi.fn(async () => ({
       bitcoinAvailable: true,
       bitcoinOfferAvailable: true,
@@ -180,7 +181,7 @@ describe('Marketplace award checkout — visual regression', () => {
         }
       });
     }
-    const surface = expectVrtSurface('marketplace-checkout');
+    const surface = await expectVrtSurface('marketplace-checkout');
     await expect(surface).toMatchScreenshot(scene);
   }
 
@@ -209,7 +210,7 @@ describe('Marketplace award checkout — visual regression', () => {
         throw new Error('Award expired copy has not rendered yet.');
       }
     });
-    const surface = expectVrtSurface('marketplace-checkout');
+    const surface = await expectVrtSurface('marketplace-checkout');
     await expect(surface).toMatchScreenshot('award-checkout-expired-desktop');
   });
 
@@ -230,7 +231,7 @@ describe('Marketplace award checkout — visual regression', () => {
         throw new Error('Award checkout success has not rendered yet.');
       }
     });
-    const surface = expectVrtSurface('marketplace-checkout');
+    const surface = await expectVrtSurface('marketplace-checkout');
     await expect(surface).toMatchScreenshot('award-checkout-success-desktop');
   });
 });

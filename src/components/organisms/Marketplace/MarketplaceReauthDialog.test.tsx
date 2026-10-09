@@ -137,13 +137,14 @@ describe('MarketplaceReauthDialog', () => {
     expect(reauth.start).not.toHaveBeenCalled();
     expect(connect.start).toHaveBeenCalledOnce();
     expect(screen.queryByTestId('grant-session-refusal')).not.toBeInTheDocument();
+    expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
     expect(
       screen.getByText(
-        'Approve with Bitkit or Pubky Ring to reconnect the marketplace session for the identity already signed in to Shop. Nothing is charged until you pay.',
+        'Approve with Bitkit to reconnect the marketplace session for the identity already signed in to Shop. Nothing is charged until you pay.',
       ),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Open in signer' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /open in pubky ring/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Authorize with Bitkit' })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: /authorize with pubky ring/i })).not.toBeInTheDocument();
   });
 
   it('offers Bitkit to a Bitkit sign-in that has no marketplace session yet', async () => {
@@ -154,7 +155,7 @@ describe('MarketplaceReauthDialog', () => {
     await userEvent.setup().click(screen.getByRole('button', { name: 'Sign in again' }));
 
     expect(reauth.start).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: 'Open in Bitkit' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Authorize with Bitkit' })).toBeEnabled();
     expect(screen.getByTestId('session-approval-disclosure')).toHaveTextContent(MARKETPLACE_DISCLOSURE_PRIVATE_DATA);
   });
 
@@ -171,6 +172,7 @@ describe('MarketplaceReauthDialog', () => {
 
       expect(reauth.start).not.toHaveBeenCalled();
       expect(connect.start).toHaveBeenCalledOnce();
+      expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
       expect(screen.getByTestId('session-approval-disclosure')).toHaveTextContent(MARKETPLACE_DISCLOSURE_PRIVATE_DATA);
     },
   );

@@ -4,7 +4,7 @@ import { SignInNavigation } from '@/organisms/SignInNavigation/SignInNavigation'
 
 export function SignInPage() {
   return (
-    <Container size="container" className="px-6">
+    <Container size="container" className="max-w-screen-xl px-6 lg:px-10">
       <SignInContent />
       <SignInFooter />
       <SignInNavigation />

@@ -24,3 +24,6 @@ export const VALIDATION_MESSAGES = {
  * Shared label classes for controlled form fields
  */
 export const FORM_LABEL_CLASSES = 'text-xs font-medium tracking-wide text-muted-foreground uppercase';
+
+/** Standard Pubky form field surface used by profile and marketplace forms. */
+export const FORM_FIELD_SURFACE_CLASSES = '!bg-background rounded-md border border-dashed border-border font-medium';

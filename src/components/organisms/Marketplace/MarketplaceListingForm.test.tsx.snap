@@ -2,170 +2,262 @@
 
 exports[`MarketplaceListingForm - Snapshots > matches the physical listing form snapshot 1`] = `
 <form
-  class="grid gap-6 lg:grid-cols-[11rem_minmax(0,1fr)_9rem]"
+  class="grid gap-6 lg:grid-cols-[var(--filter-bar-width)_minmax(0,1fr)]"
 >
-  <nav
-    aria-label="Listing sections"
-    class="sticky top-(--header-offset-main) z-10 hidden h-fit flex-col gap-2 self-start rounded-xl bg-background/95 py-1 backdrop-blur lg:flex"
-    data-testid="listing-section-rail"
+  <aside
+    class="sticky top-(--header-offset-main) z-10 hidden h-fit flex-col gap-6 self-start rounded-xl bg-background/95 py-1 backdrop-blur lg:flex"
   >
-    <a
-      aria-current="step"
-      class="flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition-colors border-brand bg-brand/10 text-brand "
-      href="#listing-section-photos"
+    <nav
+      aria-label="Listing sections"
+      class="flex flex-col gap-2"
+      data-testid="listing-section-rail"
     >
-      <svg
-        aria-hidden="true"
-        class="lucide lucide-circle size-4 shrink-0"
-        fill="none"
-        height="24"
-        stroke="currentColor"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        viewBox="0 0 24 24"
-        width="24"
-        xmlns="http://www.w3.org/2000/svg"
+      <button
+        aria-current="step"
+        aria-pressed="true"
+        class="flex cursor-pointer gap-2 text-base font-medium transition-colors border-0 bg-transparent p-0 text-left items-center justify-normal text-foreground m-0 h-full px-0 py-1"
+        data-selected="true"
+        data-slot="filter-item"
+        data-testid="filter-item"
+        type="button"
       >
-        <circle
-          cx="12"
-          cy="12"
-          r="10"
-        />
-      </svg>
-      Photos
-      <span
-        class="sr-only"
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-images h-5 w-5 shrink-0"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="m22 11-1.296-1.296a2.4 2.4 0 0 0-3.408 0L11 16"
+          />
+          <path
+            d="M4 8a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2"
+          />
+          <circle
+            cx="13"
+            cy="7"
+            fill="currentColor"
+            r="1"
+          />
+          <rect
+            height="14"
+            rx="2"
+            width="14"
+            x="8"
+            y="2"
+          />
+        </svg>
+        <span
+          class=""
+        >
+          Photos
+        </span>
+        <span
+          class="sr-only"
+        >
+           incomplete
+        </span>
+      </button>
+      <button
+        aria-pressed="false"
+        class="flex cursor-pointer gap-2 text-base font-medium transition-colors border-0 bg-transparent p-0 text-left items-center justify-normal text-muted-foreground hover:text-foreground/80 m-0 h-full px-0 py-1"
+        data-selected="false"
+        data-slot="filter-item"
+        data-testid="filter-item"
+        type="button"
       >
-         incomplete
-      </span>
-    </a>
-    <a
-      class="flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition-colors border-border text-muted-foreground hover:text-foreground "
-      href="#listing-section-item"
-    >
-      <svg
-        aria-hidden="true"
-        class="lucide lucide-circle size-4 shrink-0"
-        fill="none"
-        height="24"
-        stroke="currentColor"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        viewBox="0 0 24 24"
-        width="24"
-        xmlns="http://www.w3.org/2000/svg"
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-package h-5 w-5 shrink-0"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"
+          />
+          <path
+            d="M12 22V12"
+          />
+          <polyline
+            points="3.29 7 12 12 20.71 7"
+          />
+          <path
+            d="m7.5 4.27 9 5.15"
+          />
+        </svg>
+        <span
+          class=""
+        >
+          Item
+        </span>
+        <span
+          class="sr-only"
+        >
+           incomplete
+        </span>
+      </button>
+      <button
+        aria-pressed="false"
+        class="flex cursor-pointer gap-2 text-base font-medium transition-colors border-0 bg-transparent p-0 text-left items-center justify-normal text-muted-foreground hover:text-foreground/80 m-0 h-full px-0 py-1"
+        data-selected="false"
+        data-slot="filter-item"
+        data-testid="filter-item"
+        type="button"
       >
-        <circle
-          cx="12"
-          cy="12"
-          r="10"
-        />
-      </svg>
-      Item
-      <span
-        class="sr-only"
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-tag h-5 w-5 shrink-0"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"
+          />
+          <circle
+            cx="7.5"
+            cy="7.5"
+            fill="currentColor"
+            r=".5"
+          />
+        </svg>
+        <span
+          class=""
+        >
+          Price & format
+        </span>
+        <span
+          class="sr-only"
+        >
+           incomplete
+        </span>
+      </button>
+      <button
+        aria-pressed="false"
+        class="flex cursor-pointer gap-2 text-base font-medium transition-colors border-0 bg-transparent p-0 text-left items-center justify-normal text-muted-foreground hover:text-foreground/80 m-0 h-full px-0 py-1"
+        data-selected="false"
+        data-slot="filter-item"
+        data-testid="filter-item"
+        type="button"
       >
-         incomplete
-      </span>
-    </a>
-    <a
-      class="flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition-colors border-border text-muted-foreground hover:text-foreground "
-      href="#listing-section-price"
-    >
-      <svg
-        aria-hidden="true"
-        class="lucide lucide-circle size-4 shrink-0"
-        fill="none"
-        height="24"
-        stroke="currentColor"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        viewBox="0 0 24 24"
-        width="24"
-        xmlns="http://www.w3.org/2000/svg"
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-truck h-5 w-5 shrink-0"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"
+          />
+          <path
+            d="M15 18H9"
+          />
+          <path
+            d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"
+          />
+          <circle
+            cx="17"
+            cy="18"
+            r="2"
+          />
+          <circle
+            cx="7"
+            cy="18"
+            r="2"
+          />
+        </svg>
+        <span
+          class=""
+        >
+          Delivery & returns
+        </span>
+        <span
+          class="sr-only"
+        >
+           incomplete
+        </span>
+      </button>
+      <button
+        aria-pressed="false"
+        class="flex cursor-pointer gap-2 text-base font-medium transition-colors border-0 bg-transparent p-0 text-left items-center justify-normal text-muted-foreground hover:text-foreground/80 m-0 h-full px-0 py-1"
+        data-selected="false"
+        data-slot="filter-item"
+        data-testid="filter-item"
+        type="button"
       >
-        <circle
-          cx="12"
-          cy="12"
-          r="10"
-        />
-      </svg>
-      Price & format
-      <span
-        class="sr-only"
-      >
-         incomplete
-      </span>
-    </a>
-    <a
-      class="flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition-colors border-border text-muted-foreground hover:text-foreground "
-      href="#listing-section-shipping"
-    >
-      <svg
-        aria-hidden="true"
-        class="lucide lucide-circle size-4 shrink-0"
-        fill="none"
-        height="24"
-        stroke="currentColor"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        viewBox="0 0 24 24"
-        width="24"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <circle
-          cx="12"
-          cy="12"
-          r="10"
-        />
-      </svg>
-      Delivery & returns
-      <span
-        class="sr-only"
-      >
-         incomplete
-      </span>
-    </a>
-    <a
-      class="flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition-colors border-border text-muted-foreground hover:text-foreground "
-      href="#listing-section-review"
-    >
-      <svg
-        aria-hidden="true"
-        class="lucide lucide-circle size-4 shrink-0"
-        fill="none"
-        height="24"
-        stroke="currentColor"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        viewBox="0 0 24 24"
-        width="24"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <circle
-          cx="12"
-          cy="12"
-          r="10"
-        />
-      </svg>
-      Review & publish
-      <span
-        class="sr-only"
-      >
-         incomplete
-      </span>
-    </a>
-  </nav>
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-clipboard-check h-5 w-5 shrink-0"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <rect
+            height="4"
+            rx="1"
+            ry="1"
+            width="8"
+            x="8"
+            y="2"
+          />
+          <path
+            d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"
+          />
+          <path
+            d="m9 14 2 2 4-4"
+          />
+        </svg>
+        <span
+          class=""
+        >
+          Review & publish
+        </span>
+        <span
+          class="sr-only"
+        >
+           incomplete
+        </span>
+      </button>
+    </nav>
+  </aside>
   <div
     class="flex flex-col gap-6"
   >
     <div
-      class="sticky top-(--header-offset-mobile) z-10 flex flex-col gap-3 rounded-xl border bg-background/95 p-3 shadow-sm backdrop-blur lg:hidden"
+      class="sticky top-(--header-offset-mobile) z-10 flex flex-col gap-3 rounded-md border bg-background/95 p-3 shadow-sm backdrop-blur lg:hidden"
       data-testid="listing-mobile-stepper"
     >
       <div
@@ -201,7 +293,7 @@ exports[`MarketplaceListingForm - Snapshots > matches the physical listing form 
           >
             <svg
               aria-hidden="true"
-              class="lucide lucide-chevron-left mr-1 size-4"
+              class="lucide lucide-chevron-left size-4"
               fill="none"
               height="24"
               stroke="currentColor"
@@ -228,7 +320,7 @@ exports[`MarketplaceListingForm - Snapshots > matches the physical listing form 
             Next
             <svg
               aria-hidden="true"
-              class="lucide lucide-chevron-right ml-1 size-4"
+              class="lucide lucide-chevron-right size-4"
               fill="none"
               height="24"
               stroke="currentColor"
@@ -327,12 +419,12 @@ exports[`MarketplaceListingForm - Snapshots > matches the physical listing form 
       tabindex="-1"
     >
       <div
-        class="flex flex-col gap-6 rounded-xl bg-card py-6 text-card-foreground shadow-sm border"
+        class="flex flex-col gap-6 bg-card text-card-foreground rounded-md p-0 shadow-lg"
         data-slot="card"
         data-testid="card"
       >
         <div
-          class="grid gap-5 px-6"
+          class="grid gap-6 p-6"
           data-slot="card-content"
         >
           <div
@@ -360,55 +452,60 @@ exports[`MarketplaceListingForm - Snapshots > matches the physical listing form 
               Incomplete
             </div>
           </div>
-          <button
-            class="inline-flex items-center justify-center whitespace-nowrap text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*=\\"size-\\"])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/40 aria-invalid:border-destructive font-semibold cursor-pointer border shadow-xs bg-secondary text-secondary-foreground hover:bg-accent h-10 gap-1 px-4 py-2 has-[>svg]:px-4 w-fit rounded-full"
-            data-slot="button"
-            data-variant="secondary"
-            type="button"
+          <div
+            class="grid w-full min-w-0 gap-9 rounded-md border border-border bg-card p-6 shadow-lg"
+            data-slot="settings-section-content"
           >
-            <svg
-              aria-hidden="true"
-              class="lucide lucide-image-plus mr-2 size-4"
-              fill="none"
-              height="24"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              viewBox="0 0 24 24"
-              width="24"
-              xmlns="http://www.w3.org/2000/svg"
+            <button
+              class="inline-flex items-center justify-center whitespace-nowrap text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*=\\"size-\\"])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/40 aria-invalid:border-destructive font-semibold cursor-pointer border shadow-xs bg-secondary text-secondary-foreground hover:bg-accent h-10 gap-1.5 px-4 py-2 has-[>svg]:px-4 w-fit rounded-full"
+              data-slot="button"
+              data-variant="secondary"
+              type="button"
             >
-              <path
-                d="M16 5h6"
-              />
-              <path
-                d="M19 2v6"
-              />
-              <path
-                d="M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7.5"
-              />
-              <path
-                d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"
-              />
-              <circle
-                cx="9"
-                cy="9"
-                r="2"
-              />
-            </svg>
-            Add photos (
-            0
-            /
-            8
-            )
-          </button>
-          <input
-            accept="image/jpeg,image/png,image/webp"
-            hidden=""
-            multiple=""
-            type="file"
-          />
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-image-plus size-4"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M16 5h6"
+                />
+                <path
+                  d="M19 2v6"
+                />
+                <path
+                  d="M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7.5"
+                />
+                <path
+                  d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"
+                />
+                <circle
+                  cx="9"
+                  cy="9"
+                  r="2"
+                />
+              </svg>
+              Add photos (
+              0
+              /
+              8
+              )
+            </button>
+            <input
+              accept="image/jpeg,image/png,image/webp"
+              hidden=""
+              multiple=""
+              type="file"
+            />
+          </div>
         </div>
       </div>
     </section>
@@ -421,12 +518,12 @@ exports[`MarketplaceListingForm - Snapshots > matches the physical listing form 
       tabindex="-1"
     >
       <div
-        class="flex flex-col gap-6 rounded-xl bg-card py-6 text-card-foreground shadow-sm border"
+        class="flex flex-col gap-6 bg-card text-card-foreground rounded-md p-0 shadow-lg"
         data-slot="card"
         data-testid="card"
       >
         <div
-          class="grid gap-5 px-6"
+          class="grid gap-6 p-6"
           data-slot="card-content"
         >
           <div
@@ -455,182 +552,8 @@ exports[`MarketplaceListingForm - Snapshots > matches the physical listing form 
             </div>
           </div>
           <div
-            class="mx-auto w-full flex-col flex gap-2"
-            data-testid="container"
-          >
-            <label
-              class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-              data-slot="label"
-              for="title"
-            >
-              Title
-            </label>
-            <div
-              class="flex !bg-alpha-90/10 mx-0 w-full cursor-pointer flex-row items-center gap-0 rounded-md border bg-transparent pl-2 border-dashed h-14 text-lg mb-0"
-              data-testid="container"
-            >
-              <input
-                aria-invalid="false"
-                class="flex h-9 min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
-                data-testid="input"
-                id="title"
-                name="title"
-                placeholder="What are you selling?"
-                type="text"
-                value=""
-              />
-            </div>
-          </div>
-          <div
-            class="mx-auto w-full flex-col flex gap-2"
-            data-testid="container"
-          >
-            <label
-              class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-              data-slot="label"
-              for="description"
-            >
-              Description
-            </label>
-            <div
-              class="mx-auto flex w-full flex-1 cursor-pointer flex-row items-center gap-0 rounded-md border font-medium !bg-alpha-90/10 border-dashed"
-              data-testid="container"
-            >
-              <textarea
-                aria-invalid="false"
-                class="flex field-sizing-content w-full rounded-md bg-transparent text-base wrap-anywhere outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/40 transition-[color,box-shadow] min-h-6 resize-none border-none p-0 font-medium text-secondary-foreground shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 h-25 px-5 py-4"
-                data-slot="textarea"
-                id="description"
-                name="description"
-                placeholder="Condition, provenance, measurements, and anything a buyer should know"
-                rows="6"
-              />
-            </div>
-          </div>
-          <div
-            class="mx-auto w-full flex-col flex gap-2"
-            data-testid="container"
-          >
-            <label
-              class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-              data-slot="label"
-              for="marketplace-category-level-0"
-            >
-              Category
-            </label>
-            <div
-              class="flex flex-col gap-2"
-            >
-              <button
-                aria-autocomplete="none"
-                aria-controls="radix-normalized"
-                aria-expanded="false"
-                aria-invalid="false"
-                aria-label="Category"
-                class="flex cursor-pointer items-center justify-between gap-2.5 bg-transparent py-2 text-base font-bold whitespace-nowrap text-foreground transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground data-[size=default]:h-8 data-[size=sm]:h-7 data-[size=sm]:rounded-[min(var(--radius-md),10px)] *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-11 w-full rounded-md border px-3"
-                data-placeholder=""
-                data-size="default"
-                data-slot="select-trigger"
-                data-state="closed"
-                dir="ltr"
-                id="marketplace-category-level-0"
-                role="combobox"
-                type="button"
-              >
-                <span
-                  data-slot="select-value"
-                  style="pointer-events: none;"
-                >
-                  Choose a category
-                </span>
-                <svg
-                  aria-hidden="true"
-                  class="lucide lucide-chevron-down pointer-events-none size-4"
-                  fill="none"
-                  height="24"
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  viewBox="0 0 24 24"
-                  width="24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="m6 9 6 6 6-6"
-                  />
-                </svg>
-              </button>
-              <select
-                aria-hidden="true"
-                style="position: absolute; border: 0px; width: 1px; height: 1px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; word-wrap: normal;"
-                tabindex="-1"
-              >
-                <option
-                  value="fashion"
-                >
-                  Fashion
-                </option>
-                <option
-                  value="electronics"
-                >
-                  Electronics
-                </option>
-                <option
-                  value="home"
-                >
-                  Home & Garden
-                </option>
-                <option
-                  value="art"
-                >
-                  Art
-                </option>
-                <option
-                  value="collectibles"
-                >
-                  Collectibles
-                </option>
-                <option
-                  value="books-media"
-                >
-                  Books & Media
-                </option>
-                <option
-                  value="music"
-                >
-                  Music & Instruments
-                </option>
-                <option
-                  value="sports"
-                >
-                  Sports & Outdoors
-                </option>
-                <option
-                  value="beauty"
-                >
-                  Beauty
-                </option>
-                <option
-                  value="toys-games"
-                >
-                  Toys & Games
-                </option>
-                <option
-                  value="jewelry-watches"
-                >
-                  Jewelry & Watches
-                </option>
-                <option
-                  value="other"
-                >
-                  Everything else
-                </option>
-              </select>
-            </div>
-          </div>
-          <div
-            class="grid gap-5 sm:grid-cols-2"
+            class="grid w-full min-w-0 gap-9 rounded-md border border-border bg-card p-6 shadow-lg"
+            data-slot="settings-section-content"
           >
             <div
               class="mx-auto w-full flex-col flex gap-2"
@@ -639,110 +562,23 @@ exports[`MarketplaceListingForm - Snapshots > matches the physical listing form 
               <label
                 class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
                 data-slot="label"
-                for="condition"
+                for="title"
               >
-                Condition
-              </label>
-              <button
-                aria-autocomplete="none"
-                aria-controls="radix-normalized"
-                aria-expanded="false"
-                aria-invalid="false"
-                class="flex cursor-pointer items-center justify-between gap-2.5 bg-transparent py-2 text-base font-bold whitespace-nowrap text-foreground transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground data-[size=default]:h-8 data-[size=sm]:h-7 data-[size=sm]:rounded-[min(var(--radius-md),10px)] *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-11 w-full rounded-md border px-3"
-                data-size="default"
-                data-slot="select-trigger"
-                data-state="closed"
-                dir="ltr"
-                id="condition"
-                role="combobox"
-                type="button"
-              >
-                <span
-                  data-slot="select-value"
-                  style="pointer-events: none;"
-                >
-                  Good
-                </span>
-                <svg
-                  aria-hidden="true"
-                  class="lucide lucide-chevron-down pointer-events-none size-4"
-                  fill="none"
-                  height="24"
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  viewBox="0 0 24 24"
-                  width="24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="m6 9 6 6 6-6"
-                  />
-                </svg>
-              </button>
-              <select
-                aria-hidden="true"
-                style="position: absolute; border: 0px; width: 1px; height: 1px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; word-wrap: normal;"
-                tabindex="-1"
-              >
-                <option
-                  value="new"
-                >
-                  New
-                </option>
-                <option
-                  value="like_new"
-                >
-                  Like new
-                </option>
-                <option
-                  value="excellent"
-                >
-                  Excellent
-                </option>
-                <option
-                  selected=""
-                  value="good"
-                >
-                  Good
-                </option>
-                <option
-                  value="fair"
-                >
-                  Fair
-                </option>
-                <option
-                  value="for_parts"
-                >
-                  For parts
-                </option>
-              </select>
-            </div>
-            <div
-              class="mx-auto w-full flex-col flex gap-2"
-              data-testid="container"
-            >
-              <label
-                class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                data-slot="label"
-                for="countryCode"
-              >
-                Country
+                Title
               </label>
               <div
-                class="flex !bg-alpha-90/10 mx-0 w-full cursor-pointer flex-row items-center gap-0 rounded-md border bg-transparent pl-2 border-dashed h-14 text-lg mb-0"
+                class="flex mx-0 w-full cursor-pointer flex-row items-center gap-0 pl-2 !bg-background rounded-md border border-dashed border-border font-medium h-14 text-lg mb-0"
                 data-testid="container"
               >
                 <input
                   aria-invalid="false"
-                  class="flex h-9 min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
+                  class="flex h-9 min-w-0 rounded-md border border-input bg-background px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
                   data-testid="input"
-                  id="countryCode"
-                  name="countryCode"
-                  placeholder="US"
+                  id="title"
+                  name="title"
+                  placeholder="What are you selling?"
                   type="text"
-                  value="US"
+                  value=""
                 />
               </div>
             </div>
@@ -753,24 +589,290 @@ exports[`MarketplaceListingForm - Snapshots > matches the physical listing form 
               <label
                 class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
                 data-slot="label"
-                for="region"
+                for="description"
               >
-                Region (optional)
+                Description
               </label>
               <div
-                class="flex !bg-alpha-90/10 mx-0 w-full cursor-pointer flex-row items-center gap-0 rounded-md border bg-transparent pl-2 border-dashed h-14 text-lg mb-0"
+                class="mx-auto flex w-full flex-1 cursor-pointer flex-row items-center gap-0 bg-background !bg-background rounded-md border border-dashed border-border font-medium"
                 data-testid="container"
               >
-                <input
+                <textarea
                   aria-invalid="false"
-                  class="flex h-9 min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
-                  data-testid="input"
-                  id="region"
-                  name="region"
-                  placeholder="NY"
-                  type="text"
-                  value=""
+                  class="flex field-sizing-content w-full rounded-md bg-transparent text-base wrap-anywhere outline-none placeholder:text-input disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/40 transition-[color,box-shadow] min-h-6 resize-none border-none p-0 font-medium text-secondary-foreground shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 h-25 px-5 py-4"
+                  data-slot="textarea"
+                  id="description"
+                  name="description"
+                  placeholder="Condition, provenance, measurements, and anything a buyer should know"
+                  rows="6"
                 />
+              </div>
+            </div>
+            <div
+              class="mx-auto w-full flex-col flex gap-2"
+              data-testid="container"
+            >
+              <label
+                class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                data-slot="label"
+                for="marketplace-category-level-0"
+              >
+                Category
+              </label>
+              <div
+                class="flex flex-col gap-2"
+              >
+                <button
+                  aria-autocomplete="none"
+                  aria-controls="radix-normalized"
+                  aria-expanded="false"
+                  aria-invalid="false"
+                  aria-label="Category"
+                  class="select-none disabled:cursor-not-allowed aria-invalid:ring-1 data-placeholder:text-input *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg:not([class*='size-'])]:size-4 inline-flex items-center whitespace-nowrap text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*=\\"size-\\"])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/40 aria-invalid:border-destructive font-semibold cursor-pointer rounded-full border shadow-xs bg-secondary text-secondary-foreground hover:bg-accent h-10 gap-1.5 px-4 py-2 has-[>svg]:px-4 justify-between data-[size=default]:h-10 data-[size=sm]:h-8 data-[size=sm]:rounded-full w-full"
+                  data-placeholder=""
+                  data-size="default"
+                  data-slot="select-trigger"
+                  data-state="closed"
+                  dir="ltr"
+                  id="marketplace-category-level-0"
+                  role="combobox"
+                  type="button"
+                >
+                  <span
+                    data-slot="select-value"
+                    style="pointer-events: none;"
+                  >
+                    Choose a category
+                  </span>
+                  <svg
+                    aria-hidden="true"
+                    class="lucide lucide-chevron-down pointer-events-none size-4"
+                    fill="none"
+                    height="24"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="m6 9 6 6 6-6"
+                    />
+                  </svg>
+                </button>
+                <select
+                  aria-hidden="true"
+                  style="position: absolute; border: 0px; width: 1px; height: 1px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; word-wrap: normal;"
+                  tabindex="-1"
+                >
+                  <option
+                    value="fashion"
+                  >
+                    Fashion
+                  </option>
+                  <option
+                    value="electronics"
+                  >
+                    Electronics
+                  </option>
+                  <option
+                    value="home"
+                  >
+                    Home & Garden
+                  </option>
+                  <option
+                    value="art"
+                  >
+                    Art
+                  </option>
+                  <option
+                    value="collectibles"
+                  >
+                    Collectibles
+                  </option>
+                  <option
+                    value="books-media"
+                  >
+                    Books & Media
+                  </option>
+                  <option
+                    value="music"
+                  >
+                    Music & Instruments
+                  </option>
+                  <option
+                    value="sports"
+                  >
+                    Sports & Outdoors
+                  </option>
+                  <option
+                    value="beauty"
+                  >
+                    Beauty
+                  </option>
+                  <option
+                    value="toys-games"
+                  >
+                    Toys & Games
+                  </option>
+                  <option
+                    value="jewelry-watches"
+                  >
+                    Jewelry & Watches
+                  </option>
+                  <option
+                    value="other"
+                  >
+                    Everything else
+                  </option>
+                </select>
+              </div>
+            </div>
+            <div
+              class="grid gap-5 sm:grid-cols-2"
+            >
+              <div
+                class="mx-auto w-full flex-col flex gap-2"
+                data-testid="container"
+              >
+                <label
+                  class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                  data-slot="label"
+                  for="condition"
+                >
+                  Condition
+                </label>
+                <button
+                  aria-autocomplete="none"
+                  aria-controls="radix-normalized"
+                  aria-expanded="false"
+                  aria-invalid="false"
+                  class="select-none disabled:cursor-not-allowed aria-invalid:ring-1 data-placeholder:text-input *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg:not([class*='size-'])]:size-4 inline-flex items-center whitespace-nowrap text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*=\\"size-\\"])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/40 aria-invalid:border-destructive font-semibold cursor-pointer rounded-full border shadow-xs bg-secondary text-secondary-foreground hover:bg-accent h-10 gap-1.5 px-4 py-2 has-[>svg]:px-4 justify-between data-[size=default]:h-10 data-[size=sm]:h-8 data-[size=sm]:rounded-full w-full"
+                  data-size="default"
+                  data-slot="select-trigger"
+                  data-state="closed"
+                  dir="ltr"
+                  id="condition"
+                  role="combobox"
+                  type="button"
+                >
+                  <span
+                    data-slot="select-value"
+                    style="pointer-events: none;"
+                  >
+                    Good
+                  </span>
+                  <svg
+                    aria-hidden="true"
+                    class="lucide lucide-chevron-down pointer-events-none size-4"
+                    fill="none"
+                    height="24"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="m6 9 6 6 6-6"
+                    />
+                  </svg>
+                </button>
+                <select
+                  aria-hidden="true"
+                  style="position: absolute; border: 0px; width: 1px; height: 1px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; word-wrap: normal;"
+                  tabindex="-1"
+                >
+                  <option
+                    value="new"
+                  >
+                    New
+                  </option>
+                  <option
+                    value="like_new"
+                  >
+                    Like new
+                  </option>
+                  <option
+                    value="excellent"
+                  >
+                    Excellent
+                  </option>
+                  <option
+                    selected=""
+                    value="good"
+                  >
+                    Good
+                  </option>
+                  <option
+                    value="fair"
+                  >
+                    Fair
+                  </option>
+                  <option
+                    value="for_parts"
+                  >
+                    For parts
+                  </option>
+                </select>
+              </div>
+              <div
+                class="mx-auto w-full flex-col flex gap-2"
+                data-testid="container"
+              >
+                <label
+                  class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                  data-slot="label"
+                  for="countryCode"
+                >
+                  Country
+                </label>
+                <div
+                  class="flex mx-0 w-full cursor-pointer flex-row items-center gap-0 pl-2 !bg-background rounded-md border border-dashed border-border font-medium h-14 text-lg mb-0"
+                  data-testid="container"
+                >
+                  <input
+                    aria-invalid="false"
+                    class="flex h-9 min-w-0 rounded-md border border-input bg-background px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
+                    data-testid="input"
+                    id="countryCode"
+                    name="countryCode"
+                    placeholder="US"
+                    type="text"
+                    value="US"
+                  />
+                </div>
+              </div>
+              <div
+                class="mx-auto w-full flex-col flex gap-2"
+                data-testid="container"
+              >
+                <label
+                  class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                  data-slot="label"
+                  for="region"
+                >
+                  Region (optional)
+                </label>
+                <div
+                  class="flex mx-0 w-full cursor-pointer flex-row items-center gap-0 pl-2 !bg-background rounded-md border border-dashed border-border font-medium h-14 text-lg mb-0"
+                  data-testid="container"
+                >
+                  <input
+                    aria-invalid="false"
+                    class="flex h-9 min-w-0 rounded-md border border-input bg-background px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
+                    data-testid="input"
+                    id="region"
+                    name="region"
+                    placeholder="NY"
+                    type="text"
+                    value=""
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -786,12 +888,12 @@ exports[`MarketplaceListingForm - Snapshots > matches the physical listing form 
       tabindex="-1"
     >
       <div
-        class="flex flex-col gap-6 rounded-xl bg-card py-6 text-card-foreground shadow-sm border"
+        class="flex flex-col gap-6 bg-card text-card-foreground rounded-md p-0 shadow-lg"
         data-slot="card"
         data-testid="card"
       >
         <div
-          class="grid gap-5 px-6"
+          class="grid gap-6 p-6"
           data-slot="card-content"
         >
           <div
@@ -820,383 +922,388 @@ exports[`MarketplaceListingForm - Snapshots > matches the physical listing form 
             </div>
           </div>
           <div
-            class="grid gap-5 sm:grid-cols-3"
+            class="grid w-full min-w-0 gap-9 rounded-md border border-border bg-card p-6 shadow-lg"
+            data-slot="settings-section-content"
           >
             <div
-              class="mx-auto w-full flex-col flex gap-2"
-              data-testid="container"
+              class="grid gap-5 sm:grid-cols-3"
             >
-              <label
-                class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                data-slot="label"
-                for="saleFormat"
-              >
-                Sale format
-              </label>
-              <button
-                aria-autocomplete="none"
-                aria-controls="radix-normalized"
-                aria-expanded="false"
-                aria-invalid="false"
-                class="flex cursor-pointer items-center justify-between gap-2.5 bg-transparent py-2 text-base font-bold whitespace-nowrap text-foreground transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground data-[size=default]:h-8 data-[size=sm]:h-7 data-[size=sm]:rounded-[min(var(--radius-md),10px)] *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-11 w-full rounded-md border px-3"
-                data-size="default"
-                data-slot="select-trigger"
-                data-state="closed"
-                dir="ltr"
-                id="saleFormat"
-                role="combobox"
-                type="button"
-              >
-                <span
-                  data-slot="select-value"
-                  style="pointer-events: none;"
-                >
-                  Buy now
-                </span>
-                <svg
-                  aria-hidden="true"
-                  class="lucide lucide-chevron-down pointer-events-none size-4"
-                  fill="none"
-                  height="24"
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  viewBox="0 0 24 24"
-                  width="24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="m6 9 6 6 6-6"
-                  />
-                </svg>
-              </button>
-              <select
-                aria-hidden="true"
-                style="position: absolute; border: 0px; width: 1px; height: 1px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; word-wrap: normal;"
-                tabindex="-1"
-              >
-                <option
-                  selected=""
-                  value="fixed_price"
-                >
-                  Buy now
-                </option>
-                <option
-                  value="auction"
-                >
-                  7-day auction
-                </option>
-              </select>
-            </div>
-            <div
-              class="mx-auto w-full flex-col flex gap-2"
-              data-testid="container"
-            >
-              <label
-                class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                data-slot="label"
-                for="currency"
-              >
-                Pricing currency
-              </label>
-              <button
-                aria-autocomplete="none"
-                aria-controls="radix-normalized"
-                aria-expanded="false"
-                aria-invalid="false"
-                class="flex cursor-pointer items-center justify-between gap-2.5 bg-transparent py-2 text-base font-bold whitespace-nowrap text-foreground transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground data-[size=default]:h-8 data-[size=sm]:h-7 data-[size=sm]:rounded-[min(var(--radius-md),10px)] *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-11 w-full rounded-md border px-3"
-                data-size="default"
-                data-slot="select-trigger"
-                data-state="closed"
-                dir="ltr"
-                id="currency"
-                role="combobox"
-                type="button"
-              >
-                <span
-                  data-slot="select-value"
-                  style="pointer-events: none;"
-                >
-                  US dollars (USD)
-                </span>
-                <svg
-                  aria-hidden="true"
-                  class="lucide lucide-chevron-down pointer-events-none size-4"
-                  fill="none"
-                  height="24"
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  viewBox="0 0 24 24"
-                  width="24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="m6 9 6 6 6-6"
-                  />
-                </svg>
-              </button>
-              <select
-                aria-hidden="true"
-                style="position: absolute; border: 0px; width: 1px; height: 1px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; word-wrap: normal;"
-                tabindex="-1"
-              >
-                <option
-                  selected=""
-                  value="USD"
-                >
-                  US dollars (USD)
-                </option>
-                <option
-                  value="BTC"
-                >
-                  Bitcoin (₿)
-                </option>
-              </select>
-            </div>
-            <div
-              class="mx-auto w-full flex-col flex gap-2"
-              data-testid="container"
-            >
-              <label
-                class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                data-slot="label"
-                for="price"
-              >
-                Price (USD)
-              </label>
               <div
-                class="flex !bg-alpha-90/10 mx-0 w-full cursor-pointer flex-row items-center gap-0 rounded-md border bg-transparent pl-2 border-dashed h-14 text-lg mb-0"
+                class="mx-auto w-full flex-col flex gap-2"
                 data-testid="container"
               >
-                <input
+                <label
+                  class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                  data-slot="label"
+                  for="saleFormat"
+                >
+                  Sale format
+                </label>
+                <button
+                  aria-autocomplete="none"
+                  aria-controls="radix-normalized"
+                  aria-expanded="false"
                   aria-invalid="false"
-                  class="flex h-9 min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
-                  data-testid="input"
-                  id="price"
-                  name="price"
-                  placeholder="125.00"
-                  type="text"
-                  value=""
-                />
+                  class="select-none disabled:cursor-not-allowed aria-invalid:ring-1 data-placeholder:text-input *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg:not([class*='size-'])]:size-4 inline-flex items-center whitespace-nowrap text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*=\\"size-\\"])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/40 aria-invalid:border-destructive font-semibold cursor-pointer rounded-full border shadow-xs bg-secondary text-secondary-foreground hover:bg-accent h-10 gap-1.5 px-4 py-2 has-[>svg]:px-4 justify-between data-[size=default]:h-10 data-[size=sm]:h-8 data-[size=sm]:rounded-full w-full"
+                  data-size="default"
+                  data-slot="select-trigger"
+                  data-state="closed"
+                  dir="ltr"
+                  id="saleFormat"
+                  role="combobox"
+                  type="button"
+                >
+                  <span
+                    data-slot="select-value"
+                    style="pointer-events: none;"
+                  >
+                    Buy now
+                  </span>
+                  <svg
+                    aria-hidden="true"
+                    class="lucide lucide-chevron-down pointer-events-none size-4"
+                    fill="none"
+                    height="24"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="m6 9 6 6 6-6"
+                    />
+                  </svg>
+                </button>
+                <select
+                  aria-hidden="true"
+                  style="position: absolute; border: 0px; width: 1px; height: 1px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; word-wrap: normal;"
+                  tabindex="-1"
+                >
+                  <option
+                    selected=""
+                    value="fixed_price"
+                  >
+                    Buy now
+                  </option>
+                  <option
+                    value="auction"
+                  >
+                    7-day auction
+                  </option>
+                </select>
+              </div>
+              <div
+                class="mx-auto w-full flex-col flex gap-2"
+                data-testid="container"
+              >
+                <label
+                  class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                  data-slot="label"
+                  for="currency"
+                >
+                  Pricing currency
+                </label>
+                <button
+                  aria-autocomplete="none"
+                  aria-controls="radix-normalized"
+                  aria-expanded="false"
+                  aria-invalid="false"
+                  class="select-none disabled:cursor-not-allowed aria-invalid:ring-1 data-placeholder:text-input *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg:not([class*='size-'])]:size-4 inline-flex items-center whitespace-nowrap text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*=\\"size-\\"])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/40 aria-invalid:border-destructive font-semibold cursor-pointer rounded-full border shadow-xs bg-secondary text-secondary-foreground hover:bg-accent h-10 gap-1.5 px-4 py-2 has-[>svg]:px-4 justify-between data-[size=default]:h-10 data-[size=sm]:h-8 data-[size=sm]:rounded-full w-full"
+                  data-size="default"
+                  data-slot="select-trigger"
+                  data-state="closed"
+                  dir="ltr"
+                  id="currency"
+                  role="combobox"
+                  type="button"
+                >
+                  <span
+                    data-slot="select-value"
+                    style="pointer-events: none;"
+                  >
+                    US dollars (USD)
+                  </span>
+                  <svg
+                    aria-hidden="true"
+                    class="lucide lucide-chevron-down pointer-events-none size-4"
+                    fill="none"
+                    height="24"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="m6 9 6 6 6-6"
+                    />
+                  </svg>
+                </button>
+                <select
+                  aria-hidden="true"
+                  style="position: absolute; border: 0px; width: 1px; height: 1px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; word-wrap: normal;"
+                  tabindex="-1"
+                >
+                  <option
+                    selected=""
+                    value="USD"
+                  >
+                    US dollars (USD)
+                  </option>
+                  <option
+                    value="BTC"
+                  >
+                    Bitcoin (₿)
+                  </option>
+                </select>
+              </div>
+              <div
+                class="mx-auto w-full flex-col flex gap-2"
+                data-testid="container"
+              >
+                <label
+                  class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                  data-slot="label"
+                  for="price"
+                >
+                  Price (USD)
+                </label>
+                <div
+                  class="flex mx-0 w-full cursor-pointer flex-row items-center gap-0 pl-2 !bg-background rounded-md border border-dashed border-border font-medium h-14 text-lg mb-0"
+                  data-testid="container"
+                >
+                  <input
+                    aria-invalid="false"
+                    class="flex h-9 min-w-0 rounded-md border border-input bg-background px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
+                    data-testid="input"
+                    id="price"
+                    name="price"
+                    placeholder="125.00"
+                    type="text"
+                    value=""
+                  />
+                </div>
               </div>
             </div>
-          </div>
-          <div
-            class="flex items-center justify-between gap-4 border-t pt-5"
-          >
-            <div>
-              <h3
-                class="text-base text-foreground font-semibold"
-                data-testid="typography"
-              >
-                Variants and inventory
-              </h3>
-              <p
-                class="font-medium text-sm text-muted-foreground"
-                data-testid="typography"
-              >
-                Up to three option dimensions with independent SKU, price, and quantity.
-              </p>
-            </div>
-            <button
-              class="inline-flex items-center justify-center whitespace-nowrap text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*=\\"size-\\"])]:size-4 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/40 aria-invalid:border-destructive font-semibold cursor-pointer border shadow-xs bg-secondary text-secondary-foreground hover:bg-accent h-8 gap-1.5 px-3 has-[>svg]:px-3.5 shrink-0 rounded-full"
-              data-size="sm"
-              data-slot="button"
-              data-variant="secondary"
-              type="button"
-            >
-              <svg
-                aria-hidden="true"
-                class="lucide lucide-plus mr-2 size-4"
-                fill="none"
-                height="24"
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                viewBox="0 0 24 24"
-                width="24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M5 12h14"
-                />
-                <path
-                  d="M12 5v14"
-                />
-              </svg>
-              Add variant
-            </button>
-          </div>
-          <div
-            class="flex flex-col gap-4"
-          >
             <div
-              class="relative grid gap-4 rounded-xl border bg-card/60 p-4 sm:grid-cols-3"
+              class="flex items-center justify-between gap-4"
+            >
+              <div>
+                <h3
+                  class="text-base text-foreground font-semibold"
+                  data-testid="typography"
+                >
+                  Variants and inventory
+                </h3>
+                <p
+                  class="font-medium text-sm text-muted-foreground"
+                  data-testid="typography"
+                >
+                  Up to three option dimensions with independent SKU, price, and quantity.
+                </p>
+              </div>
+              <button
+                class="inline-flex items-center justify-center whitespace-nowrap text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*=\\"size-\\"])]:size-4 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/40 aria-invalid:border-destructive font-semibold cursor-pointer border shadow-xs bg-secondary text-secondary-foreground hover:bg-accent h-8 gap-1.5 px-3 has-[>svg]:px-3.5 shrink-0 rounded-full"
+                data-size="sm"
+                data-slot="button"
+                data-variant="secondary"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-plus size-4"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M5 12h14"
+                  />
+                  <path
+                    d="M12 5v14"
+                  />
+                </svg>
+                Add variant
+              </button>
+            </div>
+            <div
+              class="flex flex-col gap-4"
             >
               <div
-                class="mx-auto w-full flex-col flex gap-2"
-                data-testid="container"
+                class="relative grid gap-4 rounded-md bg-card/60 p-6 sm:grid-cols-3"
               >
-                <label
-                  class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                  data-slot="label"
-                  for="variants.0.sku"
-                >
-                  Seller SKU
-                </label>
                 <div
-                  class="flex !bg-alpha-90/10 mx-0 w-full cursor-pointer flex-row items-center gap-0 rounded-md border bg-transparent pl-2 border-dashed h-14 text-lg mb-0"
+                  class="mx-auto w-full flex-col flex gap-2"
                   data-testid="container"
                 >
-                  <input
-                    aria-invalid="false"
-                    class="flex h-9 min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
-                    data-testid="input"
-                    id="variants.0.sku"
-                    name="variants.0.sku"
-                    placeholder="BOOTS-42"
-                    type="text"
-                    value=""
-                  />
+                  <label
+                    class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                    data-slot="label"
+                    for="variants.0.sku"
+                  >
+                    Seller SKU
+                  </label>
+                  <div
+                    class="flex mx-0 w-full cursor-pointer flex-row items-center gap-0 pl-2 !bg-background rounded-md border border-dashed border-border font-medium h-14 text-lg mb-0"
+                    data-testid="container"
+                  >
+                    <input
+                      aria-invalid="false"
+                      class="flex h-9 min-w-0 rounded-md border border-input bg-background px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
+                      data-testid="input"
+                      id="variants.0.sku"
+                      name="variants.0.sku"
+                      placeholder="BOOTS-42"
+                      type="text"
+                      value=""
+                    />
+                  </div>
                 </div>
-              </div>
-              <div
-                class="mx-auto w-full flex-col flex gap-2"
-                data-testid="container"
-              >
-                <label
-                  class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                  data-slot="label"
-                  for="variants.0.size"
-                >
-                  Size
-                </label>
                 <div
-                  class="flex !bg-alpha-90/10 mx-0 w-full cursor-pointer flex-row items-center gap-0 rounded-md border bg-transparent pl-2 border-dashed h-14 text-lg mb-0"
+                  class="mx-auto w-full flex-col flex gap-2"
                   data-testid="container"
                 >
-                  <input
-                    aria-invalid="false"
-                    class="flex h-9 min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
-                    data-testid="input"
-                    id="variants.0.size"
-                    name="variants.0.size"
-                    placeholder="42"
-                    type="text"
-                    value=""
-                  />
+                  <label
+                    class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                    data-slot="label"
+                    for="variants.0.size"
+                  >
+                    Size
+                  </label>
+                  <div
+                    class="flex mx-0 w-full cursor-pointer flex-row items-center gap-0 pl-2 !bg-background rounded-md border border-dashed border-border font-medium h-14 text-lg mb-0"
+                    data-testid="container"
+                  >
+                    <input
+                      aria-invalid="false"
+                      class="flex h-9 min-w-0 rounded-md border border-input bg-background px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
+                      data-testid="input"
+                      id="variants.0.size"
+                      name="variants.0.size"
+                      placeholder="42"
+                      type="text"
+                      value=""
+                    />
+                  </div>
                 </div>
-              </div>
-              <div
-                class="mx-auto w-full flex-col flex gap-2"
-                data-testid="container"
-              >
-                <label
-                  class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                  data-slot="label"
-                  for="variants.0.color"
-                >
-                  Color
-                </label>
                 <div
-                  class="flex !bg-alpha-90/10 mx-0 w-full cursor-pointer flex-row items-center gap-0 rounded-md border bg-transparent pl-2 border-dashed h-14 text-lg mb-0"
+                  class="mx-auto w-full flex-col flex gap-2"
                   data-testid="container"
                 >
-                  <input
-                    aria-invalid="false"
-                    class="flex h-9 min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
-                    data-testid="input"
-                    id="variants.0.color"
-                    name="variants.0.color"
-                    placeholder="Brown"
-                    type="text"
-                    value=""
-                  />
+                  <label
+                    class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                    data-slot="label"
+                    for="variants.0.color"
+                  >
+                    Color
+                  </label>
+                  <div
+                    class="flex mx-0 w-full cursor-pointer flex-row items-center gap-0 pl-2 !bg-background rounded-md border border-dashed border-border font-medium h-14 text-lg mb-0"
+                    data-testid="container"
+                  >
+                    <input
+                      aria-invalid="false"
+                      class="flex h-9 min-w-0 rounded-md border border-input bg-background px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
+                      data-testid="input"
+                      id="variants.0.color"
+                      name="variants.0.color"
+                      placeholder="Brown"
+                      type="text"
+                      value=""
+                    />
+                  </div>
                 </div>
-              </div>
-              <div
-                class="mx-auto w-full flex-col flex gap-2"
-                data-testid="container"
-              >
-                <label
-                  class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                  data-slot="label"
-                  for="variants.0.style"
-                >
-                  Style
-                </label>
                 <div
-                  class="flex !bg-alpha-90/10 mx-0 w-full cursor-pointer flex-row items-center gap-0 rounded-md border bg-transparent pl-2 border-dashed h-14 text-lg mb-0"
+                  class="mx-auto w-full flex-col flex gap-2"
                   data-testid="container"
                 >
-                  <input
-                    aria-invalid="false"
-                    class="flex h-9 min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
-                    data-testid="input"
-                    id="variants.0.style"
-                    name="variants.0.style"
-                    placeholder="Classic"
-                    type="text"
-                    value=""
-                  />
+                  <label
+                    class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                    data-slot="label"
+                    for="variants.0.style"
+                  >
+                    Style
+                  </label>
+                  <div
+                    class="flex mx-0 w-full cursor-pointer flex-row items-center gap-0 pl-2 !bg-background rounded-md border border-dashed border-border font-medium h-14 text-lg mb-0"
+                    data-testid="container"
+                  >
+                    <input
+                      aria-invalid="false"
+                      class="flex h-9 min-w-0 rounded-md border border-input bg-background px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
+                      data-testid="input"
+                      id="variants.0.style"
+                      name="variants.0.style"
+                      placeholder="Classic"
+                      type="text"
+                      value=""
+                    />
+                  </div>
                 </div>
-              </div>
-              <div
-                class="mx-auto w-full flex-col flex gap-2"
-                data-testid="container"
-              >
-                <label
-                  class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                  data-slot="label"
-                  for="variants.0.quantity"
-                >
-                  Quantity
-                </label>
                 <div
-                  class="flex !bg-alpha-90/10 mx-0 w-full cursor-pointer flex-row items-center gap-0 rounded-md border bg-transparent pl-2 border-dashed h-14 text-lg mb-0"
+                  class="mx-auto w-full flex-col flex gap-2"
                   data-testid="container"
                 >
-                  <input
-                    aria-invalid="false"
-                    class="flex h-9 min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
-                    data-testid="input"
-                    id="variants.0.quantity"
-                    name="variants.0.quantity"
-                    placeholder="1"
-                    type="text"
-                    value="1"
-                  />
+                  <label
+                    class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                    data-slot="label"
+                    for="variants.0.quantity"
+                  >
+                    Quantity
+                  </label>
+                  <div
+                    class="flex mx-0 w-full cursor-pointer flex-row items-center gap-0 pl-2 !bg-background rounded-md border border-dashed border-border font-medium h-14 text-lg mb-0"
+                    data-testid="container"
+                  >
+                    <input
+                      aria-invalid="false"
+                      class="flex h-9 min-w-0 rounded-md border border-input bg-background px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
+                      data-testid="input"
+                      id="variants.0.quantity"
+                      name="variants.0.quantity"
+                      placeholder="1"
+                      type="text"
+                      value="1"
+                    />
+                  </div>
                 </div>
-              </div>
-              <div
-                class="mx-auto w-full flex-col flex gap-2"
-                data-testid="container"
-              >
-                <label
-                  class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                  data-slot="label"
-                  for="variants.0.priceOverride"
-                >
-                  Price override (USD)
-                </label>
                 <div
-                  class="flex !bg-alpha-90/10 mx-0 w-full cursor-pointer flex-row items-center gap-0 rounded-md border bg-transparent pl-2 border-dashed h-14 text-lg mb-0"
+                  class="mx-auto w-full flex-col flex gap-2"
                   data-testid="container"
                 >
-                  <input
-                    aria-invalid="false"
-                    class="flex h-9 min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
-                    data-testid="input"
-                    id="variants.0.priceOverride"
-                    name="variants.0.priceOverride"
-                    placeholder="Optional"
-                    type="text"
-                    value=""
-                  />
+                  <label
+                    class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                    data-slot="label"
+                    for="variants.0.priceOverride"
+                  >
+                    Price override (USD)
+                  </label>
+                  <div
+                    class="flex mx-0 w-full cursor-pointer flex-row items-center gap-0 pl-2 !bg-background rounded-md border border-dashed border-border font-medium h-14 text-lg mb-0"
+                    data-testid="container"
+                  >
+                    <input
+                      aria-invalid="false"
+                      class="flex h-9 min-w-0 rounded-md border border-input bg-background px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
+                      data-testid="input"
+                      id="variants.0.priceOverride"
+                      name="variants.0.priceOverride"
+                      placeholder="Optional"
+                      type="text"
+                      value=""
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -1213,12 +1320,12 @@ exports[`MarketplaceListingForm - Snapshots > matches the physical listing form 
       tabindex="-1"
     >
       <div
-        class="flex flex-col gap-6 rounded-xl bg-card py-6 text-card-foreground shadow-sm border"
+        class="flex flex-col gap-6 bg-card text-card-foreground rounded-md p-0 shadow-lg"
         data-slot="card"
         data-testid="card"
       >
         <div
-          class="grid gap-5 px-6"
+          class="grid gap-6 p-6"
           data-slot="card-content"
         >
           <div
@@ -1247,261 +1354,216 @@ exports[`MarketplaceListingForm - Snapshots > matches the physical listing form 
             </div>
           </div>
           <div
-            class="grid gap-5 sm:grid-cols-2"
+            class="grid w-full min-w-0 gap-9 rounded-md border border-border bg-card p-6 shadow-lg"
+            data-slot="settings-section-content"
           >
-            <fieldset
-              class="grid gap-2"
-              data-testid="listing-delivery-options"
+            <div
+              class="grid gap-5 sm:grid-cols-2"
             >
-              <legend
-                class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+              <fieldset
+                class="grid gap-2"
+                data-testid="listing-delivery-options"
               >
-                Delivery options
-              </legend>
-              <div
-                class="flex items-center gap-2"
-              >
-                <button
-                  aria-checked="true"
-                  aria-label="Ship"
-                  class="peer h-4 w-4 shrink-0 rounded border border-input bg-white/5 shadow-sm transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-brand data-[state=checked]:bg-brand"
-                  data-disabled=""
-                  data-state="checked"
-                  disabled=""
-                  id="listing-delivery-ship"
-                  role="checkbox"
-                  type="button"
-                  value="on"
+                <legend
+                  class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
                 >
-                  <span
-                    class="flex items-center justify-center"
+                  Delivery options
+                </legend>
+                <div
+                  class="flex items-center gap-2"
+                >
+                  <button
+                    aria-checked="true"
+                    aria-label="Ship"
+                    class="peer h-4 w-4 shrink-0 rounded border border-input bg-white/5 shadow-sm transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-brand data-[state=checked]:bg-brand"
                     data-disabled=""
                     data-state="checked"
-                    style="pointer-events: none;"
+                    disabled=""
+                    id="listing-delivery-ship"
+                    role="checkbox"
+                    type="button"
+                    value="on"
                   >
-                    <svg
-                      aria-hidden="true"
-                      class="lucide lucide-check h-3.5 w-3.5 text-background"
-                      fill="none"
-                      height="24"
-                      stroke="currentColor"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="3"
-                      viewBox="0 0 24 24"
-                      width="24"
-                      xmlns="http://www.w3.org/2000/svg"
+                    <span
+                      class="flex items-center justify-center"
+                      data-disabled=""
+                      data-state="checked"
+                      style="pointer-events: none;"
                     >
-                      <path
-                        d="M20 6 9 17l-5-5"
-                      />
-                    </svg>
-                  </span>
-                </button>
-                <input
-                  aria-hidden="true"
-                  checked=""
-                  disabled=""
-                  style="position: absolute; pointer-events: none; opacity: 0; margin: 0px; transform: translateX(-100%); width: 0px; height: 0px;"
-                  tabindex="-1"
-                  type="checkbox"
-                  value="on"
-                />
-                <label
-                  class="flex items-center gap-2 font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 cursor-pointer text-sm"
-                  data-slot="label"
-                  for="listing-delivery-ship"
-                >
-                  Ship
-                </label>
-              </div>
-              <div
-                class="flex items-center gap-2"
-              >
-                <button
-                  aria-checked="false"
-                  aria-label="Local pickup"
-                  class="peer h-4 w-4 shrink-0 rounded border border-input bg-white/5 shadow-sm transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-brand data-[state=checked]:bg-brand"
-                  data-state="unchecked"
-                  id="listing-delivery-pickup"
-                  role="checkbox"
-                  type="button"
-                  value="on"
-                />
-                <input
-                  aria-hidden="true"
-                  style="position: absolute; pointer-events: none; opacity: 0; margin: 0px; transform: translateX(-100%); width: 0px; height: 0px;"
-                  tabindex="-1"
-                  type="checkbox"
-                  value="on"
-                />
-                <label
-                  class="flex items-center gap-2 font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 cursor-pointer text-sm"
-                  data-slot="label"
-                  for="listing-delivery-pickup"
-                >
-                  Local pickup
-                </label>
-              </div>
-              <div
-                class="flex items-center gap-2"
-              >
-                <button
-                  aria-checked="false"
-                  aria-label="Digital delivery"
-                  class="peer h-4 w-4 shrink-0 rounded border border-input bg-white/5 shadow-sm transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-brand data-[state=checked]:bg-brand"
-                  data-state="unchecked"
-                  id="listing-delivery-digital"
-                  role="checkbox"
-                  type="button"
-                  value="on"
-                />
-                <input
-                  aria-hidden="true"
-                  style="position: absolute; pointer-events: none; opacity: 0; margin: 0px; transform: translateX(-100%); width: 0px; height: 0px;"
-                  tabindex="-1"
-                  type="checkbox"
-                  value="on"
-                />
-                <label
-                  class="flex items-center gap-2 font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 cursor-pointer text-sm"
-                  data-slot="label"
-                  for="listing-delivery-digital"
-                >
-                  Digital delivery
-                </label>
-              </div>
-              <p
-                class="font-medium text-xs text-muted-foreground"
-                data-testid="typography"
-              >
-                Choose at least one delivery option.
-              </p>
-            </fieldset>
-            <div
-              class="mx-auto w-full flex-col flex gap-2"
-              data-testid="container"
-            >
-              <label
-                class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                data-slot="label"
-                for="returnDays"
-              >
-                Returns
-              </label>
-              <button
-                aria-autocomplete="none"
-                aria-controls="radix-normalized"
-                aria-expanded="false"
-                aria-invalid="false"
-                class="flex cursor-pointer items-center justify-between gap-2.5 bg-transparent py-2 text-base font-bold whitespace-nowrap text-foreground transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground data-[size=default]:h-8 data-[size=sm]:h-7 data-[size=sm]:rounded-[min(var(--radius-md),10px)] *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-11 w-full rounded-md border px-3"
-                data-size="default"
-                data-slot="select-trigger"
-                data-state="closed"
-                dir="ltr"
-                id="returnDays"
-                role="combobox"
-                type="button"
-              >
-                <span
-                  data-slot="select-value"
-                  style="pointer-events: none;"
-                >
-                  Final sale
-                </span>
-                <svg
-                  aria-hidden="true"
-                  class="lucide lucide-chevron-down pointer-events-none size-4"
-                  fill="none"
-                  height="24"
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  viewBox="0 0 24 24"
-                  width="24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="m6 9 6 6 6-6"
+                      <svg
+                        aria-hidden="true"
+                        class="lucide lucide-check h-3.5 w-3.5 text-background"
+                        fill="none"
+                        height="24"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="3"
+                        viewBox="0 0 24 24"
+                        width="24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M20 6 9 17l-5-5"
+                        />
+                      </svg>
+                    </span>
+                  </button>
+                  <input
+                    aria-hidden="true"
+                    checked=""
+                    disabled=""
+                    style="position: absolute; pointer-events: none; opacity: 0; margin: 0px; transform: translateX(-100%); width: 0px; height: 0px;"
+                    tabindex="-1"
+                    type="checkbox"
+                    value="on"
                   />
-                </svg>
-              </button>
-              <select
-                aria-hidden="true"
-                style="position: absolute; border: 0px; width: 1px; height: 1px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; word-wrap: normal;"
-                tabindex="-1"
-              >
-                <option
-                  value="30"
+                  <label
+                    class="flex items-center gap-2 font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 cursor-pointer text-sm"
+                    data-slot="label"
+                    for="listing-delivery-ship"
+                  >
+                    Ship
+                  </label>
+                </div>
+                <div
+                  class="flex items-center gap-2"
                 >
-                  30 days
-                </option>
-                <option
-                  value="14"
+                  <button
+                    aria-checked="false"
+                    aria-label="Local pickup"
+                    class="peer h-4 w-4 shrink-0 rounded border border-input bg-white/5 shadow-sm transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-brand data-[state=checked]:bg-brand"
+                    data-state="unchecked"
+                    id="listing-delivery-pickup"
+                    role="checkbox"
+                    type="button"
+                    value="on"
+                  />
+                  <input
+                    aria-hidden="true"
+                    style="position: absolute; pointer-events: none; opacity: 0; margin: 0px; transform: translateX(-100%); width: 0px; height: 0px;"
+                    tabindex="-1"
+                    type="checkbox"
+                    value="on"
+                  />
+                  <label
+                    class="flex items-center gap-2 font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 cursor-pointer text-sm"
+                    data-slot="label"
+                    for="listing-delivery-pickup"
+                  >
+                    Local pickup
+                  </label>
+                </div>
+                <div
+                  class="flex items-center gap-2"
                 >
-                  14 days
-                </option>
-                <option
-                  selected=""
-                  value="none"
+                  <button
+                    aria-checked="false"
+                    aria-label="Digital delivery"
+                    class="peer h-4 w-4 shrink-0 rounded border border-input bg-white/5 shadow-sm transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-brand data-[state=checked]:bg-brand"
+                    data-state="unchecked"
+                    id="listing-delivery-digital"
+                    role="checkbox"
+                    type="button"
+                    value="on"
+                  />
+                  <input
+                    aria-hidden="true"
+                    style="position: absolute; pointer-events: none; opacity: 0; margin: 0px; transform: translateX(-100%); width: 0px; height: 0px;"
+                    tabindex="-1"
+                    type="checkbox"
+                    value="on"
+                  />
+                  <label
+                    class="flex items-center gap-2 font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 cursor-pointer text-sm"
+                    data-slot="label"
+                    for="listing-delivery-digital"
+                  >
+                    Digital delivery
+                  </label>
+                </div>
+                <p
+                  class="font-medium text-xs text-muted-foreground"
+                  data-testid="typography"
                 >
-                  Final sale
-                </option>
-              </select>
-            </div>
-          </div>
-          <div
-            class="flex flex-wrap items-end gap-3 rounded-xl border bg-card/60 p-3"
-          >
-            <button
-              class="inline-flex items-center justify-center whitespace-nowrap text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*=\\"size-\\"])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/40 aria-invalid:border-destructive font-semibold cursor-pointer border shadow-xs bg-secondary text-secondary-foreground hover:bg-accent h-8 gap-1.5 px-3 has-[>svg]:px-3.5 rounded-full"
-              data-size="sm"
-              data-slot="button"
-              data-variant="secondary"
-              type="button"
-            >
-              Save as preset
-            </button>
-            <p
-              class="font-medium text-sm text-muted-foreground"
-              data-testid="typography"
-            >
-              Presets store these shipping fields on this device so future listings start pre-filled.
-            </p>
-          </div>
-          <div
-            class="grid gap-5 sm:grid-cols-2"
-          >
-            <div
-              class="mx-auto w-full flex-col flex gap-2"
-              data-testid="container"
-            >
-              <label
-                class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                data-slot="label"
-                for="shippingLabel"
-              >
-                Shipping label
-              </label>
+                  Choose at least one delivery option.
+                </p>
+              </fieldset>
               <div
-                class="flex !bg-alpha-90/10 mx-0 w-full cursor-pointer flex-row items-center gap-0 rounded-md border bg-transparent pl-2 border-dashed h-14 text-lg mb-0"
+                class="mx-auto w-full flex-col flex gap-2"
                 data-testid="container"
               >
-                <input
+                <label
+                  class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                  data-slot="label"
+                  for="returnDays"
+                >
+                  Returns
+                </label>
+                <button
+                  aria-autocomplete="none"
+                  aria-controls="radix-normalized"
+                  aria-expanded="false"
                   aria-invalid="false"
-                  class="flex h-9 min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
-                  data-testid="input"
-                  id="shippingLabel"
-                  name="shippingLabel"
-                  placeholder="Standard shipping"
-                  type="text"
-                  value="Seller shipping"
-                />
+                  class="select-none disabled:cursor-not-allowed aria-invalid:ring-1 data-placeholder:text-input *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg:not([class*='size-'])]:size-4 inline-flex items-center whitespace-nowrap text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*=\\"size-\\"])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/40 aria-invalid:border-destructive font-semibold cursor-pointer rounded-full border shadow-xs bg-secondary text-secondary-foreground hover:bg-accent h-10 gap-1.5 px-4 py-2 has-[>svg]:px-4 justify-between data-[size=default]:h-10 data-[size=sm]:h-8 data-[size=sm]:rounded-full w-full"
+                  data-size="default"
+                  data-slot="select-trigger"
+                  data-state="closed"
+                  dir="ltr"
+                  id="returnDays"
+                  role="combobox"
+                  type="button"
+                >
+                  <span
+                    data-slot="select-value"
+                    style="pointer-events: none;"
+                  >
+                    Final sale
+                  </span>
+                  <svg
+                    aria-hidden="true"
+                    class="lucide lucide-chevron-down pointer-events-none size-4"
+                    fill="none"
+                    height="24"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="m6 9 6 6 6-6"
+                    />
+                  </svg>
+                </button>
+                <select
+                  aria-hidden="true"
+                  style="position: absolute; border: 0px; width: 1px; height: 1px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; word-wrap: normal;"
+                  tabindex="-1"
+                >
+                  <option
+                    value="30"
+                  >
+                    30 days
+                  </option>
+                  <option
+                    value="14"
+                  >
+                    14 days
+                  </option>
+                  <option
+                    selected=""
+                    value="none"
+                  >
+                    Final sale
+                  </option>
+                </select>
               </div>
             </div>
             <div
-              class="grid gap-2"
+              class="grid gap-5 sm:grid-cols-2"
             >
               <div
                 class="mx-auto w-full flex-col flex gap-2"
@@ -1510,34 +1572,151 @@ exports[`MarketplaceListingForm - Snapshots > matches the physical listing form 
                 <label
                   class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
                   data-slot="label"
-                  for="shippingPrice"
+                  for="shippingLabel"
                 >
-                  Flat shipping (USD)
+                  Shipping label
                 </label>
                 <div
-                  class="flex !bg-alpha-90/10 mx-0 w-full cursor-pointer flex-row items-center gap-0 rounded-md border bg-transparent pl-2 border-dashed h-14 text-lg mb-0"
+                  class="flex mx-0 w-full cursor-pointer flex-row items-center gap-0 pl-2 !bg-background rounded-md border border-dashed border-border font-medium h-14 text-lg mb-0"
                   data-testid="container"
                 >
                   <input
                     aria-invalid="false"
-                    class="flex h-9 min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
+                    class="flex h-9 min-w-0 rounded-md border border-input bg-background px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
                     data-testid="input"
-                    id="shippingPrice"
-                    name="shippingPrice"
-                    placeholder="12.00"
+                    id="shippingLabel"
+                    name="shippingLabel"
+                    placeholder="Standard shipping"
                     type="text"
-                    value=""
+                    value="Seller shipping"
                   />
                 </div>
               </div>
+              <div
+                class="grid gap-2"
+              >
+                <div
+                  class="mx-auto w-full flex-col flex gap-2"
+                  data-testid="container"
+                >
+                  <label
+                    class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                    data-slot="label"
+                    for="shippingPrice"
+                  >
+                    Flat shipping (USD)
+                  </label>
+                  <div
+                    class="flex mx-0 w-full cursor-pointer flex-row items-center gap-0 pl-2 !bg-background rounded-md border border-dashed border-border font-medium h-14 text-lg mb-0"
+                    data-testid="container"
+                  >
+                    <input
+                      aria-invalid="false"
+                      class="flex h-9 min-w-0 rounded-md border border-input bg-background px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
+                      data-testid="input"
+                      id="shippingPrice"
+                      name="shippingPrice"
+                      placeholder="12.00"
+                      type="text"
+                      value=""
+                    />
+                  </div>
+                </div>
+                <div
+                  class="flex items-center gap-2"
+                >
+                  <button
+                    aria-checked="false"
+                    class="peer h-4 w-4 shrink-0 rounded border border-input bg-white/5 shadow-sm transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-brand data-[state=checked]:bg-brand"
+                    data-state="unchecked"
+                    id="listing-free-shipping"
+                    role="checkbox"
+                    type="button"
+                    value="on"
+                  />
+                  <input
+                    aria-hidden="true"
+                    style="position: absolute; pointer-events: none; opacity: 0; margin: 0px; transform: translateX(-100%); width: 0px; height: 0px;"
+                    tabindex="-1"
+                    type="checkbox"
+                    value="on"
+                  />
+                  <label
+                    class="flex items-center gap-2 font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 cursor-pointer text-sm"
+                    data-slot="label"
+                    for="listing-free-shipping"
+                  >
+                    Free shipping
+                  </label>
+                </div>
+              </div>
+              <div
+                class="mx-auto w-full flex-col flex gap-2"
+                data-testid="container"
+              >
+                <label
+                  class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                  data-slot="label"
+                  for="shippingMinDays"
+                >
+                  Delivery estimate min (days)
+                </label>
+                <div
+                  class="flex mx-0 w-full cursor-pointer flex-row items-center gap-0 pl-2 !bg-background rounded-md border border-dashed border-border font-medium h-14 text-lg mb-0"
+                  data-testid="container"
+                >
+                  <input
+                    aria-invalid="false"
+                    class="flex h-9 min-w-0 rounded-md border border-input bg-background px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
+                    data-testid="input"
+                    id="shippingMinDays"
+                    name="shippingMinDays"
+                    placeholder="3"
+                    type="text"
+                    value="3"
+                  />
+                </div>
+              </div>
+              <div
+                class="mx-auto w-full flex-col flex gap-2"
+                data-testid="container"
+              >
+                <label
+                  class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                  data-slot="label"
+                  for="shippingMaxDays"
+                >
+                  Delivery estimate max (days)
+                </label>
+                <div
+                  class="flex mx-0 w-full cursor-pointer flex-row items-center gap-0 pl-2 !bg-background rounded-md border border-dashed border-border font-medium h-14 text-lg mb-0"
+                  data-testid="container"
+                >
+                  <input
+                    aria-invalid="false"
+                    class="flex h-9 min-w-0 rounded-md border border-input bg-background px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
+                    data-testid="input"
+                    id="shippingMaxDays"
+                    name="shippingMaxDays"
+                    placeholder="7"
+                    type="text"
+                    value="7"
+                  />
+                </div>
+              </div>
+            </div>
+            <div
+              class="flex flex-col gap-2"
+            >
               <div
                 class="flex items-center gap-2"
               >
                 <button
                   aria-checked="false"
+                  aria-describedby="listing-save-delivery-preset-hint"
                   class="peer h-4 w-4 shrink-0 rounded border border-input bg-white/5 shadow-sm transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-brand data-[state=checked]:bg-brand"
                   data-state="unchecked"
-                  id="listing-free-shipping"
+                  id="listing-save-delivery-preset"
                   role="checkbox"
                   type="button"
                   value="on"
@@ -1552,218 +1731,173 @@ exports[`MarketplaceListingForm - Snapshots > matches the physical listing form 
                 <label
                   class="flex items-center gap-2 font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 cursor-pointer text-sm"
                   data-slot="label"
-                  for="listing-free-shipping"
+                  for="listing-save-delivery-preset"
                 >
-                  Free shipping
+                  Save delivery details as preset
                 </label>
               </div>
+              <p
+                class="font-medium text-sm text-muted-foreground"
+                data-testid="typography"
+                id="listing-save-delivery-preset-hint"
+              >
+                Saves the shipping label, flat rate and delivery estimates on this device when you save the listing.
+              </p>
             </div>
             <div
-              class="mx-auto w-full flex-col flex gap-2"
-              data-testid="container"
+              class="grid gap-5 sm:grid-cols-2"
             >
-              <label
-                class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                data-slot="label"
-                for="shippingMinDays"
-              >
-                Delivery estimate min (days)
-              </label>
               <div
-                class="flex !bg-alpha-90/10 mx-0 w-full cursor-pointer flex-row items-center gap-0 rounded-md border bg-transparent pl-2 border-dashed h-14 text-lg mb-0"
+                class="mx-auto w-full flex-col flex gap-2"
                 data-testid="container"
               >
-                <input
-                  aria-invalid="false"
-                  class="flex h-9 min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
-                  data-testid="input"
-                  id="shippingMinDays"
-                  name="shippingMinDays"
-                  placeholder="3"
-                  type="text"
-                  value="3"
-                />
+                <label
+                  class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                  data-slot="label"
+                  for="packageWeight"
+                >
+                  Weight (g)
+                </label>
+                <div
+                  class="flex mx-0 w-full cursor-pointer flex-row items-center gap-0 pl-2 !bg-background rounded-md border border-dashed border-border font-medium h-14 text-lg mb-0"
+                  data-testid="container"
+                >
+                  <input
+                    aria-invalid="false"
+                    class="flex h-9 min-w-0 rounded-md border border-input bg-background px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
+                    data-testid="input"
+                    id="packageWeight"
+                    name="packageWeight"
+                    placeholder="1200"
+                    type="text"
+                    value=""
+                  />
+                </div>
               </div>
             </div>
             <div
-              class="mx-auto w-full flex-col flex gap-2"
-              data-testid="container"
+              class="flex items-center gap-2"
+              data-cy="marketplace-package-units-toggle"
             >
-              <label
-                class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                data-slot="label"
-                for="shippingMaxDays"
+              <span
+                class="font-medium text-sm text-muted-foreground"
+                data-testid="typography"
               >
-                Delivery estimate max (days)
-              </label>
-              <div
-                class="flex !bg-alpha-90/10 mx-0 w-full cursor-pointer flex-row items-center gap-0 rounded-md border bg-transparent pl-2 border-dashed h-14 text-lg mb-0"
-                data-testid="container"
+                Units
+              </span>
+              <button
+                aria-pressed="false"
+                class="inline-flex items-center justify-center whitespace-nowrap text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*=\\"size-\\"])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/40 aria-invalid:border-destructive font-semibold cursor-pointer border shadow-xs bg-secondary text-secondary-foreground hover:bg-accent h-8 gap-1.5 px-3 has-[>svg]:px-3.5 rounded-full"
+                data-size="sm"
+                data-slot="button"
+                data-variant="secondary"
+                type="button"
               >
-                <input
-                  aria-invalid="false"
-                  class="flex h-9 min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
-                  data-testid="input"
-                  id="shippingMaxDays"
-                  name="shippingMaxDays"
-                  placeholder="7"
-                  type="text"
-                  value="7"
-                />
-              </div>
+                in / oz
+              </button>
+              <button
+                aria-pressed="true"
+                class="inline-flex items-center justify-center whitespace-nowrap text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*=\\"size-\\"])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/40 aria-invalid:border-destructive font-semibold cursor-pointer border shadow-xs bg-brand/16 text-brand hover:!bg-brand/30 border-brand h-8 gap-1.5 px-3 has-[>svg]:px-3.5 rounded-full"
+                data-size="sm"
+                data-slot="button"
+                data-variant="default"
+                type="button"
+              >
+                cm / g
+              </button>
             </div>
             <div
-              class="mx-auto w-full flex-col flex gap-2"
-              data-testid="container"
+              class="grid gap-5 sm:grid-cols-3"
             >
-              <label
-                class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                data-slot="label"
-                for="packageWeight"
-              >
-                Weight (g)
-              </label>
               <div
-                class="flex !bg-alpha-90/10 mx-0 w-full cursor-pointer flex-row items-center gap-0 rounded-md border bg-transparent pl-2 border-dashed h-14 text-lg mb-0"
+                class="mx-auto w-full flex-col flex gap-2"
                 data-testid="container"
               >
-                <input
-                  aria-invalid="false"
-                  class="flex h-9 min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
-                  data-testid="input"
-                  id="packageWeight"
-                  name="packageWeight"
-                  placeholder="1200"
-                  type="text"
-                  value=""
-                />
+                <label
+                  class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                  data-slot="label"
+                  for="packageLength"
+                >
+                  Length (cm)
+                </label>
+                <div
+                  class="flex mx-0 w-full cursor-pointer flex-row items-center gap-0 pl-2 !bg-background rounded-md border border-dashed border-border font-medium h-14 text-lg mb-0"
+                  data-testid="container"
+                >
+                  <input
+                    aria-invalid="false"
+                    class="flex h-9 min-w-0 rounded-md border border-input bg-background px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
+                    data-testid="input"
+                    id="packageLength"
+                    name="packageLength"
+                    placeholder="35.0"
+                    type="text"
+                    value=""
+                  />
+                </div>
+              </div>
+              <div
+                class="mx-auto w-full flex-col flex gap-2"
+                data-testid="container"
+              >
+                <label
+                  class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                  data-slot="label"
+                  for="packageWidth"
+                >
+                  Width (cm)
+                </label>
+                <div
+                  class="flex mx-0 w-full cursor-pointer flex-row items-center gap-0 pl-2 !bg-background rounded-md border border-dashed border-border font-medium h-14 text-lg mb-0"
+                  data-testid="container"
+                >
+                  <input
+                    aria-invalid="false"
+                    class="flex h-9 min-w-0 rounded-md border border-input bg-background px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
+                    data-testid="input"
+                    id="packageWidth"
+                    name="packageWidth"
+                    placeholder="25.0"
+                    type="text"
+                    value=""
+                  />
+                </div>
+              </div>
+              <div
+                class="mx-auto w-full flex-col flex gap-2"
+                data-testid="container"
+              >
+                <label
+                  class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                  data-slot="label"
+                  for="packageHeight"
+                >
+                  Height (cm)
+                </label>
+                <div
+                  class="flex mx-0 w-full cursor-pointer flex-row items-center gap-0 pl-2 !bg-background rounded-md border border-dashed border-border font-medium h-14 text-lg mb-0"
+                  data-testid="container"
+                >
+                  <input
+                    aria-invalid="false"
+                    class="flex h-9 min-w-0 rounded-md border border-input bg-background px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
+                    data-testid="input"
+                    id="packageHeight"
+                    name="packageHeight"
+                    placeholder="15.0"
+                    type="text"
+                    value=""
+                  />
+                </div>
               </div>
             </div>
-          </div>
-          <div
-            class="flex items-center gap-2"
-            data-cy="marketplace-package-units-toggle"
-          >
-            <span
+            <p
               class="font-medium text-sm text-muted-foreground"
               data-testid="typography"
             >
-              Units
-            </span>
-            <button
-              aria-pressed="false"
-              class="inline-flex items-center justify-center whitespace-nowrap text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*=\\"size-\\"])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/40 aria-invalid:border-destructive font-semibold cursor-pointer border shadow-xs bg-secondary text-secondary-foreground hover:bg-accent h-8 gap-1.5 px-3 has-[>svg]:px-3.5 rounded-full"
-              data-size="sm"
-              data-slot="button"
-              data-variant="secondary"
-              type="button"
-            >
-              in / oz
-            </button>
-            <button
-              aria-pressed="true"
-              class="inline-flex items-center justify-center whitespace-nowrap text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*=\\"size-\\"])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/40 aria-invalid:border-destructive font-semibold cursor-pointer border shadow-xs bg-brand/16 text-brand hover:!bg-brand/30 border-brand h-8 gap-1.5 px-3 has-[>svg]:px-3.5 rounded-full"
-              data-size="sm"
-              data-slot="button"
-              data-variant="default"
-              type="button"
-            >
-              cm / g
-            </button>
+              Package details are entered in centimeters and grams (your measurement preference) and stored exactly in millimeters and grams.
+            </p>
           </div>
-          <div
-            class="grid gap-5 sm:grid-cols-3"
-          >
-            <div
-              class="mx-auto w-full flex-col flex gap-2"
-              data-testid="container"
-            >
-              <label
-                class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                data-slot="label"
-                for="packageLength"
-              >
-                Length (cm)
-              </label>
-              <div
-                class="flex !bg-alpha-90/10 mx-0 w-full cursor-pointer flex-row items-center gap-0 rounded-md border bg-transparent pl-2 border-dashed h-14 text-lg mb-0"
-                data-testid="container"
-              >
-                <input
-                  aria-invalid="false"
-                  class="flex h-9 min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
-                  data-testid="input"
-                  id="packageLength"
-                  name="packageLength"
-                  placeholder="35.0"
-                  type="text"
-                  value=""
-                />
-              </div>
-            </div>
-            <div
-              class="mx-auto w-full flex-col flex gap-2"
-              data-testid="container"
-            >
-              <label
-                class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                data-slot="label"
-                for="packageWidth"
-              >
-                Width (cm)
-              </label>
-              <div
-                class="flex !bg-alpha-90/10 mx-0 w-full cursor-pointer flex-row items-center gap-0 rounded-md border bg-transparent pl-2 border-dashed h-14 text-lg mb-0"
-                data-testid="container"
-              >
-                <input
-                  aria-invalid="false"
-                  class="flex h-9 min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
-                  data-testid="input"
-                  id="packageWidth"
-                  name="packageWidth"
-                  placeholder="25.0"
-                  type="text"
-                  value=""
-                />
-              </div>
-            </div>
-            <div
-              class="mx-auto w-full flex-col flex gap-2"
-              data-testid="container"
-            >
-              <label
-                class="flex items-center gap-2 select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                data-slot="label"
-                for="packageHeight"
-              >
-                Height (cm)
-              </label>
-              <div
-                class="flex !bg-alpha-90/10 mx-0 w-full cursor-pointer flex-row items-center gap-0 rounded-md border bg-transparent pl-2 border-dashed h-14 text-lg mb-0"
-                data-testid="container"
-              >
-                <input
-                  aria-invalid="false"
-                  class="flex h-9 min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-input disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:ring-0 hover:outline-none focus:ring-0 focus:ring-offset-0 focus:outline-none aria-invalid:border-destructive aria-invalid:ring-destructive/40 w-full border-none !bg-transparent"
-                  data-testid="input"
-                  id="packageHeight"
-                  name="packageHeight"
-                  placeholder="15.0"
-                  type="text"
-                  value=""
-                />
-              </div>
-            </div>
-          </div>
-          <p
-            class="font-medium text-sm text-muted-foreground"
-            data-testid="typography"
-          >
-            Package details are entered in 
-            centimeters and grams
-             (your measurement preference) and stored exactly in millimeters and grams.
-          </p>
         </div>
       </div>
     </section>
@@ -1776,12 +1910,12 @@ exports[`MarketplaceListingForm - Snapshots > matches the physical listing form 
       tabindex="-1"
     >
       <div
-        class="flex flex-col gap-6 rounded-xl bg-card py-6 text-card-foreground shadow-sm border"
+        class="flex flex-col gap-6 bg-card text-card-foreground rounded-md p-0 shadow-lg"
         data-slot="card"
         data-testid="card"
       >
         <div
-          class="grid gap-5 px-6"
+          class="grid gap-6 p-6"
           data-slot="card-content"
         >
           <div
@@ -1810,285 +1944,133 @@ exports[`MarketplaceListingForm - Snapshots > matches the physical listing form 
             </div>
           </div>
           <div
-            class="grid gap-4 rounded-xl border bg-card/60 p-4"
+            class="grid w-full min-w-0 gap-9 rounded-md border border-border bg-card p-6 shadow-lg"
+            data-slot="settings-section-content"
           >
             <div
-              class="flex items-start gap-3"
+              class="grid gap-4 rounded-md bg-card/60"
             >
-              <svg
-                aria-hidden="true"
-                class="lucide lucide-circle mt-0.5 size-5 shrink-0 text-muted-foreground"
-                fill="none"
-                height="24"
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                viewBox="0 0 24 24"
-                width="24"
-                xmlns="http://www.w3.org/2000/svg"
+              <div
+                class="flex items-start gap-3"
               >
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="10"
-                />
-              </svg>
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-circle mt-0.5 size-5 shrink-0 text-muted-foreground"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                  />
+                </svg>
+                <div>
+                  <p
+                    class="text-base text-foreground font-semibold"
+                    data-testid="typography"
+                  >
+                    Required to publish
+                  </p>
+                  <ul
+                    class="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground"
+                  >
+                    <li>
+                      <a
+                        class="text-muted-foreground hover:underline"
+                        href="#required-at-least-one-photo"
+                      >
+                        At least one photo
+                      </a>
+                    </li>
+                    <li>
+                      <a
+                        class="text-muted-foreground hover:underline"
+                        href="#required-title"
+                      >
+                        Title
+                      </a>
+                    </li>
+                    <li>
+                      <a
+                        class="text-muted-foreground hover:underline"
+                        href="#required-description"
+                      >
+                        Description
+                      </a>
+                    </li>
+                    <li>
+                      <a
+                        class="text-muted-foreground hover:underline"
+                        href="#required-category"
+                      >
+                        Category
+                      </a>
+                    </li>
+                    <li>
+                      <a
+                        class="text-muted-foreground hover:underline"
+                        href="#required-price"
+                      >
+                        Price
+                      </a>
+                    </li>
+                    <li>
+                      <a
+                        class="text-muted-foreground hover:underline"
+                        href="#required-shipping-details"
+                      >
+                        Shipping details
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+              </div>
               <div>
                 <p
                   class="text-base text-foreground font-semibold"
                   data-testid="typography"
                 >
-                  Required to publish
+                  You can add these later
                 </p>
                 <ul
                   class="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground"
                 >
                   <li>
-                    <a
-                      class="text-muted-foreground hover:underline"
-                      href="#required-at-least-one-photo"
-                    >
-                      At least one photo
-                    </a>
+                    Optional category specifics like brand, color, style, model, or material
                   </li>
                   <li>
-                    <a
-                      class="text-muted-foreground hover:underline"
-                      href="#required-title"
-                    >
-                      Title
-                    </a>
+                    Region
                   </li>
                   <li>
-                    <a
-                      class="text-muted-foreground hover:underline"
-                      href="#required-description"
-                    >
-                      Description
-                    </a>
+                    Variant SKUs, options, and price overrides
                   </li>
                   <li>
-                    <a
-                      class="text-muted-foreground hover:underline"
-                      href="#required-category"
-                    >
-                      Category
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      class="text-muted-foreground hover:underline"
-                      href="#required-price"
-                    >
-                      Price
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      class="text-muted-foreground hover:underline"
-                      href="#required-shipping-details"
-                    >
-                      Shipping details
-                    </a>
+                    Returns policy
                   </li>
                 </ul>
               </div>
             </div>
-            <div>
-              <p
-                class="text-base text-foreground font-semibold"
-                data-testid="typography"
-              >
-                You can add these later
-              </p>
-              <ul
-                class="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground"
-              >
-                <li>
-                  Optional category specifics like brand, color, style, model, or material
-                </li>
-                <li>
-                  Region
-                </li>
-                <li>
-                  Variant SKUs, options, and price overrides
-                </li>
-                <li>
-                  Returns policy
-                </li>
-              </ul>
-            </div>
+            <button
+              class="inline-flex items-center justify-center whitespace-nowrap transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*=\\"size-\\"])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/40 aria-invalid:border-destructive cursor-pointer border shadow-xs bg-brand/16 text-brand hover:!bg-brand/30 border-brand h-auto gap-2 px-8 py-5 text-sm font-bold leading-normal w-full rounded-full"
+              data-size="lg"
+              data-slot="button"
+              disabled=""
+              type="submit"
+            >
+              Publish listing
+            </button>
           </div>
-          <button
-            class="inline-flex items-center justify-center whitespace-nowrap transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*=\\"size-\\"])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/40 aria-invalid:border-destructive cursor-pointer border shadow-xs bg-brand/16 text-brand hover:!bg-brand/30 border-brand h-auto gap-2 px-8 py-5 text-sm font-bold leading-normal w-full rounded-full"
-            data-size="lg"
-            data-slot="button"
-            disabled=""
-            type="submit"
-          >
-            Publish listing
-          </button>
         </div>
       </div>
     </section>
   </div>
-  <nav
-    aria-label="Listing section status"
-    class="sticky top-(--header-offset-main) z-10 hidden h-fit flex-col gap-2 self-start rounded-xl bg-background/95 py-1 backdrop-blur lg:flex"
-    data-testid="listing-section-status-rail"
-  >
-    <a
-      aria-current="step"
-      class="flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition-colors border-brand bg-brand/10 text-brand justify-center"
-      href="#listing-section-photos"
-    >
-      <svg
-        aria-hidden="true"
-        class="lucide lucide-circle size-4 shrink-0"
-        fill="none"
-        height="24"
-        stroke="currentColor"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        viewBox="0 0 24 24"
-        width="24"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <circle
-          cx="12"
-          cy="12"
-          r="10"
-        />
-      </svg>
-      1
-      <span
-        class="sr-only"
-      >
-         incomplete
-      </span>
-    </a>
-    <a
-      class="flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition-colors border-border text-muted-foreground hover:text-foreground justify-center"
-      href="#listing-section-item"
-    >
-      <svg
-        aria-hidden="true"
-        class="lucide lucide-circle size-4 shrink-0"
-        fill="none"
-        height="24"
-        stroke="currentColor"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        viewBox="0 0 24 24"
-        width="24"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <circle
-          cx="12"
-          cy="12"
-          r="10"
-        />
-      </svg>
-      2
-      <span
-        class="sr-only"
-      >
-         incomplete
-      </span>
-    </a>
-    <a
-      class="flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition-colors border-border text-muted-foreground hover:text-foreground justify-center"
-      href="#listing-section-price"
-    >
-      <svg
-        aria-hidden="true"
-        class="lucide lucide-circle size-4 shrink-0"
-        fill="none"
-        height="24"
-        stroke="currentColor"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        viewBox="0 0 24 24"
-        width="24"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <circle
-          cx="12"
-          cy="12"
-          r="10"
-        />
-      </svg>
-      3
-      <span
-        class="sr-only"
-      >
-         incomplete
-      </span>
-    </a>
-    <a
-      class="flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition-colors border-border text-muted-foreground hover:text-foreground justify-center"
-      href="#listing-section-shipping"
-    >
-      <svg
-        aria-hidden="true"
-        class="lucide lucide-circle size-4 shrink-0"
-        fill="none"
-        height="24"
-        stroke="currentColor"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        viewBox="0 0 24 24"
-        width="24"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <circle
-          cx="12"
-          cy="12"
-          r="10"
-        />
-      </svg>
-      4
-      <span
-        class="sr-only"
-      >
-         incomplete
-      </span>
-    </a>
-    <a
-      class="flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition-colors border-border text-muted-foreground hover:text-foreground justify-center"
-      href="#listing-section-review"
-    >
-      <svg
-        aria-hidden="true"
-        class="lucide lucide-circle size-4 shrink-0"
-        fill="none"
-        height="24"
-        stroke="currentColor"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        viewBox="0 0 24 24"
-        width="24"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <circle
-          cx="12"
-          cy="12"
-          r="10"
-        />
-      </svg>
-      5
-      <span
-        class="sr-only"
-      >
-         incomplete
-      </span>
-    </a>
-  </nav>
 </form>
 `;

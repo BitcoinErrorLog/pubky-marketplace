@@ -226,27 +226,19 @@ describe('#49 key-release refusal → marketplace approval → grant link (watch
   });
 
   it.each([
-    ['a Bitkit', 'an inventory-only purchase session', 'reconnect', true, 'Approve purchases', 'Open in signer'],
-    ['a Bitkit', 'no purchase session', 'bootstrap', true, 'Approve purchases in Bitkit', 'Open in Bitkit'],
-    [
-      'a Pubky Ring (cookie)',
-      'no purchase session',
-      'bootstrap',
-      true,
-      'Approve purchases in Pubky Ring or Bitkit',
-      'Open in signer',
-    ],
+    ['a Bitkit', 'an inventory-only purchase session', 'reconnect', true, 'Authorize with Bitkit'],
+    ['a Bitkit', 'no purchase session', 'bootstrap', true, 'Authorize with Bitkit'],
+    ['a Pubky Ring (cookie)', 'no purchase session', 'bootstrap', true, 'Authorize with Pubky Ring'],
     [
       'a Pubky Ring (cookie)',
       'an inventory-only purchase session the BFF has not paired',
       'reconnect',
       false,
-      'Approve purchases in Pubky Ring or Bitkit',
-      'Open in signer',
+      'Authorize with Pubky Ring',
     ],
   ] as const)(
     '%s sign-in with %s approves a grant link and then syncs',
-    async (signIn, _label, flow, bffPaired, dialogTitle, openLabel) => {
+    async (signIn, _label, flow, bffPaired, openLabel) => {
       const signer = { approved: false, bffPaired };
       const requests = installNetwork(signer);
       const stepUp = vi.spyOn(HomeserverService, 'generateAuthUrl');
@@ -271,7 +263,7 @@ describe('#49 key-release refusal → marketplace approval → grant link (watch
 
       renderWatchlist();
 
-      expect(await screen.findByText('Sync across devices needs a marketplace approval')).toBeInTheDocument();
+      expect(await screen.findByRole('button', { name: 'Enable device sync' }, { timeout: 8000 })).toBeInTheDocument();
       expect(useCommerceStore.getState().watchlistSyncStatus).toBe('needs_marketplace_approval');
       const keyReads = () => requests.filter((request) => request.path === `${MARKETPLACE_URL}/v1/me/priv-keys`);
       // With no purchase session there is nothing to ask the marketplace; the holder refuses locally.
@@ -285,11 +277,12 @@ describe('#49 key-release refusal → marketplace approval → grant link (watch
       }
       expect(homeserver.log.some((entry) => entry.includes('/priv/'))).toBe(false);
 
-      await user.click(screen.getByRole('button', { name: 'Approve private sync' }));
+      await user.click(screen.getByRole('button', { name: 'Enable device sync' }));
 
       const dialog = await screen.findByRole('dialog');
-      expect(await within(dialog).findByRole('heading', { name: dialogTitle })).toBeInTheDocument();
+      expect(await within(dialog).findByRole('heading', { name: 'Enable device sync' })).toBeInTheDocument();
       expect(await within(dialog).findByRole('button', { name: openLabel })).toBeEnabled();
+      expect(within(dialog).queryByText(/coming soon/i)).not.toBeInTheDocument();
       expect(ringConnect).not.toHaveBeenCalled();
       expect(requests.some((request) => request.path === '/api/marketplace/bootstrap-challenges')).toBe(
         flow === 'bootstrap' || !bffPaired,
@@ -302,7 +295,7 @@ describe('#49 key-release refusal → marketplace approval → grant link (watch
       signer.approved = true;
 
       await waitFor(() => expect(useCommerceStore.getState().watchlistSyncStatus).toBe('synced'), { timeout: 8_000 });
-      expect(screen.queryByText('Sync across devices needs a marketplace approval')).not.toBeInTheDocument();
+      expect(screen.queryByText('Enable device sync')).not.toBeInTheDocument();
       expect(MarketplaceSessionService.getActiveSession()).toMatchObject({
         token: CLAIMED_TOKEN,
         capabilities: MARKETPLACE_SESSION_GRANT,

@@ -1,9 +1,11 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useForm } from 'react-hook-form';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { marketplaceShopSettingsDefaults } from '@/hooks/useMarketplaceShopSettings/useMarketplaceShopSettings.types';
 import { MarketplaceMyShop } from './MarketplaceMyShop';
+
+const load = vi.hoisted(() => ({ error: false, reload: vi.fn() }));
 
 const imageSlot = vi.hoisted(() => (previewUrl: string | null) => ({
   previewUrl,
@@ -45,6 +47,8 @@ vi.mock('@/hooks/useMarketplaceShopSettings/useMarketplaceShopSettings', () => (
       form,
       revision: 0,
       isLoading: false,
+      loadError: load.error,
+      reload: load.reload,
       isSaving: false,
       hasShop: false,
       avatar: imageSlot(null),
@@ -55,6 +59,10 @@ vi.mock('@/hooks/useMarketplaceShopSettings/useMarketplaceShopSettings', () => (
 }));
 
 describe('MarketplaceMyShop', () => {
+  beforeEach(() => {
+    load.error = false;
+    load.reload.mockReset();
+  });
   it('updates the public shop preview as the seller edits the form', async () => {
     const user = userEvent.setup();
     render(<MarketplaceMyShop />);
@@ -64,12 +72,22 @@ describe('MarketplaceMyShop', () => {
     expect(preview).toHaveTextContent('Vacation mode');
 
     await user.type(screen.getByLabelText('Shop name'), 'Satoshi Vintage');
-    await user.type(screen.getByLabelText('Shop bio'), 'Circular fashion and Bitcoin.');
+    await user.type(screen.getByLabelText('About your shop'), 'Circular fashion and Bitcoin.');
     await user.clear(screen.getByLabelText('Region'));
     await user.type(screen.getByLabelText('Region'), 'NY');
 
     await waitFor(() => expect(preview).toHaveTextContent('Satoshi Vintage'));
     expect(preview).toHaveTextContent('Circular fashion and Bitcoin.');
     expect(preview).toHaveTextContent('NY, US');
+  });
+
+  it('offers a retry instead of an editable replacement shop when loading fails', async () => {
+    load.error = true;
+    render(<MarketplaceMyShop />);
+    expect(screen.getByRole('alert')).toHaveTextContent("Couldn't load your current shop settings");
+    expect(screen.queryByLabelText('Shop name')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Create shop' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(load.reload).toHaveBeenCalledOnce();
   });
 });

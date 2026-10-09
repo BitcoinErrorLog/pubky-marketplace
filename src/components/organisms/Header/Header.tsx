@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import type { MouseEvent } from 'react';
+import { AUTH_ROUTES } from '@/app/routes';
 import { usePublicRoute } from '@/hooks/usePublicRoute/usePublicRoute';
 import { cn } from '@/libs/utils/utils';
 import { EnvironmentLabel } from '@/molecules/EnvironmentLabel/EnvironmentLabel';
@@ -23,6 +24,7 @@ export function Header() {
   const { isCoreExploreRoute, isDynamicPublicRoute } = usePublicRoute();
 
   const isOnboarding = pathname?.startsWith('/onboarding') ?? false;
+  const isAuthFlowLayout = isOnboarding || pathname === AUTH_ROUTES.SIGN_IN || pathname === AUTH_ROUTES.LOGOUT;
   const isLandingPage = pathname === '/';
   const isCopyrightPage = pathname === '/copyright';
   const stepConfig = pathname ? pathToStepConfig[pathname] : undefined;
@@ -41,10 +43,10 @@ export function Header() {
 
   // App-shell layout: authenticated app pages and Explore mode (unauthenticated on a
   // public route, e.g. feed/post/profile) both render the feed + sidebars, so the header
-  // must align with the content gutter. Onboarding and the landing page keep the default
-  // centered padding instead.
-  const isAppShellLayout = !isOnboarding && (isAuthenticated || isDynamicPublicRoute || isCoreExploreRoute);
-  const classNameNav = isAppShellLayout ? ' xl:px-0' : '';
+  // must align with the content gutter. Auth flows share a 1200px content area
+  // inside a 1280px container with 40px desktop gutters.
+  const isAppShellLayout = !isAuthFlowLayout && (isAuthenticated || isDynamicPublicRoute || isCoreExploreRoute);
+  const classNameNav = cn(isAppShellLayout && 'xl:px-0', isAuthFlowLayout && 'max-w-screen-xl px-6 lg:px-10');
   // Determine which header content to show:
   // - Onboarding: HeaderOnboarding
   // - Authenticated: HeaderSignIn (navigation + avatar)

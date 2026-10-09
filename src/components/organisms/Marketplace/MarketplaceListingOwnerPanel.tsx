@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { EyeOff, LinkIcon, PencilLine, Play, Trash2 } from 'lucide-react';
+import { EyeOff, LinkIcon, PencilLine, Play, Star, Trash2 } from 'lucide-react';
 import { getMarketplaceListingEditRoute, getMarketplaceListingRoute, MARKETPLACE_ROUTES } from '@/app/routes';
 import { Badge } from '@/atoms/Badge/Badge';
 import { Button } from '@/atoms/Button/Button';
@@ -127,86 +127,96 @@ export function MarketplaceListingOwnerPanel({ record, registrationStatus }: Mar
   };
 
   return (
-    <Card className="gap-4 border border-brand/30 bg-brand/5 py-5">
-      <CardContent className="flex flex-col gap-3 px-5">
-        <div className="flex items-center gap-2">
-          <Typography as="p" className="text-sm font-semibold">
-            Your listing
-          </Typography>
-          <Badge variant="secondary">{record.state}</Badge>
-        </div>
-        {registrationPending && !canRegister && (
-          <Typography as="p" className="text-xs text-muted-foreground" data-testid="listing-registration-unsupported">
-            This browser can&apos;t register listings for checkout. Update it or use another browser.
-          </Typography>
-        )}
-        <div className="flex flex-wrap gap-2">
-          {registrationPending && canRegister && (
-            <Button
-              size="sm"
-              variant="secondary"
-              className="rounded-full"
-              disabled={isMutating}
-              onClick={() => void retryRegistration()}
-            >
-              Register for checkout
-            </Button>
+    <Card className="gap-4 rounded-md border border-brand/64 bg-background p-0">
+      <CardContent className="flex items-start gap-3 p-6">
+        <Star className="mt-0.5 size-5 shrink-0 text-brand" aria-hidden="true" />
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Typography as="p" className="text-sm leading-5 font-semibold">
+              Your listing
+            </Typography>
+            <Badge variant="secondary" className={record.state === 'active' ? 'bg-brand/24 text-brand' : undefined}>
+              {record.state}
+            </Badge>
+          </div>
+          {registrationPending && !canRegister && (
+            <Typography as="p" className="text-xs text-muted-foreground" data-testid="listing-registration-unsupported">
+              This browser can&apos;t register listings for checkout. Update it or use another browser.
+            </Typography>
           )}
-          <Button asChild size="sm" className="rounded-full" disabled={isMutating}>
-            <Link href={getMarketplaceListingEditRoute(record.ownerPubky, record.listingId)} overrideDefaults>
-              <PencilLine className="mr-2 size-4" />
-              Edit listing
-            </Link>
-          </Button>
-          {canToggleVisibility &&
-            (record.state === 'active' ? (
+          <div className="flex flex-wrap gap-2">
+            {registrationPending && canRegister && (
               <Button
                 size="sm"
                 variant="secondary"
                 className="rounded-full"
                 disabled={isMutating}
-                onClick={() => void setListingState('paused')}
+                onClick={() => void retryRegistration()}
               >
-                <EyeOff className="mr-2 size-4" />
-                Unlist
+                Register for checkout
               </Button>
-            ) : (
-              <Button
-                size="sm"
-                variant="secondary"
-                className="rounded-full"
-                disabled={isMutating}
-                onClick={() => void setListingState('active')}
-              >
-                <Play className="mr-2 size-4" />
-                Relist
-              </Button>
-            ))}
-          <Button size="sm" variant="secondary" className="rounded-full" onClick={() => void copyLink()}>
-            <LinkIcon className="mr-2 size-4" />
-            Copy link
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="rounded-full text-destructive hover:text-destructive"
-            disabled={isMutating || !hasHomeserverSession}
-            onClick={() => setConfirmingDelete(true)}
-          >
-            <Trash2 className="mr-2 size-4" />
-            Delete
-          </Button>
+            )}
+            <Button asChild size="sm" variant="secondary" className="rounded-full" disabled={isMutating}>
+              <Link href={getMarketplaceListingEditRoute(record.ownerPubky, record.listingId)} overrideDefaults>
+                <PencilLine className="size-4" />
+                Edit
+              </Link>
+            </Button>
+            {canToggleVisibility &&
+              (record.state === 'active' ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="rounded-full"
+                  disabled={isMutating}
+                  onClick={() => void setListingState('paused')}
+                >
+                  <EyeOff className="size-4" />
+                  Unlist
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="rounded-full"
+                  disabled={isMutating}
+                  onClick={() => void setListingState('active')}
+                >
+                  <Play className="size-4" />
+                  Relist
+                </Button>
+              ))}
+            <Button size="sm" variant="secondary" className="rounded-full" onClick={() => void copyLink()}>
+              <LinkIcon className="size-4" />
+              Link
+            </Button>
+            <Button
+              size="icon"
+              variant="secondary"
+              className="size-8 rounded-full"
+              aria-label="Delete"
+              title="Delete"
+              disabled={isMutating || !hasHomeserverSession}
+              onClick={() => setConfirmingDelete(true)}
+            >
+              <Trash2 className="size-4" aria-hidden="true" />
+            </Button>
+          </div>
+          {!hasHomeserverSession && (
+            <Typography
+              as="p"
+              className="text-xs text-muted-foreground"
+              data-testid="listing-delete-waiting-for-session"
+            >
+              Delete is available once your session is restored.
+            </Typography>
+          )}
+          {record.sale.format === 'auction' && (
+            <Typography as="p" className="text-xs text-muted-foreground">
+              Auctions cannot be unlisted: published auction terms stay live until the auction ends.
+            </Typography>
+          )}
         </div>
-        {!hasHomeserverSession && (
-          <Typography as="p" className="text-xs text-muted-foreground" data-testid="listing-delete-waiting-for-session">
-            Delete is available once your session is restored.
-          </Typography>
-        )}
-        {record.sale.format === 'auction' && (
-          <Typography as="p" className="text-xs text-muted-foreground">
-            Auctions cannot be unlisted: published auction terms stay live until the auction ends.
-          </Typography>
-        )}
       </CardContent>
 
       <Dialog open={confirmingDelete} onOpenChange={(next) => !isMutating && setConfirmingDelete(next)}>

@@ -56,12 +56,6 @@ export function deriveBitcoinStatus(args: {
 }
 
 export function atLeastOneMethodSentence(readyCount: number): string {
-  const each = 'Each method works on its own — turn on any of them, in any order, and change them whenever you like.';
-  if (readyCount === 0) {
-    return `Set up at least one method below to start selling. ${each}`;
-  }
-  if (readyCount === 1) {
-    return `1 method is ready to accept payments. ${each}`;
-  }
-  return `${readyCount} methods are ready to accept payments. ${each}`;
+  if (readyCount === 0) return 'Add a payment method to start selling.';
+  return `${readyCount} payment ${readyCount === 1 ? 'method' : 'methods'} set up.`;
 }

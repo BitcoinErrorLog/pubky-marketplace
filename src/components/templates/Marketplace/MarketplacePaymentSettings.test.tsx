@@ -56,6 +56,10 @@ vi.mock('@/controllers/commerce/commerce', () => ({
   },
 }));
 
+vi.mock('@/organisms/Marketplace/MarketplaceSectionNav', () => ({
+  MarketplaceSectionNav: () => <nav aria-label="Marketplace sections" />,
+}));
+
 vi.mock('@/molecules/Toaster/use-toast', () => ({
   toast: vi.fn(),
   useToast: () => ({ toast: vi.fn() }),
@@ -147,12 +151,29 @@ describe('MarketplacePaymentSettings', () => {
   it('leads with how-you-get-paid setup copy, not a funds warning', async () => {
     await renderSettings();
 
-    expect(screen.getByRole('heading', { name: 'How you get paid' })).toBeInTheDocument();
-    expect(screen.getByText('Set up the methods buyers can use at checkout.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Payment settings' })).toBeInTheDocument();
+    expect(screen.getByText('Manage your payment methods and preferences.')).toBeInTheDocument();
     expect(screen.queryByText(/pays the seller directly/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/never holds funds/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/pre-production/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/this prototype/i)).not.toBeInTheDocument();
+  });
+
+  it('shows an enabled Bitcoin rail honestly and lets the seller turn it off without reconnecting', async () => {
+    mockedController.getMyPaymentConfig.mockResolvedValue({ ...EMPTY_CONFIG, bitcoinEnabled: true });
+    await renderSettings();
+    const bitcoin = screen.getByRole('switch', { name: 'Accept bitcoin' });
+    expect(bitcoin).toBeChecked();
+    expect(bitcoin).toBeEnabled();
+    await userEvent.click(bitcoin);
+    await userEvent.click(screen.getAllByRole('button', { name: 'Save changes' })[0]);
+    await waitFor(() =>
+      expect(mockedController.putMyPaymentConfig).toHaveBeenCalledWith(
+        expect.objectContaining({ bitcoinEnabled: false }),
+      ),
+    );
+    expect(bitcoin).not.toBeChecked();
+    expect(bitcoin).toBeDisabled();
   });
 
   it('renders PayPal and Bitcoin and does not show a card rail', async () => {
@@ -182,10 +203,8 @@ describe('MarketplacePaymentSettings', () => {
     expect(screen.queryByTestId('payment-method-status-stripe')).not.toBeInTheDocument();
     // Claim without Lock Server authorization is not Connected.
     expect(screen.getByTestId('payment-method-status-bitcoin')).toHaveTextContent('Needs attention');
-    expect(screen.getByRole('button', { name: /Open Locks connect/ })).toBeInTheDocument();
-    expect(screen.getByTestId('payment-methods-ready-summary')).toHaveTextContent(
-      '1 method is ready to accept payments.',
-    );
+    expect(screen.getByRole('button', { name: /Connect Lock Server/ })).toBeInTheDocument();
+    expect(screen.queryByTestId('payment-methods-ready-summary')).not.toBeInTheDocument();
   });
 
   it('shows Bitcoin Connected only when Lock Server authorization and the Paykit claim are both present', async () => {
@@ -209,9 +228,7 @@ describe('MarketplacePaymentSettings', () => {
     expect(screen.getByTestId('payment-method-status-paypal')).toHaveTextContent('Email saved');
     expect(screen.queryByTestId('payment-method-status-stripe')).not.toBeInTheDocument();
     expect(screen.getByTestId('payment-method-status-bitcoin')).toHaveTextContent('Connected');
-    expect(screen.getByTestId('payment-methods-ready-summary')).toHaveTextContent(
-      '2 methods are ready to accept payments.',
-    );
+    expect(screen.queryByTestId('payment-methods-ready-summary')).not.toBeInTheDocument();
   });
 
   it('shows Not set up on every pill for a new seller', async () => {
@@ -220,9 +237,7 @@ describe('MarketplacePaymentSettings', () => {
     expect(screen.getByTestId('payment-method-status-paypal')).toHaveTextContent('Not set up');
     expect(screen.queryByTestId('payment-method-status-stripe')).not.toBeInTheDocument();
     expect(screen.getByTestId('payment-method-status-bitcoin')).toHaveTextContent('Not set up');
-    expect(screen.getByTestId('payment-methods-ready-summary')).toHaveTextContent(
-      'Set up at least one method below to start selling.',
-    );
+    expect(screen.queryByTestId('payment-methods-ready-summary')).not.toBeInTheDocument();
   });
 
   it('needs attention when the Lock Server connect errored', async () => {
@@ -245,21 +260,21 @@ describe('MarketplacePaymentSettings', () => {
 
     const detailsToggle = screen.getByRole('button', { name: 'Technical details' });
     expect(detailsToggle).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByText(/watch-only BIP84 account claim/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/shares a watch-only account with Paykit/)).not.toBeInTheDocument();
     expect(screen.queryByText(/^Lock Server:/)).not.toBeInTheDocument();
 
     await user.click(detailsToggle);
 
     expect(detailsToggle).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByText(/watch-only BIP84 account claim/)).toBeInTheDocument();
-    expect(screen.getByText(/Use Open Bitkit setup above/)).toBeInTheDocument();
+    expect(screen.getByText(/shares a watch-only account with Paykit/)).toBeInTheDocument();
+    expect(screen.getByText(/Connect Bitkit to finish wallet setup/)).toBeInTheDocument();
     expect(screen.queryByLabelText('Account xpub')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Claim with signer' })).not.toBeInTheDocument();
-    expect(screen.getByText(/^Lock Server:/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Locks Server' })).toHaveAttribute('target', '_blank');
   });
 
-  it('keeps Accept bitcoin off and disabled until both bitcoin steps are Connected', async () => {
-    mockedController.getMyPaymentConfig.mockResolvedValue({ ...EMPTY_CONFIG, bitcoinEnabled: true });
+  it('keeps enabling Bitcoin disabled until both setup steps are Connected', async () => {
+    mockedController.getMyPaymentConfig.mockResolvedValue(EMPTY_CONFIG);
     mockedController.isOwnPaykitAccountClaimed.mockResolvedValue(true);
 
     await renderSettings();
@@ -275,7 +290,7 @@ describe('MarketplacePaymentSettings', () => {
     mockedController.getMyPaymentConfig.mockResolvedValue(null);
 
     await renderSettings();
-    const save = screen.getAllByRole('button', { name: 'Save payment settings' })[0];
+    const save = screen.getAllByRole('button', { name: 'Save changes' })[0];
     await waitFor(() => expect(save).toBeEnabled());
 
     await user.type(screen.getByLabelText('PayPal merchant email'), 'new-seller@example.com');
@@ -299,7 +314,7 @@ describe('MarketplacePaymentSettings', () => {
     });
 
     await renderSettings();
-    const save = screen.getAllByRole('button', { name: 'Save payment settings' })[0];
+    const save = screen.getAllByRole('button', { name: 'Save changes' })[0];
     await waitFor(() => expect(save).toBeEnabled());
 
     const email = screen.getByLabelText('PayPal merchant email');
@@ -322,7 +337,7 @@ describe('MarketplacePaymentSettings', () => {
     await user.type(screen.getByLabelText('PayPal merchant email'), 'seller@example.com');
     expect(screen.getByRole('switch', { name: 'Accept bitcoin' })).toBeDisabled();
 
-    await user.click(screen.getAllByRole('button', { name: 'Save payment settings' })[0]);
+    await user.click(screen.getAllByRole('button', { name: 'Save changes' })[0]);
 
     await waitFor(() => expect(mockedController.putMyPaymentConfig).toHaveBeenCalledTimes(1));
     expect(mockedController.putMyPaymentConfig).toHaveBeenLastCalledWith({
@@ -348,7 +363,7 @@ describe('MarketplacePaymentSettings', () => {
     const accept = screen.getByRole('switch', { name: 'Accept bitcoin' });
     expect(accept).toBeEnabled();
     await user.click(accept);
-    await user.click(screen.getAllByRole('button', { name: 'Save payment settings' })[1]);
+    await user.click(screen.getAllByRole('button', { name: 'Save changes' })[1]);
 
     await waitFor(() => expect(mockedController.putMyPaymentConfig).toHaveBeenCalled());
     expect(mockedController.putMyPaymentConfig).toHaveBeenLastCalledWith(
@@ -356,7 +371,7 @@ describe('MarketplacePaymentSettings', () => {
     );
   });
 
-  it('tells a seller why Step 1 asks for a fresh approval, beside Open Locks connect', async () => {
+  it('tells a seller why Step 1 asks for a fresh approval, beside Connect Lock Server', async () => {
     const notice = 'Connected before? Approve once more in Pubky Ring or Bitkit.';
     view.locksConnect = {
       connectedCreator: null,
@@ -370,7 +385,7 @@ describe('MarketplacePaymentSettings', () => {
     await renderSettings();
 
     expect(screen.getByTestId('locks-reapprove-notice')).toHaveTextContent(notice);
-    expect(screen.getByRole('button', { name: /Open Locks connect/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Connect Lock Server/ })).toBeInTheDocument();
   });
 
   it('shows a failed Lock Server status check as Needs attention with the reason, never Not set up', async () => {
@@ -419,10 +434,11 @@ describe('MarketplacePaymentSettings', () => {
     await renderSettings();
 
     expect(screen.getByTestId('payment-method-status-bitcoin')).toHaveTextContent('Needs attention');
-    expect(screen.getByRole('switch', { name: 'Accept bitcoin' })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: 'Accept bitcoin' })).toBeEnabled();
+    expect(screen.getByRole('switch', { name: 'Accept bitcoin' })).toBeChecked();
     expect(screen.queryByText(/Creator authority connected/)).not.toBeInTheDocument();
 
-    await user.click(screen.getAllByRole('button', { name: 'Save payment settings' })[1]);
+    await user.click(screen.getAllByRole('button', { name: 'Save changes' })[1]);
 
     await waitFor(() => expect(mockedController.putMyPaymentConfig).toHaveBeenCalled());
     expect(mockedController.putMyPaymentConfig).toHaveBeenLastCalledWith(
@@ -473,7 +489,7 @@ describe('MarketplacePaymentSettings', () => {
 
   it('lets the Bitkit setup iframe open Bitkit', async () => {
     await renderSettings();
-    fireEvent.click(screen.getByRole('button', { name: /Open Bitkit setup/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Connect Bitkit/ }));
 
     const sandbox = screen.getByTitle('Connect Bitkit').getAttribute('sandbox')?.split(' ') ?? [];
     expect(sandbox).toEqual(expect.arrayContaining(HANDOFF_SANDBOX_TOKENS));
@@ -494,16 +510,15 @@ describe('MarketplacePaymentSettings', () => {
     expect(screen.queryByText(/Stripe/)).not.toBeInTheDocument();
   });
 
-  it('tells Ring-signed-up sellers to create a Shop identity in Bitkit', async () => {
+  it('explains the Bitkit connection and preserves the mobile handoff', async () => {
     await renderSettings();
 
-    const helper =
-      'Your Shop identity must live in Bitkit. Signed up with Pubky Ring? Create a new Shop account by scanning the sign-up QR with Bitkit — Ring import is coming to Bitkit.';
+    const helper = 'Approve payment setup in Bitkit to receive bitcoin.';
     expect(screen.getByText(helper)).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /Open Bitkit setup/ }));
-    expect(screen.getAllByText(helper)).toHaveLength(2);
+    fireEvent.click(screen.getByRole('button', { name: /Connect Bitkit/ }));
+    expect(screen.getAllByText(helper)).toHaveLength(1);
     expect(
       screen.getByText('Scan the code with Bitkit, or open this page on your phone and tap Open in Bitkit.'),
     ).toBeInTheDocument();
@@ -520,7 +535,7 @@ describe('MarketplacePaymentSettings', () => {
     render(<MarketplacePaymentSettings />);
     expect(screen.getByRole('heading', { name: 'PayPal' })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /Open Bitkit setup/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Connect Bitkit/ }));
 
     expect(mockedController.getPaykitSetupUrl).toHaveBeenCalledTimes(1);
     const iframe = screen.getByTitle('Connect Bitkit') as HTMLIFrameElement;
@@ -584,7 +599,7 @@ describe('MarketplacePaymentSettings', () => {
       });
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /Open Bitkit setup/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Connect Bitkit/ }));
     const iframe = screen.getByTitle('Connect Bitkit') as HTMLIFrameElement;
     const source = setPaykitIframeSource(iframe);
     const state = new URL(iframe.src).searchParams.get('state');
@@ -612,7 +627,7 @@ describe('MarketplacePaymentSettings', () => {
   it('shows the timeout state and retries with a fresh setup state', async () => {
     await renderSettings();
     vi.useFakeTimers();
-    fireEvent.click(screen.getByRole('button', { name: /Open Bitkit setup/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Connect Bitkit/ }));
     const firstState = new URL((screen.getByTitle('Connect Bitkit') as HTMLIFrameElement).src).searchParams.get(
       'state',
     );
@@ -634,7 +649,7 @@ describe('MarketplacePaymentSettings', () => {
 
   it('keeps the dialog open and shows an identity mismatch when verification is not claimed', async () => {
     await renderSettings();
-    fireEvent.click(screen.getByRole('button', { name: /Open Bitkit setup/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Connect Bitkit/ }));
     const iframe = screen.getByTitle('Connect Bitkit') as HTMLIFrameElement;
     const source = setPaykitIframeSource(iframe);
     const state = new URL(iframe.src).searchParams.get('state');
@@ -663,7 +678,7 @@ describe('MarketplacePaymentSettings', () => {
 
   it('maps identity mismatch separately from other setup errors', async () => {
     await renderSettings();
-    fireEvent.click(screen.getByRole('button', { name: /Open Bitkit setup/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Connect Bitkit/ }));
     const iframe = screen.getByTitle('Connect Bitkit') as HTMLIFrameElement;
     const source = setPaykitIframeSource(iframe);
     const state = new URL(iframe.src).searchParams.get('state');
@@ -697,7 +712,7 @@ describe('MarketplacePaymentSettings', () => {
 
   it('closes the setup dialog when the viewer identity is cleared', async () => {
     await renderSettings();
-    fireEvent.click(screen.getByRole('button', { name: /Open Bitkit setup/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Connect Bitkit/ }));
     const iframe = screen.getByTitle('Connect Bitkit') as HTMLIFrameElement;
     const source = setPaykitIframeSource(iframe);
     const state = new URL(iframe.src).searchParams.get('state');
@@ -720,7 +735,7 @@ describe('MarketplacePaymentSettings', () => {
   it('ignores callbacks that fail any message guard', async () => {
     const user = userEvent.setup();
     await renderSettings();
-    await user.click(screen.getByRole('button', { name: /Open Bitkit setup/ }));
+    await user.click(screen.getByRole('button', { name: /Connect Bitkit/ }));
     const iframe = screen.getByTitle('Connect Bitkit') as HTMLIFrameElement;
     const source = setPaykitIframeSource(iframe);
     const state = new URL(iframe.src).searchParams.get('state');
@@ -746,7 +761,7 @@ describe('MarketplacePaymentSettings', () => {
   it('shows failure and retries with a new setup state', async () => {
     const user = userEvent.setup();
     await renderSettings();
-    await user.click(screen.getByRole('button', { name: /Open Bitkit setup/ }));
+    await user.click(screen.getByRole('button', { name: /Connect Bitkit/ }));
     const firstIframe = screen.getByTitle('Connect Bitkit') as HTMLIFrameElement;
     const firstState = String(new URL(firstIframe.src).searchParams.get('state'));
     const source = setPaykitIframeSource(firstIframe);
@@ -766,7 +781,7 @@ describe('MarketplacePaymentSettings', () => {
 
   it('removes the expired Step 2 QR so nothing is left to scan', async () => {
     await renderSettings();
-    fireEvent.click(screen.getByRole('button', { name: /Open Bitkit setup/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Connect Bitkit/ }));
     const iframe = screen.getByTitle('Connect Bitkit') as HTMLIFrameElement;
     const source = setPaykitIframeSource(iframe);
     const state = new URL(iframe.src).searchParams.get('state');
@@ -796,7 +811,7 @@ describe('MarketplacePaymentSettings', () => {
     const user = userEvent.setup();
     const { unmount } = render(<MarketplacePaymentSettings />);
     await screen.findByRole('heading', { name: 'PayPal' });
-    await user.click(screen.getByRole('button', { name: /Open Bitkit setup/ }));
+    await user.click(screen.getByRole('button', { name: /Connect Bitkit/ }));
     unmount();
     expect(addSpy).toHaveBeenCalledWith('message', expect.any(Function));
     expect(removeSpy).toHaveBeenCalledWith('message', expect.any(Function));
@@ -810,7 +825,7 @@ describe('MarketplacePaymentSettings', () => {
 
     expect(await screen.findAllByText('Loading payment settings…')).toHaveLength(2);
     expect(document.querySelector('[data-surface="marketplace-get-paid"]')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Save payment settings' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument();
   });
 
   it('preserves server bitcoin when Accept bitcoin was not toggled', async () => {
@@ -823,13 +838,13 @@ describe('MarketplacePaymentSettings', () => {
     });
 
     await renderSettings();
-    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Save payment settings' })[1]).toBeEnabled());
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Save changes' })[1]).toBeEnabled());
 
     const accept = screen.getByRole('switch', { name: 'Accept bitcoin' });
-    expect(accept).toBeDisabled();
-    expect(accept).not.toBeChecked();
+    expect(accept).toBeEnabled();
+    expect(accept).toBeChecked();
 
-    await user.click(screen.getAllByRole('button', { name: 'Save payment settings' })[1]);
+    await user.click(screen.getAllByRole('button', { name: 'Save changes' })[1]);
 
     await waitFor(() => expect(mockedController.putMyPaymentConfig).toHaveBeenCalledTimes(1));
     expect(mockedController.putMyPaymentConfig).toHaveBeenLastCalledWith(
@@ -860,7 +875,7 @@ describe('MarketplacePaymentSettings', () => {
     expect(accept).toBeChecked();
     await user.click(accept);
     expect(accept).not.toBeChecked();
-    await user.click(screen.getAllByRole('button', { name: 'Save payment settings' })[1]);
+    await user.click(screen.getAllByRole('button', { name: 'Save changes' })[1]);
 
     await waitFor(() => expect(mockedController.putMyPaymentConfig).toHaveBeenCalled());
     expect(mockedController.putMyPaymentConfig).toHaveBeenLastCalledWith(
@@ -876,11 +891,11 @@ describe('MarketplacePaymentSettings', () => {
     });
 
     await renderSettings();
-    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Save payment settings' })[0]).toBeEnabled());
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Save changes' })[0]).toBeEnabled());
     expect(screen.queryByLabelText('Stripe payment link')).not.toBeInTheDocument();
 
     await user.type(screen.getByLabelText('PayPal merchant email'), 'seller@example.com');
-    await user.click(screen.getAllByRole('button', { name: 'Save payment settings' })[0]);
+    await user.click(screen.getAllByRole('button', { name: 'Save changes' })[0]);
 
     await waitFor(() => expect(mockedController.putMyPaymentConfig).toHaveBeenCalledTimes(1));
     expect(mockedController.putMyPaymentConfig).toHaveBeenLastCalledWith(
@@ -900,19 +915,16 @@ describe('MarketplacePaymentSettings', () => {
 
     expect(screen.queryByRole('button', { name: 'Claim with signer' })).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Account xpub')).not.toBeInTheDocument();
-    expect(screen.getByText(/Use Open Bitkit setup above/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Open Bitkit setup/ })).toBeInTheDocument();
+    expect(screen.getByText(/Connect Bitkit to finish wallet setup/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Connect Bitkit/ })).toBeInTheDocument();
   });
 
-  it('shows a disabled return path into the listing composer until a method is configured', async () => {
+  it('keeps a back link to the listing composer before setup', async () => {
     navigation.searchParams = new URLSearchParams('returnTo=/marketplace/sell');
     await renderSettings();
 
     expect(screen.getByRole('link', { name: /Back to listing/ })).toHaveAttribute('href', '/marketplace/sell');
-    expect(screen.getByTestId('listing-composer-return')).toHaveTextContent(
-      'After at least one payment method is configured, continue creating your listing.',
-    );
-    expect(screen.getByRole('button', { name: 'Continue creating listing' })).toBeDisabled();
+    expect(screen.getByTestId('listing-composer-return')).toHaveTextContent('Back to listing');
   });
 
   it('returns to the listing composer after a payment method is saved', async () => {
@@ -921,7 +933,7 @@ describe('MarketplacePaymentSettings', () => {
     await renderSettings();
 
     await user.type(screen.getByLabelText('PayPal merchant email'), 'seller@example.com');
-    await user.click(screen.getAllByRole('button', { name: 'Save payment settings' })[0]);
+    await user.click(screen.getAllByRole('button', { name: 'Save changes' })[0]);
 
     await waitFor(() => {
       expect(navigation.push).toHaveBeenCalledWith('/marketplace/sell');

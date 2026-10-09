@@ -21,6 +21,7 @@ import { PICKUP_DETAILS_FORM_FIELDS } from '@/hooks/usePickupDetailsForm/usePick
 import { ControlledInputField } from '@/molecules/ControlledInputField/ControlledInputField';
 import { ControlledTextareaField } from '@/molecules/ControlledTextareaField/ControlledTextareaField';
 import { MarketplaceAddressFields } from '@/molecules/MarketplaceAddressFields/MarketplaceAddressFields';
+import { SETTINGS_SECTION_CONTENT_CLASSNAME } from '@/molecules/Settings/SettingsSectionContent/SettingsSectionContent';
 
 const WEEKDAY_OPTIONS = [
   { value: 'mon', label: 'Mondays' },
@@ -99,7 +100,7 @@ export const MarketplacePickupDetailsEditor = forwardRef<
 
   if (editor.capability === 'unavailable') {
     return (
-      <div className="grid gap-2 rounded-xl border border-dashed p-4" data-testid="pickup-unavailable-note">
+      <div className="grid gap-2 rounded-md p-4" data-testid="pickup-unavailable-note">
         <Typography as="p" className="text-sm font-medium">
           Local pickup is not available on this deployment.
         </Typography>
@@ -122,7 +123,7 @@ export const MarketplacePickupDetailsEditor = forwardRef<
 
   if (editor.readState === 'failed') {
     return (
-      <div className="grid gap-3 rounded-xl border border-dashed p-4" data-testid="pickup-read-failed">
+      <div className="grid gap-3 rounded-md p-4" data-testid="pickup-read-failed">
         <Typography as="p" className="text-sm text-muted-foreground">
           The saved pickup details could not be read, so editing is blocked — saving blind could overwrite what another
           device stored.
@@ -136,7 +137,7 @@ export const MarketplacePickupDetailsEditor = forwardRef<
 
   return (
     <div
-      className="grid gap-5 rounded-xl border border-dashed p-4"
+      className={SETTINGS_SECTION_CONTENT_CLASSNAME}
       data-surface="pickup-details-editor"
       data-sentry-mask
       data-testid="pickup-details-editor"
@@ -309,7 +310,7 @@ function PickupAvailabilityFields({
               Availability
             </Label>
             <Select value={field.value} onValueChange={field.onChange} disabled={disabled}>
-              <SelectTrigger id="pickup-availability-mode" className="h-11 w-full rounded-md border px-3">
+              <SelectTrigger theme="secondary" id="pickup-availability-mode" className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -339,7 +340,7 @@ function PickupAvailabilityFields({
                     control={editor.form.control}
                     render={({ field }) => (
                       <Select value={field.value} onValueChange={field.onChange} disabled={disabled}>
-                        <SelectTrigger id={`pickup-window-day-${index}`} className="h-11 w-36 rounded-md border px-3">
+                        <SelectTrigger theme="secondary" id={`pickup-window-day-${index}`} className="w-36">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -358,9 +359,10 @@ function PickupAvailabilityFields({
                     From
                   </Label>
                   <Input
+                    theme="dashed"
                     id={`pickup-window-start-${index}`}
                     type="time"
-                    className="h-11 w-32"
+                    className="w-32"
                     disabled={disabled}
                     aria-invalid={!!windowsError?.[index]?.start}
                     {...editor.form.register(`${PICKUP_DETAILS_FORM_FIELDS.WINDOWS}.${index}.start`)}
@@ -371,9 +373,10 @@ function PickupAvailabilityFields({
                     To
                   </Label>
                   <Input
+                    theme="dashed"
                     id={`pickup-window-end-${index}`}
                     type="time"
-                    className="h-11 w-32"
+                    className="w-32"
                     disabled={disabled}
                     aria-invalid={!!windowsError?.[index]?.end}
                     {...editor.form.register(`${PICKUP_DETAILS_FORM_FIELDS.WINDOWS}.${index}.end`)}
@@ -411,6 +414,7 @@ function PickupAvailabilityFields({
                 Timezone
               </Label>
               <Input
+                theme="dashed"
                 id="pickup-window-zone"
                 placeholder="Europe/Berlin"
                 disabled={disabled}
@@ -426,7 +430,7 @@ function PickupAvailabilityFields({
               disabled={disabled || windows.fields.length >= 14}
               onClick={() => windows.append({ day: 'sat', start: '10:00', end: '14:00' })}
             >
-              <Plus className="mr-2 size-4" />
+              <Plus className="size-4" />
               Add window
             </Button>
           </div>

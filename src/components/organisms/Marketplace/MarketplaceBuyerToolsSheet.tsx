@@ -63,7 +63,7 @@ export function MarketplaceBuyerToolsSheet({
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button variant="ghost" className="rounded-full">
-          <LayoutDashboard className="mr-2 size-4" />
+          <LayoutDashboard className="size-4" />
           My marketplace
           <MarketplaceNavCountBadge count={cartCount + activityUnreadCount} className="ml-2" />
         </Button>
@@ -83,7 +83,7 @@ export function MarketplaceBuyerToolsSheet({
               <button
                 key={href}
                 type="button"
-                className="flex w-full items-center gap-3 rounded-xl border bg-card px-4 py-3 text-left transition-colors hover:border-brand/40"
+                className="flex w-full items-center gap-3 rounded-md border bg-card px-4 py-3 text-left transition-colors hover:border-brand/40"
                 aria-label={count > 0 ? `${label}, ${count > 21 ? '21+' : count}` : label}
                 onClick={() => navigate(href)}
               >

@@ -3,6 +3,7 @@
 import { Key, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/atoms/Button/Button';
 import { Typography } from '@/atoms/Typography/Typography';
+import { cn } from '@/libs/utils/utils';
 import { MarketplaceApprovalDisclosure } from '@/molecules/MarketplaceApprovalDisclosure/MarketplaceApprovalDisclosure';
 import { QrCodeSlot } from '@/molecules/QrCodeSlot/QrCodeSlot';
 import type { SignerAuthCopy, SignerAuthOptionProps, SignerAuthorizeButtonProps } from './SignerAuthOption.types';
@@ -59,24 +60,32 @@ export const SIGN_UP_SIGNER_COPY = {
 } as const satisfies SignerAuthCopy;
 
 /** One signer's labelled QR in the side-by-side desktop layout. */
-export function SignerAuthOption({ copy, auth, onCopied, testId, disclosure = null }: SignerAuthOptionProps) {
+export function SignerAuthOption({
+  copy,
+  auth,
+  onCopied,
+  testId,
+  disclosure = null,
+  qrOnly = false,
+}: SignerAuthOptionProps) {
   const { url, isLoading, isExpired, fetchUrl } = auth;
   const handleQRClick = async () => {
     if (!url) return;
     await onCopied();
   };
-  return (
-    <div className="flex flex-col items-center gap-4" data-testid={testId}>
-      <Typography as="h2" className="text-xl font-bold text-foreground">
-        {copy.name}
-      </Typography>
-      <button
-        type="button"
-        className="group relative flex size-48 cursor-pointer items-center justify-center rounded-md bg-foreground p-2"
-        onClick={isExpired ? fetchUrl : handleQRClick}
-        disabled={isLoading || (!url && !isExpired)}
-        aria-label={isExpired ? copy.reloadLabel : copy.copyLabel}
-      >
+  const qrButton = (
+    <button
+      type="button"
+      data-testid={qrOnly ? testId : undefined}
+      className={cn(
+        'group relative flex cursor-pointer items-center justify-center rounded-md bg-foreground p-2',
+        qrOnly ? 'aspect-square w-full' : 'size-48',
+      )}
+      onClick={isExpired ? fetchUrl : handleQRClick}
+      disabled={isLoading || (!url && !isExpired)}
+      aria-label={isExpired ? copy.reloadLabel : copy.copyLabel}
+    >
+      <span className={qrOnly ? 'relative flex aspect-square w-full items-center justify-center' : 'contents'}>
         <QrCodeSlot
           isLoading={isLoading}
           isExpired={isExpired}
@@ -84,9 +93,19 @@ export function SignerAuthOption({ copy, auth, onCopied, testId, disclosure = nu
           generatingLabel={'Generating QR Code...'}
           clickToReloadLabel={'Click to reload'}
           activeQrHasHoverEffect
-          showRingLogo={copy.showRingLogo}
+          fillWidth={qrOnly}
+          logo={copy.showRingLogo ? 'ring' : 'bitkit'}
         />
-      </button>
+      </span>
+    </button>
+  );
+  if (qrOnly) return qrButton;
+  return (
+    <div className="flex flex-col items-center gap-4" data-testid={testId}>
+      <Typography as="h2" className="text-xl font-bold text-foreground">
+        {copy.name}
+      </Typography>
+      {qrButton}
       <Typography as="span" className="text-center text-muted-foreground">
         {copy.hint}
       </Typography>
@@ -101,7 +120,7 @@ export function SignerAuthOption({ copy, auth, onCopied, testId, disclosure = nu
 }
 
 /** One signer's deeplink button in the stacked mobile layout. */
-export function SignerAuthorizeButton({ copy, auth, testId }: SignerAuthorizeButtonProps) {
+export function SignerAuthorizeButton({ copy, auth, testId, authorizeLabel }: SignerAuthorizeButtonProps) {
   const { url, isLoading, isExpired, isOpeningRing, onAuthorizeClick } = auth;
   const isMobileLaunching = isLoading || isOpeningRing;
   return (
@@ -128,7 +147,7 @@ export function SignerAuthorizeButton({ copy, auth, testId }: SignerAuthorizeBut
       ) : (
         <>
           <Key className="mr-2 size-4" />
-          {`Authorize with ${copy.name}`}
+          {authorizeLabel ?? `Authorize with ${copy.name}`}
         </>
       )}
     </Button>

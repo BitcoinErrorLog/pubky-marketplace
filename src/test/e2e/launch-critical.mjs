@@ -181,24 +181,18 @@ async function waitForListingReady(page) {
 
 async function exerciseListingCheckout(page) {
   await waitForListingReady(page);
-  const buy = page.getByRole('button', { name: 'Sign in to buy' });
-  const add = page.getByRole('button', { name: 'Add to cart' });
+  const buy = page.getByRole('button', { name: 'Buy', exact: true });
   if (await buy.count()) {
     await buy.first().click();
     await waitForJoinPubky(page);
-    record('checkout:payment-step', true, 'Sign in to buy → Join Pubky');
-    await closeJoinDialog(page);
-  } else if (await add.count()) {
-    await add.first().click();
-    await waitForJoinPubky(page);
-    record('checkout:payment-step', true, 'Add to cart → Join Pubky');
+    record('checkout:payment-step', true, 'Buy → Join Pubky');
     await closeJoinDialog(page);
   } else {
     const unavailable = await page.getByRole('heading', { name: 'Listing unavailable' }).count();
     record(
       'checkout:payment-step',
       false,
-      unavailable ? 'listing unavailable after Chromium navigation' : 'no Sign in to buy / Add to cart on listing',
+      unavailable ? 'listing unavailable after Chromium navigation' : 'no Buy button on listing',
     );
   }
   await runAxe(page, 'listing');

@@ -13,8 +13,8 @@ import { type CommerceAdapterMode, isLocksPaykitCommerceMode } from '@/config/co
  */
 export function MarketplaceDigitalDeliveryNotice({ adapterMode }: { adapterMode: CommerceAdapterMode }) {
   return (
-    <Card className="gap-4 border border-brand/30 py-5">
-      <CardContent className="flex items-start gap-3 px-5">
+    <Card className="gap-4 rounded-md p-0">
+      <CardContent className="flex items-start gap-3 p-6">
         <div className="rounded-full bg-brand/15 p-2 text-brand">
           <KeyRound className="size-5" />
         </div>

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { marketplaceOrderSchema } from '@/core/services/marketplace/marketplace-projections';
+import { CHECKOUT_HOLD_COPY } from '@/libs/commerce/checkout-hold';
 import projectionSamples from '@/libs/commerce/contracts/samples/projections.json';
 import { toCamelCaseWire } from '@/libs/commerce/wire-casing';
 import {
@@ -62,11 +63,11 @@ describe('bitcoin buyer status', () => {
     expect(progress).toBe(row.progress.includes('Seller confirms by') ? `${row.progress} ${COUNTDOWN}` : row.progress);
     expect(wallet.text).toBe(row.wallet);
     expect(buyerCheckoutBadgeLabel(order, payment)).toBe(
-      row.forbidsPayLabels ? PAYMENT_SEEN_LABEL : 'Reserved while you pay',
+      row.forbidsPayLabels ? PAYMENT_SEEN_LABEL : 'Awaiting payment · Item reserved',
     );
     if (row.forbidsPayLabels) {
-      expect(progress).not.toMatch(/Reserved while you pay|Pay by/);
-      expect(wallet.text).not.toMatch(/Reserved while you pay|Pay by|Open Bitkit to pay/);
+      expect(progress).not.toMatch(/Awaiting payment · Item reserved|Pay by/);
+      expect(wallet.text).not.toMatch(/Awaiting payment · Item reserved|Pay by|Open Bitkit to pay/);
     }
     if (!row.confirmationExists) {
       expect(progress).not.toMatch(/confirmed on-chain/);
@@ -131,6 +132,12 @@ describe('bitcoin buyer status', () => {
     expect(wallet.text).toMatch(/^Sent to your wallet\. Open Bitkit to pay\./);
     expect(wallet.text).toMatch(/check that the seller is one of your Bitkit contacts/);
     expect(wallet.text).not.toMatch(/[Dd]elivered/);
+  });
+
+  it('ends the sent copy by asking the buyer to settle a pending payment before ordering again', () => {
+    const unpaid = { ...seenOrder, paykitRequestState: 'pending' as const };
+    const wallet = buyerBitcoinWalletCopy(unpaid, { state: 'awaiting_entitlement' });
+    expect(wallet.text.endsWith(CHECKOUT_HOLD_COPY.pendingBitcoinPaymentBuyer)).toBe(true);
   });
 
   describe('paid order confirmation', () => {

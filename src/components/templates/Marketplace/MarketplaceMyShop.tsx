@@ -1,15 +1,15 @@
 'use client';
 
-import { ArrowLeft, ExternalLink, LayoutDashboard, Package } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { useWatch } from 'react-hook-form';
-import { getMarketplaceShopRoute, MARKETPLACE_ROUTES } from '@/app/routes';
-import { Badge } from '@/atoms/Badge/Badge';
+import { getMarketplaceShopRoute } from '@/app/routes';
 import { Button } from '@/atoms/Button/Button';
 import { Container } from '@/atoms/Container/Container';
 import { Heading } from '@/atoms/Heading/Heading';
 import { Link } from '@/atoms/Link/Link';
 import { Typography } from '@/atoms/Typography/Typography';
 import { useMarketplaceShopSettings } from '@/hooks/useMarketplaceShopSettings/useMarketplaceShopSettings';
+import { BackToMyShop } from '@/molecules/Marketplace/BackToMyShop';
 import { ContentLayout } from '@/organisms/ContentLayout/ContentLayout';
 import { MarketplaceSectionNav } from '@/organisms/Marketplace/MarketplaceSectionNav';
 import { MarketplaceShopSettingsFormView } from '@/organisms/Marketplace/MarketplaceShopSettingsForm';
@@ -24,7 +24,7 @@ export function MarketplaceMyShop() {
     name: ['name', 'bio', 'countryCode', 'region', 'vacationMode'],
   });
   const previewName = String(name ?? '').trim() || 'Your shop name';
-  const previewBio = String(bio ?? '').trim() || 'Your shop bio will appear here as buyers see it.';
+  const previewBio = String(bio ?? '').trim() || 'Your shop description will appear here.';
   const previewCountryCode = String(countryCode ?? '')
     .trim()
     .toUpperCase();
@@ -37,50 +37,28 @@ export function MarketplaceMyShop() {
       showLeftMobileButton={false}
       showRightMobileButton={false}
       className="pb-28"
-      classNameWrapperContent="max-w-7xl"
     >
-      <Container overrideDefaults className="flex w-full flex-col gap-6 px-4 sm:px-6">
+      <Container overrideDefaults className="flex w-full flex-col gap-6">
         <MarketplaceSectionNav />
-        <Link
-          href={MARKETPLACE_ROUTES.DASHBOARD}
-          overrideDefaults
-          className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" />
-          Seller studio
-        </Link>
+        <BackToMyShop />
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <Badge className="mb-4">Seller studio</Badge>
             <Heading level={1} size="xl" className="text-4xl sm:text-6xl">
-              My shop
+              My storefront
             </Heading>
             <Typography as="p" className="mt-2 max-w-xl text-muted-foreground">
-              Your public storefront: the name, bio, and policies buyers see on your shop page and from every listing
-              you publish.
+              Manage the shop name and other details buyers see on your storefront and listings.
             </Typography>
           </div>
           <div className="flex flex-wrap gap-2">
             {currentUserPubky && (
               <Button asChild variant="secondary" className="rounded-full">
                 <Link href={getMarketplaceShopRoute(currentUserPubky)} overrideDefaults>
-                  View public shop page
-                  <ExternalLink className="ml-2 size-4" />
+                  View public storefront
+                  <ExternalLink className="size-4" />
                 </Link>
               </Button>
             )}
-            <Button asChild variant="ghost" className="rounded-full">
-              <Link href={MARKETPLACE_ROUTES.SETTINGS_SHIPPING} overrideDefaults>
-                <Package className="mr-2 size-4" />
-                Shipping presets
-              </Link>
-            </Button>
-            <Button asChild variant="ghost" className="rounded-full">
-              <Link href={MARKETPLACE_ROUTES.DASHBOARD} overrideDefaults>
-                <LayoutDashboard className="mr-2 size-4" />
-                Dashboard
-              </Link>
-            </Button>
           </div>
         </div>
 

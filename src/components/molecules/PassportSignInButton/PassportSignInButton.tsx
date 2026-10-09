@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/atoms/Button/Button';
 import { Typography } from '@/atoms/Typography/Typography';
@@ -17,7 +18,7 @@ export function PassportSignInButton() {
   const passport = usePassportSignIn();
   if (!passport.isAvailable) return null;
   return (
-    <div className="flex w-full max-w-sm flex-col items-center gap-2" data-testid="sign-in-passport-option">
+    <div className="flex w-full max-w-sm flex-col items-center gap-3" data-testid="sign-in-passport-option">
       <Button
         className="w-full"
         size="lg"
@@ -35,7 +36,10 @@ export function PassportSignInButton() {
             </Typography>
           </>
         ) : (
-          'Continue with Google'
+          <>
+            <Image src="/images/sign-in/google.svg" alt="" width={16} height={16} />
+            Continue with Google
+          </>
         )}
       </Button>
       <Typography as="p" className="text-center text-sm text-muted-foreground">

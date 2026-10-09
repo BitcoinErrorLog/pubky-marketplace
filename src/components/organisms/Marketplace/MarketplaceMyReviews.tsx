@@ -11,6 +11,7 @@ import { CommerceController } from '@/controllers/commerce/commerce';
 import { cn } from '@/libs/utils/utils';
 import type { CommerceReviewModelSchema } from '@/models/commerce/commerce.schema';
 import { MarketplaceStarRating } from '@/molecules/MarketplaceStarRating/MarketplaceStarRating';
+import { SettingsSectionContent } from '@/molecules/Settings/SettingsSectionContent/SettingsSectionContent';
 import { useAuthStore } from '@/stores/auth/auth.store';
 
 /**
@@ -43,57 +44,59 @@ export function MarketplaceMyReviews({ className }: { className?: string }) {
   if (currentUserPubky === null || reviews === null || reviews.length === 0) return null;
 
   return (
-    <Card className={cn('border py-5', className)} data-testid="marketplace-my-reviews">
-      <CardContent className="flex flex-col gap-3 px-5">
+    <Card className={cn(cn('py-5', className), 'rounded-md p-0')} data-testid="marketplace-my-reviews">
+      <CardContent className="grid gap-6 p-6">
         <Typography as="h2" className="flex items-center gap-2 text-sm font-semibold">
           <PenLine className="size-4" />
           My reviews
         </Typography>
-        <ul className="flex flex-col gap-3">
-          {reviews.map((review) => (
-            <li
-              key={review.id}
-              className="flex flex-col gap-1.5 rounded-lg border border-border/60 p-3"
-              data-cy="marketplace-my-review-item"
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                <MarketplaceStarRating rating={review.record.ratings.overall} size="sm" />
-                <Link
-                  href={getMarketplaceListingRoute(review.record.listingOwnerPubky, review.record.listingId)}
-                  overrideDefaults
-                  className="text-xs font-medium text-foreground hover:underline"
-                >
-                  View listing
-                </Link>
-                <Typography as="span" overrideDefaults className="text-xs text-muted-foreground">
-                  {formatDate(review.record.updatedAt)}
-                </Typography>
-                {review.attestation_verified ? (
-                  <Badge variant="secondary" className="gap-1 text-emerald-400">
-                    <BadgeCheck className="size-3" />
-                    Attested
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="text-muted-foreground">
-                    Unattested
-                  </Badge>
-                )}
-                {review.sync_status !== 'synced' && (
-                  <Badge
-                    variant="outline"
-                    className="text-amber-400"
-                    title="Publication is pending. Reopening this page will retry."
+        <SettingsSectionContent>
+          <ul className="flex flex-col gap-3">
+            {reviews.map((review) => (
+              <li key={review.id} className="flex flex-col gap-1.5 rounded-md p-3" data-cy="marketplace-my-review-item">
+                <div className="flex flex-wrap items-center gap-2">
+                  <MarketplaceStarRating rating={review.record.ratings.overall} size="sm" />
+                  <Link
+                    href={getMarketplaceListingRoute(review.record.listingOwnerPubky, review.record.listingId)}
+                    overrideDefaults
+                    className="text-xs font-medium text-foreground hover:underline"
                   >
-                    Publication pending
-                  </Badge>
-                )}
-              </div>
-              <Typography as="p" overrideDefaults className="line-clamp-3 text-sm whitespace-pre-wrap text-foreground">
-                {review.record.text}
-              </Typography>
-            </li>
-          ))}
-        </ul>
+                    View listing
+                  </Link>
+                  <Typography as="span" overrideDefaults className="text-xs text-muted-foreground">
+                    {formatDate(review.record.updatedAt)}
+                  </Typography>
+                  {review.attestation_verified ? (
+                    <Badge variant="secondary" className="gap-1 text-emerald-400">
+                      <BadgeCheck className="size-3" />
+                      Attested
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-muted-foreground">
+                      Unattested
+                    </Badge>
+                  )}
+                  {review.sync_status !== 'synced' && (
+                    <Badge
+                      variant="outline"
+                      className="text-amber-400"
+                      title="Publication is pending. Reopening this page will retry."
+                    >
+                      Publication pending
+                    </Badge>
+                  )}
+                </div>
+                <Typography
+                  as="p"
+                  overrideDefaults
+                  className="line-clamp-3 text-sm whitespace-pre-wrap text-foreground"
+                >
+                  {review.record.text}
+                </Typography>
+              </li>
+            ))}
+          </ul>
+        </SettingsSectionContent>
       </CardContent>
     </Card>
   );

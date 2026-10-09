@@ -48,6 +48,7 @@ const view = vi.hoisted(() => ({
 
 const checkoutActions = vi.hoisted(() => ({
   pay: vi.fn(async () => view.payResult),
+  actOnOrder: vi.fn(async () => true),
   setFulfillmentChoice: vi.fn(),
   setDigitalChoice: vi.fn(),
   remove: vi.fn(async () => {}),
@@ -234,7 +235,7 @@ vi.mock('@/hooks/useMarketplaceOrders/useMarketplaceOrders', () => ({
     adapterMode: view.adapterMode,
     refresh: vi.fn(),
     advancePayment: vi.fn(),
-    actOnOrder: vi.fn(),
+    actOnOrder: checkoutActions.actOnOrder,
   }),
 }));
 
@@ -289,7 +290,9 @@ vi.mock('@/organisms/Marketplace/MarketplaceIndicativePrice', () => ({
 }));
 
 vi.mock('@/organisms/Marketplace/MarketplacePaymentStatusCard', () => ({
-  MarketplacePaymentStatusCard: () => null,
+  MarketplacePaymentStatusCard: ({ checkoutActions }: { checkoutActions?: React.ReactNode }) => (
+    <div data-testid="payment-status-panel">{checkoutActions}</div>
+  ),
 }));
 
 vi.mock('@/organisms/ContentLayout/ContentLayout', () => ({
@@ -370,7 +373,7 @@ function seededCart() {
 }
 
 async function fillValidDelivery(user: ReturnType<typeof userEvent.setup>) {
-  await user.type(screen.getByLabelText('Recipient'), 'Alice Buyer');
+  await user.type(screen.getByLabelText('Full name'), 'Alice Buyer');
   await user.type(screen.getByLabelText('Address line 1'), '1 Market Street');
   await user.type(screen.getByLabelText('City'), 'New York');
   await user.type(screen.getByLabelText('State'), 'NY');
@@ -383,7 +386,7 @@ describe('MarketplaceCheckout', () => {
     approval.signer = 'Pubky Ring';
   });
 
-  it('names Bitkit as the approving signer for a Bitkit sign-in', () => {
+  it('does not ask an already approved Bitkit user to approve again', () => {
     seededCart();
     view.adapterMode = 'transaction-service';
     view.hasMarketplaceSession = true;
@@ -391,8 +394,7 @@ describe('MarketplaceCheckout', () => {
 
     render(<MarketplaceCheckout />);
 
-    expect(screen.getByRole('heading', { name: 'Approve in Bitkit' })).toBeInTheDocument();
-    expect(screen.getByText(/Purchases approved in Bitkit\./)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Enable purchases' })).not.toBeInTheDocument();
     expect(screen.queryByText(/Pubky Ring/)).not.toBeInTheDocument();
   });
 
@@ -416,8 +418,7 @@ describe('MarketplaceCheckout', () => {
 
     render(<MarketplaceCheckout />);
 
-    expect(screen.getByRole('heading', { name: 'Approve in Pubky Ring' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Approve purchases in Pubky Ring' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Enable purchases' })).toBeInTheDocument();
     const pay = screen.getByTestId('marketplace-checkout-pay');
     expect(pay).toBeDisabled();
     expect(pay).not.toHaveAttribute('aria-describedby');
@@ -461,7 +462,7 @@ describe('MarketplaceCheckout', () => {
 
     render(<MarketplaceCheckout />);
 
-    expect(screen.getByRole('note')).toHaveTextContent('Staging environment — test rails, no real funds move');
+    expect(screen.getByRole('note')).toHaveTextContent('Staging environment. No real funds move.');
     expect(screen.queryByText('Real money. Payments are final and go directly to the seller.')).not.toBeInTheDocument();
     expect(screen.queryByText('Paid directly to the seller.')).not.toBeInTheDocument();
   });
@@ -484,7 +485,7 @@ describe('MarketplaceCheckout', () => {
 
     render(<MarketplaceCheckout />);
 
-    expect(screen.getByText(/Purchases approved in Pubky Ring/)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Enable purchases' })).not.toBeInTheDocument();
     const pay = screen.getByTestId('marketplace-checkout-pay');
     expect(pay).toBeDisabled();
 
@@ -625,17 +626,37 @@ describe('MarketplaceCheckout', () => {
     expect(buyerWallet.enabledCalls).toContain(true);
   });
 
-  it('pays on the checkout screen instead of routing to orders', async () => {
+  it.each(['bitcoin', 'paypal'] as const)('uses simulated sandbox payment with %s selected', async (method) => {
     const user = userEvent.setup();
     seededCart();
     view.payResult = { ok: true, orderIds: ['018f47d2-6a27-7c23-a49d-000000000001'], boundOrders: [] };
 
     render(<MarketplaceCheckout />);
+    expect(await screen.findByTestId('marketplace-checkout-method-bitcoin')).toHaveAttribute('aria-pressed', 'true');
+    if (method === 'paypal') await user.click(screen.getByTestId('marketplace-checkout-method-paypal'));
     await fillValidDelivery(user);
     await user.click(screen.getByRole('checkbox', { name: /I accept sandbox guarantee policy v1/ }));
     await user.click(screen.getByTestId('marketplace-checkout-pay'));
 
-    expect(checkoutActions.pay).toHaveBeenCalled();
+    expect(checkoutActions.pay).toHaveBeenCalledWith(null, expect.any(Function));
+    await waitFor(() => expect(window.location.hash).toBe('#018f47d2-6a27-7c23-a49d-000000000001'));
+  });
+
+  it.each(['bitcoin', 'paypal'] as const)('preserves the selected %s rail for real checkout', async (method) => {
+    const user = userEvent.setup();
+    seededCart();
+    view.adapterMode = 'transaction-service';
+    view.hasMarketplaceSession = true;
+
+    render(<MarketplaceCheckout />);
+    await user.click(await screen.findByTestId(`marketplace-checkout-method-${method}`));
+    await fillValidDelivery(user);
+    await user.click(screen.getByRole('checkbox', { name: /I accept guarantee policy v1/ }));
+    const pay = screen.getByTestId('marketplace-checkout-pay');
+    await waitFor(() => expect(pay).toBeEnabled());
+    await user.click(pay);
+
+    expect(checkoutActions.pay).toHaveBeenCalledWith(method, expect.any(Function));
   });
 
   it('requires the guarantee after a pay attempt and leaves it unchecked by default', async () => {
@@ -663,7 +684,7 @@ describe('MarketplaceCheckout', () => {
 
     render(<MarketplaceCheckout />);
 
-    expect(screen.getByRole('heading', { name: 'Approve purchases in Pubky Ring' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Enable purchases' })).toBeInTheDocument();
     expect(screen.getByTestId('marketplace-checkout-pay')).toBeDisabled();
   });
 
@@ -673,7 +694,7 @@ describe('MarketplaceCheckout', () => {
     expect(screen.getByText('Nothing to check out')).toBeInTheDocument();
   });
 
-  describe('paid order headline', () => {
+  describe('checkout order overview', () => {
     afterEach(() => {
       window.location.hash = '';
     });
@@ -693,23 +714,47 @@ describe('MarketplaceCheckout', () => {
       render(<MarketplaceCheckout />);
     };
 
-    it('names the seller for a Bitcoin order the seller confirmed before any chain confirmation', () => {
-      showPaidOrder({ paymentMethod: 'bitcoin', confirmations: 0 });
-      expect(screen.getByTestId('marketplace-checkout-paid-headline')).toHaveTextContent(
-        /^Seller confirmed payment\.$/,
-      );
-    });
-
-    it('adds the on-chain state once a confirmation was recorded', () => {
-      showPaidOrder({ paymentMethod: 'bitcoin', confirmations: 1 });
-      expect(screen.getByTestId('marketplace-checkout-paid-headline')).toHaveTextContent(
-        'Seller confirmed payment. Confirmed on-chain.',
-      );
-    });
-
-    it('keeps the generic line for PayPal', () => {
+    it('shows order snapshot items in the checkout overview', async () => {
       showPaidOrder({ paymentMethod: 'paypal', confirmations: 0 });
-      expect(screen.getByTestId('marketplace-checkout-paid-headline')).toHaveTextContent(/^Payment confirmed\.$/);
+      expect(screen.getByRole('link', { name: 'Handmade leather boots' })).toBeInTheDocument();
+      expect(screen.getByText('Quantity 1')).toBeInTheDocument();
+      expect(screen.getByText('Review your items and payment status.')).toBeInTheDocument();
+      await waitFor(() => expect(CommerceController.getOrFetchListing).toHaveBeenCalled());
+      // The current listing title differs; the order snapshot must remain visible.
+      expect(screen.queryByRole('link', { name: 'Vintage boots' })).not.toBeInTheDocument();
+    });
+
+    it('confirms cancellation of a pending PayPal checkout through the existing order action', async () => {
+      const user = userEvent.setup();
+      checkoutActions.actOnOrder.mockClear();
+      const payment = createPaymentFixture('awaiting_entitlement');
+      const order = createOrderFixture('pending_payment', { paymentId: payment.id, paymentMethod: 'paypal' });
+      view.orders = [{ order, payment }];
+      window.location.hash = `#${order.id}`;
+      render(<MarketplaceCheckout />);
+
+      expect(screen.getByTestId('payment-status-panel')).toBeInTheDocument();
+      expect(screen.queryByRole('group', { name: 'Checkout complete' })).not.toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Cancel checkout' }));
+      expect(screen.getByRole('dialog')).toHaveTextContent('Cancel checkout');
+      expect(checkoutActions.actOnOrder).not.toHaveBeenCalled();
+      await user.type(screen.getByRole('textbox', { name: 'Reason' }), 'Changed my mind');
+      await user.click(screen.getByRole('button', { name: 'Confirm' }));
+      await waitFor(() =>
+        expect(checkoutActions.actOnOrder).toHaveBeenCalledWith(order, 'order.cancel_request', {
+          reason: 'Changed my mind',
+        }),
+      );
+    });
+
+    it('omits the duplicate confirmation heading and cancellation for a paid order', () => {
+      showPaidOrder({ paymentMethod: 'paypal', confirmations: 0 });
+      expect(screen.queryByTestId('marketplace-checkout-paid-headline')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('payment-status-panel')).not.toBeInTheDocument();
+      expect(screen.getByTestId('order-reference')).toHaveTextContent('Payment confirmed');
+      expect(screen.getByRole('group', { name: 'Checkout complete' })).toBeInTheDocument();
+      expect(screen.queryByText('Checkout in progress')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Cancel checkout' })).not.toBeInTheDocument();
     });
   });
 });
@@ -751,7 +796,7 @@ describe('MarketplaceCheckout local pickup (Wave 7, §A2)', () => {
 
     render(<MarketplaceCheckout />);
 
-    expect(screen.queryByLabelText('Recipient')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Full name')).not.toBeInTheDocument();
     expect(screen.getByText(/No delivery address is needed/)).toBeInTheDocument();
     expect(screen.getByText('No shipping — pickup is arranged with the seller after payment.')).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: /I accept sandbox guarantee policy v1/ })).toBeInTheDocument();
@@ -772,7 +817,7 @@ describe('MarketplaceCheckout local pickup (Wave 7, §A2)', () => {
 
     render(<MarketplaceCheckout />);
 
-    expect(screen.getByText('This starts 2 checkouts — one per seller and delivery method.')).toBeInTheDocument();
+    expect(screen.getByText(/Each order requires a separate payment\./)).toBeInTheDocument();
   });
 
   it('blocks pay and explains when a group has no common fulfillment', () => {
@@ -845,8 +890,9 @@ describe('MarketplaceCheckout digital lines (digital delivery design §3 "Checko
     unmount();
 
     view.fulfillmentByItem = { [CART_ITEM_ID]: 'digital' };
+    view.requiresDeliveryAddress = false;
     render(<MarketplaceCheckout />);
-    expect(screen.queryByText('Shipping')).not.toBeInTheDocument();
+    expect(screen.getByText('Shipping').parentElement).not.toHaveTextContent('$');
   });
 
   it('shows no fulfillment conflict for a seller whose lines are all digital', () => {
@@ -940,7 +986,7 @@ describe('MarketplaceCheckout digital lines (digital delivery design §3 "Checko
       ),
     ).toBeInTheDocument();
     expect(screen.getByLabelText('Email')).toHaveAttribute('maxLength', '254');
-    expect(screen.queryByLabelText('Recipient')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Full name')).not.toBeInTheDocument();
   });
 
   it('asks for no email when no line is email-kind', () => {
@@ -1179,7 +1225,7 @@ describe('MarketplaceCheckout accepted-offer path', () => {
     expect(screen.getByRole('heading', { name: 'Checkout' })).toBeInTheDocument();
     expect(screen.getByText('Vintage boots')).toBeInTheDocument();
     expect(screen.getByText(/42 · Quantity 1/)).toBeInTheDocument();
-    expect(screen.getByText('Subtotal').parentElement).toHaveTextContent('$6.00');
+    expect(screen.getByText('Items').parentElement).toHaveTextContent('$6.00');
     expect(screen.getByText('Shipping').parentElement).toHaveTextContent('$1.00');
     expect(screen.getByText('Merchandise total').parentElement).toHaveTextContent('$7.00');
     expect(screen.getByText(/Checkout window closes/)).toBeInTheDocument();
@@ -1191,7 +1237,7 @@ describe('MarketplaceCheckout accepted-offer path', () => {
     view.addresses = [];
     render(<MarketplaceCheckout />);
 
-    expect(screen.getByLabelText('Recipient')).toBeInTheDocument();
+    expect(screen.getByLabelText('Full name')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Add delivery address' })).not.toBeInTheDocument();
     expect(screen.getByTestId('marketplace-checkout-pay')).toBeDisabled();
   });
@@ -1203,7 +1249,7 @@ describe('MarketplaceCheckout accepted-offer path', () => {
 
     expect(offerState.submit).toHaveBeenCalled();
     expect(offerState.submit.mock.calls[0]?.[1]).toMatchObject({ name: 'Alice Buyer', line1: '1 Market Street' });
-    expect(checkoutActions.remove).toHaveBeenCalledWith('s:boots', 'variant_42', 'award-1');
+    expect(checkoutActions.remove).toHaveBeenCalledWith('s:boots', 'variant_42', 'award-1', false);
     expect(offerState.refresh).toHaveBeenCalledTimes(1);
     expect(checkoutActions.rememberAddress).toHaveBeenCalled();
   });
@@ -1217,7 +1263,7 @@ describe('MarketplaceCheckout accepted-offer path', () => {
     expect(
       await screen.findByText(/Local pickup — no delivery address or shipping for these items/),
     ).toBeInTheDocument();
-    expect(screen.queryByLabelText('Recipient')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Full name')).not.toBeInTheDocument();
     expect(screen.getByText('Shipping').parentElement).toHaveTextContent('$0.00');
     expect(screen.getByText('Merchandise total').parentElement).toHaveTextContent('$6.00');
 
@@ -1297,7 +1343,7 @@ describe('MarketplaceCheckout accepted-offer path', () => {
 
     expect(screen.getByText('This accepted offer has already been converted.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'View orders' })).toBeInTheDocument();
-    expect(checkoutActions.remove).toHaveBeenCalledWith('s:boots', 'variant_42', 'award-1');
+    expect(checkoutActions.remove).toHaveBeenCalledWith('s:boots', 'variant_42', 'award-1', false);
   });
 
   it('removes the award line and refreshes offers when the award is unavailable', async () => {
@@ -1307,7 +1353,7 @@ describe('MarketplaceCheckout accepted-offer path', () => {
     await fillAndPay(user);
 
     expect(screen.getByText('This offer is no longer available.')).toBeInTheDocument();
-    expect(checkoutActions.remove).toHaveBeenCalledWith('s:boots', 'variant_42', 'award-1');
+    expect(checkoutActions.remove).toHaveBeenCalledWith('s:boots', 'variant_42', 'award-1', false);
   });
 
   it('shows mapped refusal copy and Retry for other checkout refusal codes', async () => {
@@ -1375,11 +1421,8 @@ describe('MarketplaceCheckout drop-claim path', () => {
 
     expect(await screen.findByRole('heading', { name: 'Checkout' })).toBeInTheDocument();
     expect(await screen.findByText('Vintage boots')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Back to drop' })).toHaveAttribute(
-      'href',
-      `/marketplace/drop/${listing.record.ownerPubky}/vol1`,
-    );
+    expect(screen.queryByRole('link', { name: 'Back to drop' })).not.toBeInTheDocument();
     expect(screen.getByTestId('marketplace-checkout-pay')).toBeInTheDocument();
-    expect(screen.getByLabelText('Recipient')).toBeInTheDocument();
+    expect(screen.getByLabelText('Full name')).toBeInTheDocument();
   });
 });

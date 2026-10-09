@@ -20,6 +20,7 @@ import {
   digitalOrderEmailLine,
   isDigitalOrderEnded,
 } from '@/libs/commerce/digital';
+import { SETTINGS_SECTION_CONTENT_CLASSNAME } from '@/molecules/Settings/SettingsSectionContent/SettingsSectionContent';
 import type { MarketplaceOrder } from '@/services/marketplace/marketplace';
 
 /**
@@ -44,7 +45,7 @@ export function MarketplaceOrderDigitalPanel({
 
   return (
     <section
-      className="mt-3 grid gap-3 rounded-xl border bg-card/60 p-4"
+      className={`${SETTINGS_SECTION_CONTENT_CLASSNAME} mt-3`}
       aria-label={DIGITAL_ORDER_COPY.heading}
       data-surface="order-digital-panel"
     >
@@ -133,7 +134,7 @@ function OrderInstantLine({
           <Button asChild size="sm" className="rounded-full">
             <Link href={reveal.url} target="_blank" rel="noopener noreferrer" overrideDefaults>
               {DIGITAL_ORDER_COPY.openLink}
-              <ExternalLink className="ml-2 size-3.5" />
+              <ExternalLink className="size-3.5" />
             </Link>
           </Button>
           <Button size="sm" variant="secondary" className="rounded-full" onClick={() => delivery.hide(line.lineIndex)}>
@@ -148,7 +149,7 @@ function OrderInstantLine({
             disabled={opening}
             onClick={() => void delivery.open(line.lineIndex)}
           >
-            {line.kind === 'file' && <Download className="mr-2 size-4" />}
+            {line.kind === 'file' && <Download className="size-4" />}
             {line.kind === 'file'
               ? opening
                 ? DIGITAL_ORDER_COPY.downloading
@@ -234,6 +235,7 @@ function OrderEmailLine({
         >
           <Label htmlFor={`delivery-email-${order.id}`}>{DIGITAL_ORDER_COPY.emailLabel}</Label>
           <Input
+            theme="dashed"
             id={`delivery-email-${order.id}`}
             value={value}
             maxLength={DELIVERY_EMAIL_MAX_CHARS}

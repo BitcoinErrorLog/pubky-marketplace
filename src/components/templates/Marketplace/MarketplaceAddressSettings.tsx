@@ -28,6 +28,7 @@ import { browserAddressCountry } from '@/libs/commerce/postal-address';
 import type { CommerceDeliveryAddressModelSchema } from '@/models/commerce/commerce.schema';
 import { ControlledInputField } from '@/molecules/ControlledInputField/ControlledInputField';
 import { MarketplaceAddressFields } from '@/molecules/MarketplaceAddressFields/MarketplaceAddressFields';
+import { SettingsSectionContent } from '@/molecules/Settings/SettingsSectionContent/SettingsSectionContent';
 import { ContentLayout } from '@/organisms/ContentLayout/ContentLayout';
 
 export function MarketplaceAddressSettings() {
@@ -79,9 +80,8 @@ export function MarketplaceAddressSettings() {
       showLeftMobileButton={false}
       showRightMobileButton={false}
       className="pb-28"
-      classNameWrapperContent="max-w-7xl"
     >
-      <Container overrideDefaults className="flex w-full flex-col gap-6 px-4 sm:px-6">
+      <Container overrideDefaults className="flex w-full flex-col gap-6">
         <Link
           href={APP_ROUTES.MARKETPLACE}
           overrideDefaults
@@ -102,29 +102,31 @@ export function MarketplaceAddressSettings() {
           </div>
           {editingId === null && (
             <Button className="rounded-full" onClick={beginCreate}>
-              <Plus className="mr-2 size-4" />
+              <Plus className="size-4" />
               Add address
             </Button>
           )}
         </div>
 
         {editingId !== null && (
-          <Card className="border">
-            <CardContent className="grid gap-4 px-6">
+          <Card className="rounded-md p-0 shadow-lg">
+            <CardContent className="grid gap-6 p-6">
               <Typography as="h2" className="text-xl font-semibold">
                 {editingId === 'new' ? 'New address' : 'Edit address'}
               </Typography>
-              <ControlledInputField name="label" control={form.control} label="Label" placeholder="Home" />
-              <ControlledInputField name="name" control={form.control} label="Recipient" />
-              <MarketplaceAddressFields control={form.control} setValue={form.setValue} />
-              <div className="flex gap-2">
-                <Button className="rounded-full" onClick={() => void submit()}>
-                  Save address
-                </Button>
-                <Button variant="secondary" className="rounded-full" onClick={() => setEditingId(null)}>
-                  Cancel
-                </Button>
-              </div>
+              <SettingsSectionContent>
+                <ControlledInputField name="label" control={form.control} label="Label" placeholder="Home" />
+                <ControlledInputField name="name" control={form.control} label="Recipient" />
+                <MarketplaceAddressFields control={form.control} setValue={form.setValue} />
+                <div className="flex gap-2">
+                  <Button className="rounded-full" onClick={() => void submit()}>
+                    Save address
+                  </Button>
+                  <Button variant="secondary" className="rounded-full" onClick={() => setEditingId(null)}>
+                    Cancel
+                  </Button>
+                </div>
+              </SettingsSectionContent>
             </CardContent>
           </Card>
         )}
@@ -134,8 +136,8 @@ export function MarketplaceAddressSettings() {
         ) : addresses.length ? (
           <div className="grid gap-3">
             {addresses.map((address) => (
-              <Card key={address.id} className="border py-4">
-                <CardContent className="flex flex-wrap items-center justify-between gap-4 px-5">
+              <Card key={address.id} className="rounded-md p-0">
+                <CardContent className="flex flex-wrap items-center justify-between gap-4 p-6">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <Typography as="h2" className="font-semibold">
@@ -157,7 +159,7 @@ export function MarketplaceAddressSettings() {
                         className="rounded-full"
                         onClick={() => void setDefault(address)}
                       >
-                        <Star className="mr-1 size-4" />
+                        <Star className="size-4" />
                         Make default
                       </Button>
                     )}
@@ -185,7 +187,7 @@ export function MarketplaceAddressSettings() {
             ))}
           </div>
         ) : editingId === null ? (
-          <div className="flex min-h-48 flex-col items-center justify-center rounded-xl border border-dashed text-center">
+          <div className="flex min-h-48 flex-col items-center justify-center rounded-md text-center">
             <MapPin className="mb-3 size-10 text-muted-foreground" />
             <Heading level={2} size="md">
               No saved addresses

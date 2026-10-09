@@ -52,8 +52,7 @@ export const PAYMENT_CONFIRMED_WAITING_SELLER_COPY =
  * Paykit's `delivered` means the request was published for the buyer's
  * wallet, not that the wallet accepted it, so the copy says "sent".
  */
-export const BITCOIN_WALLET_SENT_COPY =
-  "Sent to your wallet. Open Bitkit to pay. If the request isn't there, check that the seller is one of your Bitkit contacts. If you have already sent the payment, this page updates as soon as the marketplace sees the transaction.";
+export const BITCOIN_WALLET_SENT_COPY = `Sent to your wallet. Open Bitkit to pay. If the request isn't there, check that the seller is one of your Bitkit contacts. If you have already sent the payment, this page updates as soon as the marketplace sees the transaction. ${CHECKOUT_HOLD_COPY.pendingBitcoinPaymentBuyer}`;
 
 export const BITCOIN_WALLET_WAITING_COPY =
   'Waiting for your wallet. Keep Bitkit open so it can receive the payment request.';
@@ -119,7 +118,7 @@ export const BITCOIN_BUYER_STATUS_TABLE: readonly BitcoinBuyerStatusRow[] = [
     reviewReason: null,
     confirmations: 0,
     confirmationExists: false,
-    progress: 'Reserved while you pay · 5:00',
+    progress: 'Awaiting payment · Item reserved · 5:00',
     wallet: BITCOIN_WALLET_SENT_COPY,
     forbidsPayLabels: false,
   },
@@ -131,7 +130,7 @@ export const BITCOIN_BUYER_STATUS_TABLE: readonly BitcoinBuyerStatusRow[] = [
     reviewReason: null,
     confirmations: 0,
     confirmationExists: false,
-    progress: 'Reserved while you pay · 5:00',
+    progress: 'Awaiting payment · Item reserved · 5:00',
     wallet: BITCOIN_WALLET_SENT_COPY,
     forbidsPayLabels: false,
   },

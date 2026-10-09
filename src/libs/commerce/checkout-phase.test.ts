@@ -111,9 +111,9 @@ describe('checkout-phase', () => {
 
   it('labels unbound vs bound checkout without the word order', () => {
     expect(buyerCheckoutStateLabel({ paymentMethod: null })).toBe('Checkout in progress');
-    expect(buyerCheckoutStateLabel({ paymentMethod: 'paypal' })).toBe('Reserved while you pay');
+    expect(buyerCheckoutStateLabel({ paymentMethod: 'paypal' })).toBe('Awaiting payment · Item reserved');
     expect(reservedWhileYouPayCopy('2099-01-01T00:00:00.000Z', Date.parse('2098-12-31T23:50:19.000Z'))).toBe(
-      'Reserved while you pay · 9:41',
+      'Awaiting payment · Item reserved · 9:41',
     );
     expect(formatRemainingMmSs(null)).toBeNull();
     expect(formatRemainingMmSs('2026-09-28T11:59:59.000Z', Date.parse('2026-09-28T11:00:00.000Z'))).toBe('59:59');

@@ -27,10 +27,10 @@ export type ListingMediaItem =
 
 export type PrepareListingMediaResult =
   | { ok: true; media: ListingMediaRecord[]; uploads: Array<{ record: ListingMediaRecord; bytes: Uint8Array }> }
-  | { ok: false; reason: 'no-photos' | 'missing-alt-text' | 'decode-failed' };
+  | { ok: false; reason: 'no-photos' | 'decode-failed' };
 
 export function isListingMediaPublishReady(items: ListingMediaItem[]): boolean {
-  return items.length > 0 && items.every((item) => item.altText.trim().length > 0);
+  return items.length > 0;
 }
 
 export interface UseListingMediaManagerResult {
@@ -211,16 +211,15 @@ export function useListingMediaManager(maxSize = IMAGE_MAX_RAW_SIZE): UseListing
   const prepare = async (ownerPubky: string): Promise<PrepareListingMediaResult> => {
     const current = itemsRef.current;
     if (current.length === 0) return { ok: false, reason: 'no-photos' };
-    if (!isListingMediaPublishReady(current)) {
-      return { ok: false, reason: 'missing-alt-text' };
-    }
 
     try {
       const media: ListingMediaRecord[] = [];
       const uploads: Array<{ record: ListingMediaRecord; bytes: Uint8Array }> = [];
-      for (const item of current) {
+      for (const [index, item] of current.entries()) {
+        // Descriptions are optional in the form; published media still requires an alt label.
+        const altText = item.altText.trim() || `Listing photo ${index + 1}`;
         if (item.kind === 'existing') {
-          media.push(commerceMediaSchema.parse({ ...item.record, altText: item.altText.trim() }));
+          media.push(commerceMediaSchema.parse({ ...item.record, altText }));
           continue;
         }
         const sanitized = await stripImageMetadata(item.file);
@@ -238,7 +237,7 @@ export function useListingMediaManager(maxSize = IMAGE_MAX_RAW_SIZE): UseListing
           byteSize: bytes.byteLength,
           width: dimensions.width,
           height: dimensions.height,
-          altText: item.altText.trim(),
+          altText,
         });
         media.push(record);
         uploads.push({ record, bytes });

@@ -117,7 +117,7 @@ describe('CommerceController marketplace session-ended binding', () => {
       </>,
     );
     expect(screen.getByText('drop-has-session')).toBeInTheDocument();
-    expect(screen.queryByText(/Saving payment settings requires a marketplace session/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Enable selling to save your payment methods\./)).not.toBeInTheDocument();
 
     vi.setSystemTime(new Date('2026-08-20T12:59:31.000Z'));
     expect(MarketplaceSessionService.getActiveSession()).toBeNull();
@@ -126,7 +126,7 @@ describe('CommerceController marketplace session-ended binding', () => {
     await waitFor(() => {
       expect(useCommerceStore.getState().marketplaceSession).toBeNull();
       expect(screen.getByText('drop-no-session')).toBeInTheDocument();
-      expect(screen.getAllByText(/Saving payment settings requires a marketplace session/).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Enable selling to save your payment methods\./).length).toBeGreaterThan(0);
     });
 
     vi.setSystemTime(new Date('2026-08-20T14:00:00.000Z'));
@@ -146,7 +146,7 @@ describe('CommerceController marketplace session-ended binding', () => {
       expect(useCommerceStore.getState().marketplaceSession).toBeNull();
       expect(MarketplaceSessionService.getActiveSession()).toBeNull();
       expect(screen.getByText('drop-no-session')).toBeInTheDocument();
-      expect(screen.getAllByText(/Saving payment settings requires a marketplace session/).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Enable selling to save your payment methods\./).length).toBeGreaterThan(0);
     });
 
     await establishIntoStore('2026-08-21T16:00:00.000Z', SESSION_TOKENS.signout);
@@ -158,7 +158,7 @@ describe('CommerceController marketplace session-ended binding', () => {
     expect(MarketplaceSessionService.getActiveSession()).toBeNull();
     await waitFor(() => {
       expect(screen.getByText('drop-no-session')).toBeInTheDocument();
-      expect(screen.getAllByText(/Saving payment settings requires a marketplace session/).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Enable selling to save your payment methods\./).length).toBeGreaterThan(0);
     });
     expect(window.localStorage.getItem(MARKETPLACE_SESSION_STORAGE_KEY)).toBeNull();
   });

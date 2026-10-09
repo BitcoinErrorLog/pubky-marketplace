@@ -303,7 +303,7 @@ describe('MarketplaceInbox for a grant sign-in', () => {
   it('a Ring (cookie) sign-in still gets the enable prompt', () => {
     render(<MarketplaceInbox />);
 
-    expect(screen.getByRole('button', { name: /Enable encrypted messaging/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Enable messages/ })).toBeInTheDocument();
     expect(screen.queryByTestId('grant-session-messaging-unavailable')).not.toBeInTheDocument();
   });
 });

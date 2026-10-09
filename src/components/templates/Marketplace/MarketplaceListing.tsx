@@ -72,7 +72,7 @@ import { MarketplaceMessageDialog } from '@/organisms/Marketplace/MarketplaceMes
 import { MarketplaceOfferDialog } from '@/organisms/Marketplace/MarketplaceOfferDialog';
 import { MarketplaceReviewsSection } from '@/organisms/Marketplace/MarketplaceReviewsSection';
 import { MarketplaceSectionNav } from '@/organisms/Marketplace/MarketplaceSectionNav';
-import { MarketplaceSessionRequiredCard } from '@/organisms/Marketplace/MarketplaceSessionRequiredCard';
+import { MarketplaceSessionConnectDialog } from '@/organisms/Marketplace/MarketplaceSessionConnectDialog';
 import { MarketplaceSimilarItems } from '@/organisms/Marketplace/MarketplaceSimilarItems';
 import { MarketplaceSessionService } from '@/services/marketplace/marketplace-session';
 import { useAuthStore } from '@/stores/auth/auth.store';
@@ -175,7 +175,7 @@ export function MarketplaceListing({ sellerPubky, listingId }: MarketplaceListin
         showLeftMobileButton={false}
         showRightMobileButton={false}
       >
-        <Container overrideDefaults className="w-full px-4 sm:px-6">
+        <Container overrideDefaults className="w-full">
           <MarketplaceListingDetailSkeleton />
         </Container>
       </ContentLayout>
@@ -280,25 +280,6 @@ export function MarketplaceListing({ sellerPubky, listingId }: MarketplaceListin
     if (isOwner) return;
     void cart.add(`${record.ownerPubky}:${record.listingId}`, selectedVariant.id, 1);
   };
-  const purchaseCtaLabel = availabilityPending
-    ? 'Checking availability…'
-    : availabilityNeedsSession
-      ? currentUserPubky
-        ? 'Approve to buy'
-        : 'Sign in to buy'
-      : isOwner
-        ? 'You cannot buy your own listing'
-        : projectionIsReserved
-          ? viewerHoldOrder
-            ? CHECKOUT_HOLD_COPY.heldForYouCta
-            : viewerOfferHold
-              ? CHECKOUT_HOLD_COPY.heldForYouOfferCta
-              : 'Held by another buyer'
-          : isSoldOut
-            ? 'Sold out'
-            : isPurchasable
-              ? 'Add to cart'
-              : 'Unavailable';
 
   return (
     <ContentLayout
@@ -308,7 +289,7 @@ export function MarketplaceListing({ sellerPubky, listingId }: MarketplaceListin
       showRightMobileButton={false}
       hasGradientBackground={false}
       className="marketplace-surface pb-28 font-medium lg:pb-16"
-      classNameWrapperContent="max-w-7xl overflow-visible lg:overflow-visible"
+      classNameWrapperContent="overflow-visible lg:overflow-visible"
     >
       <Container overrideDefaults className="flex w-full flex-col gap-6">
         <div className="sticky top-24 z-(--z-sticky-subnav) bg-background after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-16 after:bg-linear-to-b after:from-background/80 after:to-transparent after:content-[''] lg:top-(--header-offset-main)">
@@ -342,6 +323,7 @@ export function MarketplaceListing({ sellerPubky, listingId }: MarketplaceListin
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)] lg:grid-rows-[auto_1fr]">
           <MarketplaceMediaGallery
             media={record.media}
+            categoryId={record.categoryId}
             saleFormat={record.sale.format}
             auctionPhase={auctionPhase ?? undefined}
           />
@@ -353,7 +335,7 @@ export function MarketplaceListing({ sellerPubky, listingId }: MarketplaceListin
             {stateNotice && (
               <div
                 role="status"
-                className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200"
+                className="rounded-md border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200"
               >
                 {stateNotice}
               </div>
@@ -419,7 +401,7 @@ export function MarketplaceListing({ sellerPubky, listingId }: MarketplaceListin
                   Variant
                 </Typography>
                 <Select value={selectedVariant?.id} onValueChange={setSelectedVariantId}>
-                  <SelectTrigger className="h-11 w-full rounded-md border px-3" aria-label="Choose listing variant">
+                  <SelectTrigger theme="secondary" className="w-full" aria-label="Choose listing variant">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -477,7 +459,7 @@ export function MarketplaceListing({ sellerPubky, listingId }: MarketplaceListin
                         overrideDefaults
                         data-cy="marketplace-listing-held-for-you"
                       >
-                        {CHECKOUT_HOLD_COPY.heldForYouCta}
+                        Buy
                       </Link>
                     </Button>
                   ) : viewerOfferHold ? (
@@ -487,7 +469,7 @@ export function MarketplaceListing({ sellerPubky, listingId }: MarketplaceListin
                         overrideDefaults
                         data-cy="marketplace-listing-held-for-you-offer"
                       >
-                        {CHECKOUT_HOLD_COPY.heldForYouOfferCta}
+                        Buy
                       </Link>
                     </Button>
                   ) : (
@@ -508,8 +490,8 @@ export function MarketplaceListing({ sellerPubky, listingId }: MarketplaceListin
                       }
                       onClick={availabilityNeedsSession ? beginPurchaseAuth : addSelectedVariantToCart}
                     >
-                      <ShoppingCart className="mr-2 size-4" />
-                      {purchaseCtaLabel}
+                      <ShoppingCart className="size-4" />
+                      Buy
                     </Button>
                   )}
                   {projectionIsReserved && !viewerHoldOrder && !viewerOfferHold && (
@@ -570,8 +552,13 @@ export function MarketplaceListing({ sellerPubky, listingId }: MarketplaceListin
                 Transactions are disabled in this deployment.
               </Typography>
             )}
-            {isTransactionalCommerceMode(adapterMode) && negotiation.needsSession && showSessionRequired && (
-              <MarketplaceSessionRequiredCard onConnected={onSessionConnected} />
+            {isTransactionalCommerceMode(adapterMode) && (
+              <MarketplaceSessionConnectDialog
+                open={showSessionRequired}
+                onOpenChange={setShowSessionRequired}
+                hideTrigger
+                onConnected={onSessionConnected}
+              />
             )}
             {isTransactionalCommerceMode(adapterMode) && negotiation.error && !negotiation.needsSession && (
               <Typography as="p" role="alert" className="text-center text-sm text-amber-300">
@@ -580,8 +567,8 @@ export function MarketplaceListing({ sellerPubky, listingId }: MarketplaceListin
                   : negotiation.error}
               </Typography>
             )}
-            <Card className="py-5">
-              <CardContent className="flex flex-col gap-3 px-5">
+            <Card className="rounded-md p-0">
+              <CardContent className="flex flex-col gap-3 p-6">
                 <div className="min-w-0 flex-1 sm:min-w-[12rem]">
                   <MarketplaceSellerIdentity
                     variant="card"
@@ -593,7 +580,7 @@ export function MarketplaceListing({ sellerPubky, listingId }: MarketplaceListin
                   />
                   {isOwner && !shop && (
                     <Typography as="p" className="mt-2 text-sm text-muted-foreground">
-                      You haven&apos;t created a shop yet — buyers only see your key.
+                      You haven&apos;t created a storefront yet — buyers only see your key.
                     </Typography>
                   )}
                 </div>
@@ -601,14 +588,14 @@ export function MarketplaceListing({ sellerPubky, listingId }: MarketplaceListin
                   {isOwner && !shop ? (
                     <Button asChild size="sm" className="rounded-full">
                       <Link href={MARKETPLACE_ROUTES.MY_SHOP} overrideDefaults>
-                        Set up your shop
+                        Set up your storefront
                       </Link>
                     </Button>
                   ) : (
                     <Button asChild variant="secondary" size="sm" className="rounded-full">
                       <Link href={getMarketplaceShopRoute(sellerPubky)} overrideDefaults>
-                        <Store className="mr-2 size-4" aria-hidden="true" />
-                        View shop
+                        <Store className="size-4" aria-hidden="true" />
+                        View storefront
                       </Link>
                     </Button>
                   )}
@@ -622,7 +609,7 @@ export function MarketplaceListing({ sellerPubky, listingId }: MarketplaceListin
               <div className="grid gap-3 sm:grid-cols-2">
                 <MarketplaceListingSpecifics record={record} />
                 {!isLocksListing && (shipsItem || methods.includes('pickup')) && (
-                  <div className="flex items-start gap-3 rounded-xl bg-card p-5 text-card-foreground shadow-sm">
+                  <div className="flex items-start gap-3 rounded-md bg-card p-6 text-card-foreground shadow-sm">
                     <MapPin className="size-5 shrink-0 text-brand" aria-hidden="true" />
                     <div className="flex min-w-0 flex-col gap-1">
                       <Typography as="p" className="text-sm leading-5 font-semibold">
@@ -635,8 +622,8 @@ export function MarketplaceListing({ sellerPubky, listingId }: MarketplaceListin
                     </div>
                   </div>
                 )}
-                <details className="group/signature rounded-xl bg-card text-card-foreground shadow-sm">
-                  <summary className="flex cursor-pointer list-none items-start gap-3 rounded-xl p-5 focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
+                <details className="group/signature rounded-md bg-card text-card-foreground shadow-sm">
+                  <summary className="flex cursor-pointer list-none items-start gap-3 rounded-md p-5 focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
                     <ShieldCheck className="size-5 shrink-0 text-brand" aria-hidden="true" />
                     <div className="flex min-w-0 flex-1 flex-col gap-1">
                       <Typography as="p" className="text-sm leading-5 font-semibold">
@@ -656,7 +643,7 @@ export function MarketplaceListing({ sellerPubky, listingId }: MarketplaceListin
                   </p>
                 </details>
                 {record.package && (
-                  <div className="flex items-start gap-3 rounded-xl bg-card p-5 text-card-foreground shadow-sm">
+                  <div className="flex items-start gap-3 rounded-md bg-card p-6 text-card-foreground shadow-sm">
                     <Package className="size-5 shrink-0 text-brand" aria-hidden="true" />
                     <div className="flex min-w-0 flex-col gap-1">
                       <Typography as="p" className="text-sm leading-5 font-semibold">
@@ -670,7 +657,7 @@ export function MarketplaceListing({ sellerPubky, listingId }: MarketplaceListin
                   </div>
                 )}
                 {record.tags.length > 0 && (
-                  <div className="marketplace-item-details flex min-w-0 items-start gap-3 rounded-xl bg-card p-5 text-card-foreground shadow-sm">
+                  <div className="marketplace-item-details flex min-w-0 items-start gap-3 rounded-md bg-card p-6 text-card-foreground shadow-sm">
                     <Hash className="size-5 shrink-0 text-brand" aria-hidden="true" />
                     <div className="flex min-w-0 flex-1 flex-col gap-1">
                       <Heading level={2} size="sm" className="text-sm leading-5 font-semibold">

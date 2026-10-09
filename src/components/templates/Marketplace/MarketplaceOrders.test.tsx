@@ -45,6 +45,10 @@ vi.mock('@/hooks/useRequireAuth/useRequireAuth', () => ({
   useRequireAuth: () => ({ requireAuth: <T,>(action: () => T) => action() }),
 }));
 
+vi.mock('@/hooks/useMarketplaceOrderItemMedia/useMarketplaceOrderItemMedia', () => ({
+  useMarketplaceOrderItemMedia: () => null,
+}));
+
 vi.mock('@/hooks/useUserDetails/useUserDetails', () => ({
   useUserDetails: () => ({ userDetails: null, isLoading: false }),
 }));
@@ -485,17 +489,14 @@ describe('MarketplaceOrders tabs', () => {
     expect(screen.getAllByTestId('payment-status')).toHaveLength(3);
   });
 
-  it('says why a seller approves the marketplace session to see sales', () => {
+  it('shows the orders empty state before marketplace approval', () => {
     ordersState.needsSession = true;
     ordersState.error = 'A marketplace session is required.';
 
     render(<MarketplaceOrders />);
 
-    expect(
-      screen.getByText(
-        'Your sales use this same approval, because the marketplace lists them only for a session it can tie to you.',
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByText('No orders yet')).toBeInTheDocument();
+    expect(screen.getByText('Your purchases and sales will appear here.')).toBeInTheDocument();
   });
 
   it('shows reserved checkout copy on Continue checkout, not a payment deadline on Orders', () => {
@@ -516,7 +517,9 @@ describe('MarketplaceOrders tabs', () => {
     ];
     const { rerender } = render(<MarketplaceOrders />);
     expect(screen.getByRole('link', { name: 'Continue checkout' })).toBeInTheDocument();
-    expect(screen.getByText(/Reserved while you pay · 5:00/)).toBeInTheDocument();
+    expect(screen.getByText(/Awaiting payment · Item reserved · 5:00/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Bought deadline boots' })).toBeInTheDocument();
+    expect(screen.getByText('Quantity 1')).toBeInTheDocument();
     expect(screen.queryByText(/Open Bitkit to pay/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Complete payment by/)).not.toBeInTheDocument();
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
@@ -543,7 +546,7 @@ describe('MarketplaceOrders tabs', () => {
       ),
     ];
     rerender(<MarketplaceOrders />);
-    expect(screen.getByText(/Reserved while you pay · 0:00/)).toBeInTheDocument();
+    expect(screen.getByText(/Awaiting payment · Item reserved · 0:00/)).toBeInTheDocument();
   });
 
   it('replaces the pay-by line with the seller confirm-by time after a Bitcoin payment is seen', () => {
@@ -566,7 +569,7 @@ describe('MarketplaceOrders tabs', () => {
     render(<MarketplaceOrders />);
     expect(screen.getByText('Seller confirms by Sep 29, 2026, 10:56 AM UTC. 23:56:41 left')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'View payment' })).toBeInTheDocument();
-    expect(screen.queryByText(/Reserved while you pay/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Awaiting payment · Item reserved/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Pay by/)).not.toBeInTheDocument();
   });
 
@@ -609,7 +612,7 @@ describe('MarketplaceOrders tabs', () => {
     render(<MarketplaceOrders />);
     expect(screen.getByText('Payment received — the seller is reviewing it.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'View payment' })).toBeInTheDocument();
-    expect(screen.queryByText(/Reserved while you pay/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Awaiting payment · Item reserved/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Pay by/)).not.toBeInTheDocument();
     expect(screen.queryByText(/confirmed on-chain/)).not.toBeInTheDocument();
   });

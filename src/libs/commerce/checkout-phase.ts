@@ -3,7 +3,7 @@ import { formatOrderInstant, UNBOUND_BACK_CANCEL_REASON } from '@/libs/commerce/
 import type { PaymentMethodKind } from '@/libs/commerce/payment-methods';
 
 export const CHECKOUT_IN_PROGRESS_LABEL = 'Checkout in progress';
-export const RESERVED_WHILE_YOU_PAY_LABEL = 'Reserved while you pay';
+export const RESERVED_WHILE_YOU_PAY_LABEL = 'Awaiting payment · Item reserved';
 export const BIND_FAIL_CANCEL_REASON = UNBOUND_BACK_CANCEL_REASON;
 
 const PAID_OR_LATER_STATES = new Set([

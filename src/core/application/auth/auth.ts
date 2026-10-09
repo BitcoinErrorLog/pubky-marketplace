@@ -463,6 +463,7 @@ export class AuthApplication {
     const pubky = token.publicKey.z32();
     const tokenResolvedAtMs = Date.now();
     const session = await HomeserverService.signInWithFullGrantAuthToken(bytes);
+    Logger.debug('Ring sign-in homeserver session established', { elapsedMs: Date.now() - tokenResolvedAtMs });
     // The bridged ceremony swaps the auth-store session here, while the
     // widened cookie and the store cannot drift apart (a failure after the
     // marketplace POST would otherwise leave the cookie wide and the store
@@ -471,12 +472,18 @@ export class AuthApplication {
     let marketplace = null;
     let marketplaceError: TMarketplaceRedeemError | null = null;
     if (isDurableCommerceMode(getCommerceAdapterMode())) {
+      const marketplaceStartedAt = Date.now();
       try {
         marketplace = await MarketplaceSessionService.redeemAuthTokenAfterHomeserver(bytes, pubky, tokenResolvedAtMs);
       } catch (error) {
         marketplaceError = this.toMarketplaceRedeemError(error);
         Logger.warn('Marketplace session redemption failed after homeserver sign-in; the Shop session stands', {
           marketplaceError,
+        });
+      } finally {
+        Logger.debug('Ring sign-in marketplace session exchange completed', {
+          elapsedMs: Date.now() - marketplaceStartedAt,
+          succeeded: marketplace !== null,
         });
       }
     }

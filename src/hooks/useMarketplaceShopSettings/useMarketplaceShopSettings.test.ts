@@ -3,6 +3,9 @@ import type { ChangeEvent } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { IMAGE_MAX_RAW_SIZE } from '@/config/images';
 import { CommerceController } from '@/controllers/commerce/commerce';
+import { AppError } from '@/libs/error/error';
+import { ClientErrorCode } from '@/libs/error/error.codes';
+import { ErrorCategory, ErrorService } from '@/libs/error/error.types';
 import { Logger } from '@/libs/logger/logger';
 import { asOpaque } from '@/test-utils/type-assertions';
 import { useMarketplaceShopSettings } from './useMarketplaceShopSettings';
@@ -19,6 +22,7 @@ vi.mock('@/controllers/commerce/commerce', () => ({
   CommerceController: {
     getShop: vi.fn(),
     getOrFetchShop: vi.fn(),
+    refreshShop: vi.fn(),
     commitUpsertShop: vi.fn(),
     commitCreateMedia: vi.fn(),
   },
@@ -68,7 +72,16 @@ function imageFile(name: string, bytes: number[] = [1, 2, 3]): File {
 describe('useMarketplaceShopSettings', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(CommerceController.getOrFetchShop).mockRejectedValue(new Error('no shop record'));
+    const missing = new AppError({
+      category: ErrorCategory.Client,
+      code: ClientErrorCode.NOT_FOUND,
+      message: 'No shop',
+      service: ErrorService.Homeserver,
+      operation: 'getOwnedResponse',
+      context: { statusCode: 404 },
+    });
+    vi.mocked(CommerceController.getOrFetchShop).mockRejectedValue(missing);
+    vi.mocked(CommerceController.refreshShop).mockRejectedValue(missing);
     vi.mocked(CommerceController.getShop).mockResolvedValue(null);
     vi.mocked(CommerceController.commitCreateMedia).mockResolvedValue(AVATAR_MEDIA_URL);
     vi.stubGlobal(
@@ -109,7 +122,7 @@ describe('useMarketplaceShopSettings', () => {
   });
 
   it('edits the published shop record network-first instead of restarting at revision 1', async () => {
-    vi.mocked(CommerceController.getOrFetchShop).mockResolvedValue(publishedShop);
+    vi.mocked(CommerceController.refreshShop).mockResolvedValue(publishedShop);
 
     const { result } = renderHook(() => useMarketplaceShopSettings());
     await waitFor(() => expect(result.current.hasShop).toBe(true));
@@ -122,11 +135,43 @@ describe('useMarketplaceShopSettings', () => {
     );
   });
 
+  it('does not save a replacement shop after a failed read with no cache and can retry', async () => {
+    vi.mocked(CommerceController.refreshShop).mockRejectedValue(new TypeError('offline'));
+    const { result } = renderHook(() => useMarketplaceShopSettings());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.loadError).toBe(true);
+    act(() => result.current.form.setValue('name', 'Replacement shop'));
+    await act(async () => expect(await result.current.submit()).toBe(false));
+    expect(CommerceController.commitUpsertShop).not.toHaveBeenCalled();
+    vi.mocked(CommerceController.refreshShop).mockResolvedValue(publishedShop);
+    act(() => result.current.reload());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.loadError).toBe(false);
+    expect(result.current.form.getValues('name')).toBe(publishedShop.name);
+    expect(result.current.revision).toBe(3);
+  });
+
+  it('uses the current published revision even when an older record is cached', async () => {
+    vi.mocked(CommerceController.getOrFetchShop).mockResolvedValue({
+      ...publishedShop,
+      revision: 1,
+      name: 'Stale shop',
+    });
+    vi.mocked(CommerceController.getShop).mockResolvedValue({ record: { ...publishedShop, revision: 1 } } as never);
+    vi.mocked(CommerceController.refreshShop).mockResolvedValue(publishedShop);
+    const { result } = renderHook(() => useMarketplaceShopSettings());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.form.getValues('name')).toBe(publishedShop.name);
+    await act(() => result.current.submit());
+    expect(CommerceController.commitUpsertShop).toHaveBeenCalledWith(expect.objectContaining({ revision: 4 }));
+    expect(CommerceController.getOrFetchShop).not.toHaveBeenCalled();
+  });
+
   it('round-trips unedited and unknown record members through a save (open-world records)', async () => {
     // transactionService is a real optional field this form does not edit;
     // futureField stands in for a member added by a newer writer. Both must
     // survive the read-modify-write untouched (social/v1 alignment).
-    vi.mocked(CommerceController.getOrFetchShop).mockResolvedValue({
+    vi.mocked(CommerceController.refreshShop).mockResolvedValue({
       ...publishedShop,
       transactionService: 'https://service.example',
       futureField: { promo: true },
@@ -145,8 +190,8 @@ describe('useMarketplaceShopSettings', () => {
     );
   });
 
-  it('falls back to the local cache when the homeserver is unreachable', async () => {
-    vi.mocked(CommerceController.getOrFetchShop).mockRejectedValue(new Error('offline'));
+  it('preserves cached settings but blocks saving when the homeserver is unreachable', async () => {
+    vi.mocked(CommerceController.refreshShop).mockRejectedValue(new Error('offline'));
     vi.mocked(CommerceController.getShop).mockResolvedValue({ record: publishedShop } as never);
 
     const { result } = renderHook(() => useMarketplaceShopSettings());
@@ -154,6 +199,9 @@ describe('useMarketplaceShopSettings', () => {
 
     expect(result.current.revision).toBe(3);
     expect(result.current.form.getValues('name')).toBe('Satoshi Vintage');
+    expect(result.current.loadError).toBe(true);
+    await act(async () => expect(await result.current.submit()).toBe(false));
+    expect(CommerceController.commitUpsertShop).not.toHaveBeenCalled();
   });
 
   it('uploads picked avatar and banner images and publishes their marketplace media URIs', async () => {
@@ -183,7 +231,7 @@ describe('useMarketplaceShopSettings', () => {
   });
 
   it('hydrates published shop images and republishes them without re-uploading bytes', async () => {
-    vi.mocked(CommerceController.getOrFetchShop).mockResolvedValue({
+    vi.mocked(CommerceController.refreshShop).mockResolvedValue({
       ...publishedShop,
       avatarUrl: AVATAR_MEDIA_URL,
       bannerUrl: BANNER_MEDIA_URL,
@@ -207,7 +255,7 @@ describe('useMarketplaceShopSettings', () => {
   });
 
   it('removes a published image so the next revision publishes without the field', async () => {
-    vi.mocked(CommerceController.getOrFetchShop).mockResolvedValue({
+    vi.mocked(CommerceController.refreshShop).mockResolvedValue({
       ...publishedShop,
       avatarUrl: AVATAR_MEDIA_URL,
       bannerUrl: BANNER_MEDIA_URL,

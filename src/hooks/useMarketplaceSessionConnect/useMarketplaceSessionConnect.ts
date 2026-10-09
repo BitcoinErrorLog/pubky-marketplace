@@ -168,6 +168,7 @@ export function useMarketplaceSessionConnect(
 
     const startAuthTokenConnect = () => {
       setRequestsGrantReconnect(false);
+      setRequestsGrantBootstrap(false);
       let flow: ActiveFlow;
       try {
         flow = requestsFullGrant

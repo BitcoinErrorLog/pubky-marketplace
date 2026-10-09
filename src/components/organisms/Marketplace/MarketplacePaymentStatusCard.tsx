@@ -1,20 +1,25 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import {
-  ArrowLeft,
   Banknote,
   CheckCircle2,
+  ChevronDown,
   Clock3,
   Download,
+  ExternalLink,
   FileWarning,
   KeyRound,
   LoaderCircle,
   WalletCards,
+  X,
 } from 'lucide-react';
 import { Controller, type UseFormReturn } from 'react-hook-form';
 import { Badge } from '@/atoms/Badge/Badge';
-import { Button } from '@/atoms/Button/Button';
+import { Button, buttonVariants } from '@/atoms/Button/Button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/atoms/Collapsible/Collapsible';
+import { Input } from '@/atoms/Input/Input';
+import { Label } from '@/atoms/Label/Label';
 import { Typography } from '@/atoms/Typography/Typography';
 import { type CommerceAdapterMode, isDurableCommerceMode, isLocksPaykitCommerceMode } from '@/config/commerce';
 import { CommerceController } from '@/controllers/commerce/commerce';
@@ -33,13 +38,11 @@ import {
   BITCOIN_WALLET_SENT_COPY,
   BITCOIN_WALLET_WAITING_COPY,
   bitcoinPaidConfirmation,
-  bitcoinSeenBadgeLabel,
   buyerBitcoinReviewCopy,
   buyerBitcoinWalletCopy,
   holdCountdownCopy,
   PAYMENT_CONFIRMED_ON_CHAIN_LABEL,
   PAYMENT_SEEN_HOLD_COPY,
-  PAYMENT_SELLER_CONFIRMED_LABEL,
   SELLER_CONFIRMED_BEFORE_CHAIN_BUYER_COPY,
   SELLER_CONFIRMED_BEFORE_CHAIN_SELLER_COPY,
   sellerBitcoinConfirmPrompt,
@@ -58,7 +61,7 @@ import {
 } from '@/libs/commerce/checkout-hold';
 import { MARKETPLACE_FAILURE_MESSAGES } from '@/libs/commerce/failure-messages';
 import { LOCKS_ADMISSION_COPY, locksAdmissionFailureCopy } from '@/libs/commerce/locks-lifecycle';
-import { type BuyerVisiblePaymentStatus, buyerVisiblePaymentStatus } from '@/libs/commerce/locks-payment';
+import { buyerVisiblePaymentStatus } from '@/libs/commerce/locks-payment';
 import type { CommerceDigitalLock } from '@/libs/commerce/marketplace-records';
 import {
   BITCOIN_WALLET_UNSUPPORTED_TITLE,
@@ -68,27 +71,15 @@ import {
 } from '@/libs/commerce/paykit-wallet';
 import { buildMarketplaceOrderAggregateId } from '@/libs/commerce/transaction-commands';
 import { getDeployEnv } from '@/libs/runtime-config/runtime-config';
+import { cn } from '@/libs/utils/utils';
+import { MarketplacePaymentStatusBadge } from '@/molecules/Marketplace/MarketplacePaymentStatusBadge';
+import { SETTINGS_SECTION_CONTENT_CLASSNAME } from '@/molecules/Settings/SettingsSectionContent/SettingsSectionContent';
 import type { MarketplaceOrder, MarketplacePayment } from '@/services/marketplace/marketplace';
 import { useAuthStore } from '@/stores/auth/auth.store';
 import { MarketplaceBitcoinAmountBreakdown } from './MarketplaceBitcoinAmountBreakdown';
 
 const PAYKIT_DELIVERY_FAILED_COPY =
   "Your wallet didn't receive the request. In Bitkit, add the seller as a contact, then try again.";
-
-/**
- * The buyer-visible payment status vocabulary is deliberately small
- * (implementation plan, "Paykit, Locks, and payment confirmation"): awaiting
- * entitlement, confirmed, marketplace-expired, and manual review. Detection,
- * underpayment/overpayment, and confirmation counts stay internal to
- * Locks/Paykit Server and are never rendered as real facts — only the
- * visibly-labeled sandbox demonstrates the finer-grained simulated states.
- */
-const BUYER_VISIBLE_STATUS_LABELS: Record<BuyerVisiblePaymentStatus, string> = {
-  awaiting_entitlement: 'Awaiting payment',
-  confirmed: 'Payment confirmed',
-  expired: 'Payment window expired',
-  manual_review: 'Under manual review',
-};
 
 function parseListingAggregateId(aggregateId: string): { sellerPubky: string; listingId: string } | null {
   if (!aggregateId.startsWith('listing:')) return null;
@@ -112,6 +103,8 @@ export function MarketplacePaymentStatusCard({
   adapterMode,
   advancePayment,
   onPaymentChanged,
+  showStagingNotice = true,
+  checkoutActions,
 }: {
   order: MarketplaceOrder;
   payment: MarketplacePayment | null;
@@ -123,6 +116,8 @@ export function MarketplacePaymentStatusCard({
     confirmations: number,
   ) => Promise<boolean>;
   onPaymentChanged: () => void | Promise<void>;
+  showStagingNotice?: boolean;
+  checkoutActions?: ReactNode;
 }) {
   const currentUserPubky = useAuthStore((state) => state.currentUserPubky);
   const isSandbox = adapterMode === 'sandbox';
@@ -222,27 +217,12 @@ export function MarketplacePaymentStatusCard({
 
   if (!payment || visibleStatus === null) return null;
 
-  const seenBadge =
-    visibleStatus === 'awaiting_entitlement' && !isTerminal ? bitcoinSeenBadgeLabel(order, payment) : null;
   const paidBitcoin = bitcoinPaidConfirmation(order, payment);
-  const paidBitcoinBadge = paidBitcoin
-    ? paidBitcoin.sellerConfirmed
-      ? PAYMENT_SELLER_CONFIRMED_LABEL
-      : PAYMENT_CONFIRMED_ON_CHAIN_LABEL
-    : null;
-  const visibleStatusLabel =
-    seenBadge ??
-    paidBitcoinBadge ??
-    (isTerminal && visibleStatus === 'awaiting_entitlement'
-      ? order.state === 'cancelled'
-        ? 'Order cancelled'
-        : 'Not paid'
-      : BUYER_VISIBLE_STATUS_LABELS[visibleStatus]);
 
   return (
-    <div className="grid min-w-0 gap-3 rounded-xl border p-4" data-surface="marketplace-payment-status-card">
+    <div className={cn(SETTINGS_SECTION_CONTENT_CLASSNAME, 'gap-4')} data-surface="marketplace-payment-status-card">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={visibleStatus === 'confirmed' ? 'default' : 'outline'}>{visibleStatusLabel}</Badge>
+        <MarketplacePaymentStatusBadge order={order} payment={payment} />
         {paidBitcoin?.sellerConfirmed && paidBitcoin.onChain && (
           <Badge variant="secondary" data-testid="bitcoin-on-chain-badge">
             {PAYMENT_CONFIRMED_ON_CHAIN_LABEL}
@@ -250,13 +230,22 @@ export function MarketplacePaymentStatusCard({
         )}
         {payment.adapter === 'locks' && <Badge variant="secondary">Locks/Paykit</Badge>}
         {order.paymentMethod === 'bitcoin' && <Badge variant="secondary">₿ Bitcoin</Badge>}
-        {order.paymentMethod === 'paypal' && <Badge variant="secondary">PayPal</Badge>}
+        {isBuyer && isAwaiting && order.state === 'pending_payment' && order.paymentMethod === 'paypal' && (
+          <Badge variant="outline">Item reserved</Badge>
+        )}
+        {order.paymentMethod === 'paypal' && <Badge variant="outline">PayPal</Badge>}
         {/* How a fiat rail is verified stays on the order: a gateway-notified
             PayPal payment was confirmed by PayPal's own notification;
             seller-attested is the seller saying so. */}
-        {order.fiatVerification === 'processor' && <Badge variant="secondary">Processor-verified</Badge>}
-        {order.fiatVerification === 'gateway-notified' && <Badge variant="secondary">PayPal-verified</Badge>}
-        {order.fiatVerification === 'seller-attested' && <Badge variant="outline">Seller-attested</Badge>}
+        {order.fiatVerification === 'processor' && (!isBuyer || visibleStatus === 'confirmed') && (
+          <Badge variant="secondary">{isBuyer ? 'Confirmed by payment provider' : 'Processor-verified'}</Badge>
+        )}
+        {order.fiatVerification === 'gateway-notified' && (!isBuyer || visibleStatus === 'confirmed') && (
+          <Badge variant="secondary">{isBuyer ? 'Confirmed by PayPal' : 'PayPal-verified'}</Badge>
+        )}
+        {order.fiatVerification === 'seller-attested' && (!isBuyer || visibleStatus === 'confirmed') && (
+          <Badge variant="outline">{isBuyer ? 'Confirmed by seller' : 'Seller-attested'}</Badge>
+        )}
         {isSandbox && <Badge variant="secondary">Sandbox · simulated payment · no real funds</Badge>}
       </div>
       <MarketplaceBitcoinAmountBreakdown
@@ -264,11 +253,11 @@ export function MarketplacePaymentStatusCard({
         showExact={isBuyer && isAwaiting && buyerBitcoinWalletCopy(order, payment).kind === 'pay'}
         explainCode={isBuyer}
       />
-      {!isSandbox && isBuyer && isAwaiting && isStaging && (
+      {showStagingNotice && !isSandbox && isBuyer && isAwaiting && isStaging && (
         <Typography
           as="p"
           role="note"
-          className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-200"
+          className="rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-200"
         >
           Staging environment — test rails, no real funds move
         </Typography>
@@ -315,6 +304,11 @@ export function MarketplacePaymentStatusCard({
           {expiredNoLateMoney
             ? CHECKOUT_HOLD_COPY.expiredNoLateMoney
             : 'The marketplace payment window elapsed before a verified payment arrived, so this checkout was not completed. A payment verified after expiry is reconciled manually — never silently applied or discarded.'}
+        </Typography>
+      )}
+      {visibleStatus === 'expired' && expiredNoLateMoney && isBuyer && order.paymentMethod === 'bitcoin' && (
+        <Typography as="p" className="text-sm text-muted-foreground" data-testid="bitcoin-pending-payment-note">
+          {CHECKOUT_HOLD_COPY.pendingBitcoinPaymentBuyer}
         </Typography>
       )}
       {visibleStatus === 'expired' &&
@@ -374,13 +368,13 @@ export function MarketplacePaymentStatusCard({
               className="rounded-full"
               onClick={() => void advancePayment(payment, 'detected', 0)}
             >
-              <Clock3 className="mr-2 size-4" />
+              <Clock3 className="size-4" />
               Simulate detected
             </Button>
           )}
           {(payment.state === 'awaiting_entitlement' || payment.state === 'detected') && (
             <Button size="sm" className="rounded-full" onClick={() => void advancePayment(payment, 'confirmed', 1)}>
-              <CheckCircle2 className="mr-2 size-4" />
+              <CheckCircle2 className="size-4" />
               Simulate confirmation
             </Button>
           )}
@@ -417,12 +411,8 @@ export function MarketplacePaymentStatusCard({
                 disabled={isReleasingHold}
                 onClick={() => void releaseUnboundHold()}
               >
-                {isReleasingHold ? (
-                  <LoaderCircle className="mr-2 size-4 animate-spin" />
-                ) : (
-                  <ArrowLeft className="mr-2 size-4" />
-                )}
-                Back
+                {isReleasingHold ? <LoaderCircle className="size-4 animate-spin" /> : <X className="size-4" />}
+                Cancel checkout
               </Button>
             </>
           ) : (
@@ -433,7 +423,7 @@ export function MarketplacePaymentStatusCard({
                 </Typography>
               )}
               <Typography as="p" className="text-sm text-muted-foreground">
-                {holderUnboundCopy(order.holdExpiresAt)}
+                Choose a payment method to continue. {holderUnboundCopy(order.holdExpiresAt)}
               </Typography>
               <div className="flex flex-wrap gap-2">
                 {methodPayment.availableMethods.includes('bitcoin') && (
@@ -448,7 +438,8 @@ export function MarketplacePaymentStatusCard({
                     }
                     onClick={() => void methodPayment.bind('bitcoin')}
                   >
-                    <WalletCards className="mr-2 size-4" />₿ Bitcoin
+                    <WalletCards className="size-4" />
+                    Continue with Bitcoin
                   </Button>
                 )}
                 {methodPayment.availableMethods.includes('paypal') && (
@@ -459,10 +450,20 @@ export function MarketplacePaymentStatusCard({
                     disabled={methodPayment.pendingAction !== null}
                     onClick={() => void methodPayment.bind('paypal')}
                   >
-                    <Banknote className="mr-2 size-4" />
-                    PayPal
+                    <Banknote className="size-4" />
+                    Continue with PayPal
                   </Button>
                 )}
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="w-fit rounded-full"
+                  disabled={isReleasingHold || methodPayment.pendingAction !== null}
+                  onClick={() => void releaseUnboundHold()}
+                >
+                  {isReleasingHold ? <LoaderCircle className="size-4 animate-spin" /> : <X className="size-4" />}
+                  Cancel checkout
+                </Button>
               </div>
               {bitcoinWalletChecking && (
                 <Typography as="p" aria-live="polite" className="text-xs text-muted-foreground">
@@ -512,20 +513,6 @@ export function MarketplacePaymentStatusCard({
                   Setting up the payment…
                 </div>
               )}
-              <Button
-                size="sm"
-                variant="secondary"
-                className="w-fit rounded-full"
-                disabled={isReleasingHold || methodPayment.pendingAction !== null}
-                onClick={() => void releaseUnboundHold()}
-              >
-                {isReleasingHold ? (
-                  <LoaderCircle className="mr-2 size-4 animate-spin" />
-                ) : (
-                  <ArrowLeft className="mr-2 size-4" />
-                )}
-                Back
-              </Button>
               {releaseHoldError && (
                 <Typography as="p" role="alert" className="text-sm text-amber-300">
                   {releaseHoldError}
@@ -545,53 +532,82 @@ export function MarketplacePaymentStatusCard({
           the order automatically. The buyer report + seller confirmation
           remain as the fallback when no notification arrives. */}
       {usesMethodFlow && isBuyer && order.paymentMethod === 'paypal' && order.fiatCheckoutUrl && (
-        <div className="grid gap-2">
-          <Typography as="p" className="text-sm text-muted-foreground">
-            {holderBoundCopy(order.holdExpiresAt)}
-          </Typography>
-          {order.paymentReportedAt ? (
+        <div className="grid gap-4">
+          {formatOrderInstant(order.holdExpiresAt) && (
             <Typography as="p" className="text-sm text-muted-foreground">
-              You reported this payment{order.fiatTransactionRef ? ` (ref ${order.fiatTransactionRef})` : ''}. The order
-              completes when PayPal&rsquo;s notification arrives or the seller confirms receipt in their PayPal account.
+              Pay by {formatOrderInstant(order.holdExpiresAt)} to keep your reservation.
             </Typography>
+          )}
+          {order.paymentReportedAt ? (
+            <div className="grid gap-1" role="status">
+              <Typography as="p" className="text-sm font-semibold">
+                Payment reported
+              </Typography>
+              <Typography as="p" className="text-sm text-muted-foreground">
+                Waiting for PayPal or the seller to confirm receipt. You don&rsquo;t need to pay again.
+              </Typography>
+              {order.fiatTransactionRef && (
+                <Typography as="p" className="text-sm break-all text-muted-foreground">
+                  Transaction ID: {order.fiatTransactionRef}
+                </Typography>
+              )}
+              {checkoutActions}
+            </div>
           ) : (
             <>
-              <Typography as="p" className="text-sm text-muted-foreground">
-                Pay through PayPal — this page updates by itself once PayPal confirms the payment to the marketplace,
-                usually within seconds. If it doesn&rsquo;t, you can report the payment here as a fallback and the
-                seller confirms receipt.
-              </Typography>
-              <Typography as="p" className="text-xs text-muted-foreground">
-                Use this only if automatic confirmation fails. The seller must verify your PayPal transaction ID before
-                shipping.
-              </Typography>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button asChild size="sm" className="rounded-full">
-                  <a href={order.fiatCheckoutUrl} target="_blank" rel="noopener noreferrer">
-                    <Banknote className="mr-2 size-4" />
-                    Open PayPal checkout
-                  </a>
-                </Button>
-                <input
-                  value={paypalTransactionRef}
-                  onChange={(event) => setPaypalTransactionRef(event.target.value)}
-                  placeholder="PayPal transaction ID (optional)"
-                  className="h-9 max-w-56 rounded-md border bg-transparent px-3 text-sm"
-                  aria-label="PayPal transaction ID"
-                />
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="rounded-full"
-                  disabled={methodPayment.pendingAction !== null}
-                  onClick={() => void methodPayment.markPaid(paypalTransactionRef)}
-                >
-                  {methodPayment.pendingAction === 'mark-paid' ? (
-                    <LoaderCircle className="mr-2 size-4 animate-spin" />
-                  ) : null}
-                  I&rsquo;ve paid
-                </Button>
+              <div className="grid gap-3">
+                <Typography as="p" className="text-sm text-muted-foreground">
+                  Complete your payment in PayPal. This page updates when your payment is confirmed.
+                </Typography>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button asChild className="w-fit rounded-full">
+                    <a href={order.fiatCheckoutUrl} target="_blank" rel="noopener noreferrer">
+                      <Banknote className="size-4" aria-hidden="true" />
+                      Continue to PayPal
+                      <ExternalLink className="size-4" aria-hidden="true" />
+                    </a>
+                  </Button>
+                  {checkoutActions}
+                </div>
               </div>
+              <Collapsible className="grid gap-3 border-t border-border pt-4">
+                <CollapsibleTrigger className="group flex w-fit items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+                  Already paid?
+                  <ChevronDown
+                    className="size-4 transition-transform group-data-[state=open]:rotate-180"
+                    aria-hidden="true"
+                  />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="grid gap-4">
+                  <Typography as="p" className="max-w-2xl text-sm text-muted-foreground">
+                    If your payment hasn&rsquo;t appeared here, send a payment report. The seller will check their
+                    PayPal account before confirming receipt.
+                  </Typography>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                    <div className="grid w-full gap-2 sm:max-w-sm">
+                      <Label htmlFor={`paypal-transaction-${order.id}`}>PayPal transaction ID (optional)</Label>
+                      <Input
+                        id={`paypal-transaction-${order.id}`}
+                        theme="dashed"
+                        value={paypalTransactionRef}
+                        onChange={(event) => setPaypalTransactionRef(event.target.value)}
+                        placeholder="Enter transaction ID"
+                      />
+                    </div>
+                    <Button
+                      variant="secondary"
+                      className="w-fit shrink-0 rounded-full"
+                      disabled={methodPayment.pendingAction !== null}
+                      onClick={() => void methodPayment.markPaid(paypalTransactionRef)}
+                    >
+                      {methodPayment.pendingAction === 'mark-paid' ? (
+                        <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                      ) : null}
+                      Report payment
+                    </Button>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             </>
           )}
         </div>
@@ -614,9 +630,9 @@ export function MarketplacePaymentStatusCard({
                 onClick={() => void methodPayment.confirmReceived()}
               >
                 {methodPayment.pendingAction === 'confirm' ? (
-                  <LoaderCircle className="mr-2 size-4 animate-spin" />
+                  <LoaderCircle className="size-4 animate-spin" />
                 ) : (
-                  <CheckCircle2 className="mr-2 size-4" />
+                  <CheckCircle2 className="size-4" />
                 )}
                 Confirm payment received
               </Button>
@@ -637,11 +653,7 @@ export function MarketplacePaymentStatusCard({
             never confirms a payment itself — the marketplace verifies the Locks entitlement server-side.
           </Typography>
           <Button className="w-fit rounded-full" disabled={locks.isStarting} onClick={() => void locks.start()}>
-            {locks.isStarting ? (
-              <LoaderCircle className="mr-2 size-4 animate-spin" />
-            ) : (
-              <WalletCards className="mr-2 size-4" />
-            )}
+            {locks.isStarting ? <LoaderCircle className="size-4 animate-spin" /> : <WalletCards className="size-4" />}
             Request payment in your wallet
           </Button>
         </div>
@@ -707,7 +719,7 @@ export function MarketplacePaymentStatusCard({
 
       {/* Digital delivery after server-side confirmation. */}
       {isLocksPaykit && isBuyer && visibleStatus === 'confirmed' && locks.correlation && (
-        <div className="grid gap-2 rounded-lg bg-brand/10 p-3">
+        <div className="grid gap-2 rounded-md bg-brand/10 p-3">
           <div className="flex items-center gap-2 text-sm text-brand">
             <KeyRound className="size-4" />
             Digital delivery is ready: a short-lived Locks access credential unlocks the purchased content.
@@ -720,7 +732,7 @@ export function MarketplacePaymentStatusCard({
               </span>
               <Button asChild size="sm" variant="secondary" className="rounded-full">
                 <a href={locks.delivery.objectUrl} download={locks.delivery.fileName}>
-                  <Download className="mr-2 size-4" />
+                  <Download className="size-4" />
                   Save file
                 </a>
               </Button>
@@ -732,7 +744,7 @@ export function MarketplacePaymentStatusCard({
               disabled={locks.isUnlocking}
               onClick={() => void locks.unlock()}
             >
-              {locks.isUnlocking ? <LoaderCircle className="mr-2 size-4 animate-spin" /> : null}
+              {locks.isUnlocking ? <LoaderCircle className="size-4 animate-spin" /> : null}
               Unlock content
             </Button>
           )}
@@ -824,10 +836,7 @@ function SellerBitcoinConfirmationReview({
   const nowMs = useNowMs(formatOrderInstant(deadline) !== null);
   const countdown = holdCountdownCopy(deadline, nowMs);
   return (
-    <section
-      className="grid gap-3 rounded-xl border border-amber-500/40 bg-amber-500/5 p-4"
-      aria-labelledby="bitcoin-review-title"
-    >
+    <section className="grid gap-3 rounded-md bg-amber-500/5 p-4" aria-labelledby="bitcoin-review-title">
       <Typography
         as="h3"
         id="bitcoin-review-title"
@@ -867,12 +876,12 @@ function SellerBitcoinConfirmationReview({
         render={({ field, fieldState }) => (
           <label className="grid gap-1 text-sm" htmlFor="bitcoin-confirm-reason">
             Seller note (optional)
-            <input
+            <Input
+              theme="dashed"
               {...field}
               id="bitcoin-confirm-reason"
               maxLength={500}
               aria-describedby="bitcoin-confirm-error"
-              className="h-9 rounded-md border bg-transparent px-3"
             />
             {fieldState.error && <span className="text-amber-300">{fieldState.error.message}</span>}
           </label>
@@ -884,11 +893,7 @@ function SellerBitcoinConfirmationReview({
         </Typography>
       )}
       <Button className="w-fit rounded-full" disabled={isSubmitting} onClick={onConfirm}>
-        {isSubmitting ? (
-          <LoaderCircle className="mr-2 size-4 animate-spin" />
-        ) : (
-          <CheckCircle2 className="mr-2 size-4" />
-        )}
+        {isSubmitting ? <LoaderCircle className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
         Confirm payment received
       </Button>
     </section>
@@ -916,10 +921,7 @@ function SellerBitcoinResolutionReview({
   const canResolve =
     !isSubmitting && (allowPaid || outcome !== 'paid') && (outcome !== 'refunded' || validRefundReference);
   return (
-    <section
-      className="grid gap-3 rounded-xl border border-amber-500/40 bg-amber-500/5 p-4"
-      aria-labelledby="bitcoin-resolution-title"
-    >
+    <section className="grid gap-3 rounded-md bg-amber-500/5 p-4" aria-labelledby="bitcoin-resolution-title">
       <Typography
         as="h3"
         id="bitcoin-resolution-title"
@@ -941,7 +943,11 @@ function SellerBitcoinResolutionReview({
           control={form.control}
           name="outcome"
           render={({ field }) => (
-            <select {...field} id="bitcoin-resolution-outcome" className="h-9 rounded-md border bg-background px-3">
+            <select
+              {...field}
+              id="bitcoin-resolution-outcome"
+              className={`${buttonVariants({ variant: 'secondary' })} w-full`}
+            >
               {allowPaid && <option value="paid">Paid</option>}
               <option value="refunded">Refunded</option>
               <option value="abandoned">Abandoned</option>
@@ -956,13 +962,13 @@ function SellerBitcoinResolutionReview({
           render={({ field, fieldState }) => (
             <label className="grid gap-1 text-sm" htmlFor="bitcoin-refund-reference">
               External refund reference (required)
-              <input
+              <Input
+                theme="dashed"
                 {...field}
                 id="bitcoin-refund-reference"
                 maxLength={64}
                 aria-describedby="bitcoin-resolution-reference-error bitcoin-resolution-error"
                 aria-invalid={!validRefundReference}
-                className="h-9 rounded-md border bg-transparent px-3"
                 inputMode="text"
               />
               {fieldState.error && <span className="text-amber-300">{fieldState.error.message}</span>}
@@ -976,12 +982,7 @@ function SellerBitcoinResolutionReview({
         render={({ field, fieldState }) => (
           <label className="grid gap-1 text-sm" htmlFor="bitcoin-resolution-reason">
             Reason (optional)
-            <input
-              {...field}
-              id="bitcoin-resolution-reason"
-              maxLength={500}
-              className="h-9 rounded-md border bg-transparent px-3"
-            />
+            <Input theme="dashed" {...field} id="bitcoin-resolution-reason" maxLength={500} />
             {fieldState.error && <span className="text-amber-300">{fieldState.error.message}</span>}
           </label>
         )}
@@ -997,7 +998,7 @@ function SellerBitcoinResolutionReview({
         </Typography>
       )}
       <Button className="w-fit rounded-full" disabled={!canResolve} onClick={onResolve}>
-        {isSubmitting ? <LoaderCircle className="mr-2 size-4 animate-spin" /> : null}
+        {isSubmitting ? <LoaderCircle className="size-4 animate-spin" /> : null}
         Resolve payment
       </Button>
     </section>

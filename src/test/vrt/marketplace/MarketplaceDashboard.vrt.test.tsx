@@ -215,7 +215,7 @@ describe('Marketplace seller dashboard — visual regression', () => {
 
     const screen = await renderForVRT(<MarketplaceDashboard />, { viewport: VRT_VIEWPORT_DESKTOP });
     await vi.waitFor(() => {
-      if (!screen.container.textContent?.includes('Your shop page is not set up')) {
+      if (!screen.container.textContent?.includes('Your storefront is not set up')) {
         throw new Error('The shop prompt has not rendered yet.');
       }
     });
@@ -273,7 +273,9 @@ describe('Marketplace seller dashboard — visual regression', () => {
         throw new Error('The unfinished drafts list has not rendered yet.');
       }
     });
-    await expect(expectVrtSurface('listing-drafts-list')).toMatchScreenshot('dashboard-unfinished-drafts-desktop');
+    await expect(await expectVrtSurface('listing-drafts-list')).toMatchScreenshot(
+      'dashboard-unfinished-drafts-desktop',
+    );
     view.unfinishedDrafts = [];
   });
 });

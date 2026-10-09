@@ -3,6 +3,7 @@
 import { LogOut } from 'lucide-react';
 import { Button } from '@/atoms/Button/Button';
 import { Card, CardContent } from '@/atoms/Card/Card';
+import { Heading } from '@/atoms/Heading/Heading';
 import { Typography } from '@/atoms/Typography/Typography';
 import { useSignOut } from '@/hooks/useSignOut/useSignOut';
 import { useSignOutCopy } from '@/hooks/useSignOutCopy/useSignOutCopy';
@@ -17,26 +18,25 @@ export function MarketplaceSignOutCard() {
   const { title, description } = useSignOutCopy();
 
   return (
-    <Card className="border" data-testid="marketplace-sign-out-card">
-      <CardContent className="flex flex-col gap-3 px-6 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex gap-3">
-          <LogOut className="mt-1 size-5 text-brand" />
-          <div>
-            <Typography as="h2" className="font-semibold">
-              {title}
-            </Typography>
-            <Typography as="p" className="text-sm text-muted-foreground">
-              {description}
-            </Typography>
-          </div>
+    <Card className="rounded-md p-0" data-testid="marketplace-sign-out-card">
+      <CardContent className="flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="grid grid-cols-[1.5rem_minmax(0,1fr)] items-center gap-x-3">
+          <LogOut className="size-6 shrink-0 text-brand" />
+          <Heading level={2} size="md">
+            {title}
+          </Heading>
+          <Typography as="p" className="col-start-2 text-sm text-muted-foreground">
+            {description}
+          </Typography>
         </div>
         <Button
           id="sign-out-btn"
           variant="secondary"
-          className="shrink-0 rounded-full"
+          className="w-fit shrink-0"
           disabled={isLoading}
           onClick={handleSignOut}
         >
+          <LogOut className="size-4" />
           {isLoading ? 'Signing out...' : 'Sign out'}
         </Button>
       </CardContent>

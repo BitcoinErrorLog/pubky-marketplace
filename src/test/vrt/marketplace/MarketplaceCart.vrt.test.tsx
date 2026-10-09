@@ -179,7 +179,7 @@ describe('Marketplace cart — visual regression', () => {
 
   async function captureCart(sceneName: string) {
     await parkVrtHover();
-    const surface = expectVrtSurface('marketplace-cart');
+    const surface = await expectVrtSurface('marketplace-cart');
     await expect(surface).toMatchScreenshot(sceneName, VRT_DENSE_CHROME_SCREENSHOT);
   }
 
@@ -205,7 +205,7 @@ describe('Marketplace cart — visual regression', () => {
 
     const items = surface.querySelector('[data-testid="marketplace-cart-items"]');
     const summary = surface.querySelector('[data-testid="marketplace-cart-summary"]');
-    const checkout = surface.querySelector('[aria-label="Checkout"]');
+    const checkout = surface.querySelector('[data-testid="marketplace-cart-checkout"]');
     if (!(items instanceof HTMLElement) || !(summary instanceof HTMLElement) || !(checkout instanceof HTMLElement)) {
       throw new Error('VRT geometry rejected: missing cart items, summary, or Checkout region');
     }
@@ -213,6 +213,10 @@ describe('Marketplace cart — visual regression', () => {
     expect(checkout.getBoundingClientRect().bottom - surface.getBoundingClientRect().top).toBeLessThanOrEqual(
       surface.scrollHeight,
     );
+    expect(surface.scrollWidth).toBeLessThanOrEqual(surface.clientWidth);
+    for (const control of surface.querySelectorAll('button, [data-testid="marketplace-cart-checkout"]')) {
+      expect(control.getBoundingClientRect().right).toBeLessThanOrEqual(surface.getBoundingClientRect().right);
+    }
   }
 
   it('renders a single-seller cart at desktop viewport', async () => {
@@ -273,14 +277,16 @@ describe('Marketplace cart — visual regression', () => {
     await captureCart('cart-multi-seller-mobile');
   });
 
-  it('keeps mobile cart items above the Checkout summary', async () => {
-    const { singleSeller } = await fixtures;
-    view.items = singleSeller;
-    view.isLoading = false;
+  it.each(['singleSeller', 'multiSeller'] as const)(
+    'keeps mobile %s items above the summary with every control in view',
+    async (fixture) => {
+      view.items = (await fixtures)[fixture];
+      view.isLoading = false;
 
-    await renderForVRT(<MarketplaceCart />, { viewport: VRT_VIEWPORT_MOBILE });
-    expectMobileWorkflowGeometry();
-  });
+      await renderForVRT(<MarketplaceCart />, { viewport: VRT_VIEWPORT_MOBILE });
+      expectMobileWorkflowGeometry();
+    },
+  );
 
   it('renders a cart with a stale item whose variant is gone at desktop viewport', async () => {
     const { staleItem } = await fixtures;

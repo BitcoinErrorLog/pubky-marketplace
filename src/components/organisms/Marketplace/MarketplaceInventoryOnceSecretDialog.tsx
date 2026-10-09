@@ -40,7 +40,7 @@ export function MarketplaceInventoryOnceSecretDialog({
         <Typography as="p" className="text-sm text-muted-foreground">
           {message}
         </Typography>
-        <Input type="password" readOnly value={secret} aria-label="Webhook secret" autoComplete="off" />
+        <Input theme="dashed" type="password" readOnly value={secret} aria-label="Webhook secret" autoComplete="off" />
         <DialogFooter>
           <Button
             variant="secondary"

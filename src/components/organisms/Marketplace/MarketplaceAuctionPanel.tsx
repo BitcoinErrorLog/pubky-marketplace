@@ -96,8 +96,8 @@ export function MarketplaceAuctionPanel({
     endsAt && deviceNowMs !== null ? Math.max(0, Date.parse(endsAt) - (deviceNowMs + (clockOffsetMs ?? 0))) : null;
 
   return (
-    <Card className="py-5">
-      <CardContent className="grid gap-6 px-5">
+    <Card className="rounded-md p-0">
+      <CardContent className="grid gap-6 p-6">
         {(remainingMs !== null || auctionPhase === 'ended') && (
           <div className="grid grid-cols-[20px_minmax(0,1fr)] items-start gap-x-3 gap-y-1 [&>ol]:col-start-2 [&>p]:col-start-2">
             {endsAt && remainingMs !== null && (

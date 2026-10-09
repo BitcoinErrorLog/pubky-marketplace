@@ -127,7 +127,7 @@ describe('useListingMediaManager', () => {
     expect(capped.current.error).toBe('limit-reached');
   });
 
-  it('requires every photo to carry alt text before preparation', async () => {
+  it('prepares undescribed photos with fallback labels while still requiring a photo', async () => {
     const { result } = renderHook(() => useListingMediaManager());
 
     let prepared = await act(async () => await result.current.prepare(OWNER));
@@ -135,7 +135,10 @@ describe('useListingMediaManager', () => {
 
     act(() => result.current.onInputChange(changeEvent(imageFile('front.jpg'))));
     prepared = await act(async () => await result.current.prepare(OWNER));
-    expect(prepared).toEqual({ ok: false, reason: 'missing-alt-text' });
+    expect(prepared.ok).toBe(true);
+    if (!prepared.ok) return;
+    expect(prepared.media[0].altText).toBe('Listing photo 1');
+    expect(result.current.items[0].altText).toBe('');
   });
 
   it('seeds existing records for editing and reuses them without re-upload', async () => {

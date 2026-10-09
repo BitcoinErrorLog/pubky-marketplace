@@ -11,7 +11,7 @@ import { Typography } from '@/atoms/Typography/Typography';
 import { CommerceController } from '@/controllers/commerce/commerce';
 import { ContentLayout } from '@/organisms/ContentLayout/ContentLayout';
 
-type SeedState = 'idle' | 'seeding' | 'seeded' | 'error';
+type SeedState = 'idle' | 'seeding' | 'seeded' | 'skipped' | 'error';
 
 export function MarketplaceSandboxSeed() {
   const [seedState, setSeedState] = useState<SeedState>('idle');
@@ -19,8 +19,8 @@ export function MarketplaceSandboxSeed() {
   const seedCatalog = async () => {
     setSeedState('seeding');
     try {
-      await CommerceController.initializeSandboxCatalog();
-      setSeedState('seeded');
+      const ready = await CommerceController.initializeSandboxCatalog();
+      setSeedState(ready ? 'seeded' : 'skipped');
     } catch {
       setSeedState('error');
     }
@@ -62,12 +62,17 @@ export function MarketplaceSandboxSeed() {
               role="status"
               className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-emerald-200"
             >
-              Sandbox catalog seeded. Browse the marketplace to see the demo listings.
+              Sandbox catalog ready. Browse the marketplace to try the demo listings.
+            </div>
+          )}
+          {seedState === 'skipped' && (
+            <div role="status" className="rounded-md bg-card p-4 text-muted-foreground">
+              Seeding skipped: this database already contains other listings. Use a separate sandbox database.
             </div>
           )}
           {seedState === 'error' && (
             <div role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-foreground">
-              Seeding failed. Check that the sandbox transaction service is running and reachable.
+              Sandbox setup is incomplete. Check that the local transaction service is running, then try again.
             </div>
           )}
         </div>

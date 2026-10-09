@@ -38,10 +38,7 @@ export function DropReadyCheckPanel({
   return (
     <section
       aria-label="Drop ready check"
-      className={cn(
-        'flex flex-col gap-3 rounded-xl border p-4',
-        view.allReady ? 'border-brand/40 bg-brand/10' : 'bg-card',
-      )}
+      className={cn('flex flex-col gap-6 rounded-md p-6 shadow-lg', view.allReady ? 'bg-brand/10' : 'bg-card')}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Heading level={2} size="sm" className="text-base">

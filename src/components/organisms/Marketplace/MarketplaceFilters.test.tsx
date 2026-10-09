@@ -39,7 +39,7 @@ describe('MarketplaceFilters', () => {
     const triggers = screen.getAllByRole('combobox');
     expect(triggers).toHaveLength(5);
     for (const trigger of triggers) {
-      expect(trigger).toHaveClass('font-bold');
+      expect(trigger).toHaveClass('font-semibold');
     }
     expect(screen.getByTestId('card')).toHaveClass('flex-wrap');
   });

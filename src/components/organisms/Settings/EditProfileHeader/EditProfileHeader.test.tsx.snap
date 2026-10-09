@@ -23,7 +23,7 @@ exports[`EditProfileHeader - Snapshots > matches snapshot 1`] = `
     data-testid="container"
   >
     <h2
-      class="text-xl leading-normal font-light text-muted-foreground lg:text-2xl"
+      class="text-xl leading-normal font-medium text-muted-foreground lg:text-2xl"
     >
       Update your name, bio, links, and avatar.
     </h2>

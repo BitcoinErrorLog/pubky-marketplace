@@ -279,7 +279,7 @@ describe('MarketplacePaymentStatusCard', () => {
     expect(screen.queryByRole('note')).not.toBeInTheDocument();
   });
 
-  it('explains that PayPal buyer self-reporting does not confirm marketplace payment', () => {
+  it('keeps the PayPal payment report secondary and submits the optional reference', async () => {
     const payment = createPaymentFixture('awaiting_entitlement');
     const order = createOrderFixture('pending_payment', {
       paymentId: payment.id,
@@ -299,9 +299,46 @@ describe('MarketplacePaymentStatusCard', () => {
       />,
     );
 
-    expect(screen.getByText(/Use this only if automatic confirmation fails/i)).toBeInTheDocument();
-    expect(screen.getByText(/seller must verify your PayPal transaction ID before shipping/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /I.ve paid/ })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Continue to PayPal' })).toHaveAttribute('href', order.fiatCheckoutUrl);
+    expect(screen.queryByText('Seller-attested')).not.toBeInTheDocument();
+    expect(screen.queryByText('Confirmed by seller')).not.toBeInTheDocument();
+    expect(screen.queryByText('If the window ends, the item restocks.')).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Report payment' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Already paid?' }));
+    expect(screen.getByText(/PayPal account before confirming receipt/)).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('textbox', { name: 'PayPal transaction ID (optional)' }), {
+      target: { value: 'PAYPAL-123' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Report payment' }));
+    expect(vi.mocked(useMarketplaceOrderPayment).mock.results.at(-1)?.value.markPaid).toHaveBeenCalledWith(
+      'PAYPAL-123',
+    );
+  });
+
+  it('shows a reported PayPal payment as awaiting confirmation without asking for another payment', () => {
+    render(
+      <MarketplacePaymentStatusCard
+        order={createOrderFixture('pending_payment', {
+          paymentMethod: 'paypal',
+          fiatCheckoutUrl: 'https://www.paypal.com/checkout',
+          fiatVerification: 'seller-attested',
+          paymentReportedAt: '2026-10-08T12:00:00.000Z',
+          fiatTransactionRef: 'PAYPAL-123',
+        })}
+        payment={createPaymentFixture('awaiting_entitlement')}
+        isBuyer
+        adapterMode="transaction-service"
+        advancePayment={async () => false}
+        onPaymentChanged={() => {}}
+      />,
+    );
+    expect(screen.getByRole('status')).toHaveTextContent('Payment reported');
+    expect(screen.getByRole('status')).toHaveTextContent('Waiting for PayPal or the seller to confirm receipt.');
+    expect(screen.getByRole('status')).toHaveTextContent('Transaction ID: PAYPAL-123');
+    expect(screen.queryByRole('link', { name: 'Continue to PayPal' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Confirmed by seller')).not.toBeInTheDocument();
   });
 
   it('explains when Bitcoin is temporarily unavailable while other methods remain available', () => {
@@ -330,7 +367,7 @@ describe('MarketplacePaymentStatusCard', () => {
     expect(
       screen.getByText('Bitcoin is temporarily unavailable. Other payment methods are unaffected.'),
     ).toBeInTheDocument();
-    expect(screen.getByText('The item is held for you once a payment starts.')).toBeInTheDocument();
+    expect(screen.getByText('The item is held for you once a payment starts.', { exact: false })).toBeInTheDocument();
     expect(screen.queryByText(/never holds funds/i)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Stripe/ })).not.toBeInTheDocument();
   });
@@ -423,7 +460,7 @@ describe('MarketplacePaymentStatusCard', () => {
     });
   });
 
-  it('renders unbound hold copy and Back cancel on the method picker', async () => {
+  it('renders unbound hold copy and cancels checkout from the method picker', async () => {
     const onPaymentChanged = vi.fn();
     vi.mocked(useMarketplaceOrderPayment).mockReturnValue({
       availableMethods: ['bitcoin', 'stripe', 'paypal'],
@@ -447,12 +484,12 @@ describe('MarketplacePaymentStatusCard', () => {
       />,
     );
 
-    expect(screen.getByText(holderUnboundCopy(holdExpiresAt))).toBeInTheDocument();
+    expect(screen.getByText(holderUnboundCopy(holdExpiresAt), { exact: false })).toBeInTheDocument();
     expect(screen.queryByText('Real money. Payments are final and go directly to the seller.')).not.toBeInTheDocument();
     expect(screen.queryByText(/Choose how to pay/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/pays the seller directly/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/never holds funds/i)).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel checkout' }));
     await waitFor(() =>
       expect(CommerceController.executeMarketplaceCommand).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -591,7 +628,7 @@ describe('MarketplacePaymentStatusCard', () => {
     );
 
     expect(screen.getByText(holderBoundCopy(holdExpiresAt))).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Back' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cancel checkout' })).not.toBeInTheDocument();
   });
 
   it('says the Bitcoin request is waiting for the wallet, then delivered, never "delivered" at activation', () => {
@@ -659,7 +696,7 @@ describe('MarketplacePaymentStatusCard', () => {
     expect(screen.queryByText(/Open Bitkit to pay/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Pay exactly/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Pay by/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Reserved while you pay/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Awaiting payment · Item reserved/)).not.toBeInTheDocument();
   });
 
   describe('Bitcoin payment after broadcast', () => {
@@ -731,7 +768,7 @@ describe('MarketplacePaymentStatusCard', () => {
       expect(screen.getByText('Awaiting payment')).toBeInTheDocument();
       expect(screen.queryByText('Payment seen')).not.toBeInTheDocument();
       expect(screen.getByTestId('paykit-delivery-status')).toHaveTextContent(
-        "Sent to your wallet. Open Bitkit to pay. If the request isn't there, check that the seller is one of your Bitkit contacts. If you have already sent the payment, this page updates as soon as the marketplace sees the transaction.",
+        "Sent to your wallet. Open Bitkit to pay. If the request isn't there, check that the seller is one of your Bitkit contacts. If you have already sent the payment, this page updates as soon as the marketplace sees the transaction. If a payment is still pending in Bitkit, another wallet or another device, let it finish or resolve it before you order again.",
       );
     });
 
@@ -859,7 +896,7 @@ describe('MarketplacePaymentStatusCard', () => {
     expect(screen.queryByText(/confirmed on-chain/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Open Bitkit to pay/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Pay by/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Reserved while you pay/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Awaiting payment · Item reserved/)).not.toBeInTheDocument();
     expect(screen.queryByText('Resolve Bitcoin payment review')).not.toBeInTheDocument();
   });
 
@@ -1056,6 +1093,39 @@ describe('MarketplacePaymentStatusCard', () => {
 
     expect(screen.getByText(CHECKOUT_HOLD_COPY.expiredNoLateMoney)).toBeInTheDocument();
     expect(screen.queryByText(/reconciled manually/)).not.toBeInTheDocument();
+  });
+
+  it('asks a Bitcoin buyer to settle a pending payment after the window elapsed, and nobody else', () => {
+    const payment = createPaymentFixture('expired');
+    const elapsed = (paymentMethod: 'bitcoin' | 'paypal') =>
+      createOrderFixture('cancelled', {
+        paymentId: payment.id,
+        paymentMethod,
+        cancellationReason: 'payment window elapsed',
+      });
+    const card = (paymentMethod: 'bitcoin' | 'paypal', isBuyer: boolean) => (
+      <MarketplacePaymentStatusCard
+        order={elapsed(paymentMethod)}
+        payment={payment}
+        isBuyer={isBuyer}
+        adapterMode="transaction-service"
+        advancePayment={async () => false}
+        onPaymentChanged={() => {}}
+      />
+    );
+
+    const { rerender } = render(card('bitcoin', true));
+    expect(screen.getByText(CHECKOUT_HOLD_COPY.expiredNoLateMoney)).toBeInTheDocument();
+    expect(screen.getByTestId('bitcoin-pending-payment-note')).toHaveTextContent(
+      CHECKOUT_HOLD_COPY.pendingBitcoinPaymentBuyer,
+    );
+
+    rerender(card('paypal', true));
+    expect(screen.getByText(CHECKOUT_HOLD_COPY.expiredNoLateMoney)).toBeInTheDocument();
+    expect(screen.queryByTestId('bitcoin-pending-payment-note')).not.toBeInTheDocument();
+
+    rerender(card('bitcoin', false));
+    expect(screen.queryByTestId('bitcoin-pending-payment-note')).not.toBeInTheDocument();
   });
 
   describe('paid Bitcoin order', () => {

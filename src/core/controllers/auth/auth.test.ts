@@ -1824,10 +1824,11 @@ describe('AuthController', () => {
       // The Ring-approved session lives on the user's actual homeserver — it
       // must be signed out, not left dangling after the rejection.
       expect(logoutSpy).toHaveBeenCalledWith({ session: mockSession });
-      // The guard runs before any store mutation, so there is nothing to reset.
+      // Account initialization has not started, but clear the sign-in progress
+      // shown as soon as approval arrived so a rejected session can be retried.
       expect(authStore.init).not.toHaveBeenCalled();
       expect(authStore.reset).not.toHaveBeenCalled();
-      expect(signInStore.reset).not.toHaveBeenCalled();
+      expect(signInStore.reset).toHaveBeenCalledOnce();
     });
 
     it('should sign the session out when the environment check fails transiently', async () => {

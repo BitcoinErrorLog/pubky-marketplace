@@ -17,16 +17,15 @@ export interface ShopProfileCardProps {
   location?: { countryCode: string; region?: string };
   vacation?: boolean;
   /**
-   * `full` is the public shop page. `mini` is the My Shop live preview: the
-   * same card, with smaller banner/avatar/type so the settings form stays the
-   * primary surface on that page.
+   * `full` is the public storefront. `mini` is the editor's live preview,
+   * using the same dimensions with a subordinate heading.
    */
   variant: ShopProfileCardVariant;
   bannerAlt: string;
   avatarAlt: string;
   onBannerError?: () => void;
   onAvatarError?: () => void;
-  /** Inline with location on `full` (community tags). Ignored layout-wise on `mini`. */
+  /** Inline with location (community tags). */
   locationExtras?: ReactNode;
   /** Below the location row (reputation header on the public shop). */
   afterLocation?: ReactNode;
@@ -34,38 +33,30 @@ export interface ShopProfileCardProps {
   testId?: string;
 }
 
+const STOREFRONT_STYLE = {
+  banner: 'h-28 w-full object-cover object-center sm:h-40',
+  bannerFallback: 'h-28 bg-linear-to-br from-brand/24 to-brand/8 sm:h-40',
+  content: 'flex flex-col gap-4 p-6 sm:flex-row sm:items-end sm:justify-between',
+  avatarLift: '-mt-16',
+  avatar:
+    'mb-4 flex size-20 items-center justify-center overflow-hidden rounded-2xl border-4 border-card bg-brand text-primary-foreground shadow-lg',
+  storeIcon: 'size-9',
+  headingSize: 'xl',
+  headingClass: 'text-3xl sm:text-5xl',
+  bio: 'mt-2 max-w-2xl text-muted-foreground',
+  wrapLocationRow: true,
+} as const;
+
 const VARIANT = {
   full: {
-    banner: 'h-28 w-full object-cover object-center sm:h-40',
-    bannerFallback: 'h-28 bg-linear-to-r from-brand/40 via-purple-500/20 to-cyan-500/20 sm:h-40',
-    content: 'flex flex-col gap-4 p-6 sm:flex-row sm:items-end sm:justify-between',
-    avatarLift: '-mt-16',
-    avatar:
-      'mb-4 flex size-20 items-center justify-center overflow-hidden rounded-2xl border-4 border-card bg-brand text-primary-foreground shadow-lg',
-    storeIcon: 'size-9',
-    headingLevel: 1 as const,
-    headingSize: 'xl' as const,
-    headingClass: 'text-3xl sm:text-5xl',
-    bio: 'mt-2 max-w-2xl text-muted-foreground',
+    ...STOREFRONT_STYLE,
+    headingLevel: 1,
     alwaysShowLocation: true,
-    wrapLocationRow: true,
   },
   mini: {
-    // Smaller than `full` so the My Shop editor stays the primary surface:
-    // banner h-20/sm:h-28, avatar size-16, tighter type — not a second shop page.
-    banner: 'h-20 w-full object-cover object-center sm:h-28',
-    bannerFallback: 'h-20 bg-linear-to-r from-brand/40 via-purple-500/20 to-cyan-500/20 sm:h-28',
-    content: 'p-5',
-    avatarLift: '-mt-12',
-    avatar:
-      'mb-3 flex size-16 items-center justify-center overflow-hidden rounded-2xl border-4 border-card bg-brand text-primary-foreground shadow-lg',
-    storeIcon: 'size-7',
-    headingLevel: 2 as const,
-    headingSize: 'lg' as const,
-    headingClass: 'text-2xl sm:text-3xl',
-    bio: 'mt-2 max-w-2xl text-sm text-muted-foreground',
+    ...STOREFRONT_STYLE,
+    headingLevel: 2,
     alwaysShowLocation: false,
-    wrapLocationRow: false,
   },
 } as const;
 
@@ -100,7 +91,7 @@ export function ShopProfileCard({
   ) : null;
 
   return (
-    <Card className="overflow-hidden border py-0" data-testid={testId}>
+    <Card className="overflow-hidden rounded-md p-0" data-testid={testId}>
       {bannerUrl ? (
         // eslint-disable-next-line @next/next/no-img-element -- homeserver media and object URLs bypass Next image optimization
         <img src={bannerUrl} alt={bannerAlt} className={tokens.banner} onError={onBannerError} />

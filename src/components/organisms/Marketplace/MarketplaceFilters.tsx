@@ -56,10 +56,10 @@ const FACET_KEYS = ['size', 'brand', 'color'] as const;
 /** Most facet value chips rendered per attribute key. */
 const MAX_FACET_VALUES = 10;
 
-// Match Arena's SidebarButton filter pills using the shared button styles.
+// Match the Collections dropdown trigger using the shared secondary button style.
 const FILTER_TRIGGER_CLASS = cn(
-  buttonVariants({ variant: 'dark-outline', size: 'sm' }),
-  'max-w-64 gap-1.5 border-border bg-white/5 text-xs font-bold text-foreground focus-visible:border-border focus-visible:ring-0 data-[size=default]:h-8 data-[state=open]:text-white [&>svg:last-child]:size-3.5',
+  buttonVariants({ variant: 'secondary', size: 'sm' }),
+  'max-w-64 text-xs data-[size=default]:h-8 [&>svg:last-child]:size-3.5',
 );
 const CATEGORY_MENU_CLASS =
   'w-64 max-h-[min(70vh,var(--radix-dropdown-menu-content-available-height))] overflow-y-auto border-border bg-background p-3';
@@ -148,7 +148,7 @@ export function MarketplaceFilters({
 
   return (
     <section aria-label="Marketplace filters" className="flex flex-col gap-4">
-      <Card className="flex-row flex-wrap items-center gap-2 p-4">
+      <Card className="flex-row flex-wrap items-center gap-2 rounded-md p-6">
         {searchControl ?? (
           <Typography className="min-w-48 flex-1 text-sm text-muted-foreground">
             {resultCount.toLocaleString('en-US')} {resultCount === 1 ? 'item' : 'items'}
@@ -313,7 +313,7 @@ function MarketplaceCategoryNavigation({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="dark-outline" size="sm" className={FILTER_TRIGGER_CLASS} aria-label="Category">
+        <Button variant="secondary" size="sm" className={FILTER_TRIGGER_CLASS} aria-label="Category">
           <Icon aria-hidden="true" className="size-4" />
           <span className="max-w-40 truncate">{selected?.node.label ?? 'Category'}</span>
           <ChevronDown aria-hidden="true" className="size-3.5" />

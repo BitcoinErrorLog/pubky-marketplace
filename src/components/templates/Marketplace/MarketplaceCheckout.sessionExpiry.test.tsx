@@ -210,9 +210,9 @@ describe('MarketplaceCheckout session expiry (real checkout hook)', () => {
     const user = userEvent.setup();
     render(<MarketplaceCheckout />);
 
-    expect(screen.getByText(/Purchases approved in Pubky Ring/)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Enable purchases' })).not.toBeInTheDocument();
 
-    await user.type(screen.getByLabelText('Recipient'), 'Alice Buyer');
+    await user.type(screen.getByLabelText('Full name'), 'Alice Buyer');
     await user.type(screen.getByLabelText('Address line 1'), '1 Market Street');
     await user.type(screen.getByLabelText('City'), 'New York');
     await user.type(screen.getByLabelText('State'), 'NY');
@@ -223,7 +223,7 @@ describe('MarketplaceCheckout session expiry (real checkout hook)', () => {
     await waitFor(() => expect(pay).toBeEnabled());
     await user.click(pay);
 
-    expect(await screen.findByRole('heading', { name: 'Approve purchases in Pubky Ring' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Enable purchases' })).toBeInTheDocument();
     expect(screen.getByTestId('marketplace-checkout-pay')).toBeDisabled();
     await waitFor(() => {
       expect(useCommerceStore.getState().marketplaceSession).toBeNull();

@@ -340,7 +340,7 @@ describe('Marketplace local pickup — visual regression', () => {
         throw new Error('The owner read has not hydrated the editor yet.');
       }
     });
-    await expect(expectVrtSurface('pickup-details-editor')).toMatchScreenshot('studio-pickup-details-desktop');
+    await expect(await expectVrtSurface('pickup-details-editor')).toMatchScreenshot('studio-pickup-details-desktop');
   });
 
   it('renders the pickup order card with the meeting-point reveal dialog open', async () => {
@@ -357,7 +357,7 @@ describe('Marketplace local pickup — visual regression', () => {
     // The dialog's open-auto-focus paints differently per browser/session;
     // blur so the capture is deterministic (the packing-slip VRT pattern).
     (document.activeElement as HTMLElement | null)?.blur();
-    await expect(expectVrtSurface('pickup-reveal-dialog')).toMatchScreenshot('orders-pickup-reveal-desktop');
+    await expect(await expectVrtSurface('pickup-reveal-dialog')).toMatchScreenshot('orders-pickup-reveal-desktop');
   });
 
   it('renders the checkout with a pickup group: the choice, the note, no address step', async () => {
@@ -394,7 +394,7 @@ describe('Marketplace local pickup — visual regression', () => {
         throw new Error('The pickup group has not rendered yet.');
       }
     });
-    await expect(expectVrtSurface('checkout-pickup-group')).toMatchScreenshot('checkout-pickup-group-desktop');
+    await expect(await expectVrtSurface('checkout-pickup-group')).toMatchScreenshot('checkout-pickup-group-desktop');
   });
 
   it('renders the fulfillment badge vocabulary on cards: Local pickup, Pickup or shipping, Shipping', async () => {

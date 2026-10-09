@@ -112,7 +112,7 @@ describe('marketplace journeys', () => {
     cy.get(`[aria-label="View ${SEEDED_LISTINGS.boots.title}"]`).first().click();
     cy.location('pathname').should('eq', listingRoute(SEEDED_LISTINGS.boots.seller, SEEDED_LISTINGS.boots.listingId));
     cy.contains('h1', SEEDED_LISTINGS.boots.title).should('be.visible');
-    cy.contains('View shop').click();
+    cy.contains('View storefront').click();
     cy.location('pathname').should('eq', `/marketplace/shop/${SEEDED_LISTINGS.boots.seller}`);
     cy.contains(SEEDED_LISTINGS.boots.title).should('be.visible');
   });
@@ -122,7 +122,7 @@ describe('marketplace journeys', () => {
     const bootsAggregate = listingAggregateId(boots.seller, boots.listingId);
 
     cy.visit(listingRoute(boots.seller, boots.listingId));
-    cy.contains('button', 'Add to cart').click();
+    cy.contains('button', 'Buy').click();
     cy.visit('/marketplace/cart');
     cy.contains(boots.title).should('be.visible');
 
@@ -405,7 +405,7 @@ describe('marketplace journeys', () => {
     const runnersAggregate = listingAggregateId(runners.seller, runners.listingId);
 
     cy.visit(listingRoute(runners.seller, runners.listingId));
-    cy.contains('button', 'Add to cart').click();
+    cy.contains('button', 'Buy').click();
     cy.visit('/marketplace/cart');
     cy.get('#name').type('Marketeer Tester');
     cy.get('#line1').type('42 Journey Street');

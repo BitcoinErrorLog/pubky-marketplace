@@ -309,6 +309,7 @@ describe('CommerceApplication', () => {
 
   it('seeds catalog data only when sandbox mode is explicit', async () => {
     const seed = vi.spyOn(LocalCommerceService, 'seedSandboxCatalog').mockResolvedValue(true);
+    vi.spyOn(CommerceApplication, 'ensureListingRegistered').mockResolvedValue(true);
     vi.spyOn(commerceConfig, 'getCommerceAdapterMode').mockReturnValue('unavailable');
 
     await expect(CommerceApplication.initializeSandboxCatalog()).resolves.toBe(false);
@@ -319,6 +320,26 @@ describe('CommerceApplication', () => {
     expect(seed).toHaveBeenCalledOnce();
   });
 
+  it('does not report sandbox success when another catalog prevents seeding', async () => {
+    vi.spyOn(commerceConfig, 'getCommerceAdapterMode').mockReturnValue('sandbox');
+    vi.spyOn(LocalCommerceService, 'seedSandboxCatalog').mockResolvedValue(false);
+    vi.spyOn(LocalCommerceService, 'getListing').mockResolvedValue(null);
+    const register = vi.spyOn(CommerceApplication, 'ensureListingRegistered').mockResolvedValue(true);
+
+    await expect(CommerceApplication.initializeSandboxCatalog()).resolves.toBe(false);
+    expect(register).not.toHaveBeenCalled();
+  });
+
+  it('reports sandbox setup failure when listings cannot register for checkout', async () => {
+    vi.spyOn(commerceConfig, 'getCommerceAdapterMode').mockReturnValue('sandbox');
+    vi.spyOn(LocalCommerceService, 'seedSandboxCatalog').mockResolvedValue(true);
+    vi.spyOn(CommerceApplication, 'ensureListingRegistered').mockResolvedValue(false);
+
+    await expect(CommerceApplication.initializeSandboxCatalog()).rejects.toMatchObject({
+      code: ServerErrorCode.SERVICE_UNAVAILABLE,
+    });
+  });
+
   it('fetches, validates, and caches a missing shop', async () => {
     const record = createCommerceShopFixture();
     vi.spyOn(LocalCommerceService, 'getShop').mockResolvedValue(null);
@@ -327,6 +348,84 @@ describe('CommerceApplication', () => {
 
     await expect(CommerceApplication.getOrFetchShop(COMMERCE_FIXTURE_SELLER)).resolves.toEqual(record);
     expect(upsert).toHaveBeenCalledWith(record, 'synced');
+  });
+
+  it('refreshes shop settings into the cache used by the public shop', async () => {
+    const record = createCommerceShopFixture();
+    vi.mocked(CommerceHomeserverService.fetchJson).mockResolvedValue(record);
+
+    await expect(CommerceController.refreshShop(record.ownerPubky)).resolves.toEqual(record);
+    expect(await CommerceController.getShop(record.ownerPubky)).toMatchObject({ record, sync_status: 'synced' });
+
+    vi.mocked(CommerceHomeserverService.fetchJson).mockRejectedValue(new TypeError('offline'));
+    await expect(CommerceController.getOrFetchShop(record.ownerPubky)).resolves.toEqual(record);
+  });
+
+  it('refreshes an already cached published shop before editing', async () => {
+    const previous = createCommerceShopFixture();
+    const published = { ...previous, name: 'Updated on another device', revision: previous.revision + 1 };
+    await LocalCommerceService.upsertShop(previous, 'synced');
+    vi.mocked(CommerceHomeserverService.fetchJson).mockResolvedValue(published);
+
+    await expect(CommerceController.refreshShop(previous.ownerPubky)).resolves.toEqual(published);
+    expect(await CommerceController.getShop(previous.ownerPubky)).toMatchObject({ record: published });
+  });
+
+  it('keeps edits from a failed shop publication when reopening settings', async () => {
+    const published = createCommerceShopFixture();
+    const pending = { ...published, name: 'Unpublished edits', revision: published.revision + 1 };
+    vi.spyOn(CommerceHomeserverService, 'putJson').mockRejectedValue(new TypeError('offline'));
+    await expect(CommerceApplication.commitUpsertShop(pending)).rejects.toThrow('offline');
+    vi.mocked(CommerceHomeserverService.fetchJson).mockResolvedValue(published);
+
+    await expect(CommerceController.refreshShop(pending.ownerPubky)).resolves.toEqual(pending);
+    expect(await CommerceController.getShop(pending.ownerPubky)).toMatchObject({
+      record: pending,
+      sync_status: 'pending',
+    });
+  });
+
+  it.each(['pending', 'synced'] as const)(
+    'keeps a newer %s shop written while a refresh is in flight',
+    async (status) => {
+      const published = createCommerceShopFixture();
+      const newer = { ...published, name: 'Written during refresh', revision: published.revision + 1 };
+      let resolveRead!: (value: unknown) => void;
+      let markStarted!: () => void;
+      const started = new Promise<void>((resolve) => {
+        markStarted = resolve;
+      });
+      vi.mocked(CommerceHomeserverService.fetchJson).mockImplementation(() => {
+        markStarted();
+        return new Promise((resolve) => {
+          resolveRead = resolve;
+        });
+      });
+
+      const refreshing = CommerceController.refreshShop(published.ownerPubky);
+      await started;
+      await LocalCommerceService.upsertShop(newer, status);
+      resolveRead(published);
+
+      await expect(refreshing).resolves.toEqual(newer);
+      expect(await CommerceController.getShop(newer.ownerPubky)).toMatchObject({ record: newer, sync_status: status });
+    },
+  );
+
+  it('keeps a different same-revision publication completed while a refresh is in flight', async () => {
+    const first = createCommerceShopFixture({ revision: 4 });
+    const second = { ...first, name: 'Saved from another open editor' };
+    await LocalCommerceService.upsertShop(first, 'synced');
+    vi.mocked(CommerceHomeserverService.fetchJson).mockImplementation(async () => {
+      // Both editors began at revision 3; the second publication completes
+      // after the GET reads the first but before its response arrives.
+      vi.spyOn(CommerceHomeserverService, 'putJson').mockResolvedValue(undefined);
+      await CommerceApplication.commitUpsertShop(second);
+      return first;
+    });
+
+    await expect(CommerceController.refreshShop(first.ownerPubky)).resolves.toEqual(second);
+    expect(await CommerceController.getShop(first.ownerPubky)).toMatchObject({ record: second, sync_status: 'synced' });
   });
 
   it('fetches, validates, and caches a missing listing', async () => {

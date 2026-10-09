@@ -25,6 +25,7 @@ import { parseConversationAggregateId } from '@/libs/commerce/messaging-contract
 import { marketplaceCounterpartyLabel, MESSAGING_COPY } from '@/libs/commerce/messaging-copy';
 import { buildMarketplaceConversationAggregateId } from '@/libs/commerce/transaction-commands';
 import { GrantSessionMessagingNotice } from '@/molecules/GrantSessionRefusal/GrantSessionRefusal';
+import { MarketplaceEmptyState } from '@/molecules/Marketplace/MarketplaceEmptyState';
 import { ContentLayout } from '@/organisms/ContentLayout/ContentLayout';
 import { MarketplaceEncryptedConversationDialog } from '@/organisms/Marketplace/MarketplaceEncryptedConversationDialog';
 import { MarketplaceMessagingEnableDialog } from '@/organisms/Marketplace/MarketplaceMessagingEnableDialog';
@@ -46,16 +47,15 @@ export function MarketplaceInbox() {
       showLeftMobileButton={false}
       showRightMobileButton={false}
       className="pb-28"
-      classNameWrapperContent="max-w-7xl"
     >
-      <Container overrideDefaults className="flex w-full flex-col gap-6 px-4 sm:px-6" data-surface="marketplace-inbox">
+      <Container overrideDefaults className="flex w-full flex-col gap-6" data-surface="marketplace-inbox">
         <MarketplaceSectionNav />
         <div>
           <Heading level={1} size="xl" className="text-4xl sm:text-6xl">
             Messages
           </Heading>
           <Typography as="p" className="mt-2 text-muted-foreground">
-            {encrypted ? MESSAGING_COPY.inboxSubtitleDurable : MESSAGING_COPY.sandboxWarning}
+            {encrypted ? 'Your conversations with buyers and sellers.' : MESSAGING_COPY.sandboxWarning}
           </Typography>
         </div>
 
@@ -117,14 +117,14 @@ function EncryptedInbox() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       {query.status === 'invalid' && (
-        <div role="alert" className="rounded-xl border border-destructive/40 p-4">
+        <div role="alert" className="rounded-md border border-destructive/40 p-4">
           {MESSAGING_COPY.deepLinkInvalid}
         </div>
       )}
       {query.status === 'other-account' && (
-        <div role="alert" className="rounded-xl border border-destructive/40 p-4">
+        <div role="alert" className="rounded-md border border-destructive/40 p-4">
           {MESSAGING_COPY.deepLinkOtherAccount}
         </div>
       )}
@@ -144,24 +144,9 @@ function EncryptedInbox() {
         />
       )}
 
-      {inbox.status === 'needs-enable' &&
-        (isGrantSignIn ? (
-          <GrantSessionMessagingNotice />
-        ) : (
-          <div className="flex flex-col items-start gap-3 rounded-xl border border-dashed p-5">
-            <div className="flex items-center gap-2">
-              <LockKeyhole className="size-5 text-muted-foreground" />
-              <Typography as="p" className="text-sm text-muted-foreground">
-                {inbox.receiverProvisioned ? MESSAGING_COPY.inboxNeedsReconnect : MESSAGING_COPY.inboxNeedsEnable}
-              </Typography>
-            </div>
-            <MarketplaceMessagingEnableDialog reconnect={inbox.receiverProvisioned} onEnabled={inbox.refresh} />
-          </div>
-        ))}
-
       {inbox.status === 'error' && (
         <div className="flex flex-col items-start gap-3">
-          <div role="alert" className="w-full rounded-xl border border-destructive/40 p-4">
+          <div role="alert" className="w-full rounded-md border border-destructive/40 p-4">
             {inbox.errorMessage}
           </div>
           <Button variant="secondary" className="rounded-full" onClick={inbox.refresh}>
@@ -170,10 +155,8 @@ function EncryptedInbox() {
         </div>
       )}
 
-      <MessagingMutesNotice status={inbox.mutesStatus} onRetry={inbox.refresh} />
-
       {inboxRows.length || requestRows.length ? (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-6">
           {inboxRows.map((conversation) => (
             <EncryptedConversationRow
               key={conversation.id}
@@ -186,8 +169,30 @@ function EncryptedInbox() {
       ) : inbox.status === 'loading' ? (
         <Skeleton className="h-32 w-full" />
       ) : inbox.status === 'ready' && !isMuteListUnconfirmed(inbox.mutesStatus) ? (
-        <EmptyState title={MESSAGING_COPY.inboxEmptyTitle} body={MESSAGING_COPY.inboxEmptyBody} />
+        <EmptyState title="No messages yet" body={MESSAGING_COPY.inboxEmptyBody} />
+      ) : inbox.status !== 'error' && inbox.mutesStatus !== 'error' ? (
+        <EmptyState title="Your conversations appear here" body={MESSAGING_COPY.inboxEmptyBody} />
       ) : null}
+
+      {inbox.status === 'needs-enable' &&
+        (isGrantSignIn ? (
+          <GrantSessionMessagingNotice />
+        ) : (
+          <div className="flex flex-col items-center gap-4 py-6 text-center">
+            <Typography as="p" className="text-sm text-muted-foreground">
+              Authorize to send and receive messages.
+            </Typography>
+            <MarketplaceMessagingEnableDialog
+              reconnect={inbox.receiverProvisioned}
+              onEnabled={inbox.refresh}
+              triggerVariant="outline"
+            />
+          </div>
+        ))}
+
+      {inbox.status !== 'needs-enable' && (
+        <MessagingMutesNotice status={inbox.mutesStatus} onRetry={inbox.refresh} compact />
+      )}
     </div>
   );
 }
@@ -226,8 +231,8 @@ function EncryptedConversationRow({
       defaultOpen={defaultOpen}
       trigger={
         <button type="button" className="w-full text-left" aria-label={`Open conversation with ${counterpartyLabel}`}>
-          <Card className="border py-4 transition-colors hover:border-brand/40">
-            <CardContent className="flex items-center gap-4 px-4">
+          <Card className="rounded-md p-0 transition-colors hover:bg-muted">
+            <CardContent className="flex items-center gap-4 p-6">
               <div className="rounded-full bg-brand/15 p-3 text-brand">
                 <LockKeyhole className="size-5" />
               </div>
@@ -247,7 +252,7 @@ function EncryptedConversationRow({
               {conversation.lastMessage && (
                 <time
                   dateTime={new Date(conversation.lastMessage.sent_at).toISOString()}
-                  className="text-xs text-muted-foreground"
+                  className="text-xs font-medium text-muted-foreground"
                 >
                   {new Date(conversation.lastMessage.sent_at).toLocaleDateString('en-US')}
                 </time>
@@ -289,26 +294,26 @@ function SandboxInbox() {
 
   if (error) {
     return (
-      <div role="alert" className="rounded-xl border border-destructive/40 p-4">
+      <div role="alert" className="rounded-md border border-destructive/40 p-4">
         {error}
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-6">
       {query.status === 'invalid' && (
-        <div role="alert" className="rounded-xl border border-destructive/40 p-4">
+        <div role="alert" className="rounded-md border border-destructive/40 p-4">
           {MESSAGING_COPY.deepLinkInvalid}
         </div>
       )}
       {query.status === 'other-account' && (
-        <div role="alert" className="rounded-xl border border-destructive/40 p-4">
+        <div role="alert" className="rounded-md border border-destructive/40 p-4">
           {MESSAGING_COPY.deepLinkOtherAccount}
         </div>
       )}
       {!conversations.length ? (
-        <EmptyState title={MESSAGING_COPY.inboxEmptyTitle} body={MESSAGING_COPY.inboxEmptyBody} />
+        <EmptyState title="No messages yet" body={MESSAGING_COPY.inboxEmptyBody} />
       ) : (
         conversations.map((conversation) => {
           const last = conversation.messages.at(-1);
@@ -353,8 +358,8 @@ function SandboxConversationRow({
 
   return (
     <Link href={href} overrideDefaults>
-      <Card className="border py-4 transition-colors hover:border-brand/40">
-        <CardContent className="flex items-center gap-4 px-4">
+      <Card className="rounded-md p-0 transition-colors hover:bg-muted">
+        <CardContent className="flex items-center gap-4 p-6">
           <div className="rounded-full bg-brand/15 p-3 text-brand">
             <MessageCircle className="size-5" />
           </div>
@@ -368,7 +373,7 @@ function SandboxConversationRow({
               </Typography>
             ) : null}
           </div>
-          <time dateTime={timestamp} className="text-xs text-muted-foreground">
+          <time dateTime={timestamp} className="text-xs font-medium text-muted-foreground">
             {timestamp ? new Date(timestamp).toLocaleDateString('en-US') : ''}
           </time>
         </CardContent>
@@ -378,19 +383,7 @@ function SandboxConversationRow({
 }
 
 function EmptyState({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed text-center">
-      <MessageCircle className="mb-3 size-10 text-muted-foreground" />
-      <Heading level={2} size="md">
-        {title}
-      </Heading>
-      {body ? (
-        <Typography as="p" className="mt-2 max-w-lg text-muted-foreground">
-          {body}
-        </Typography>
-      ) : null}
-    </div>
-  );
+  return <MarketplaceEmptyState icon={MessageCircle} title={title} description={body} />;
 }
 
 function listingRouteFromAggregate(aggregateId: string): string {

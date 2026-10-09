@@ -5,6 +5,7 @@ import type { PluginOption } from 'vite';
 import react from '@vitejs/plugin-react';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import { playwright } from '@vitest/browser-playwright';
+import { resizeVrtBrowser } from './src/test-utils/vrt.commands';
 import { VRT_VIEWPORT_DESKTOP } from './src/test-utils/vrt.viewports';
 
 // Tests that import the paykit-wasm / locks-sdk-wasm bindings must exercise
@@ -90,6 +91,7 @@ function vrtProject(opts: {
         enabled: true,
         provider: playwright(),
         headless: true,
+        commands: { resizeVrtBrowser },
         expect: {
           toMatchScreenshot: {
             comparatorName: 'pixelmatch' as const,

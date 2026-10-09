@@ -37,9 +37,11 @@ export function MarketplaceOrderActions({
   canEditReview,
   actOnOrder,
   onChanged,
+  cancelButtonSize = 'sm',
 }: {
   order: MarketplaceOrder;
   isBuyer: boolean;
+  cancelButtonSize?: 'sm' | 'default';
   /**
    * `review.update` only exists on the durable service (the sandbox has no
    * review editing), so the edit affordance is withheld in sandbox mode
@@ -206,7 +208,12 @@ export function MarketplaceOrderActions({
         {isBuyer &&
           (['pending_payment', 'paid', 'processing'].includes(order.state) ||
             (isPickup && order.state === 'ready_for_pickup')) && (
-            <Button size="sm" variant="secondary" className="rounded-full" onClick={() => begin('cancel')}>
+            <Button
+              size={cancelButtonSize}
+              variant="secondary"
+              className="rounded-full"
+              onClick={() => begin('cancel')}
+            >
               {order.state === 'pending_payment' ? 'Cancel checkout' : 'Cancel order'}
             </Button>
           )}
@@ -381,7 +388,7 @@ export function MarketplaceOrderActions({
                   control={action.form.control}
                   render={({ field }) => (
                     <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger id="ship-carrier-select" className="h-11 w-full rounded-md border px-3">
+                      <SelectTrigger theme="secondary" id="ship-carrier-select" className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>

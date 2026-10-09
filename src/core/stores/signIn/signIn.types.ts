@@ -1,5 +1,5 @@
 export interface SignInState {
-  /** Auth URL callback successfully resolved (20%) */
+  /** Signer approval received; session setup and account checks may still be running (20%). */
   authUrlResolved: boolean;
   /** Profile check completed (40%) */
   profileChecked: boolean;

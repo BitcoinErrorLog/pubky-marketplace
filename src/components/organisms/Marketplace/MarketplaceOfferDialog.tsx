@@ -77,7 +77,7 @@ export function MarketplaceOfferDialog({
           className="w-fit rounded-full"
           disabled={isOwner || holdDisabled || (expectedRevision === null && !isSessionRequired)}
         >
-          <HandCoins className="mr-2 size-4" />
+          <HandCoins className="size-4" />
           {isOwner ? 'You cannot buy your own listing' : holdDisabled ? (holdLabel ?? 'Held') : 'Make offer'}
         </Button>
       </DialogTrigger>
