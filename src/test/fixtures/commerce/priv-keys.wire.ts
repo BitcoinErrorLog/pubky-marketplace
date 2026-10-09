@@ -31,3 +31,33 @@ export const PRIV_KEYS_WIRE_UNAVAILABLE = {
   ok: false,
   error: { code: 'priv_keys_unavailable', message: 'Private data keys are not available on this deployment.' },
 } as const;
+
+/**
+ * Phase 4 (priv-encryption-plan.md): the owner's keys were wrapped on their
+ * homeserver and the service dropped its copies. Wire bodies as
+ * `crates/service/src/priv_keys.rs` writes them for `GET /v1/me/priv-keys`
+ * (409) and `POST /v1/me/priv-keys/release` (200 and 409).
+ */
+export const PRIV_KEYS_WIRE_CUSTODY_RELEASED = {
+  schema_version: 1,
+  ok: false,
+  error: {
+    code: 'custody_released',
+    message: 'The private data keys are held by their owner; the service no longer has them.',
+  },
+} as const;
+
+export const PRIV_KEYS_WIRE_RELEASE_OK = {
+  schema_version: 1,
+  owner: PRIV_KEYS_WIRE_OWNER,
+  released: true,
+} as const;
+
+export const PRIV_KEYS_WIRE_KEY_SET_CHANGED = {
+  schema_version: 1,
+  ok: false,
+  error: {
+    code: 'key_set_changed',
+    message: 'The keys held for this owner are not the keys named in the request.',
+  },
+} as const;

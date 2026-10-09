@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppError } from '@/libs/error/error';
 import {
+  PRIV_KEYS_WIRE_CUSTODY_RELEASED,
   PRIV_KEYS_WIRE_KEY_ID,
+  PRIV_KEYS_WIRE_KEY_SET_CHANGED,
   PRIV_KEYS_WIRE_NEEDS_REAUTH,
   PRIV_KEYS_WIRE_OK,
   PRIV_KEYS_WIRE_OWNER,
+  PRIV_KEYS_WIRE_RELEASE_OK,
   PRIV_KEYS_WIRE_UNAVAILABLE,
 } from '@/test/fixtures/commerce/priv-keys.wire';
 import { MarketplaceSessionService } from './marketplace-session';
@@ -76,10 +79,16 @@ describe('MarketplaceTransactionService.getPrivKeys', () => {
     expect(await MarketplaceTransactionService.getPrivKeys(ACTOR)).toEqual({ kind: 'unavailable' });
   });
 
+  it('reports a 409 custody_released as released keys, with no key material', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(409, PRIV_KEYS_WIRE_CUSTODY_RELEASED));
+    expect(await MarketplaceTransactionService.getPrivKeys(ACTOR)).toEqual({ kind: 'released' });
+  });
+
   it('throws a typed HTTP error on any other refusal instead of treating it as a state', async () => {
     for (const [status, body] of [
       [403, { error: { code: 'capability_required' } }],
       [503, { status: 'unavailable' }],
+      [409, { error: { code: 'something_else' } }],
       [500, { error: { code: 'internal' } }],
     ] as const) {
       vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(status, body));
@@ -113,6 +122,56 @@ describe('MarketplaceTransactionService.getPrivKeys', () => {
 
   it('never asks for another pubky with the current bearer', async () => {
     await expect(MarketplaceTransactionService.getPrivKeys(OTHER_ACTOR)).rejects.toThrow();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+});
+
+describe('MarketplaceTransactionService.releasePrivKeyCustody', () => {
+  const KEY_IDS = [PRIV_KEYS_WIRE_KEY_ID];
+
+  beforeEach(async () => {
+    MarketplaceSessionService.clearSession();
+    await establishSession();
+  });
+
+  it('names the keys it wrapped, with the session bearer, and resolves released', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(200, PRIV_KEYS_WIRE_RELEASE_OK));
+
+    expect(await MarketplaceTransactionService.releasePrivKeyCustody(ACTOR, KEY_IDS)).toBe('released');
+
+    const [url, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('http://127.0.0.1:8080/v1/me/priv-keys/release');
+    expect(init).toMatchObject({
+      method: 'POST',
+      cache: 'no-store',
+      headers: { authorization: `Bearer ${'A'.repeat(43)}`, 'content-type': 'application/json' },
+    });
+    expect(JSON.parse(init.body as string)).toEqual({ key_ids: KEY_IDS });
+  });
+
+  it('maps the refusals the caller can act on to states', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(403, PRIV_KEYS_WIRE_NEEDS_REAUTH));
+    expect(await MarketplaceTransactionService.releasePrivKeyCustody(ACTOR, KEY_IDS)).toBe('needs_reauth');
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(503, PRIV_KEYS_WIRE_UNAVAILABLE));
+    expect(await MarketplaceTransactionService.releasePrivKeyCustody(ACTOR, KEY_IDS)).toBe('unavailable');
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(409, PRIV_KEYS_WIRE_KEY_SET_CHANGED));
+    expect(await MarketplaceTransactionService.releasePrivKeyCustody(ACTOR, KEY_IDS)).toBe('key_set_changed');
+  });
+
+  it('throws a typed HTTP error on any other refusal and on a success body that is not a release', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(400, { error: { code: 'invalid_request' } }));
+    const error = await MarketplaceTransactionService.releasePrivKeyCustody(ACTOR, KEY_IDS).catch(
+      (caught: unknown) => caught,
+    );
+    expect(error).toBeInstanceOf(AppError);
+    expect((error as AppError).context).toMatchObject({ statusCode: 400 });
+
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(200, { released: false }));
+    await expect(MarketplaceTransactionService.releasePrivKeyCustody(ACTOR, KEY_IDS)).rejects.toThrow();
+  });
+
+  it('never releases for another pubky with the current bearer', async () => {
+    await expect(MarketplaceTransactionService.releasePrivKeyCustody(OTHER_ACTOR, KEY_IDS)).rejects.toThrow();
     expect(fetch).not.toHaveBeenCalled();
   });
 });

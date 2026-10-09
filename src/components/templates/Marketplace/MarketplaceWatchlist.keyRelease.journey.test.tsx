@@ -128,7 +128,8 @@ function signInWithBitkit() {
   useAuthStore.setState({
     currentUserPubky: asOpaque(OWNER),
     session: asOpaque({
-      grant: {},
+      // A bare grant: no signed approval, so no scoped encryption keys.
+      grant: { encryptionKeys: undefined, free: () => undefined },
       info: { publicKey: { z32: () => OWNER }, capabilities: CAPABILITIES.split(',') },
     }),
   });

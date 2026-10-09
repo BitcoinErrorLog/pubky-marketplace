@@ -44,7 +44,7 @@ import {
   pickupRefusalFailureMessage,
 } from '@/libs/commerce/pickup';
 import {
-  type MarketplacePrivKeysResult,
+  type MarketplacePrivKeysRead,
   marketplacePrivKeysSchema,
   privKeyringFromResponse,
 } from '@/libs/commerce/priv-keys';
@@ -815,7 +815,7 @@ export class MarketplaceTransactionService {
    * otherwise and 503 `priv_keys_unavailable` when the deployment holds no
    * sealing key. Never cached: the request asks for `no-store`.
    */
-  static async getPrivKeys(actor: string): Promise<MarketplacePrivKeysResult> {
+  static async getPrivKeys(actor: string): Promise<MarketplacePrivKeysRead> {
     const operation = 'getPrivKeys';
     this.assertTransactionServiceMode(operation);
     const session = this.requireSession(operation, actor);
@@ -827,11 +827,17 @@ export class MarketplaceTransactionService {
       operation,
     );
     this.throwIfSessionRejected(response.status, operation, session.token);
-    if (response.status === HttpStatusCode.FORBIDDEN || response.status === HttpStatusCode.SERVICE_UNAVAILABLE) {
+    if (
+      response.status === HttpStatusCode.FORBIDDEN ||
+      response.status === HttpStatusCode.SERVICE_UNAVAILABLE ||
+      response.status === HttpStatusCode.CONFLICT
+    ) {
       const code = await response
+        .clone()
         .json()
         .then((body: unknown) => z.object({ error: z.object({ code: z.string() }) }).parse(body).error.code)
         .catch(() => null);
+      if (response.status === HttpStatusCode.CONFLICT && code === 'custody_released') return { kind: 'released' };
       if (response.status === HttpStatusCode.FORBIDDEN && code === 'needs_reauth') return { kind: 'needs_reauth' };
       if (response.status === HttpStatusCode.SERVICE_UNAVAILABLE && code === 'priv_keys_unavailable') {
         return { kind: 'unavailable' };
@@ -853,6 +859,61 @@ export class MarketplaceTransactionService {
       });
     }
     return { kind: 'keys', keyring };
+  }
+
+  /**
+   * `POST /v1/me/priv-keys/release`: asks the service to drop its sealed
+   * copies of the owner's data keys, named by `keyIds`, after the owner's own
+   * wrapped copies were written and read back (priv-encryption Phase 4). The
+   * service refuses with 409 `key_set_changed` when `keyIds` is not exactly the
+   * set it holds, so a key issued since the read is never dropped unseen. After
+   * a release the service answers key reads with `custody_released` and never
+   * creates a key for that owner again. Repeating a completed release succeeds.
+   * Resolves `released` once the service holds no key for the owner;
+   * `needs_reauth` and `unavailable` mirror {@link getPrivKeys}; `key_set_changed`
+   * tells the caller to read the keys again.
+   */
+  static async releasePrivKeyCustody(
+    actor: string,
+    keyIds: readonly string[],
+  ): Promise<'released' | 'needs_reauth' | 'unavailable' | 'key_set_changed'> {
+    const operation = 'releasePrivKeyCustody';
+    this.assertTransactionServiceMode(operation);
+    const session = this.requireSession(operation, actor);
+    const url = `${getMarketplaceUrl()}/v1/me/priv-keys/release`;
+    const response = await safeFetch(
+      url,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${session.token}` },
+        body: JSON.stringify({ key_ids: keyIds }),
+        cache: 'no-store',
+      },
+      ErrorService.Marketplace,
+      operation,
+    );
+    this.throwIfSessionRejected(response.status, operation, session.token);
+    if (response.ok) {
+      const raw = await parseResponseOrThrow<unknown>(response, ErrorService.Marketplace, operation, url);
+      this.parseProjection(
+        operation,
+        z.object({ released: z.literal(true) }).passthrough(),
+        toCamelCaseWire(raw),
+        'Marketplace returned an invalid private key release.',
+      );
+      return 'released';
+    }
+    const code = await response
+      .clone()
+      .json()
+      .then((body: unknown) => z.object({ error: z.object({ code: z.string() }) }).parse(body).error.code)
+      .catch(() => null);
+    if (response.status === HttpStatusCode.FORBIDDEN && code === 'needs_reauth') return 'needs_reauth';
+    if (response.status === HttpStatusCode.SERVICE_UNAVAILABLE && code === 'priv_keys_unavailable') {
+      return 'unavailable';
+    }
+    if (response.status === HttpStatusCode.CONFLICT && code === 'key_set_changed') return 'key_set_changed';
+    throw httpResponseToError(response, ErrorService.Marketplace, operation, url);
   }
 
   /**

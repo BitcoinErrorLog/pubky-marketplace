@@ -34,6 +34,14 @@ export type MarketplacePrivKeysResult =
   | { kind: 'unavailable' };
 
 /**
+ * What the service answered to a key read: the keys, or the reason it has
+ * none to give. `released` means the owner's keys were wrapped on their own
+ * homeserver and the service dropped its copies (Phase 4); it never creates a
+ * new key for such an owner.
+ */
+export type MarketplacePrivKeysRead = MarketplacePrivKeysResult | { kind: 'released' };
+
+/**
  * Turns a parsed response into a keyring for `expectedOwner`, or null when
  * the response names another owner, repeats a key id, carries a key that is
  * not 32 bytes, or names a current key it does not include.
