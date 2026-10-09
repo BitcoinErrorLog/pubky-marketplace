@@ -152,6 +152,8 @@ const SignInBothSigners = ({ ring }: { ring: TSignerAuth }) => {
   const bitkit = useMobileAuth({ type: 'grant' });
   const [signer, setSigner] = useState<keyof typeof SIGNERS>('ring');
   const auth = signer === 'ring' ? ring : bitkit;
+  const ringDisclosure = ringSignInDisclosure(ring);
+  const identityHint = SIGNERS[signer].identityHint;
   return (
     <Container size="container">
       <SignInHeader signer="both" />
@@ -180,12 +182,18 @@ const SignInBothSigners = ({ ring }: { ring: TSignerAuth }) => {
             <div className="w-full md:hidden">
               <SignInAuthorizeButton signer={signer} auth={auth} />
             </div>
+            {signer === 'ring' && <MarketplaceApprovalDisclosure sentence={ringDisclosure} />}
+            {identityHint && (
+              <Typography as="p" className="text-sm text-muted-foreground">
+                {identityHint}
+              </Typography>
+            )}
           </div>
         </IllustratedCard>
         <IllustratedCard
           className="rounded-md"
           visualClassName="lg:hidden xl:flex"
-          visual={<Image src="/images/sign-in/cloud.png" alt="" width={192} height={192} className="size-48" />}
+          visual={<Image src="/images/sign-in/cloud.webp" alt="" width={192} height={192} className="size-48" />}
         >
           <div className="flex flex-col gap-3">
             <Typography as="h2" size="lg">
@@ -193,7 +201,7 @@ const SignInBothSigners = ({ ring }: { ring: TSignerAuth }) => {
             </Typography>
             <Typography className="text-secondary-foreground opacity-80">Use your existing sign-in methods.</Typography>
           </div>
-          <PassportSignInButton showAppleOption />
+          <PassportSignInButton />
         </IllustratedCard>
       </div>
     </Container>
