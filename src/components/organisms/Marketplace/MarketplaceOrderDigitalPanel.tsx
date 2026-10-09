@@ -17,7 +17,9 @@ import {
 import {
   DELIVERY_EMAIL_MAX_CHARS,
   DIGITAL_ORDER_COPY,
+  DIGITAL_READ_REFUSAL_COPY,
   digitalOrderEmailLine,
+  digitalPaymentTakenBack,
   isDigitalOrderEnded,
 } from '@/libs/commerce/digital';
 import { SETTINGS_SECTION_CONTENT_CLASSNAME } from '@/molecules/Settings/SettingsSectionContent/SettingsSectionContent';
@@ -42,6 +44,7 @@ export function MarketplaceOrderDigitalPanel({
   if (delivery.lines.length === 0) return null;
   const paid = order.receiptId !== null;
   const ended = isDigitalOrderEnded(order.state);
+  const takenBack = digitalPaymentTakenBack(order);
 
   return (
     <section
@@ -65,9 +68,9 @@ export function MarketplaceOrderDigitalPanel({
                 ? DIGITAL_ORDER_COPY.messageDelivered
                 : DIGITAL_ORDER_COPY.messagePending}
             </Typography>
-          ) : ended ? (
+          ) : ended || takenBack ? (
             <Typography as="p" className="text-sm text-muted-foreground">
-              {DIGITAL_ORDER_COPY.ended}
+              {takenBack ? DIGITAL_READ_REFUSAL_COPY[takenBack] : DIGITAL_ORDER_COPY.ended}
             </Typography>
           ) : !paid ? (
             <Typography as="p" className="text-sm text-muted-foreground">

@@ -328,6 +328,8 @@ export const DIGITAL_READ_REFUSALS = [
   'digital_delivery_unavailable',
   'not_paid',
   'delivery_ended',
+  'payment_reversed',
+  'payment_refunded',
   'sandbox_confirmed',
   'email_missing',
   'rate_limited',
@@ -345,6 +347,8 @@ export const DIGITAL_READ_REFUSAL_COPY: Readonly<Record<DigitalReadRefusal | 'no
   digital_delivery_unavailable: DIGITAL_DELIVERY_COPY.unavailable,
   not_paid: 'Available as soon as payment is confirmed.',
   delivery_ended: 'This order was refunded or cancelled, so the download is no longer available.',
+  payment_reversed: 'The payment was reversed, so the download is disabled.',
+  payment_refunded: 'PayPal refunded this payment, so the download is no longer available.',
   sandbox_confirmed: "Sandbox orders don't deliver files.",
   email_missing: 'No delivery email is on file for this order.',
   rate_limited: 'Too many downloads in a row. Wait a minute and try again.',
@@ -626,6 +630,22 @@ export function isDigitalOrderEnded(state: string): boolean {
   return ['cancelled', 'refunded_external', 'refunded_partial', 'closed'].includes(state);
 }
 
+/**
+ * Why PayPal taking money back withholds a digital purchase, as the service
+ * decides it on every read: a reversal outstanding (`paymentReversedAt`, any
+ * order state) or a PayPal refund on an order that has not ended (a full
+ * refund ends the order, which `isDigitalOrderEnded` already covers).
+ */
+export function digitalPaymentTakenBack(order: {
+  state: string;
+  paymentReversedAt?: string | null;
+  externalRefund?: unknown;
+}): 'payment_reversed' | 'payment_refunded' | null {
+  if (order.paymentReversedAt) return 'payment_reversed';
+  if (order.externalRefund && !isDigitalOrderEnded(order.state)) return 'payment_refunded';
+  return null;
+}
+
 /** "The seller will email this to …", or once marked emailed, when and what to check. */
 export function digitalOrderEmailLine(address: string, emailedAt: string | null): string {
   if (!emailedAt) return `The seller will email this to ${address}`;
@@ -689,6 +709,8 @@ export const DIGITAL_SELLER_COPY = {
     'Use this address only to deliver this order. Keep your sent email as your record: Shop deletes this address 30 days after the order ends, and PayPal disputes can come later.',
   emailNotPaid: "The buyer's email appears once payment is confirmed.",
   emailEnded: 'This order was cancelled or refunded.',
+  emailReversed: "The payment was reversed, so the buyer's email is no longer available.",
+  emailRefunded: "PayPal refunded this payment, so the buyer's email is no longer available.",
   emailMissing: "Waiting for the buyer's email.",
   markedEmailed: 'Marked emailed. The buyer has been told to check their inbox.',
   markedDelivered: 'Marked delivered. The buyer has been told to check their messages.',
@@ -716,6 +738,10 @@ export function sellerDeliveryEmailReadCopy(refusal: string | null | undefined):
       return DIGITAL_SELLER_COPY.emailNotPaid;
     case 'delivery_ended':
       return DIGITAL_SELLER_COPY.emailEnded;
+    case 'payment_reversed':
+      return DIGITAL_SELLER_COPY.emailReversed;
+    case 'payment_refunded':
+      return DIGITAL_SELLER_COPY.emailRefunded;
     case 'email_missing':
       return DIGITAL_SELLER_COPY.emailMissing;
     case 'digital_delivery_unavailable':

@@ -105,6 +105,52 @@ describe('MarketplaceOrderDigitalPanel (digital delivery design §3 "After payme
     expect(screen.queryByRole('button', { name: 'Download' })).not.toBeInTheDocument();
   });
 
+  it('withholds the download while a PayPal reversal is outstanding, even on a delivered order', () => {
+    render(
+      <MarketplaceOrderDigitalPanel
+        order={digitalOrder('delivered', ['file'], { paymentReversedAt: '2026-09-27T10:00:00.000Z' })}
+      />,
+    );
+
+    expect(screen.getByText('The payment was reversed, so the download is disabled.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Download' })).not.toBeInTheDocument();
+    expect(CommerceController.fetchOrderDigitalDelivery).not.toHaveBeenCalled();
+  });
+
+  it('withholds the download after a partial PayPal refund and keeps the reversal wording for a reversed full refund', () => {
+    const { unmount } = render(
+      <MarketplaceOrderDigitalPanel
+        order={digitalOrder('delivered', ['text'], {
+          externalRefund: { amountMinor: 4_000, transactionId: 'a'.repeat(17), recordedAt: '2026-09-27T10:00:00.000Z' },
+        })}
+      />,
+    );
+    expect(
+      screen.getByText('PayPal refunded this payment, so the download is no longer available.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reveal text' })).not.toBeInTheDocument();
+    unmount();
+
+    render(
+      <MarketplaceOrderDigitalPanel
+        order={digitalOrder('refunded_external', ['text'], { paymentReversedAt: '2026-09-27T10:00:00.000Z' })}
+      />,
+    );
+    expect(screen.getByText('The payment was reversed, so the download is disabled.')).toBeInTheDocument();
+  });
+
+  it('downloads again once a canceled reversal clears the flag', () => {
+    render(
+      <MarketplaceOrderDigitalPanel
+        order={digitalOrder('delivered', ['text'], {
+          paymentReversedAt: null,
+          paymentReversalCancelledAt: '2026-09-28T10:00:00.000Z',
+        })}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Reveal text' })).toBeInTheDocument();
+  });
+
   it('reveals a text, masked from replay, until hidden', async () => {
     const user = userEvent.setup();
     vi.mocked(CommerceController.fetchOrderDigitalDelivery).mockResolvedValue({

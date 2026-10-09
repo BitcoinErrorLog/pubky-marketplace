@@ -9,6 +9,7 @@ import {
   DIGITAL_SELLER_COPY,
   digitalEvidenceLines,
   digitalOrderManualChannels,
+  digitalPaymentTakenBack,
   isDigitalOrderEnded,
   type MarketplaceDigitalDeliveryChannel,
   type MarketplaceOrderDeliveryEmail,
@@ -33,7 +34,12 @@ const HIDDEN: SellerDeliveryEmailState = { status: 'hidden' };
 
 /** The service releases the buyer's email only on a paid digital order that has not ended (§6 F7, F8). */
 function emailEntitled(order: MarketplaceOrder): boolean {
-  return order.fulfillment === 'digital' && order.receiptId !== null && !isDigitalOrderEnded(order.state);
+  return (
+    order.fulfillment === 'digital' &&
+    order.receiptId !== null &&
+    !isDigitalOrderEnded(order.state) &&
+    digitalPaymentTakenBack(order) === null
+  );
 }
 
 /**
