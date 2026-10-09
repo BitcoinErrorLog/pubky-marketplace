@@ -355,7 +355,7 @@ function MarketplaceCartCheckout() {
                   ? isMultiSeller
                     ? 'Choose sellers that share a payment method.'
                     : 'Pay unlocks once this seller sets up a payment method.'
-                  : null;
+                  : 'Fill in delivery details, accept the guarantee, and choose a payment method to pay.';
 
   const removeAwardLine = async () => {
     const line = cart.awardItems.find((item) => item.awardId === award?.id);
@@ -1142,9 +1142,7 @@ function MarketplaceCartCheckout() {
                         onClick={() => void pay()}
                         disabled={!canPay}
                         data-testid="marketplace-checkout-pay"
-                        aria-describedby={
-                          !canPay && !approvalNeeded && payDisabledReason ? 'checkout-pay-reason' : undefined
-                        }
+                        aria-describedby={!canPay && !approvalNeeded ? 'checkout-pay-reason' : undefined}
                       >
                         {isPaying ? (
                           <>
@@ -1162,7 +1160,7 @@ function MarketplaceCartCheckout() {
                           Paid directly to the seller.
                         </Typography>
                       )}
-                      {!canPay && !approvalNeeded && payDisabledReason && (
+                      {!canPay && !approvalNeeded && (
                         <Typography id="checkout-pay-reason" as="p" className="text-xs text-muted-foreground">
                           {payDisabledReason}
                         </Typography>

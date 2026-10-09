@@ -27,6 +27,8 @@ export function useBuyerPaykitWallet(buyerPubky: string | null, enabled: boolean
   const key = enabled && buyerPubky ? `${buyerPubky}:${attempt}` : null;
 
   useEffect(() => {
+    // A new read must not reuse a verdict from an earlier Bitcoin selection.
+    setResult(null);
     if (!key || !buyerPubky) return;
     let active = true;
     void (async () => {

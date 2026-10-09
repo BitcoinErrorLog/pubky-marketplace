@@ -37,6 +37,21 @@ export function MarketplaceShopSettingsFormView({ settings, onSaved }: Marketpla
     return <Skeleton className="h-96 w-full" />;
   }
 
+  if (settings.loadError) {
+    return (
+      <Card className="border">
+        <CardContent className="grid gap-4 px-6">
+          <Typography as="p" role="alert">
+            Couldn&apos;t load your current shop settings. Try again before saving to avoid overwriting changes.
+          </Typography>
+          <Button variant="secondary" className="w-fit rounded-full" onClick={settings.reload}>
+            Try again
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const submit = async () => {
     const succeeded = await settings.submit();
     if (succeeded) onSaved?.();

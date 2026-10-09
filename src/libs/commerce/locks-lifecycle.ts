@@ -30,7 +30,7 @@ export const LOCKS_ADMISSION_COPY = {
     'Your wallet can’t receive this payment request. Connect Bitkit (or another Paykit wallet) for this pubky to pay with Bitcoin. Nothing was charged.',
   admissionDeadlineExceeded:
     'The payment request wasn’t ready in time, so nothing was charged. Finish setting up your wallet, then check out again.',
-  failed: 'The payment request could not be created. Nothing was charged.',
+  failed: 'Payment verification failed. Check your wallet and order status before trying another payment.',
 } as const;
 
 export function locksAdmissionView(lifecycle: {

@@ -1,0 +1,1 @@
+Bitcoin buyers are asked to let a payment still pending in Bitkit, another wallet or another device finish or resolve before ordering again, on the sent-to-your-wallet and payment-window-elapsed states.

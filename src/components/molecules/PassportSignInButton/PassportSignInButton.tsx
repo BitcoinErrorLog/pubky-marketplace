@@ -6,12 +6,15 @@ import { Button } from '@/atoms/Button/Button';
 import { Typography } from '@/atoms/Typography/Typography';
 import { usePassportSignIn } from '@/hooks/usePassportSignIn/usePassportSignIn';
 
+export const PASSPORT_SIGN_IN_HINT =
+  'Pubky Passport signs you in with your Google account and creates your Pubky identity if you have none. Messages are not available with Passport sign-ins yet.';
+
 /**
  * "Continue with Google" through Pubky Passport. Renders nothing where the
  * grant key cannot be held (no secure context, IndexedDB or WebCrypto
  * Ed25519) or the deploy turned Passport off.
  */
-export function PassportSignInButton({ showAppleOption = false }: { showAppleOption?: boolean }) {
+export function PassportSignInButton() {
   const passport = usePassportSignIn();
   if (!passport.isAvailable) return null;
   return (
@@ -39,12 +42,9 @@ export function PassportSignInButton({ showAppleOption = false }: { showAppleOpt
           </>
         )}
       </Button>
-      {showAppleOption && (
-        <Button className="w-full disabled:opacity-40" size="lg" variant="secondary" disabled>
-          <Image src="/images/sign-in/apple.svg" alt="" width={16} height={16} />
-          Continue with Apple
-        </Button>
-      )}
+      <Typography as="p" className="text-center text-sm text-muted-foreground">
+        {PASSPORT_SIGN_IN_HINT}
+      </Typography>
     </div>
   );
 }

@@ -432,12 +432,12 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
               </div>
               <Switch
                 id="get-paid-bitcoin"
-                checked={bitcoinStatus === 'connected' && bitcoinValue}
+                checked={bitcoinValue}
                 onCheckedChange={(enabled) => {
-                  if (bitcoinStatus !== 'connected') return;
+                  if (enabled && bitcoinStatus !== 'connected') return;
                   setRailDraft((draft) => ({ ...draft, bitcoin: enabled }));
                 }}
-                disabled={bitcoinStatus !== 'connected'}
+                disabled={!bitcoinValue && bitcoinStatus !== 'connected'}
                 aria-label="Accept bitcoin"
               />
             </div>

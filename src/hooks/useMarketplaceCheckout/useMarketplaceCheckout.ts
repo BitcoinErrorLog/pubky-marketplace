@@ -712,7 +712,9 @@ export function useMarketplaceCheckout(
           return;
         }
         const mode = getCommerceAdapterMode();
-        const skipBind = mode === 'sandbox' && method === null;
+        // Sandbox checkout already creates its simulated payment. Binding a
+        // real payment rail is only supported by the durable service.
+        const skipBind = mode === 'sandbox';
         if (skipBind) {
           await finishCreatedCheckout(data);
           outcome = { ok: true, orderIds: createdIds, boundOrders: [] };
