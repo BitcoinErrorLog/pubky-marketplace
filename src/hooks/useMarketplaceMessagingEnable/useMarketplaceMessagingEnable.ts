@@ -8,6 +8,7 @@ import {
   marketplaceFailureMessage,
 } from '@/libs/commerce/failure-messages';
 import { Logger } from '@/libs/logger/logger';
+import { navigateTop } from '@/libs/navigation/navigate-top';
 import { copyToClipboard } from '@/libs/utils/utils';
 import { useMessagingStore } from '@/stores/messaging/messaging.store';
 import type {
@@ -149,7 +150,7 @@ export function useMarketplaceMessagingEnable(
     };
     visibilityHandlerRef.current = onVisibilityChange;
     document.addEventListener('visibilitychange', onVisibilityChange, { once: true });
-    window.location.href = authorizationUrl;
+    navigateTop(authorizationUrl);
   }, [authorizationUrl, removeVisibilityHandler]);
 
   useEffect(() => {

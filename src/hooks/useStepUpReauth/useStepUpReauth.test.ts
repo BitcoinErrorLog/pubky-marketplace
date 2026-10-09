@@ -6,6 +6,7 @@ import { copyToClipboard } from '@/libs/utils/utils';
 import { AUTH_FLOW_CANCELED_ERROR_NAME } from '@/services/homeserver/error.utils';
 import type { TGenerateAuthUrlResult } from '@/services/homeserver/homeserver.types';
 import { asOpaque } from '@/test-utils/type-assertions';
+import { navigatesWithinGesture } from '@/test-utils/user-gesture';
 import { useStepUpReauth } from './useStepUpReauth';
 
 vi.mock('@/controllers/auth/auth', () => ({
@@ -17,6 +18,10 @@ vi.mock('@/controllers/auth/auth', () => ({
     releaseAuthFlow: vi.fn((cancelAuthFlow: () => void) => cancelAuthFlow()),
   },
 }));
+
+const navigation = vi.hoisted(() => ({ navigateTop: vi.fn() }));
+
+vi.mock('@/libs/navigation/navigate-top', () => ({ navigateTop: navigation.navigateTop }));
 
 vi.mock('@/libs/utils/utils', async () => {
   const actual = await vi.importActual<typeof import('@/libs/utils/utils')>('@/libs/utils/utils');
@@ -47,6 +52,19 @@ function createDeferredFlow(url: string) {
 describe('useStepUpReauth', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('hands the signer deeplink to the top window inside the tap, with no async boundary before it', async () => {
+    const { flow } = createDeferredFlow('pubkyauth:///?caps=full');
+    vi.mocked(AuthController.getStepUpAuthUrl).mockResolvedValue(flow);
+    const { result } = renderHook(() => useStepUpReauth());
+    act(() => result.current.start());
+    await waitFor(() => expect(result.current.status).toBe('awaiting'));
+
+    expect(
+      navigatesWithinGesture(navigation.navigateTop, 'pubkyauth:///?caps=full', () => result.current.openInRing()),
+    ).toBe(true);
+    expect(result.current.isOpeningRing).toBe(true);
   });
 
   it('never auto-starts: mounting the hook requests no auth URL (only the explicit CTA may)', () => {

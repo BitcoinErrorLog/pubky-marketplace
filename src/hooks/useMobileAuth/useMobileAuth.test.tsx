@@ -1,6 +1,11 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { navigatesWithinGesture } from '@/test-utils/user-gesture';
 import { useMobileAuth } from './useMobileAuth';
+
+const navigation = vi.hoisted(() => ({ navigateTop: vi.fn() }));
+
+vi.mock('@/libs/navigation/navigate-top', () => ({ navigateTop: navigation.navigateTop }));
 
 const mockFetchUrl = vi.fn();
 const mockCopyAuthUrl = vi.fn();
@@ -49,10 +54,6 @@ describe('useMobileAuth', () => {
   });
 
   it('onAuthorizeClick does nothing when isLoading', () => {
-    const originalLocation = window.location;
-    const mockLocation = { ...originalLocation, href: '' };
-    Object.defineProperty(window, 'location', { configurable: true, value: mockLocation });
-
     mockUseAuthUrl.mockReturnValue({ ...defaultAuthUrlReturn, isLoading: true });
 
     const { result } = renderHook(() => useMobileAuth());
@@ -62,16 +63,10 @@ describe('useMobileAuth', () => {
     });
 
     expect(mockFetchUrl).not.toHaveBeenCalled();
-    expect(mockLocation.href).toBe('');
-
-    Object.defineProperty(window, 'location', { configurable: true, value: originalLocation });
+    expect(navigation.navigateTop).not.toHaveBeenCalled();
   });
 
-  it('onAuthorizeClick navigates to deeplink url and sets isOpeningRing', () => {
-    const originalLocation = window.location;
-    const mockLocation = { ...originalLocation, href: '' };
-    Object.defineProperty(window, 'location', { configurable: true, value: mockLocation });
-
+  it('onAuthorizeClick navigates to deeplink url through the top window and sets isOpeningRing', () => {
     const { result } = renderHook(() => useMobileAuth());
 
     act(() => {
@@ -79,16 +74,21 @@ describe('useMobileAuth', () => {
     });
 
     expect(result.current.isOpeningRing).toBe(true);
-    expect(mockLocation.href).toBe('pubkyauth://signin?token=test123');
+    expect(navigation.navigateTop).toHaveBeenCalledWith('pubkyauth://signin?token=test123');
+  });
 
-    Object.defineProperty(window, 'location', { configurable: true, value: originalLocation });
+  it('hands the deeplink to the top window inside the tap, with no async boundary before it', () => {
+    const { result } = renderHook(() => useMobileAuth());
+
+    expect(
+      navigatesWithinGesture(navigation.navigateTop, 'pubkyauth://signin?token=test123', () =>
+        result.current.onAuthorizeClick(),
+      ),
+    ).toBe(true);
   });
 
   it('cleans up visibility listener on unmount', () => {
     const removeSpy = vi.spyOn(document, 'removeEventListener');
-    const originalLocation = window.location;
-    const mockLocation = { ...originalLocation, href: '' };
-    Object.defineProperty(window, 'location', { configurable: true, value: mockLocation });
 
     const { result, unmount } = renderHook(() => useMobileAuth());
 
@@ -100,7 +100,6 @@ describe('useMobileAuth', () => {
 
     expect(removeSpy).toHaveBeenCalledWith('visibilitychange', expect.any(Function));
 
-    Object.defineProperty(window, 'location', { configurable: true, value: originalLocation });
     removeSpy.mockRestore();
   });
 

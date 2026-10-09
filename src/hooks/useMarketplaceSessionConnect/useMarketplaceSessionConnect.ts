@@ -16,6 +16,7 @@ import {
 import { isAppError } from '@/libs/error/error';
 import { ErrorCategory } from '@/libs/error/error.types';
 import { Logger } from '@/libs/logger/logger';
+import { navigateTop } from '@/libs/navigation/navigate-top';
 import {
   isPassportAttemptError,
   PassportAttemptError,
@@ -447,7 +448,7 @@ export function useMarketplaceSessionConnect(
     };
     visibilityHandlerRef.current = onVisibilityChange;
     document.addEventListener('visibilitychange', onVisibilityChange, { once: true });
-    window.location.href = authorizationUrl;
+    navigateTop(authorizationUrl);
   }, [authorizationUrl, removeVisibilityHandler]);
 
   useEffect(() => {

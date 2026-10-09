@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { navigateTop } from '@/libs/navigation/navigate-top';
 import { useAuthUrl } from '../useAuthUrl/useAuthUrl';
 import type { UseAuthUrlOptions } from '../useAuthUrl/useAuthUrl.types';
 
@@ -64,7 +65,7 @@ export function useMobileAuth(options: UseAuthUrlOptions = {}): UseMobileAuthRet
     visibilityHandlerRef.current = onVisibilityChange;
 
     document.addEventListener('visibilitychange', onVisibilityChange, { once: true });
-    window.location.href = url;
+    navigateTop(url);
   };
 
   return {

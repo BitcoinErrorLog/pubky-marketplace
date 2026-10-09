@@ -73,7 +73,7 @@ Apply on staging first, then re-run [install verification](install-verification.
 
 ## Leaving the frame
 
-Every flow that hands the user to another page must navigate the **top** window. Inside a frame, `window.location` would navigate only the iframe, PayPal refuses to render in a frame, and mobile browsers may block a custom-scheme navigation from a subframe.
+Every flow that hands the user to another page must navigate the **top** window. Inside a frame, `window.location` would navigate only the iframe, and PayPal refuses to render in a frame.
 
 `navigateTop(url)` in `src/libs/navigation/navigate-top.ts` is the one helper for this:
 
@@ -82,17 +82,35 @@ Every flow that hands the user to another page must navigate the **top** window.
 3. Framed, top window cross-origin: the `href` setter, the one cross-origin navigation the platform allows. Browsers want a user gesture or a sandbox flag for it and report a refusal asynchronously, so it cannot be detected.
 4. Otherwise, for `http(s)` URLs, a new tab. The frame is the last resort.
 
-Adopted in this change: the PayPal checkout hand-off, in the cart and accepted-offer paths, with tests. Social-host profile links render `target="_top"` when embedded.
+### What iOS Safari does (verified on iOS Safari 26.1 and 26.2 and macOS Safari 26.3)
 
-Not adopted here, because the files belong to the sign-in work: the five signer deep links, which still use `window.location.href = authorizationUrl`:
+- **Custom-scheme links.** Navigating the *frame itself* to `pubkyring://` or `bitkit://` is a silent no-op on iOS: nothing opens and nothing errors. A deep link only reaches Ring or Bitkit when it is a top-targeted navigation.
+- **Gesture window.** The top-targeted navigation only works within roughly 600 ms to 1 s of the tap. Any `await`, timer or promise before it can push it outside the window, and the tap then does nothing. So `navigateTop` runs synchronously, and the click handler that calls it must not await anything first: the URL has to be in state before the tap, not fetched after it.
+- **HTTPS targets.** `window.top.location.assign` to an `https://` page (PayPal checkout) works without a user gesture, so that hand-off is not time-critical.
+- **Frame-denying third parties.** A page that refuses framing (`X-Frame-Options`, `frame-ancestors`) must never be loaded inside the frame. The embedded Shop therefore opens links to other origins in a new tab (`EmbeddedExternalLinks`), and sends them through `navigateTop` if the tab is blocked.
 
-- `src/hooks/useMobileAuth/useMobileAuth.tsx`
-- `src/hooks/useStepUpReauth/useStepUpReauth.ts`
-- `src/hooks/useMarketplaceSessionConnect/useMarketplaceSessionConnect.ts`
-- `src/hooks/useMarketplaceMessagingEnable/useMarketplaceMessagingEnable.ts`
-- `src/hooks/useMarketplaceInventoryGrantConnect/useMarketplaceInventoryGrantConnect.ts`
+### Where it is used
 
-Replace each with `navigateTop(authorizationUrl)`. The Paykit setup and Lock Server connect panels are nested iframes whose sandbox already grants top navigation to custom protocols. They write no `location`, so nothing changes there.
+- Every signer deep link, all from inside the tap handler with no async boundary before the call (each has a test that asserts this, via `navigatesWithinGesture` in `src/test-utils/user-gesture.ts`): `useMobileAuth`, `useStepUpReauth`, `useMarketplaceSessionConnect`, `useMarketplaceMessagingEnable`, `useMarketplaceInventoryGrantConnect`.
+- The PayPal checkout hand-off, in the cart and accepted-offer paths.
+- Social-host profile links render `target="_top"` when embedded.
+
+The recovery-phrase "open in Ring" button (`DialogBackupExport`) still uses `window.open(url, '_blank')`: it belongs to onboarding, which the embedded Shop does not offer, and a new-tab open is a different mechanism from the frame navigation that fails.
+
+The Paykit setup and Lock Server connect panels are nested iframes whose sandbox already grants top navigation to custom protocols. They write no `location`, so nothing changes there; see the next section for their storage limits.
+
+## Nested cross-site frames (Paykit setup, Lock Server connect)
+
+The Paykit setup page and the Lock Server connect page are framed *inside* the embedded Shop, and they live on other sites. On iOS Safari (verified on 26.1 and 26.2) a cross-site frame nested under the App gets:
+
+- **Partitioned storage** (keyed by frame origin and top origin) that is **wiped on every Safari restart**. Nothing the setup or connect page stores in the frame survives a restart.
+- **Blocked cookies.** Nothing that relies on a third-party cookie works there.
+- **`postMessage` works.** The Shop already completes both flows over `postMessage` with an origin check; that is the only channel to rely on.
+
+What this means for the other side:
+
+- **Paykit setup and Lock Server connect must not depend on state kept in the frame** (cookies, localStorage, IndexedDB) across steps that can span a restart. A step that needs state must carry it in the URL it was opened with, or return it through `postMessage` to the Shop, which stores it in its own first-party storage.
+- **`frame-ancestors` must admit the App origin at both depths.** The ancestor chain of a nested frame is the Shop frame and the App page; both are `https://pubky.app`, so Paykit's `[setup] allowed_origins` and the Lock Server's `allowed_return_origins` must list `https://pubky.app` (see [the table above](#allowed-origins-on-the-backing-services)). The Shop's own return origin for `postMessage` is also `https://pubky.app`.
 
 ## Embedded layout
 
@@ -142,25 +160,34 @@ Known edges:
 - The marketplace promo's pre-paint script (inline, before any bundle) reads the new key, so on the very first load after the upgrade a user who had dismissed the promo may see it for a moment.
 - If the migration cannot delete a legacy database because another tab holds it open, it leaves the database and moves on (after five seconds).
 
+### Never delete outside the namespace
+
+On iOS Safari (verified on 26.1 and 26.2), `indexedDB.deleteDatabase` called from inside the frame wipes the top page's record of that database too. Whatever the embedded Shop deletes or clears is therefore gone for the host app as well, so the Shop deletes and clears only names inside its namespace:
+
+- Sign-out and identity-switch wipes clear tables of `shop-franky` and delete `shop-franky-messaging-keyring`, and remove only `shop-` keys and the Shop-only messaging teardown flag. A version change recreates `shop-franky`, never `franky`.
+- The one-time migration is the only code that deletes an un-namespaced database or key, and only the Shop's own legacy data: it never runs while the Shop is embedded, never on an origin where the legacy names are the host app's, and never on a `franky` that lacks the Shop-only tables.
+- `src/core/database/franky/franky.namespace-isolation.test.ts` seeds a host app's `franky`, `franky-messaging-keyring`, `pubky-auth` and localStorage keys, runs the migration, sign-out wipes and a schema-change recreate, and fails if any deleted database or removed key is outside the namespace or any host data changed.
+
+One exception remains and belongs to the sign-in work: the SDK's session store (`pubky-auth`) is cleared on sign-out with `browserSessionStore.clearAll()`, which removes every grant record on the origin, the App's included. The Shop must remove only its own grant record.
+
 ### Sequencing
 
 Ship the namespaced build to `shop.pubky.app` first and let users load it before the App ever shares an origin with Shop data. The embedded deployment on `pubky.app` has no Shop data of its own to migrate. Existing `shop.pubky.app` data stays on that origin (browser storage does not follow users to another origin); keep the standalone site serving through the transition.
 
 ## Mounted-path details
 
-Prefixed with the mount path: same-origin API calls, public images (through `BasePathImage`), `<video>` and CSS-referenced artwork, share links, `history.replaceState` for the checkout URL, canonical and Open Graph URLs (`metadataBase` includes the path), structured data, and the OG fallback redirect. Next.js handles the router, `next/link`, redirects and `/_next` assets itself. The web manifest link is omitted under a base path.
+Prefixed with the mount path: same-origin API calls, public images (through `BasePathImage`), `<video>` and CSS-referenced artwork, share links, `history.replaceState` for the checkout URL, canonical and Open Graph URLs (`metadataBase` stays the origin; root-relative values are prefixed), structured data, and the OG fallback redirect. Next.js handles the router, `next/link`, redirects and `/_next` assets itself. The web manifest link is omitted under a base path.
 
 ## Out of scope and open items
 
 Left to the sign-in lane, because the files are in its area:
 
-- **SDK and grant state.** The SDK's own `pubky-auth` IndexedDB store and the Shop's sign-out `clearAll()` are shared with the App on one origin. Namespacing or removing them is part of the grant work.
+- **SDK and grant state.** The SDK's own `pubky-auth` IndexedDB store is shared with the App on one origin, and the Shop's sign-out `clearAll()` deletes the App's grant records (see [Never delete outside the namespace](#never-delete-outside-the-namespace)). Removing only the Shop's own record is part of the grant work.
 - **Auth coordination names.** `pubky-auth-epoch-v1` (localStorage), `pubky-auth-v1` (BroadcastChannel) and `pubky-auth-finalization-v1` (Web Lock) are Shop-only names today, so they do not collide.
-- **Signer deep links** listed under [Leaving the frame](#leaving-the-frame).
 - **Service-session requests.** `src/core/services/marketplace/marketplace-grant-client.ts` and `marketplace-bootstrap-client.ts` call `fetch('/api/marketplace/...')` with a root-relative path. Wrap each URL in `withBasePath(...)` from `@/config/base-path`, as the other API calls now are. `src/core/services/homeserver/homeserver.ts` has one more for the development-only `/api/dev/signup-token`.
 
 Needs a decision or a live check:
 
 - Whether the Shop shows its own sign-in when embedded, or always defers to the App.
 - The outer/inner URL scheme and where mobile and PayPal returns land.
-- Safari and iOS behaviour of a same-origin iframe (storage persistence, Web Locks, BroadcastChannel, custom-scheme navigation from the frame) is inferred, not yet tested.
+- Same-origin iframe behaviour on Safari beyond what is listed above (storage persistence across restart, Web Locks, BroadcastChannel) follows from the platform and has not been checked here.

@@ -38,6 +38,14 @@ function makeFramed({
 }
 
 describe('navigateTop', () => {
+  it('navigates before it returns: a plain return value, never a promise to await', () => {
+    const win = makeTopLevel();
+    const result = navigateTop('pubkyauth://?secret=x', win, true);
+
+    expect(result).toBe('self');
+    expect(win.location.assign).toHaveBeenCalledTimes(1);
+  });
+
   it('assigns the frame itself when the Shop is not embedded, whatever frames it (a test harness)', () => {
     const topLocation = { origin: 'https://harness.test', href: 'https://harness.test/', assign: vi.fn() };
     const win = makeFramed({ frameOrigin: 'https://harness.test', top: { location: topLocation } });

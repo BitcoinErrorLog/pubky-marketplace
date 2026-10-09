@@ -17,7 +17,12 @@ import type { CommerceMarketplaceSession } from '@/stores/commerce/commerce.type
 import parityCapture from '@/test/fixtures/auth/marketplace-grant-priv-parity.staging.json';
 import ringCookie from '@/test/fixtures/auth/ring-cookie-signin.pubky-common-0.11.json';
 import { asOpaque } from '@/test-utils/type-assertions';
+import { navigatesWithinGesture } from '@/test-utils/user-gesture';
 import { useMarketplaceSessionConnect } from './useMarketplaceSessionConnect';
+
+const navigation = vi.hoisted(() => ({ navigateTop: vi.fn() }));
+
+vi.mock('@/libs/navigation/navigate-top', () => ({ navigateTop: navigation.navigateTop }));
 
 vi.mock('@/libs/logger/logger', () => ({
   Logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
@@ -389,14 +394,12 @@ describe('useMarketplaceSessionConnect', () => {
   it('opens the deeplink for same-device Ring and clears the opening state when the page hides', () => {
     const { flow } = createDeferredFlow('pubkyauth:///?caps=first');
     vi.mocked(CommerceController.beginMarketplaceSessionConnect).mockReturnValue(flow);
-    const originalLocation = window.location;
-    const mockLocation = { ...originalLocation, href: '' };
-    Object.defineProperty(window, 'location', { configurable: true, value: mockLocation });
     const { result } = renderHook(() => useMarketplaceSessionConnect());
 
     act(() => result.current.start());
-    act(() => result.current.openInRing());
-    expect(mockLocation.href).toBe('pubkyauth:///?caps=first');
+    expect(
+      navigatesWithinGesture(navigation.navigateTop, 'pubkyauth:///?caps=first', () => result.current.openInRing()),
+    ).toBe(true);
     expect(result.current.isOpeningRing).toBe(true);
 
     Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
@@ -406,7 +409,6 @@ describe('useMarketplaceSessionConnect', () => {
     expect(result.current.isOpeningRing).toBe(false);
 
     Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
-    Object.defineProperty(window, 'location', { configurable: true, value: originalLocation });
   });
 });
 

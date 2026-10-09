@@ -117,7 +117,9 @@ describe('AuthStore', () => {
         grantSigner: 'passport',
       });
       expect(useAuthStore.getState().grantSigner).toBe('passport');
-      const persisted = JSON.parse(localStorage.getItem(AUTH_PERSIST_KEY) ?? '{}') as { state?: { grantSigner?: unknown } };
+      const persisted = JSON.parse(localStorage.getItem(AUTH_PERSIST_KEY) ?? '{}') as {
+        state?: { grantSigner?: unknown };
+      };
       expect(persisted.state?.grantSigner).toBe('passport');
 
       useAuthStore.getState().init({

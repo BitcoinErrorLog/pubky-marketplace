@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CommerceController } from '@/controllers/commerce/commerce';
 import { Logger } from '@/libs/logger/logger';
+import { navigateTop } from '@/libs/navigation/navigate-top';
 import { copyToClipboard } from '@/libs/utils/utils';
 import { AUTH_FLOW_CANCELED_ERROR_NAME } from '@/services/homeserver/error.utils';
 import { useAuthStore } from '@/stores/auth/auth.store';
@@ -96,7 +97,7 @@ export function useMarketplaceInventoryGrantConnect(options: { onConnected?: () 
   const openInSigner = useCallback(() => {
     if (!authorizationUrl) return;
     setIsOpeningSigner(true);
-    window.location.href = authorizationUrl;
+    navigateTop(authorizationUrl);
   }, [authorizationUrl]);
 
   useEffect(() => () => detach(), [detach]);
