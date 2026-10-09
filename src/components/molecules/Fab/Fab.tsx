@@ -8,6 +8,7 @@ import { MARKETPLACE_ROUTES } from '@/app/routes';
 import { Button } from '@/atoms/Button/Button';
 import { useAuthStatus } from '@/hooks/useAuthStatus/useAuthStatus';
 import { useFabAction } from '@/hooks/useFabAction/useFabAction';
+import { useIsEmbedded } from '@/hooks/useIsEmbedded/useIsEmbedded';
 import { usePublicRoute } from '@/hooks/usePublicRoute/usePublicRoute';
 import { useRequireAuth } from '@/hooks/useRequireAuth/useRequireAuth';
 import { cn } from '@/libs/utils/utils';
@@ -58,6 +59,7 @@ export function Fab() {
   const { requireAuth } = useRequireAuth();
   const action = useFabAction();
   const isReorderActive = useCollectionReorderStore((state) => state.activeCollectionId !== null);
+  const isEmbedded = useIsEmbedded();
   const hideOnCheckout =
     pathname === MARKETPLACE_ROUTES.CART ||
     pathname === MARKETPLACE_ROUTES.CHECKOUT ||
@@ -66,6 +68,7 @@ export function Fab() {
   // Show FAB for authenticated users OR unauthenticated users on public explore routes
   const shouldShow = isFullyAuthenticated || isPublicExploreRoute;
   if (
+    isEmbedded ||
     isLoading ||
     !shouldShow ||
     isReorderActive ||

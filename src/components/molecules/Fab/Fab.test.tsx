@@ -1,8 +1,9 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FabAction } from '@/hooks/useFabAction/useFabAction.types';
 import { useCollectionReorderStore } from '@/stores/collectionReorder/collectionReorder.store';
+import { setEmbedded } from '@/test-utils/embedded';
 import { Fab } from './Fab';
 
 const mockPathname = vi.fn(() => '/home');
@@ -124,6 +125,16 @@ describe('Fab', () => {
     expect(button).toBeInTheDocument();
     expect(button).toHaveAttribute('data-cy', 'new-post-btn');
     expect(button).toHaveAttribute('aria-label', 'New post');
+  });
+
+  describe('embedded in another app', () => {
+    afterEach(() => setEmbedded(false));
+
+    it('returns null so the host app owns the floating actions', () => {
+      setEmbedded(true);
+      const { container } = render(<Fab />);
+      expect(container.firstChild).toBeNull();
+    });
   });
 
   it('returns null while a collection is in reorder mode', () => {

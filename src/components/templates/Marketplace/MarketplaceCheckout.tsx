@@ -68,6 +68,7 @@ import {
   USDT_WALLET_HINT,
   usdtParityMillionths,
 } from '@/libs/commerce/usdt-buyer-status';
+import { navigateTop } from '@/libs/navigation/navigate-top';
 import { getDeployEnv } from '@/libs/runtime-config/runtime-config';
 import type { CommerceListingModelSchema } from '@/models/commerce/commerce.schema';
 import { ControlledInputField } from '@/molecules/ControlledInputField/ControlledInputField';
@@ -428,7 +429,7 @@ function MarketplaceCartCheckout() {
       await offers.refresh();
       if (!isPickupAward) await checkout.rememberAddress();
       if (result.boundOrder?.fiatCheckoutUrl) {
-        window.location.assign(result.boundOrder.fiatCheckoutUrl);
+        navigateTop(result.boundOrder.fiatCheckoutUrl);
         return;
       }
       if (result.orderId) {
@@ -478,7 +479,7 @@ function MarketplaceCartCheckout() {
     }
     const fiatBound = result.boundOrders.filter((order) => order.fiatCheckoutUrl);
     if (fiatBound.length === 1 && fiatBound[0].fiatCheckoutUrl) {
-      window.location.assign(fiatBound[0].fiatCheckoutUrl);
+      navigateTop(fiatBound[0].fiatCheckoutUrl);
       return;
     }
     await orders.refresh();

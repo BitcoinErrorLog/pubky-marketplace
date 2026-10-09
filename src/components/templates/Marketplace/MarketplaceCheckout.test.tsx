@@ -108,6 +108,10 @@ vi.mock('@/hooks/useBuyerPaykitWallet/useBuyerPaykitWallet', () => ({
   },
 }));
 
+const navigation = vi.hoisted(() => ({ navigateTop: vi.fn() }));
+
+vi.mock('@/libs/navigation/navigate-top', () => ({ navigateTop: navigation.navigateTop }));
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
   usePathname: () => '/marketplace/checkout',
@@ -346,6 +350,7 @@ function resetCheckoutView() {
   checkoutActions.setDigitalChoice.mockReset();
   view.orderCount = 1;
   view.payResult = { ok: false, orderIds: [], boundOrders: [] };
+  navigation.navigateTop.mockReset();
   view.awardItems = [];
   offerState.offers = [];
   offerState.isLoading = false;
@@ -658,6 +663,63 @@ describe('MarketplaceCheckout', () => {
     await user.click(pay);
 
     expect(checkoutActions.pay).toHaveBeenCalledWith(method, expect.any(Function));
+  });
+
+  describe('PayPal hand-off leaves the Shop through the top window', () => {
+    const PAYPAL_URL = 'https://www.paypal.com/checkoutnow?token=EC-ABC123';
+
+    async function payWithPaypal() {
+      const user = userEvent.setup();
+      seededCart();
+      view.adapterMode = 'transaction-service';
+      view.hasMarketplaceSession = true;
+      render(<MarketplaceCheckout />);
+      await user.click(await screen.findByTestId('marketplace-checkout-method-paypal'));
+      await fillValidDelivery(user);
+      await user.click(screen.getByRole('checkbox', { name: /I accept guarantee policy v1/ }));
+      const pay = screen.getByTestId('marketplace-checkout-pay');
+      await waitFor(() => expect(pay).toBeEnabled());
+      await user.click(pay);
+    }
+
+    it('navigates the top window to the single PayPal checkout URL', async () => {
+      view.payResult = {
+        ok: true,
+        orderIds: ['018f47d2-6a27-7c23-a49d-000000000001'],
+        boundOrders: [{ fiatCheckoutUrl: PAYPAL_URL }],
+      };
+
+      await payWithPaypal();
+
+      await waitFor(() => expect(navigation.navigateTop).toHaveBeenCalledTimes(1));
+      expect(navigation.navigateTop).toHaveBeenCalledWith(PAYPAL_URL);
+    });
+
+    it('stays on the order overview when no order carries a PayPal URL', async () => {
+      view.payResult = {
+        ok: true,
+        orderIds: ['018f47d2-6a27-7c23-a49d-000000000001'],
+        boundOrders: [{ fiatCheckoutUrl: null }],
+      };
+
+      await payWithPaypal();
+
+      await waitFor(() => expect(window.location.hash).toBe('#018f47d2-6a27-7c23-a49d-000000000001'));
+      expect(navigation.navigateTop).not.toHaveBeenCalled();
+    });
+
+    it('does not guess when several orders carry a PayPal URL', async () => {
+      view.payResult = {
+        ok: true,
+        orderIds: ['018f47d2-6a27-7c23-a49d-000000000001', '018f47d2-6a27-7c23-a49d-000000000002'],
+        boundOrders: [{ fiatCheckoutUrl: PAYPAL_URL }, { fiatCheckoutUrl: `${PAYPAL_URL}-2` }],
+      };
+
+      await payWithPaypal();
+
+      await waitFor(() => expect(window.location.hash).toBe('#018f47d2-6a27-7c23-a49d-000000000001'));
+      expect(navigation.navigateTop).not.toHaveBeenCalled();
+    });
   });
 
   it('requires the guarantee after a pay attempt and leaves it unchecked by default', async () => {
@@ -1428,6 +1490,21 @@ describe('MarketplaceCheckout accepted-offer path', () => {
     expect(checkoutActions.remove).toHaveBeenCalledWith('s:boots', 'variant_42', 'award-1', false);
     expect(offerState.refresh).toHaveBeenCalledTimes(1);
     expect(checkoutActions.rememberAddress).toHaveBeenCalled();
+  });
+
+  it('hands an accepted offer to PayPal through the top window', async () => {
+    const paypalUrl = 'https://www.paypal.com/checkoutnow?token=EC-OFFER';
+    offerState.submit.mockResolvedValue({
+      ok: true,
+      orderId: '00000000-0000-4000-8000-000000000803',
+      boundOrder: { fiatCheckoutUrl: paypalUrl },
+    });
+    const user = userEvent.setup();
+    render(<MarketplaceCheckout />);
+    await fillAndPay(user);
+
+    await waitFor(() => expect(navigation.navigateTop).toHaveBeenCalledWith(paypalUrl));
+    expect(navigation.navigateTop).toHaveBeenCalledTimes(1);
   });
 
   it('checks out a pickup award with the pickup UI: no address, no shipping, merchandise only', async () => {

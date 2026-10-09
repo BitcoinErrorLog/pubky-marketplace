@@ -131,6 +131,9 @@ const withSerwist = withSerwistInit({
   swSrc: 'src/sw.ts',
   swDest: 'public/sw.js',
   disable: process.env.NODE_ENV === 'development',
+  // Registration is deferred to `ServiceWorkerRegistration`, which skips it when the Shop
+  // is framed or mounted under another app's origin (that app owns the worker scope there).
+  register: false,
   globPublicPatterns: SW_PRECACHE_PUBLIC_PATTERNS,
   exclude: SW_PRECACHE_EXCLUDE,
 });

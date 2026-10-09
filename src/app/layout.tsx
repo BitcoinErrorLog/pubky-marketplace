@@ -8,6 +8,7 @@ import { renderPerRequestOutsideVercel } from '@/libs/runtime-config/render-mode
 import { RootContainer } from '@/molecules/ContainerRoot/ContainerRoot';
 import { Fab } from '@/molecules/Fab/Fab';
 import { Metadata } from '@/molecules/Metadata/Metadata';
+import { ServiceWorkerRegistration } from '@/molecules/ServiceWorkerRegistration/ServiceWorkerRegistration';
 import { StructuredData } from '@/molecules/StructuredData/StructuredData';
 import { Toaster } from '@/molecules/Toaster/Toaster';
 import { CoordinatorsManager } from '@/organisms/CoordinatorsManager/CoordinatorsManager';
@@ -60,6 +61,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <DatabaseProvider>
               <RouteGuardProvider>
                 <CoordinatorsManager />
+                <ServiceWorkerRegistration />
                 <Header />
                 {children}
                 <Fab />
