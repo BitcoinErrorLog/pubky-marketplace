@@ -203,7 +203,7 @@ Each owning team assigns the people behind these roles: the Shop team its Shop l
 | Infra move, new instances on Synonym's cloud, invite acceptance | Vlad (Synonym DevOps) |
 | paykit-server#28 merge-forward | icota |
 | paykit-server#27, Bitkit and Paykit wiring | [ovitrif](https://github.com/ovitrif) |
-| paykit-server releases (rc9 on Paykit rc71 since 7 Oct); Paykit rc pins and the authorizer model | dzdidi; Ben for the Paykit architecture |
+| paykit-server releases (rc10 since 8 Oct: [#52](https://github.com/pubky/paykit-server/issues/52) Reader admission, [#55](https://github.com/pubky/paykit-server/issues/55) `[signed_services]` key rotation, [#53](https://github.com/pubky/paykit-server/issues/53), [#54](https://github.com/pubky/paykit-server/issues/54); PK-5/PK-6 prepare/activate/void and resolve still open); Paykit rc pins and the authorizer model | dzdidi; Ben for the Paykit architecture |
 | Passport integration | [pubky-passport](https://github.com/pubky/pubky-passport) maintainers |
 | Testing, issue reports, payment canaries; #50, #12, #67, #69, #70 | Pav ([thisispav](https://github.com/thisispav)) |
 | Bitkit testing | Piotr ([piotr-iohk](https://github.com/piotr-iohk)) |
@@ -218,5 +218,5 @@ Each owning team assigns the people behind these roles: the Shop team its Shop l
 | Ring grant-auth release and consent screens | Philipp ([pubky/pubky-ring](https://github.com/pubky/pubky-ring)) |
 | Passport as the account agent | [pubky-passport](https://github.com/pubky/pubky-passport) maintainers |
 | Paykit server and SDK | dzdidi; Ben for the Paykit architecture |
-| Locks, Locks rc9 (nested Paykit status only, [locks#73](https://github.com/pubky/locks/issues/73); no grant connect yet, [locks#69](https://github.com/pubky/locks/issues/69)) and the upstream Locks switch | Denys |
+| Locks, Locks rc10 (8 Oct: opt-in `grant-connect` from [locks#77](https://github.com/pubky/locks/issues/77), one reconnect per seller; late Paykit `200` accepted, [locks#76](https://github.com/pubky/locks/issues/76); nested Paykit status only since rc9, [locks#73](https://github.com/pubky/locks/issues/73)) and the upstream Locks switch | Denys |
 | Ring and Bitkit sign-in, keychain sharing | Jay; [ovitrif](https://github.com/ovitrif) for Bitkit and Paykit issues |
