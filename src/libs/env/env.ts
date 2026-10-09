@@ -50,7 +50,9 @@ export const envSchema = z
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 
     // Build-intrinsic public values. These are intentionally baked into the artifact.
-    NEXT_PUBLIC_DB_NAME: z.string().default('franky'),
+    // Shop-namespaced so the Shop and pubky.app can share one origin without
+    // sharing a database (see `@/libs/storage-namespace/storage-namespace`).
+    NEXT_PUBLIC_DB_NAME: z.string().default('shop-franky'),
     NEXT_PUBLIC_DB_VERSION: z
       .string()
       .default('7')

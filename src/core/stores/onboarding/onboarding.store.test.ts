@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ONBOARDING_PERSIST_KEY } from '../persistedKeys';
 import { useOnboardingStore } from './onboarding.store';
 
 // Mock localStorage for testing
@@ -508,7 +509,7 @@ describe('OnboardingStore', () => {
       // Mock successful localStorage operations
       localStorageMock.setItem.mockImplementation((key, value) => {
         // Simulate successful storage
-        expect(key).toBe('onboarding-storage');
+        expect(key).toBe(ONBOARDING_PERSIST_KEY);
         expect(typeof value).toBe('string');
 
         // Parse the stored value to verify it contains expected data

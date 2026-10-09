@@ -108,7 +108,7 @@ function instrument(page, net, commands) {
 
 async function authState(page) {
   return await page.evaluate(() => {
-    const raw = localStorage.getItem('auth-store');
+    const raw = localStorage.getItem('shop-auth-store') ?? localStorage.getItem('auth-store');
     const state = raw ? (JSON.parse(raw).state ?? {}) : {};
     return {
       currentUserPubky: state.currentUserPubky ?? null,
@@ -127,7 +127,7 @@ const waitForAppReady = async (page, timeout = 180_000) =>
 const signedInAs = (page, key, timeout = 180_000) =>
   page.waitForFunction(
     ([expected, field]) => {
-      const raw = localStorage.getItem('auth-store');
+      const raw = localStorage.getItem('shop-auth-store') ?? localStorage.getItem('auth-store');
       const state = raw ? (JSON.parse(raw).state ?? {}) : {};
       return state.currentUserPubky === expected && typeof state[field] === 'string';
     },
@@ -194,7 +194,7 @@ async function signOutThroughSettings(page) {
   else await page.goto(`${ORIGIN}/logout`, { waitUntil: 'domcontentloaded', timeout: 180_000 });
   await page.waitForFunction(
     () => {
-      const raw = localStorage.getItem('auth-store');
+      const raw = localStorage.getItem('shop-auth-store') ?? localStorage.getItem('auth-store');
       const state = raw ? (JSON.parse(raw).state ?? {}) : {};
       return !state.currentUserPubky && !state.grantSessionRecordId && !state.sessionExport;
     },
@@ -475,7 +475,7 @@ async function ringSignIn(page, keypair) {
   await new Pubky().signer(keypair).approveAuthRequest(await copyQrUrl(page, 'Copy authentication link'));
   await page.waitForFunction(
     (expected) => {
-      const raw = localStorage.getItem('auth-store');
+      const raw = localStorage.getItem('shop-auth-store') ?? localStorage.getItem('auth-store');
       const state = raw ? (JSON.parse(raw).state ?? {}) : {};
       return state.currentUserPubky === expected && typeof state.sessionExport === 'string';
     },

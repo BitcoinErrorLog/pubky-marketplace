@@ -126,12 +126,13 @@ describe('social link-out env schema', () => {
 describe('mount path env schema', () => {
   const required = { NEXT_PUBLIC_APP_VERSION: '1.0.0' };
 
-  it('defaults to the origin root', () => {
+  it('defaults to the origin root and the Shop-namespaced database name', () => {
     const result = envSchema.safeParse(required);
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.NEXT_PUBLIC_BASE_PATH).toBe('');
       expect(result.data.NEXT_PUBLIC_ASSET_PREFIX).toBeUndefined();
+      expect(result.data.NEXT_PUBLIC_DB_NAME).toBe('shop-franky');
     }
   });
 

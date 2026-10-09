@@ -3,6 +3,7 @@
 import { createContext, type ReactNode, useEffect, useRef, useState } from 'react';
 import { db } from '@/database/franky/franky';
 import { resumePendingMessagingTeardown } from '@/database/franky/franky.helpers';
+import { migrateLegacyDatabases } from '@/database/franky/franky.namespace-migration';
 import { AppError } from '@/libs/error/error';
 import { DatabaseErrorCode } from '@/libs/error/error.codes';
 import { Err } from '@/libs/error/error.factories';
@@ -36,6 +37,8 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
     isInitializingRef.current = true;
     try {
       setError(null);
+      // Existing Shop data moves into the Shop namespace before the namespaced database opens.
+      await migrateLegacyDatabases();
       const { wasDbReset, messagingAtRestDegraded } = await db.initialize();
       if (wasDbReset) {
         useMigrationStore.getState().setWasDbReset(true);

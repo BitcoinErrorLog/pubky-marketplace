@@ -4,6 +4,7 @@ import {
   buildFeatureDiscoveryStorageKey,
   MARKETPLACE_PROMO_STORAGE_ID,
 } from '@/config/featureDiscovery';
+import { AUTH_PERSIST_KEY } from '@/stores/persistedKeys';
 import {
   buildMarketplacePromoPrepaintScript,
   MARKETPLACE_PROMO_PREPAINT_STYLE_ID,
@@ -18,7 +19,7 @@ function runPrepaint() {
 }
 
 function persistAccount(pubky: string) {
-  window.localStorage.setItem('auth-store', JSON.stringify({ state: { currentUserPubky: pubky }, version: 0 }));
+  window.localStorage.setItem(AUTH_PERSIST_KEY, JSON.stringify({ state: { currentUserPubky: pubky }, version: 0 }));
 }
 
 describe('marketplace promo prepaint script', () => {
@@ -55,7 +56,7 @@ describe('marketplace promo prepaint script', () => {
   });
 
   it('ignores a malformed persisted auth store', () => {
-    window.localStorage.setItem('auth-store', '{not json');
+    window.localStorage.setItem(AUTH_PERSIST_KEY, '{not json');
 
     expect(runPrepaint()).toBeNull();
   });
