@@ -66,7 +66,13 @@ function createAppError<C extends ErrorCategory>(
     Logger.warn('[Err.factory] captureAppError failed', sentryError);
   }
 
-  Pulse.captureException(error);
+  // Same guard for Pulse: a throw from the SDK must not replace the AppError.
+  try {
+    Pulse.captureException(error);
+  } catch (pulseError) {
+    Logger.warn('[Err.factory] Pulse.captureException failed', pulseError);
+  }
+
   return error;
 }
 
