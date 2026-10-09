@@ -624,3 +624,60 @@ describe('marketplace order projection — PayPal refund notification fields', (
     expect(parsed.gatewayRefundUnmatched).toBe(false);
   });
 });
+
+describe('marketplace order projection — USDT payment method (default-off plumbing)', () => {
+  const usdtWire = {
+    payment_method: 'usdt',
+    payment_asset: 'USDT',
+    payment_network: 'arbitrum-one',
+    payment_amount_minor: 25_000_000,
+    payment_exponent: 6,
+    payment_quote_basis: 'parity',
+  };
+  const wire = (values: Record<string, unknown>) => ({
+    ...createOrderFixture('pending_payment'),
+    ...(toCamelCaseWire(values) as Record<string, unknown>),
+  });
+
+  it('accepts a usdt order and its asset-bearing fields in both projections', () => {
+    for (const schema of [marketplaceOrderSchema, marketplaceParticipantOrderSchema]) {
+      const parsed = schema.parse(wire(usdtWire));
+      expect(parsed.paymentMethod).toBe('usdt');
+      expect(parsed.paymentAsset).toBe('USDT');
+      expect(parsed.paymentNetwork).toBe('arbitrum-one');
+      expect(parsed.paymentAmountMinor).toBe(25_000_000);
+      expect(parsed.paymentExponent).toBe(6);
+      expect(parsed.paymentQuoteBasis).toBe('parity');
+    }
+  });
+
+  it('still rejects a payment method the Shop does not know', () => {
+    expect(marketplaceOrderSchema.safeParse(wire({ payment_method: 'dogecoin' })).success).toBe(false);
+  });
+
+  it('parses every existing method with no asset fields, byte-for-byte as before', () => {
+    for (const method of ['bitcoin', 'paypal', 'stripe', null] as const) {
+      const input = wire({ payment_method: method });
+      const parsed = marketplaceOrderSchema.parse(input);
+      expect(parsed.paymentMethod).toBe(method);
+      expect(parsed.paymentAsset).toBeUndefined();
+      expect(parsed.paymentNetwork).toBeUndefined();
+      expect(parsed.paymentAmountMinor).toBeUndefined();
+      expect(parsed.paymentExponent).toBeUndefined();
+      expect(parsed.paymentQuoteBasis).toBeUndefined();
+      expect(parsed).toEqual(
+        marketplaceOrderSchema.parse(createOrderFixture('pending_payment', { paymentMethod: method })),
+      );
+    }
+  });
+
+  it('keeps the order when an asset field holds a value the Shop does not know', () => {
+    const parsed = marketplaceOrderSchema.parse(
+      wire({ ...usdtWire, payment_asset: 'DAI', payment_network: 'base', payment_amount_minor: 'lots' }),
+    );
+    expect(parsed.paymentMethod).toBe('usdt');
+    expect(parsed.paymentAsset).toBeUndefined();
+    expect(parsed.paymentNetwork).toBeUndefined();
+    expect(parsed.paymentAmountMinor).toBeUndefined();
+  });
+});

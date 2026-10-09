@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { PAYMENT_METHOD_KINDS } from '@/libs/commerce/payment-options';
 
 /**
  * Seller-configurable payment methods (docs/ecommerce/fiat-rails-phase1.md,
@@ -10,7 +11,7 @@ import { z } from 'zod';
  * read-only key) or records attestations (PayPal, buyer-reported and
  * seller-confirmed).
  */
-export type PaymentMethodKind = 'bitcoin' | 'stripe' | 'paypal';
+export type PaymentMethodKind = (typeof PAYMENT_METHOD_KINDS)[number];
 
 /**
  * Public view of one seller's payment rails, served unauthenticated so buyers
@@ -29,23 +30,47 @@ export const sellerPaymentConfigSchema = z
     bitcoinOfferAvailable: z.boolean().optional().default(true),
     paypalAvailable: z.boolean().optional(),
     paypalMerchantEmail: z.string().nullable().optional(),
+    // Present only when the service's USDT flag is on. A malformed value is
+    // dropped, which reads as "not available".
+    usdtAvailable: z.boolean().optional().catch(undefined),
   })
-  .transform(({ bitcoinAvailable, bitcoinOfferAvailable, paypalAvailable, paypalMerchantEmail }) => ({
-    bitcoinAvailable,
-    bitcoinOfferAvailable,
-    paypalAvailable: paypalAvailable ?? Boolean(paypalMerchantEmail),
-  }));
+  .transform(
+    ({
+      bitcoinAvailable,
+      bitcoinOfferAvailable,
+      paypalAvailable,
+      paypalMerchantEmail,
+      usdtAvailable,
+    }): {
+      bitcoinAvailable: boolean;
+      bitcoinOfferAvailable: boolean;
+      paypalAvailable: boolean;
+      usdtAvailable?: boolean;
+    } => ({
+      bitcoinAvailable,
+      bitcoinOfferAvailable,
+      paypalAvailable: paypalAvailable ?? Boolean(paypalMerchantEmail),
+      ...(usdtAvailable === undefined ? {} : { usdtAvailable }),
+    }),
+  );
 
 export type SellerPaymentConfig = z.infer<typeof sellerPaymentConfigSchema>;
 
 /**
  * Methods the buyer can actually choose, in the order the UI renders them.
  * Card payments are paused: a stored Stripe link is kept on the service and
- * is never offered.
+ * is never offered. USDT is offered only when the caller's gate
+ * (`usdtPaymentsAvailable`: Shop flag AND service capability) is on AND the
+ * seller's public config says `usdtAvailable`; every existing caller omits the
+ * gate, so their result is unchanged.
  */
-export function availablePaymentMethods(config: SellerPaymentConfig): PaymentMethodKind[] {
+export function availablePaymentMethods(
+  config: SellerPaymentConfig,
+  { usdtPaymentsAvailable = false }: { usdtPaymentsAvailable?: boolean } = {},
+): PaymentMethodKind[] {
   const methods: PaymentMethodKind[] = [];
   if (config.bitcoinAvailable && config.bitcoinOfferAvailable) methods.push('bitcoin');
+  if (usdtPaymentsAvailable && config.usdtAvailable === true) methods.push('usdt');
   if (config.paypalAvailable) methods.push('paypal');
   return methods;
 }
@@ -74,6 +99,8 @@ export function isStripePaymentLink(value: string): boolean {
  */
 export const sellerPaymentConfigOwnViewSchema = z.object({
   bitcoinEnabled: z.boolean(),
+  // Present only when the service's USDT flag is on (the seller's Shop-level consent).
+  usdtEnabled: z.boolean().optional().catch(undefined),
   stripePaymentLink: z.url().nullable(),
   paypalMerchantEmail: z.email().nullable(),
   stripeRestrictedKeySet: z.boolean(),

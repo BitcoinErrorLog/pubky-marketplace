@@ -1,4 +1,5 @@
 import { formatCommerceMoney } from './format';
+import type { PaymentMethodKind } from './payment-methods';
 import { formatBitcoinAmount, hasSameAsset, isBitcoinAsset, MAX_BITCOIN_BASE_UNITS } from './pricing';
 import type { CommerceMoney } from './transaction-contracts';
 
@@ -21,7 +22,7 @@ export function bitcoinPaymentCodeExplanation(paymentCode: CommerceMoney): strin
 const SATOSHI: CommerceMoney = { amountMinor: 0, currency: 'SAT', exponent: 0 };
 
 export type BitcoinPaymentOrder = {
-  paymentMethod?: 'bitcoin' | 'stripe' | 'paypal' | null;
+  paymentMethod?: PaymentMethodKind | null;
   subtotal: CommerceMoney;
   shipping: CommerceMoney;
   total?: CommerceMoney;
