@@ -107,7 +107,7 @@ describe('LogoutHeader', () => {
   it('renders subtitle correctly', () => {
     render(<LogoutHeader />);
     expect(screen.getByText(SIGNED_OUT_COPY)).toBeInTheDocument();
-    expect(SIGNED_OUT_COPY).toBe('You have securely signed out.');
+    expect(SIGNED_OUT_COPY).toContain('pubky.app in this browser is signed out too');
   });
 });
 

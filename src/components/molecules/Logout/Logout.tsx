@@ -10,7 +10,8 @@ import { PageSubtitle } from '@/atoms/PageSubtitle/PageSubtitle';
 import { ButtonsNavigation } from '../ButtonsNavigation/ButtonsNavigation';
 import { PageTitle } from '../Page/Page';
 
-export const SIGNED_OUT_COPY = 'You have securely signed out.';
+export const SIGNED_OUT_COPY =
+  'You have signed out of the Shop. If you signed in with Pubky Ring, pubky.app in this browser is signed out too.';
 
 export const LogoutContent = () => {
   return (
