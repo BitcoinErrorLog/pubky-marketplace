@@ -10,12 +10,12 @@ import { httpResponseToError, safeFetch } from '@/libs/error/error.http';
 import { ErrorService } from '@/libs/error/error.types';
 import { parseResponseOrThrow } from '@/libs/http/response.utils';
 
-type LocksSdkModule = typeof import('locks-sdk-wasm');
+type LocksSdkModule = typeof import('@synonymdev/locks-sdk');
 
 /*
- * TRANSPORT DECISION — vendored SDK vs raw HTTP (see docs/ecommerce/locks-sdk-provenance.md):
+ * TRANSPORT DECISION — SDK vs raw HTTP (see docs/ecommerce/locks-sdk-provenance.md):
  *
- * The vendored Locks browser SDK (`vendor/locks-sdk-wasm`) is used for what it can do
+ * The Locks browser SDK (`@synonymdev/locks-sdk`, npm) is used for what it can do
  * from ANY deployment: canonical identifier generation (`BundleId.generate()`), pure
  * WASM with no network. Every network route in this service deliberately stays on the
  * Lock Server's documented HTTP contract at the explicitly configured `getLocksUrl()`:
@@ -84,13 +84,13 @@ export type LocksCreatorAuthorityStatus = z.infer<typeof creatorAuthorityStatusS
 let sdkModulePromise: Promise<LocksSdkModule> | null = null;
 
 /**
- * Loads and initializes the vendored Locks SDK WASM module exactly once. The dynamic
- * import keeps the ~1.2 MB WASM binary out of every server-rendered and initial-client
+ * Loads and initializes the Locks SDK WASM module exactly once. The dynamic
+ * import keeps the ~1.3 MB WASM binary out of every server-rendered and initial-client
  * module graph; it is only fetched when a Locks operation actually runs in the browser.
  */
 async function loadLocksSdk(): Promise<LocksSdkModule> {
   sdkModulePromise ??= (async () => {
-    const sdk = await import('locks-sdk-wasm');
+    const sdk = await import('@synonymdev/locks-sdk');
     await sdk.default();
     return sdk;
   })();
@@ -118,7 +118,7 @@ export class LocksGatewayService {
   private constructor() {}
 
   /**
-   * Generates a canonical Locks bundle id through the vendored SDK. Bundle ids are
+   * Generates a canonical Locks bundle id through the SDK. Bundle ids are
    * Crockford base32 identifiers validated by the Lock Server; callers must never
    * mint their own (upstream guidance: no hand-written substitutes for Locks
    * canonicalization or identifiers).

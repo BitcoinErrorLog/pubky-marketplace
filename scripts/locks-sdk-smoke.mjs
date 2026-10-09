@@ -1,9 +1,10 @@
-// Smoke test for the vendored Pubky Locks browser SDK (vendor/locks-sdk-wasm).
+// Smoke test for the installed Pubky Locks browser SDK (`@synonymdev/locks-sdk`, pinned
+// exactly in package.json; provenance in docs/ecommerce/locks-sdk-provenance.md).
 //
-// Ported from upstream `locks-sdk/bindings/js/scripts/smoke-generated-api.mjs` at the
-// pinned commit recorded in docs/ecommerce/locks-sdk-provenance.md, retargeted at the
-// vendored package. It instantiates the WASM module in Node and fails if the generated
-// API surface the marketplace depends on regresses. CI runs it ahead of `next build`.
+// Ported from upstream `locks-sdk/bindings/js/scripts/smoke-generated-api.mjs`,
+// retargeted at the installed npm package. It instantiates the WASM module in Node and
+// fails if the generated API surface the marketplace depends on regresses. CI runs it
+// ahead of `next build`.
 
 import { existsSync, readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
@@ -11,30 +12,31 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const root = new URL('..', import.meta.url).pathname;
-const pkgDir = join(root, 'vendor', 'locks-sdk-wasm');
-const pkgJsonPath = join(pkgDir, 'package.json');
+const packageDir = join(root, 'node_modules', '@synonymdev', 'locks-sdk');
+const pkgDir = join(packageDir, 'pkg');
+const pkgJsonPath = join(packageDir, 'package.json');
 const dtsPath = join(pkgDir, 'locks_sdk_wasm.d.ts');
 const jsPath = join(pkgDir, 'locks_sdk_wasm.js');
 const wasmPath = join(pkgDir, 'locks_sdk_wasm_bg.wasm');
 
 for (const path of [pkgJsonPath, dtsPath, jsPath, wasmPath]) {
   if (!existsSync(path)) {
-    throw new Error(`missing vendored package artifact: ${path}`);
+    throw new Error(`missing Locks SDK package artifact: ${path}`);
   }
 }
 
 const pkg = JSON.parse(readFileSync(pkgJsonPath, 'utf8'));
-if (pkg.name !== 'locks-sdk-wasm') {
-  throw new Error(`unexpected vendored package name: ${pkg.name}`);
+if (pkg.name !== '@synonymdev/locks-sdk') {
+  throw new Error(`unexpected Locks SDK package name: ${pkg.name}`);
 }
 if (pkg.type !== 'module') {
-  throw new Error(`vendored package must be ESM; got type=${pkg.type}`);
+  throw new Error(`Locks SDK package must be ESM; got type=${pkg.type}`);
 }
-if (pkg.main !== 'locks_sdk_wasm.js') {
-  throw new Error(`unexpected vendored package main: ${pkg.main}`);
+if (pkg.main !== './pkg/locks_sdk_wasm.js') {
+  throw new Error(`unexpected Locks SDK package main: ${pkg.main}`);
 }
-if (pkg.types !== 'locks_sdk_wasm.d.ts') {
-  throw new Error(`unexpected vendored package types: ${pkg.types}`);
+if (pkg.types !== './pkg/locks_sdk_wasm.d.ts') {
+  throw new Error(`unexpected Locks SDK package types: ${pkg.types}`);
 }
 
 const dts = readFileSync(dtsPath, 'utf8');
@@ -95,7 +97,7 @@ const requiredSnippets = [
 
 for (const snippet of requiredSnippets) {
   if (!dts.includes(snippet)) {
-    throw new Error(`vendored TypeScript declarations missing: ${snippet}`);
+    throw new Error(`Locks SDK TypeScript declarations missing: ${snippet}`);
   }
 }
 
@@ -148,4 +150,4 @@ if (JSON.stringify(request).includes('{}') && Object.keys(request.secondary_reso
   throw new Error('content lock request lost secondary resource fields during JSON serialization');
 }
 
-console.log('vendored Locks SDK API smoke check passed');
+console.log('Locks SDK API smoke check passed');

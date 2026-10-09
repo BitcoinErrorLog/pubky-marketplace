@@ -8,19 +8,18 @@ import { playwright } from '@vitest/browser-playwright';
 import { resizeVrtBrowser } from './src/test-utils/vrt.commands';
 import { VRT_VIEWPORT_DESKTOP } from './src/test-utils/vrt.viewports';
 
-// Tests that import the paykit-wasm / locks-sdk-wasm bindings must exercise
-// the VENDORED artifacts in this repository, not whatever a shared/linked
-// node_modules happens to point at (e.g. worktrees sharing a sibling
-// checkout's node_modules, where the file: symlink resolves to the sibling's
-// vendor directory). These aliases are INTENTIONALLY PERMANENT, not a
-// worktree-local workaround: in a normal checkout they are a no-op (the file:
-// dependency links node_modules to this same vendored path), while in
-// shared-node_modules worktrees they pin tests to THIS repo's artifacts.
+// Tests that import the paykit-wasm bindings must exercise the VENDORED
+// artifacts in this repository, not whatever a shared/linked node_modules
+// happens to point at (e.g. worktrees sharing a sibling checkout's
+// node_modules, where the file: symlink resolves to the sibling's vendor
+// directory). This alias is INTENTIONALLY PERMANENT, not a worktree-local
+// workaround: in a normal checkout it is a no-op (the file: dependency links
+// node_modules to this same vendored path), while in shared-node_modules
+// worktrees it pins tests to THIS repo's artifacts.
 // Vitest projects do NOT inherit top-level resolve, so each project applies
 // them via `paykitWasmAlias`.
 const paykitWasmAlias = {
   'paykit-wasm': fileURLToPath(new URL('./vendor/paykit-wasm/paykit_wasm.js', import.meta.url)),
-  'locks-sdk-wasm': fileURLToPath(new URL('./vendor/locks-sdk-wasm/locks_sdk_wasm.js', import.meta.url)),
 };
 const assetIncludes = ['**/*.woff', '**/*.woff2', '**/*.ttf', '**/*.otf'];
 const repoRoot = fileURLToPath(new URL('.', import.meta.url));

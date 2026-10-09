@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 
 // Evaluating a mocked module runs its factory, so this spy fires if and only if
-// something actually imports 'locks-sdk-wasm'. Importing the whole Locks call chain
+// something actually imports '@synonymdev/locks-sdk'. Importing the whole Locks call chain
 // (service -> application -> controller -> hook -> component) mirrors what Next.js
 // evaluates when it server-renders a page containing MarketplacePaymentStatusCard:
 // module scope only. The WASM SDK must never load there — only when a Locks operation runs.
 const sdkModuleEvaluated = vi.hoisted(() => vi.fn());
 
-vi.mock('locks-sdk-wasm', () => {
+vi.mock('@synonymdev/locks-sdk', () => {
   sdkModuleEvaluated();
   return {
     default: vi.fn().mockResolvedValue(undefined),

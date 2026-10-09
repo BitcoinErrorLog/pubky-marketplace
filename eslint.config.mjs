@@ -31,8 +31,7 @@ const eslintConfig = [
       'next-env.d.ts',
       // PWA generated files (serwist)
       'public/sw.js',
-      // Vendored verbatim wasm-pack output (see docs/ecommerce/locks-sdk-provenance.md)
-      'vendor/locks-sdk-wasm/**',
+      // Vendored verbatim wasm-pack output
       'vendor/paykit-wasm/**',
       // Standalone docker-compose payments environment, run by its own scripts
       'payments-env/**',

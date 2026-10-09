@@ -58,10 +58,6 @@ src/libs/commerce/contracts/state-machines.json
 # Packed GeoNames US ZIP5 table (CC-BY 4.0); keep the compact one-line payload
 src/libs/commerce/data/us-zip5.json
 
-# Vendored verbatim wasm-pack output of the Pubky Locks browser SDK;
-# kept byte-identical to the recorded build (see docs/ecommerce/locks-sdk-provenance.md)
-vendor/locks-sdk-wasm/
-
 # Project documents and the payments environment keep their own formatting
 HANDOFF.md
 SUMMARY.md
