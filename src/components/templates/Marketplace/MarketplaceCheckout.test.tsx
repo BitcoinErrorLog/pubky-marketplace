@@ -670,7 +670,9 @@ describe('MarketplaceCheckout', () => {
 
     await fillValidDelivery(userEvent.setup());
     expect(screen.getByTestId('marketplace-checkout-pay')).toBeDisabled();
-    expect(screen.getByTestId('marketplace-checkout-pay')).toBeDisabled();
+    expect(
+      screen.getByText('Fill in delivery details, accept the guarantee, and choose a payment method to pay.'),
+    ).toBeInTheDocument();
   });
 
   it('re-opens Ring approval when a session expires mid-flow', () => {
