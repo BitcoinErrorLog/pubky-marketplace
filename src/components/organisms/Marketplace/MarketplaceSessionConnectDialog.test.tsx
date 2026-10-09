@@ -243,7 +243,7 @@ describe('MarketplaceSessionConnectDialog', () => {
       render(<MarketplaceSessionConnectDialog autoOpen />);
 
       expect(screen.getByRole('radio', { name: 'Bitkit' })).toBeDisabled();
-      expect(screen.getByText('Bitkit cannot approve this sign-in request. Use Pubky Ring.')).toBeInTheDocument();
+      expect(screen.getByText('Bitkit cannot approve this request. Use Pubky Ring.')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Authorize with Pubky Ring' })).toBeEnabled();
     });
   });

@@ -20,7 +20,7 @@ import { type SignerOption, SignerToggle } from '@/molecules/SignerToggle/Signer
 import { toast } from '@/molecules/Toaster/use-toast';
 import { marketplaceApprovalDisclosure } from '@/services/marketplace/marketplace-session-grant';
 
-const BITKIT_UNAVAILABLE = 'Bitkit cannot approve this sign-in request. Use Pubky Ring.';
+const BITKIT_UNAVAILABLE = 'Bitkit cannot approve this request. Use Pubky Ring.';
 
 const APPROVAL_COPY = {
   buy: {
