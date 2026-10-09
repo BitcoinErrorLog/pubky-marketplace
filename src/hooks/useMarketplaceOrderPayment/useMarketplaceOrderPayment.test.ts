@@ -11,6 +11,7 @@ import { useMarketplaceOrderPayment } from './useMarketplaceOrderPayment';
 
 vi.mock('@/controllers/commerce/commerce', () => ({
   CommerceController: {
+    fetchUsdtPaymentsAvailable: vi.fn(async () => false),
     getSellerPaymentConfig: vi.fn(),
     bindPaymentMethod: vi.fn(),
     verifyStripePayment: vi.fn(),
@@ -123,5 +124,47 @@ describe('useMarketplaceOrderPayment', () => {
     await waitFor(() => expect(CommerceController.bindPaymentMethod).toHaveBeenCalledTimes(2));
     expect(CommerceController.bindPaymentMethod).toHaveBeenLastCalledWith(order.id, 'bitcoin');
     await waitFor(() => expect(onPaymentChanged).toHaveBeenCalledTimes(1));
+  });
+
+  describe('USDT in the method picker', () => {
+    const config = { bitcoinAvailable: true, bitcoinOfferAvailable: true, paypalAvailable: true, usdtAvailable: true };
+    const renderPicker = (order = createOrderFixture('pending_payment', { paymentMethod: null })) =>
+      renderHook(() => useMarketplaceOrderPayment({ order, enabled: true, onPaymentChanged: vi.fn() }));
+
+    it('offers usdt when the gate is on, the seller offers it and the order is USD-priced', async () => {
+      vi.mocked(CommerceController.fetchUsdtPaymentsAvailable).mockResolvedValue(true);
+      vi.mocked(CommerceController.getSellerPaymentConfig).mockResolvedValueOnce(config);
+      const { result } = renderPicker();
+
+      await waitFor(() => expect(result.current.availableMethods).toEqual(['bitcoin', 'usdt', 'paypal']));
+    });
+
+    it('does not offer usdt while the gate is off', async () => {
+      vi.mocked(CommerceController.fetchUsdtPaymentsAvailable).mockResolvedValue(false);
+      vi.mocked(CommerceController.getSellerPaymentConfig).mockResolvedValueOnce(config);
+      const { result } = renderPicker();
+
+      await waitFor(() => expect(result.current.availableMethods).toEqual(['bitcoin', 'paypal']));
+    });
+
+    it('does not offer usdt on a Bitcoin-priced order', async () => {
+      vi.mocked(CommerceController.fetchUsdtPaymentsAvailable).mockResolvedValue(true);
+      vi.mocked(CommerceController.getSellerPaymentConfig).mockResolvedValueOnce(config);
+      const order = createOrderFixture('pending_payment', {
+        paymentMethod: null,
+        total: { amountMinor: 150_000, currency: 'BTC', exponent: 8 },
+      });
+      const { result } = renderPicker(order);
+
+      await waitFor(() => expect(CommerceController.fetchUsdtPaymentsAvailable).toHaveBeenCalled());
+      await waitFor(() => expect(result.current.availableMethods).toEqual(['bitcoin', 'paypal']));
+    });
+
+    it('never reads the capability for an order that is already bound', () => {
+      vi.mocked(CommerceController.fetchUsdtPaymentsAvailable).mockClear();
+      renderPicker(createOrderFixture('pending_payment', { paymentMethod: 'bitcoin' }));
+
+      expect(CommerceController.fetchUsdtPaymentsAvailable).not.toHaveBeenCalled();
+    });
   });
 });
