@@ -63,6 +63,25 @@ The toggle stays disabled until `ready` (it can always be switched off), and the
 
 **Reconnect.** `CommerceController.getPaykitReconnectUrl` builds `GET <setup origin>/setup/reconnect?creator&return_to&state` beside the setup URL builder. Reconnect requires `creator` and upstream `/setup` rejects it, so reconnect always sends it. It runs in the same embedded iframe and `paykit-setup-callback` listener as setup. On completion the Shop re-reads the own configuration and closes the dialog only when the service now reports `ready`; otherwise it says Bitkit did not confirm a USDT address and offers Retry. The Shop never receives or displays the USDT address: it lives in Bitkit and paykit-server.
 
+## Refund address (W4)
+
+The marketplace never holds funds, so a USDT refund is two human steps the Shop only records: the buyer confirms an Arbitrum One USDT address on the order page, and the seller sends the refund with an ordinary USDT send in Bitkit and records the Arbitrum transaction hash with "Record refund". Nothing is detected or checked on-chain; the Shop never calls a recorded refund "verified" or "confirmed on Arbitrum", and the Paykit `resolved: refunded` outcome is an annotation, never a verified refund.
+
+These surfaces render for any order whose projection carries `paymentAsset: "USDT"`, whatever the new-offer flag says: a USDT order that already exists must stay refundable after the flag flips. Bitcoin, PayPal and Stripe orders never carry the field, so nothing changes for them.
+
+Wire contract with the service's S6 slice (`src/libs/commerce/usdt-refund.ts`, fixtures in `src/test/fixtures/commerce/usdt-refund.wire.ts`):
+
+| What                                                    | Shape                                                                                                                                                             |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Buyer command `refund.confirm_destination`              | `{ order_id, address }`; the buyer may replace the address until a refund is recorded, then the service answers `INVALID_STATE`                                   |
+| Participant order projection `refund_destination`       | `{ address, network: "arbitrum-one", asset: "USDT", source, confirmed_at }`, null or absent until confirmed; `source` is only displayed                           |
+| Seller command `refund.record_external` on a USDT order | `transaction_id` is the Arbitrum hash, `0x` + 64 hex (lowercase on the wire, the Shop lowercases what the seller pastes); refused without a confirmed destination |
+| Refusal `reason` values                                 | `refund_destination_required`, `invalid_refund_destination`, `invalid_refund_reference`, each mapped to static copy                                               |
+
+The address check is `0x` + 40 hex; a mixed-case address must carry a valid EIP-55 checksum, an all-lowercase or all-uppercase one is accepted as typed. The buyer must also tick "This address accepts USDT on Arbitrum One" and sees the exchange-deposit warning.
+
+The "send it back to the address I paid from" choice appears only when the order projection carries an optional `payment_address`. The service does not send it today (paykit-server's status exposes no payer address), so the buyer enters an address.
+
 ## Deploy order
 
 The Shop that accepts `usdt` in its order projection must be deployed before the service's USDT flag is ever turned on: an older Shop rejects an unknown `payment_method` and breaks the order page.
