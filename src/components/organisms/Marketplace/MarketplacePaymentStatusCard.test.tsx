@@ -8,7 +8,11 @@ import {
   holderUnboundCopy,
   UNBOUND_BACK_CANCEL_REASON,
 } from '@/libs/commerce/checkout-hold';
-import { LOCKS_ADMISSION_COPY } from '@/libs/commerce/locks-lifecycle';
+import {
+  LOCKS_ADMISSION_COPY,
+  LOCKS_TERMINAL_REASON_COPY,
+  LOCKS_TERMINAL_REASONS,
+} from '@/libs/commerce/locks-lifecycle';
 import { createOrderFixture, createPaymentFixture } from '@/test/fixtures/commerce/orders';
 import { MarketplacePaymentStatusCard } from './MarketplacePaymentStatusCard';
 
@@ -433,7 +437,7 @@ describe('MarketplacePaymentStatusCard', () => {
     it('shows Reader wallet setup needed while the request is admitted, with no new request action', () => {
       locksView.overrides = {
         correlation: registered,
-        admission: { kind: 'in_flight', readerWalletSetupNeeded: true },
+        admission: { kind: 'in_flight', readerWalletSetupNeeded: true, stalled: false },
       };
       renderAwaiting();
 
@@ -443,11 +447,67 @@ describe('MarketplacePaymentStatusCard', () => {
       );
       expect(screen.getByText(/Payment request sent/)).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /Request payment in your wallet|Retry registration/ })).toBeNull();
+      expect(screen.queryByTestId('locks-admission-stalled')).toBeNull();
+    });
+
+    it('offers Check again, in place of the sent-request line, once the admission deadline has long passed', () => {
+      const resumePolling = vi.fn();
+      locksView.overrides = {
+        correlation: registered,
+        resumePolling,
+        admission: { kind: 'in_flight', readerWalletSetupNeeded: false, stalled: true },
+      };
+      renderAwaiting();
+
+      expect(screen.getByTestId('locks-admission-stalled')).toHaveTextContent(LOCKS_ADMISSION_COPY.stalledTitle);
+      expect(screen.getByTestId('locks-admission-stalled')).toHaveTextContent(LOCKS_ADMISSION_COPY.stalledBody);
+      expect(screen.queryByText(/Payment request sent/)).toBeNull();
+      expect(screen.queryByRole('button', { name: /Request payment|Retry registration|Keep checking/ })).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: LOCKS_ADMISSION_COPY.stalledAction }));
+      expect(resumePolling).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows one check action when the task is stalled and polling has run out', () => {
+      locksView.overrides = {
+        correlation: registered,
+        pollExhausted: true,
+        admission: { kind: 'in_flight', readerWalletSetupNeeded: false, stalled: true },
+      };
+      renderAwaiting();
+
+      expect(screen.getAllByRole('button', { name: /Check again|Keep checking/ })).toHaveLength(1);
+      expect(screen.getByRole('button', { name: LOCKS_ADMISSION_COPY.stalledAction })).toBeInTheDocument();
+    });
+
+    it('keeps the wallet-setup notice above the stalled notice', () => {
+      locksView.overrides = {
+        correlation: registered,
+        admission: { kind: 'in_flight', readerWalletSetupNeeded: true, stalled: true },
+      };
+      renderAwaiting();
+
+      expect(screen.getByTestId('locks-reader-wallet-setup')).toBeInTheDocument();
+      expect(screen.getByTestId('locks-admission-stalled')).toBeInTheDocument();
+    });
+
+    it('keeps the sent-request line and Keep checking for a pending task that is not stalled', () => {
+      locksView.overrides = {
+        correlation: registered,
+        pollExhausted: true,
+        admission: { kind: 'in_flight', readerWalletSetupNeeded: false, stalled: false },
+      };
+      renderAwaiting();
+
+      expect(screen.getByText(/Payment request sent/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Keep checking' })).toBeInTheDocument();
+      expect(screen.queryByTestId('locks-admission-stalled')).toBeNull();
     });
 
     it.each([
       ['reader_not_payable', LOCKS_ADMISSION_COPY.readerNotPayable],
       ['admission_deadline_exceeded', LOCKS_ADMISSION_COPY.admissionDeadlineExceeded],
+      ['invoice_conflict', LOCKS_ADMISSION_COPY.invoiceConflict],
+      ['admission_failed', LOCKS_ADMISSION_COPY.admissionFailed],
       ['failed', LOCKS_ADMISSION_COPY.failed],
     ] as const)('shows the %s admission failure in place of the wait, with no retry', (failure, copy) => {
       locksView.overrides = { correlation: registered, admission: { kind: 'failed', failure } };
@@ -456,7 +516,51 @@ describe('MarketplacePaymentStatusCard', () => {
       expect(screen.getByTestId('locks-admission-failed')).toHaveTextContent(copy);
       expect(screen.queryByText(/Payment request sent/)).toBeNull();
       expect(screen.queryByTestId('locks-reader-wallet-setup')).toBeNull();
-      expect(screen.queryByRole('button', { name: /Request payment|Retry|Keep checking/ })).toBeNull();
+      expect(screen.queryByRole('button', { name: /Request payment|Retry|Keep checking|Check again/ })).toBeNull();
+    });
+
+    describe('expired by the payment request (terminal reason)', () => {
+      const renderExpired = (adapter: 'locks' | 'paykit' = 'locks', isBuyer = true) => {
+        const payment = createPaymentFixture('expired', { adapter });
+        render(
+          <MarketplacePaymentStatusCard
+            order={createOrderFixture('cancelled', { paymentId: payment.id })}
+            payment={payment}
+            isBuyer={isBuyer}
+            adapterMode="locks-paykit"
+            advancePayment={async () => false}
+            onPaymentChanged={() => {}}
+          />,
+        );
+      };
+
+      it.each(LOCKS_TERMINAL_REASONS)('shows the %s reason in place of the generic window copy', (reason) => {
+        locksView.overrides = { correlation: registered, admission: { kind: 'expired', reason } };
+        renderExpired();
+
+        expect(screen.getByTestId('locks-terminal-reason')).toHaveTextContent(LOCKS_TERMINAL_REASON_COPY[reason]);
+        expect(screen.queryByText(/marketplace payment window elapsed/)).toBeNull();
+      });
+
+      it('keeps the generic expired copy when the Lock Server gave no known reason', () => {
+        locksView.overrides = { correlation: registered, admission: { kind: 'settled' } };
+        renderExpired();
+
+        expect(screen.queryByTestId('locks-terminal-reason')).toBeNull();
+        expect(screen.getByText(/marketplace payment window elapsed/)).toBeInTheDocument();
+      });
+
+      it.each([
+        ['the seller', 'locks', false],
+        ['a payment that is not a Locks payment', 'paykit', true],
+      ] as const)('does not show a Locks reason to %s', (_label, adapter, isBuyer) => {
+        locksView.overrides = {
+          correlation: registered,
+          admission: { kind: 'expired', reason: 'payment_request_rejected' },
+        };
+        renderExpired(adapter, isBuyer);
+        expect(screen.queryByTestId('locks-terminal-reason')).toBeNull();
+      });
     });
   });
 

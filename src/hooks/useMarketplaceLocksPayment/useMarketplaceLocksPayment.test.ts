@@ -2,7 +2,11 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CommerceController } from '@/controllers/commerce/commerce';
 import type { LocksAdmissionView } from '@/libs/commerce/locks-lifecycle';
+import { LOCKS_SUBMIT_RATE_LIMITED_COPY, LOCKS_SUBMIT_REFUSAL_COPY } from '@/libs/commerce/locks-submit-refusal';
 import type { CommerceDigitalLock } from '@/libs/commerce/marketplace-records';
+import { AppError } from '@/libs/error/error';
+import { ClientErrorCode, RateLimitErrorCode } from '@/libs/error/error.codes';
+import { ErrorCategory, ErrorService } from '@/libs/error/error.types';
 import { createOrderFixture, createPaymentFixture } from '@/test/fixtures/commerce/orders';
 import { useMarketplaceLocksPayment } from './useMarketplaceLocksPayment';
 
@@ -170,6 +174,52 @@ describe('useMarketplaceLocksPayment', () => {
     expect(result.current.error).not.toContain(sentinel);
   });
 
+  it('shows the buyer copy for a refused submit and keeps the generic copy for anything else', async () => {
+    vi.mocked(CommerceController.getMarketplaceOrder).mockResolvedValue({ ...order, payment } as never);
+    const { result } = renderHook(() =>
+      useMarketplaceLocksPayment({ order, payment, digitalLock, isBuyer: true, onPaymentChanged: vi.fn() }),
+    );
+    const locksError = (code: ClientErrorCode, context: Record<string, unknown>) =>
+      new AppError({
+        category: ErrorCategory.Client,
+        code,
+        message: 'SENTINEL_SERVER_TEXT',
+        service: ErrorService.Locks,
+        operation: 'postLifecycle',
+        context,
+      });
+    const rateLimited = new AppError({
+      category: ErrorCategory.RateLimit,
+      code: RateLimitErrorCode.RATE_LIMITED,
+      message: 'SENTINEL_SERVER_TEXT',
+      service: ErrorService.Locks,
+      operation: 'postLifecycle',
+      context: { statusCode: 429 },
+    });
+
+    vi.mocked(CommerceController.beginMarketplaceLocksPayment).mockRejectedValueOnce(
+      locksError(ClientErrorCode.UNPROCESSABLE, { statusCode: 422, locksCode: 'reader_pubky_unresolvable' }),
+    );
+    await act(async () => {
+      expect(await result.current.start()).toBe(false);
+    });
+    expect(result.current.error).toBe(LOCKS_SUBMIT_REFUSAL_COPY.reader_pubky_unresolvable);
+
+    vi.mocked(CommerceController.beginMarketplaceLocksPayment).mockRejectedValueOnce(rateLimited);
+    await act(async () => {
+      await result.current.start();
+    });
+    expect(result.current.error).toBe(LOCKS_SUBMIT_RATE_LIMITED_COPY);
+
+    vi.mocked(CommerceController.beginMarketplaceLocksPayment).mockRejectedValueOnce(
+      locksError(ClientErrorCode.BAD_REQUEST, { statusCode: 400, locksCode: 'not_a_known_code' }),
+    );
+    await act(async () => {
+      await result.current.start();
+    });
+    expect(result.current.error).toBe('The payment request could not be created. Nothing was charged; you can retry.');
+  });
+
   it('unlocks confirmed content and exposes the verified delivery', async () => {
     const confirmed = createPaymentFixture('confirmed');
     vi.mocked(CommerceController.getMarketplaceLocksCorrelation).mockResolvedValue(makeCorrelation(true) as never);
@@ -242,15 +292,17 @@ describe('useMarketplaceLocksPayment', () => {
       makeCorrelation(true, new Date(Date.now() + 60_000).toISOString()) as never,
     );
     vi.mocked(CommerceController.fetchMarketplaceLocksAdmission)
-      .mockResolvedValueOnce({ kind: 'in_flight', readerWalletSetupNeeded: false })
-      .mockResolvedValueOnce({ kind: 'in_flight', readerWalletSetupNeeded: true })
+      .mockResolvedValueOnce({ kind: 'in_flight', readerWalletSetupNeeded: false, stalled: false })
+      .mockResolvedValueOnce({ kind: 'in_flight', readerWalletSetupNeeded: true, stalled: false })
       .mockResolvedValue({ kind: 'failed', failure: 'reader_not_payable' });
 
     const { result, unmount } = renderHook(() =>
       useMarketplaceLocksPayment({ order, payment, digitalLock, isBuyer: true, onPaymentChanged: vi.fn() }),
     );
 
-    await waitFor(() => expect(result.current.admission).toEqual({ kind: 'in_flight', readerWalletSetupNeeded: true }));
+    await waitFor(() =>
+      expect(result.current.admission).toEqual({ kind: 'in_flight', readerWalletSetupNeeded: true, stalled: false }),
+    );
     await waitFor(() => expect(result.current.admission).toEqual({ kind: 'failed', failure: 'reader_not_payable' }));
     const readsAtFailure = vi.mocked(CommerceController.fetchMarketplaceLocksAdmission).mock.calls.length;
     await new Promise((resolve) => setTimeout(resolve, 200));
@@ -274,6 +326,54 @@ describe('useMarketplaceLocksPayment', () => {
     expect(result.current.admission).toBeNull();
   });
 
+  it('reads the Lock Server task once more when the marketplace marks the payment expired, then stops', async () => {
+    const expired = createPaymentFixture('expired');
+    vi.mocked(CommerceController.getMarketplaceLocksCorrelation).mockResolvedValue(
+      makeCorrelation(true, new Date(Date.now() + 60_000).toISOString()) as never,
+    );
+    vi.mocked(CommerceController.fetchMarketplaceLocksAdmission).mockResolvedValue({
+      kind: 'expired',
+      reason: 'proposal_expired',
+    });
+
+    const { result, unmount } = renderHook(() =>
+      useMarketplaceLocksPayment({
+        order: createOrderFixture('cancelled'),
+        payment: expired,
+        digitalLock,
+        isBuyer: true,
+        onPaymentChanged: vi.fn(),
+      }),
+    );
+
+    await waitFor(() => expect(result.current.admission).toEqual({ kind: 'expired', reason: 'proposal_expired' }));
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(CommerceController.fetchMarketplaceLocksAdmission).toHaveBeenCalledTimes(1);
+    expect(CommerceController.fetchMarketplaceLocksAdmission).toHaveBeenCalledWith(expired.id);
+    expect(CommerceController.beginMarketplaceLocksPayment).not.toHaveBeenCalled();
+    unmount();
+  });
+
+  it.each(['confirmed', 'manual_review'] as const)(
+    'does not read the Lock Server task for a %s payment',
+    async (state) => {
+      vi.mocked(CommerceController.getMarketplaceLocksCorrelation).mockResolvedValue(makeCorrelation(true) as never);
+
+      renderHook(() =>
+        useMarketplaceLocksPayment({
+          order: createOrderFixture('paid'),
+          payment: createPaymentFixture(state),
+          digitalLock,
+          isBuyer: true,
+          onPaymentChanged: vi.fn(),
+        }),
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      expect(CommerceController.fetchMarketplaceLocksAdmission).not.toHaveBeenCalled();
+    },
+  );
+
   describe('slow admission responses', () => {
     beforeEach(() => vi.useFakeTimers());
     afterEach(() => vi.useRealTimers());
@@ -294,7 +394,7 @@ describe('useMarketplaceLocksPayment', () => {
       await act(async () => vi.advanceTimersByTimeAsync(150));
       expect(CommerceController.fetchMarketplaceLocksAdmission).toHaveBeenCalledTimes(1);
 
-      await act(async () => resolveFirst({ kind: 'in_flight', readerWalletSetupNeeded: true }));
+      await act(async () => resolveFirst({ kind: 'in_flight', readerWalletSetupNeeded: true, stalled: false }));
       await act(async () => vi.advanceTimersByTimeAsync(50));
       expect(result.current.admission).toEqual({ kind: 'failed', failure: 'reader_not_payable' });
       await act(async () => vi.advanceTimersByTimeAsync(200));

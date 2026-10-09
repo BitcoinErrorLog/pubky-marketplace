@@ -3,6 +3,7 @@
 // file stays safe to pull into server-rendered module graphs.
 import { z } from 'zod';
 import { getLocksUrl, getPaykitSetupCreatorParam, getPaykitSetupUrl } from '@/config/commerce';
+import { LOCKS_SUBMIT_REFUSAL_CODES, type LocksSubmitRefusalCode } from '@/libs/commerce/locks-submit-refusal';
 import { isAppError } from '@/libs/error/error';
 import { ServerErrorCode, ValidationErrorCode } from '@/libs/error/error.codes';
 import { Err } from '@/libs/error/error.factories';
@@ -52,6 +53,7 @@ const lifecycleSchema = z.object({
   // Lock Servers with durable invoice admission (pubky/locks#72) add these;
   // older ones omit them, so both stay optional.
   status_message: z.string().nullable().optional(),
+  admission_deadline_at: z.string().nullable().optional(),
   terminal_reason: z.string().nullable().optional(),
 });
 
@@ -370,7 +372,16 @@ export class LocksGatewayService {
       'postLifecycle',
     );
     if (options?.notFoundAsNull && response.status === 404) return null;
-    if (!response.ok) throw httpResponseToError(response, ErrorService.Locks, 'postLifecycle', url);
+    if (!response.ok) {
+      const locksCode = await readLocksRefusalCode(response);
+      throw httpResponseToError(
+        response,
+        ErrorService.Locks,
+        'postLifecycle',
+        url,
+        locksCode ? { locksCode } : undefined,
+      );
+    }
     const raw = await parseResponseOrThrow<unknown>(response, ErrorService.Locks, 'postLifecycle', url);
     const parsed = lifecycleSchema.safeParse(raw);
     if (!parsed.success) {
@@ -381,6 +392,21 @@ export class LocksGatewayService {
       });
     }
     return parsed.data;
+  }
+}
+
+/**
+ * The Lock Server's stable error code from a refused submit or lookup, kept
+ * only when it is one the Shop has buyer copy for. The server's message and
+ * any other body text are discarded.
+ */
+async function readLocksRefusalCode(response: Response): Promise<LocksSubmitRefusalCode | undefined> {
+  try {
+    const body: unknown = await response.json();
+    const code = (body as { error?: { code?: unknown } } | null)?.error?.code;
+    return LOCKS_SUBMIT_REFUSAL_CODES.find((known) => known === code);
+  } catch {
+    return undefined;
   }
 }
 

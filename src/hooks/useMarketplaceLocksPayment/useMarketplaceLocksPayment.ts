@@ -5,6 +5,7 @@ import { getCommerceAdapterMode, getCommercePollIntervalMs, isLocksPaykitCommerc
 import { CommerceController } from '@/controllers/commerce/commerce';
 import { MARKETPLACE_FAILURE_MESSAGES, marketplaceFailureMessage } from '@/libs/commerce/failure-messages';
 import type { LocksAdmissionView } from '@/libs/commerce/locks-lifecycle';
+import { locksSubmitRefusalMessage } from '@/libs/commerce/locks-submit-refusal';
 import type { CommerceDigitalLock } from '@/libs/commerce/marketplace-records';
 import { isMarketplaceRevisionConflict } from '@/libs/commerce/transaction-commands';
 import type { CommerceLocksCorrelationModelSchema } from '@/models/commerce/commerce.schema';
@@ -37,8 +38,11 @@ export interface MarketplaceLocksDelivery {
  * - While the request is in flight the hook also polls the Lock Server task
  *   (`verification-task-lookups`) for the buyer-facing admission state:
  *   "Reader wallet setup needed" while the reader's Paykit wallet is set up,
- *   or a terminal admission failure. It only reads: the bundle is never
- *   submitted again, whatever the task says (pubky/locks#72).
+ *   a stalled task past `admission_deadline_at`, or a terminal admission
+ *   failure. It only reads: the bundle is never submitted again, whatever the
+ *   task says (pubky/locks#72). Once the marketplace marks the payment
+ *   expired it reads the task one last time, for the Lock Server's terminal
+ *   reason.
  * - Status polling reads the order projection back from the transaction
  *   service. THE CLIENT NEVER ADVANCES THE PAYMENT: the service's worker
  *   independently verifies the Locks lifecycle and confirms exactly once.
@@ -128,7 +132,8 @@ export function useMarketplaceLocksPayment({
       setAdmission(null);
       return;
     }
-    if (payment.state !== 'awaiting_entitlement' && payment.state !== 'detected') return;
+    const settled = payment.state === 'expired';
+    if (!settled && payment.state !== 'awaiting_entitlement' && payment.state !== 'detected') return;
     const boundAt =
       pollResume?.paymentId === payment.id
         ? pollResume.boundAt
@@ -157,6 +162,11 @@ export function useMarketplaceLocksPayment({
       }
     };
     void read();
+    if (settled) {
+      return () => {
+        active = false;
+      };
+    }
     timer = window.setInterval(() => {
       if (!active) return;
       if (Date.now() > boundAt) {
@@ -220,8 +230,13 @@ export function useMarketplaceLocksPayment({
       }
       await onPaymentChanged();
       return true;
-    } catch {
-      setError('The payment request could not be created. Nothing was charged; you can retry.');
+    } catch (error) {
+      setError(
+        locksSubmitRefusalMessage(
+          error,
+          'The payment request could not be created. Nothing was charged; you can retry.',
+        ),
+      );
       return false;
     } finally {
       setIsStarting(false);

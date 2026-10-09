@@ -137,6 +137,70 @@ describe('LocksGatewayService', () => {
     expect(legacy.status_message).toBeUndefined();
   });
 
+  it('reads admission_deadline_at and a terminal reason, and stays compatible without them (rc8)', async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(jsonResponse({ ...lifecycle(), admission_deadline_at: '2026-08-19T23:10:00.000Z' }))
+      .mockResolvedValueOnce(jsonResponse({ ...lifecycle(), status: 'expired', terminal_reason: 'proposal_expired' }))
+      .mockResolvedValueOnce(jsonResponse(lifecycle()));
+
+    await expect(LocksGatewayService.lookupVerification(CREATOR, BUNDLE_ID)).resolves.toMatchObject({
+      admission_deadline_at: '2026-08-19T23:10:00.000Z',
+    });
+    await expect(LocksGatewayService.lookupVerification(CREATOR, BUNDLE_ID)).resolves.toMatchObject({
+      status: 'expired',
+      terminal_reason: 'proposal_expired',
+    });
+    const legacy = await LocksGatewayService.lookupVerification(CREATOR, BUNDLE_ID);
+    expect(legacy.admission_deadline_at).toBeUndefined();
+  });
+
+  describe('refused submits', () => {
+    const submit = () =>
+      LocksGatewayService.submitPaykitProof({
+        creatorPubky: CREATOR,
+        readerPubky: READER,
+        bundleId: BUNDLE_ID,
+        lockResource: `pubky://${CREATOR}/pub/locks.app/lock.json`,
+        criterionId: 'criterion-1',
+      });
+    const refused = (status: number, code: string) =>
+      new Response(JSON.stringify({ error: { code, message: 'SENTINEL_SERVER_TEXT' } }), {
+        status,
+        headers: { 'content-type': 'application/json' },
+      });
+
+    it.each([
+      [422, 'reader_pubky_unresolvable'],
+      [502, 'paykit_invoice_creation_failed'],
+      [404, 'content_lock_not_found'],
+      [409, 'task_state_conflict'],
+      [422, 'paykit_not_configured'],
+      [422, 'unsupported_verifier_type'],
+      [400, 'invalid_request'],
+    ])('keeps the closed Lock Server code of a %i %s refusal for the buyer copy', async (status, code) => {
+      vi.mocked(fetch).mockResolvedValueOnce(refused(status, code));
+
+      const error = (await submit().catch((caught: unknown) => caught)) as AppError;
+
+      expect(error.name).toBe('AppError');
+      expect(error.context).toMatchObject({ statusCode: status, locksCode: code });
+      expect(JSON.stringify(error.context)).not.toContain('SENTINEL_SERVER_TEXT');
+    });
+
+    it('drops any code it has no buyer copy for, and any body that is not a Lock Server error', async () => {
+      vi.mocked(fetch)
+        .mockResolvedValueOnce(refused(409, 'some_future_code'))
+        .mockResolvedValueOnce(new Response('<html>bad gateway</html>', { status: 502 }))
+        .mockResolvedValueOnce(new Response('null', { status: 500, headers: { 'content-type': 'application/json' } }));
+
+      for (const status of [409, 502, 500]) {
+        const error = (await submit().catch((caught: unknown) => caught)) as AppError;
+        expect(error.context).toMatchObject({ statusCode: status });
+        expect(error.context).not.toHaveProperty('locksCode');
+      }
+    });
+  });
+
   it('finds a task by handle and reads 404 verification_task_not_found as no task', async () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(jsonResponse(lifecycle()))

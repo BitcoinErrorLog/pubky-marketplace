@@ -194,8 +194,65 @@ describe('marketplacePaymentMethodFailureMessage', () => {
       'This seller has not finished payment setup.',
     );
     expect(marketplacePaymentMethodFailureMessage(unavailable, 'fallback')).toBe(
-      'The Paykit server is unavailable. Try again shortly.',
+      'Bitcoin payment requests are unavailable right now. If you haven’t set up Bitkit for this Pubky account yet, do that first. Then try again shortly.',
     );
+  });
+
+  describe('Bitcoin bind refusals from the transaction service', () => {
+    const bindRefusal = (reason: string, statusCode = 409) =>
+      new AppError({
+        category: ErrorCategory.Client,
+        code: ClientErrorCode.CONFLICT,
+        message: 'SENTINEL_SERVER_TEXT Paykit server rejected stripe key sk_live_x',
+        service: ErrorService.Marketplace,
+        operation: 'bindPaymentMethod',
+        context: { statusCode, reason },
+      });
+
+    it.each([
+      ['bitcoin_unavailable', 'Bitcoin payments are not available for this seller.'],
+      [
+        'seller_account_unclaimed',
+        'This seller can’t take Bitcoin right now. Choose another payment method, or contact the seller.',
+      ],
+      [
+        'buyer_paykit_wallet_required',
+        'Connect Bitkit to pay with Bitcoin: this account has no Paykit wallet that can receive a payment request.',
+      ],
+      [
+        'buyer_paykit_wallet_setup_needed',
+        'Reader wallet setup needed. Finish setting up Bitkit (or another Paykit wallet) for this pubky, then try again.',
+      ],
+      ['paykit_rejected', 'The Bitcoin payment request was refused. Try again, or choose another payment method.'],
+      [
+        'paykit_total_inconsistent',
+        'The Bitcoin amount didn’t match this checkout, so Bitcoin wasn’t started. Try again, or choose another payment method.',
+      ],
+      [
+        'paykit_expiry_inconsistent',
+        'The Bitcoin payment window didn’t match this checkout, so Bitcoin wasn’t started. Try again, or choose another payment method.',
+      ],
+      [
+        'paykit_unavailable',
+        'Bitcoin payment requests are unavailable right now. If you haven’t set up Bitkit for this Pubky account yet, do that first. Then try again shortly.',
+      ],
+    ])('maps the %s refusal to static buyer copy', (reason, copy) => {
+      const message = marketplacePaymentMethodFailureMessage(bindRefusal(reason), 'fallback');
+      expect(message).toBe(copy);
+      expect(message).not.toMatch(/SENTINEL|sk_live|[a-z]+_[a-z_]+/);
+    });
+
+    it('never says Paykit rejected or is down in a buyer refusal', () => {
+      for (const reason of ['paykit_rejected', 'paykit_unavailable', 'paykit_total_inconsistent']) {
+        expect(marketplacePaymentMethodFailureMessage(bindRefusal(reason), 'fallback')).not.toMatch(
+          /Paykit server|Paykit amount|Paykit payment window/,
+        );
+      }
+    });
+
+    it('reads an unknown refusal reason as the caller fallback, never the wire message', () => {
+      expect(marketplacePaymentMethodFailureMessage(bindRefusal('something_new'), 'fallback')).toBe('fallback');
+    });
   });
 
   it('tells a buyer without a Paykit wallet to connect Bitkit, never that Paykit is down', () => {
