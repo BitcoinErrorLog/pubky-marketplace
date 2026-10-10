@@ -11,6 +11,8 @@ import type { MarketplaceNotification } from '@/services/marketplace/marketplace
  * `review_reason` on `bitcoin_manual_review` are from
  * `f79d52011dc50bfc6afa0f2c3c990ff8c2a6e85f` (`NotificationRow::view`).
  * `seller_response_overdue` is one of those reasons, not its own type.
+ * `refund_destination_confirmed` is from pubky/pubky-marketplace-service#94
+ * (`refund.confirm_destination`, USDT orders only, recipient: the seller).
  *
  * Shop-only types (`message_received`, `order_cancelled_terms_change`) are
  * mapped too, but they are not in this list because that service revision
@@ -42,6 +44,7 @@ export const SERVICE_NOTIFICATION_TYPES = [
   'pickup_details_cleared',
   'pickup_details_updated',
   'pickup_ready',
+  'refund_destination_confirmed',
   'refund_recorded',
   'return_updated',
   'review_received',
@@ -80,6 +83,7 @@ export const MARKETPLACE_ACTIVITY_LABELS = {
   order_completed: 'Order completed',
   return_updated: 'Return updated',
   refund_recorded: 'Refund recorded',
+  refund_destination_confirmed: 'The buyer confirmed a USDT refund address',
   review_received: 'New review received',
   pickup_details_updated: 'Pickup details updated',
   pickup_details_cleared: 'Pickup details removed',

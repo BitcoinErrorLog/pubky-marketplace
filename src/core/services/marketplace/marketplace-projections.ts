@@ -303,6 +303,9 @@ export const marketplaceNotificationSchema = z
       'order_completed',
       'return_updated',
       'refund_recorded',
+      // USDT (S6): the buyer confirmed where a refund should go. Only the seller
+      // receives it, and only for USDT orders.
+      'refund_destination_confirmed',
       'review_received',
       // Local pickup (Wave 7, §A3/§A6): details edited or cleared on a paid
       // order (buyer-facing), and the seller arming pickup readiness.

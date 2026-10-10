@@ -391,6 +391,30 @@ describe('MarketplaceNotifications', () => {
     );
   });
 
+  it('shows the buyer confirming a USDT refund address as a known event that links to the order', () => {
+    const orderId = '018f47d2-6a27-7c23-a62f-0000000000d1';
+    marketplaceView.notifications = [
+      {
+        id: '018f47d2-6a27-7c23-a62f-0000000000d2',
+        recipientPubky: 's'.repeat(52),
+        actorPubky: 'b'.repeat(52),
+        type: 'refund_destination_confirmed',
+        aggregateId: `order:${orderId}`,
+        createdAt: '2026-10-10T09:00:00.000Z',
+        readAt: null,
+      },
+    ];
+
+    render(<MarketplaceNotifications />);
+
+    expect(screen.getByRole('link', { name: 'The buyer confirmed a USDT refund address' })).toHaveAttribute(
+      'href',
+      `/marketplace/orders#order-${orderId}`,
+    );
+    expect(screen.queryByText(/history may be incomplete/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Unrecognized marketplace event')).not.toBeInTheDocument();
+  });
+
   it('shows each seller Bitcoin notice as its own sentence and links it to the order', () => {
     const orderId = '018f47d2-6a27-7c23-a62f-0000000000c1';
     const seller = 's'.repeat(52);

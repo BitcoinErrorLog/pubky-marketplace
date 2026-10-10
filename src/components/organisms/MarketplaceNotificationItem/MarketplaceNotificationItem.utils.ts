@@ -102,6 +102,8 @@ function getBaseActionText(type: MarketplaceNotification['type']): string {
       return 'updated a return';
     case 'refund_recorded':
       return 'recorded a refund';
+    case 'refund_destination_confirmed':
+      return 'confirmed a USDT refund address for an order';
     case 'review_received':
       return 'left you a review';
     case 'pickup_details_updated':

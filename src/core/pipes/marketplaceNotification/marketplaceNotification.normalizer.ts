@@ -110,6 +110,7 @@ export class MarketplaceNotificationNormalizer {
       case 'order_completed':
       case 'return_updated':
       case 'refund_recorded':
+      case 'refund_destination_confirmed':
       case 'review_received':
       case 'pickup_details_updated':
       case 'pickup_details_cleared':

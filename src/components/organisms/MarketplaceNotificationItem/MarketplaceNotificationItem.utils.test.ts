@@ -79,6 +79,12 @@ describe('getMarketplaceNotificationActionText', () => {
     );
   });
 
+  it('words the USDT refund-address confirmation as recorded by the buyer, never as verified', () => {
+    const text = getMarketplaceNotificationActionText({ type: 'refund_destination_confirmed' });
+    expect(text).toBe('confirmed a USDT refund address for an order');
+    expect(text).not.toMatch(/verified|received|sent/i);
+  });
+
   it('appends the §8-permitted amount to auction and offer copy', () => {
     const usd = { amountMinor: 8_500, currency: 'USD', exponent: 2 };
     expect(getMarketplaceNotificationActionText({ type: 'auction_ended', amount: usd })).toBe(

@@ -33,6 +33,7 @@ const NOTIFICATION_TYPE_UNREAD = {
   order_completed: false,
   return_updated: true,
   refund_recorded: false,
+  refund_destination_confirmed: true,
   review_received: false,
   pickup_details_updated: true,
   pickup_details_cleared: false,

@@ -210,6 +210,7 @@ describe('MarketplaceNotificationNormalizer.toDeepLink', () => {
     order_completed: MARKETPLACE_ROUTES.ORDERS,
     return_updated: MARKETPLACE_ROUTES.ORDERS,
     refund_recorded: MARKETPLACE_ROUTES.ORDERS,
+    refund_destination_confirmed: MARKETPLACE_ROUTES.ORDERS,
     review_received: MARKETPLACE_ROUTES.ORDERS,
     pickup_details_updated: MARKETPLACE_ROUTES.ORDERS,
     pickup_details_cleared: MARKETPLACE_ROUTES.ORDERS,
