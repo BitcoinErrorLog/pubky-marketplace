@@ -108,10 +108,7 @@ const generatedBundleId = sdk.BundleId.generate().toString();
 if (!/^[0-9A-HJKMNP-TV-Z]{26}$/.test(generatedBundleId)) {
   throw new Error(`BundleId.generate() returned a non-canonical bundle id: ${generatedBundleId}`);
 }
-new sdk.VerificationTaskHandleOptions(
-  'pubkytkrq8zmwb8a3m9k15csu3q17qmfgqnp9dskbrg9uq1rydpyxp7qy',
-  generatedBundleId,
-);
+new sdk.VerificationTaskHandleOptions('pubkytkrq8zmwb8a3m9k15csu3q17qmfgqnp9dskbrg9uq1rydpyxp7qy', generatedBundleId);
 
 const primaryResource = {
   path: '/priv/locks.app/content/primary.txt',
