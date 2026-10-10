@@ -17,6 +17,7 @@ import { CoordinatorsManager } from '@/organisms/CoordinatorsManager/Coordinator
 import { DialogSessionHandoff } from '@/organisms/DialogSessionHandoff/DialogSessionHandoff';
 import { DialogSignIn } from '@/organisms/DialogSignIn/DialogSignIn';
 import { Header } from '@/organisms/Header/Header';
+import { PulseConsentBanner } from '@/organisms/PulseConsent/PulseConsent';
 import { DatabaseProvider } from '@/providers/DatabaseProvider/DatabaseProvider';
 import { ErrorBoundaryProvider } from '@/providers/ErrorBoundaryProvider/ErrorBoundaryProvider';
 import { GlobalErrorHandlerProvider } from '@/providers/GlobalErrorHandlerProvider/GlobalErrorHandlerProvider';
@@ -57,6 +58,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         readiness, so anything inside them is missing from the initial server-rendered HTML.
       */}
       <StructuredData />
+      <PulseConsentBanner />
       <TooltipProvider delayDuration={TOOLTIP_DELAY_MS}>
         <GlobalErrorHandlerProvider>
           <ErrorBoundaryProvider>

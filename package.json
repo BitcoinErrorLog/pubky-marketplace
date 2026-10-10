@@ -70,6 +70,7 @@
     "@serwist/next": "9.5.11",
     "@synonymdev/locks-sdk": "0.1.0-rc10",
     "@synonymdev/pubky": "0.11.0",
+    "@synonymdev/pubky-pulse-web": "0.9.0",
     "@tanstack/react-query": "5.100.11",
     "bip39": "3.1.0",
     "canonicalize": "5.1.0",

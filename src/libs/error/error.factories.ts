@@ -1,3 +1,4 @@
+import { Pulse } from '@synonymdev/pubky-pulse-web';
 import { Logger } from '../logger/logger';
 import { captureAppError } from '../observability/sentry';
 import { AppError, type AppErrorParams } from './error';
@@ -63,6 +64,13 @@ function createAppError<C extends ErrorCategory>(
     captureAppError(error);
   } catch (sentryError) {
     Logger.warn('[Err.factory] captureAppError failed', sentryError);
+  }
+
+  // Same guard for Pulse: a throw from the SDK must not replace the AppError.
+  try {
+    Pulse.captureException(error);
+  } catch (pulseError) {
+    Logger.warn('[Err.factory] Pulse.captureException failed', pulseError);
   }
 
   return error;

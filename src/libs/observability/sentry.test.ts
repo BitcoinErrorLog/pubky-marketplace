@@ -12,6 +12,7 @@ import { NETWORK_RUNTIME_DEFAULTS } from '@/libs/runtime-config/runtime-config.s
 import { asOpaque } from '@/test-utils/type-assertions';
 import { getSentryInitBase } from './sentry';
 import {
+  OBSERVABILITY_IGNORE_ERRORS,
   SENTRY_LIMIT_REDACTED,
   SENTRY_REDACTION_MAX_DEPTH,
   SENTRY_REDACTION_MAX_NODES,
@@ -868,6 +869,10 @@ describe('Sentry tracing hooks wired into init base', () => {
 
   it('exposes beforeSendSpan as a function on getSentryInitBase()', () => {
     expect(getSentryInitBase().beforeSendSpan).toBeTypeOf('function');
+  });
+
+  it('takes its ignore policy from the constant the optional Pulse sink also spreads', () => {
+    expect(getSentryInitBase().ignoreErrors).toEqual([...OBSERVABILITY_IGNORE_ERRORS]);
   });
 });
 

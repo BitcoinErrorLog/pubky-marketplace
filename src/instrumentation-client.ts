@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/nextjs';
+import { initializePulseConsent } from '@/libs/observability/pulse';
 import { getSentryInitBase, shouldEnableSentry } from '@/libs/observability/sentry';
 import {
   getSentryReplaysOnErrorSampleRate,
@@ -29,6 +30,8 @@ if (window[RUNTIME_CONFIG_WINDOW_KEY] === undefined) {
     `window.${RUNTIME_CONFIG_WINDOW_KEY} was not injected before client init — runtime-config injection is broken; ALL client runtime config (network URLs, moderation, analytics, ...) resolves to ${fallbackDescription} and client Sentry stays disabled.`,
   );
 }
+
+initializePulseConsent();
 
 if (shouldEnableSentry()) {
   Sentry.init({

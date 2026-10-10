@@ -64,6 +64,23 @@ export const SENSITIVE_CONTEXT_KEYS = new Set([
   'xapikey',
 ]);
 
+/**
+ * Noise neither error sink reports. `getSentryInitBase()` and `initPulse()` both spread this list into
+ * their SDK's `ignoreErrors`, so the two sinks cannot drift onto different noise policies; add a pattern
+ * here, never in one initializer. Matching differs slightly per SDK (Sentry tests the exception type and
+ * value, Pulse the message and `type: message`), but the patterns are the same. No pattern may carry a
+ * /g flag: Sentry calls `.test()` on the instance stored here, so a stateful `lastIndex` would make
+ * matching order-dependent. (Pulse clones every RegExp at init, so only Sentry is exposed.)
+ */
+export const OBSERVABILITY_IGNORE_ERRORS: readonly (string | RegExp)[] = [
+  'ResizeObserver loop limit exceeded',
+  'ResizeObserver loop completed with undelivered notifications',
+  'Failed to fetch',
+  /Loading chunk \d+ failed/,
+  'AbortError',
+  'Non-Error promise rejection captured',
+];
+
 export const PUBKY_IDENTIFIER_KEYS = new Set([
   'author',
   'authorid',

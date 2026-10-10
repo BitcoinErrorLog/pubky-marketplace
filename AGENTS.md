@@ -37,6 +37,8 @@ Import modules through the path aliases in `tsconfig.json` (for example `@/hooks
 
 Use `Err.*` factories (never raw `Error`). Factories log automatically — don't double-log. See `docs/error-handling.md`.
 
+Factories capture to Sentry and, in a consenting browser, Pulse. No other direct `captureException` except `app/error.tsx` / `app/global-error.tsx`, for non-`AppError` values; no raw user data. See `docs/sentry.md`.
+
 ## Key conventions
 
 - Composite post IDs: `author:postId` format
