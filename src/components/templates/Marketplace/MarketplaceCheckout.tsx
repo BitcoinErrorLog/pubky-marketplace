@@ -16,7 +16,12 @@ import { Link } from '@/atoms/Link/Link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/atoms/Select/Select';
 import { Skeleton } from '@/atoms/Skeleton/Skeleton';
 import { Typography } from '@/atoms/Typography/Typography';
-import { getCommerceAdapterMode, isDurableCommerceMode, isLocksPaykitCommerceMode } from '@/config/commerce';
+import {
+  getCommerceAdapterMode,
+  getPaykitServerApi,
+  isDurableCommerceMode,
+  isLocksPaykitCommerceMode,
+} from '@/config/commerce';
 import { MARKETPLACE_DELIVERY_ADDRESS_DISCLOSURE } from '@/config/commerce-copy';
 import { CommerceController } from '@/controllers/commerce/commerce';
 import { isMarketplaceAwardCheckoutEligible } from '@/core/services/marketplace/marketplace-projections';
@@ -43,6 +48,7 @@ import {
 import { DELIVERY_EMAIL_MAX_CHARS, DIGITAL_CHECKOUT_COPY, digitalCheckoutLineLabel } from '@/libs/commerce/digital';
 import { marketplaceOfferCheckoutFailureMessage } from '@/libs/commerce/failure-messages';
 import { formatCommerceMoney } from '@/libs/commerce/format';
+import { LOCKS_MIXED_CHECKOUT_COPY, locksCheckoutRoute } from '@/libs/commerce/locks-payment';
 import {
   BITCOIN_WALLET_UNSUPPORTED_TITLE,
   BITCOIN_WALLET_UNVERIFIED_TITLE,
@@ -246,9 +252,17 @@ function MarketplaceCartCheckout() {
     sellerKey.length > 0 && loadedMethods?.sellerKey === sellerKey && loadedMethods.attempt === railAttempt
       ? loadedMethods
       : null;
+  // A Locks checkout on upstream Paykit pays in Bitcoin from the order page,
+  // whatever rails the seller configured, and binds no method here.
+  const locksRoute = isOfferCheckout ? 'method' : locksCheckoutRoute(adapterMode, getPaykitServerApi(), checkoutItems);
+  const isLocksCheckout = locksRoute === 'locks';
   // A failed config read says nothing about the seller's rails; sandbox offers every rail regardless.
-  const railsFailed = loadedForCart !== null && loadedForCart.methods === null && !isSandbox;
-  const sharedMethods = loadedForCart === null ? null : (loadedForCart.methods ?? []);
+  const railsFailed = loadedForCart !== null && loadedForCart.methods === null && !isSandbox && !isLocksCheckout;
+  const sharedMethods = isLocksCheckout
+    ? (['bitcoin'] satisfies PaymentMethodKind[])
+    : loadedForCart === null
+      ? null
+      : (loadedForCart.methods ?? []);
   const availableCheckoutMethods = checkoutRails(isSandbox ? CHECKOUT_RAILS : (sharedMethods ?? []));
   const selectedMethod =
     preferredMethod && availableCheckoutMethods.includes(preferredMethod)
@@ -326,6 +340,7 @@ function MarketplaceCartCheckout() {
     !approvalNeeded &&
     formValid &&
     !checkout.hasFulfillmentConflict &&
+    locksRoute !== 'mixed' &&
     checkout.isDigitalReady &&
     !isPaying &&
     !buyerWalletMissing &&
@@ -335,7 +350,7 @@ function MarketplaceCartCheckout() {
     (!isOfferCheckout || offerEligible) &&
     (isSandbox || (sharedMethods !== null && sharedMethods.length > 0 && selectedMethod !== null));
 
-  const payDisabledReason = checkout.hasFulfillmentConflict
+  const checkoutPayDisabledReason = checkout.hasFulfillmentConflict
     ? "Some items can't be checked out together — see the note above."
     : !checkout.isDigitalReady
       ? checkout.digitalNotReadyItemIds.length > 0
@@ -356,6 +371,7 @@ function MarketplaceCartCheckout() {
                     ? 'Choose sellers that share a payment method.'
                     : 'Pay unlocks once this seller sets up a payment method.'
                   : 'Fill in delivery details, accept the guarantee, and choose a payment method to pay.';
+  const payDisabledReason = locksRoute === 'mixed' ? LOCKS_MIXED_CHECKOUT_COPY : checkoutPayDisabledReason;
 
   const removeAwardLine = async () => {
     const line = cart.awardItems.find((item) => item.awardId === award?.id);
@@ -426,8 +442,9 @@ function MarketplaceCartCheckout() {
       await payOffer();
       return;
     }
-    // Sandbox creates its simulated payment with the order; it cannot bind a real rail.
-    const method = isSandbox ? null : selectedMethod;
+    // Sandbox creates its simulated payment with the order; it cannot bind a
+    // real rail. A Locks checkout binds none either (`locksCheckoutRoute`).
+    const method = isSandbox || isLocksCheckout ? null : selectedMethod;
     const result = await checkout.pay(method, () => void pay());
     if (!result.ok) return;
     setPayingOrderIds(result.orderIds);

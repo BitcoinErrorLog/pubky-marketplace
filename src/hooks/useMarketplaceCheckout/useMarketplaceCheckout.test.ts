@@ -36,11 +36,16 @@ const item: MarketplaceCartItem = {
 
 const config = vi.hoisted(() => ({
   mode: 'sandbox' as string,
+  paykitServerApi: 'fork' as 'fork' | 'upstream',
 }));
 
 vi.mock('@/config/commerce', async () => {
   const actual = await vi.importActual<typeof import('@/config/commerce')>('@/config/commerce');
-  return { ...actual, getCommerceAdapterMode: () => config.mode };
+  return {
+    ...actual,
+    getCommerceAdapterMode: () => config.mode,
+    getPaykitServerApi: () => config.paykitServerApi,
+  };
 });
 
 vi.mock('@/controllers/commerce/commerce', () => ({
@@ -100,6 +105,7 @@ describe('useMarketplaceCheckout', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     config.mode = 'sandbox';
+    config.paykitServerApi = 'fork';
     authMock.currentUserPubky = null;
     useCommerceStore.setState({ marketplaceSession: null });
     vi.mocked(CommerceController.getDeliveryAddresses).mockResolvedValue([]);
@@ -780,6 +786,109 @@ describe('useMarketplaceCheckout', () => {
     expect(paid).toEqual({ ok: true, orderIds: [orderId], boundOrders: [] });
     expect(CommerceController.bindPaymentMethod).not.toHaveBeenCalled();
     expect(clear).toHaveBeenCalled();
+  });
+});
+
+describe('useMarketplaceCheckout Locks checkout on upstream Paykit', () => {
+  const orderId = '018f47d2-6a27-7c23-a49d-000000001300';
+  const lockedItem: MarketplaceCartItem = {
+    ...item,
+    id: 'locked-item',
+    listing: {
+      ...item.listing,
+      record: {
+        ...item.listing.record,
+        digitalLock: { policyUri: 'pubky://lock', criterionId: 'c', contentPath: 'p', resourceHash: 'h' },
+      } as MarketplaceCartItem['listing']['record'],
+    },
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    config.mode = 'locks-paykit';
+    config.paykitServerApi = 'upstream';
+    vi.mocked(CommerceController.getDeliveryAddresses).mockResolvedValue([]);
+    vi.mocked(CommerceController.getMarketplaceListingProjection).mockResolvedValue({
+      aggregateId: `listing:${listing.ownerPubky}_${listing.listingId}`,
+      sellerPubky: listing.ownerPubky,
+      listingId: listing.listingId,
+      listingRevision: listing.revision,
+      contentHash: listing.media[0].contentHash,
+      serverRevision: 1,
+      state: 'available',
+      availableQuantity: 1,
+      reservedQuantity: 0,
+      unitPrice: price,
+      saleFormat: 'fixed_price',
+      fulfillmentMethods: ['shipping'],
+      auction: null,
+    });
+    vi.mocked(CommerceController.commitCreateMarketplaceCheckout).mockResolvedValue({
+      ok: true,
+      version: 1,
+      commandId: '00000000-0000-4000-8000-000000001100',
+      aggregateId: 'checkout:00000000-0000-4000-8000-000000001100',
+      revision: 1,
+      eventIds: [],
+      result: { kind: 'checkout', orders: [{ id: orderId }] },
+    });
+  });
+
+  const fillForm = (current: ReturnType<typeof useMarketplaceCheckout>) => {
+    act(() => {
+      current.form.setValue('name', 'Alice Buyer');
+      current.form.setValue('line1', '1 Market Street');
+      current.form.setValue('city', 'New York');
+      current.form.setValue('region', 'NY');
+      current.form.setValue('postalCode', '10001');
+      current.form.setValue('acceptsGuarantee', true);
+    });
+  };
+
+  it('creates the order and binds no method, leaving the payment to the order page', async () => {
+    const clear = vi.fn(async () => {});
+    const { result } = renderHook(() => useMarketplaceCheckout([lockedItem], clear));
+    fillForm(result.current);
+
+    const paid = await act(async () => result.current.pay(null));
+
+    expect(paid).toEqual({ ok: true, orderIds: [orderId], boundOrders: [] });
+    expect(CommerceController.bindPaymentMethod).not.toHaveBeenCalled();
+    expect(CommerceController.executeMarketplaceCommand).not.toHaveBeenCalled();
+    expect(clear).toHaveBeenCalled();
+  });
+
+  it('still binds a Locks checkout on the fork Paykit Server', async () => {
+    config.paykitServerApi = 'fork';
+    vi.mocked(CommerceController.bindPaymentMethod).mockResolvedValue({ id: orderId } as never);
+    const { result } = renderHook(() =>
+      useMarketplaceCheckout(
+        [lockedItem],
+        vi.fn(async () => {}),
+      ),
+    );
+    fillForm(result.current);
+
+    await act(async () => result.current.pay('bitcoin'));
+
+    expect(CommerceController.bindPaymentMethod).toHaveBeenCalledWith(orderId, 'bitcoin');
+  });
+
+  it('refuses a cart mixing Locks and other lines before creating any order', async () => {
+    const { result } = renderHook(() =>
+      useMarketplaceCheckout(
+        [lockedItem, item],
+        vi.fn(async () => {}),
+      ),
+    );
+    fillForm(result.current);
+
+    const paid = await act(async () => result.current.pay('bitcoin'));
+
+    expect(paid.ok).toBe(false);
+    expect(CommerceController.commitCreateMarketplaceCheckout).not.toHaveBeenCalled();
+    expect(CommerceController.bindPaymentMethod).not.toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ variant: 'error' }));
   });
 });
 

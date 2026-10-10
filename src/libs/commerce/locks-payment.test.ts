@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buyerVisiblePaymentStatus, lockPolicyCreator, toBareLockResource } from './locks-payment';
+import { buyerVisiblePaymentStatus, lockPolicyCreator, locksCheckoutRoute, toBareLockResource } from './locks-payment';
 import { locksBareLockResourceSchema } from './transaction-commands';
 
 const CREATOR = 'y'.repeat(52);
@@ -45,5 +45,22 @@ describe('buyerVisiblePaymentStatus', () => {
     expect(buyerVisiblePaymentStatus('confirmed')).toBe('confirmed');
     expect(buyerVisiblePaymentStatus('expired')).toBe('expired');
     expect(buyerVisiblePaymentStatus('manual_review')).toBe('manual_review');
+  });
+});
+
+describe('locksCheckoutRoute', () => {
+  const locked = { listing: { record: { digitalLock: {} } } };
+  const plain = { listing: { record: {} } };
+
+  it('routes an all-Locks cart to Locks only in locks-paykit mode on upstream Paykit', () => {
+    expect(locksCheckoutRoute('locks-paykit', 'upstream', [locked, locked])).toBe('locks');
+    expect(locksCheckoutRoute('locks-paykit', 'fork', [locked])).toBe('method');
+    expect(locksCheckoutRoute('transaction-service', 'upstream', [locked])).toBe('method');
+  });
+
+  it('marks a mixed cart and leaves a cart without Locks lines on the method flow', () => {
+    expect(locksCheckoutRoute('locks-paykit', 'upstream', [locked, plain])).toBe('mixed');
+    expect(locksCheckoutRoute('locks-paykit', 'upstream', [plain])).toBe('method');
+    expect(locksCheckoutRoute('locks-paykit', 'upstream', [])).toBe('method');
   });
 });
