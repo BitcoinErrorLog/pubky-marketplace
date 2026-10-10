@@ -159,6 +159,6 @@ A bind for `usdt` tags its refusal with `context.paymentMethod: "usdt"` so the t
 
 ### Not in W3
 
-- Notification copy: the closed notification types carry no asset, and the service has not named USDT types.
+- Notification copy for payment and finality events: the closed notification types carry no asset, and the service has not named those USDT types. The one USDT type the service emits today, `refund_destination_confirmed` (S6, seller only), is in the closed set and reads "The buyer confirmed a USDT refund address". Deploy this before S6 so sellers never see "unrecognized marketplace event".
 - A Locks pay-step hint "Bitcoin or USDT": it needs locks#75 deployed, and nothing signals that to the Shop yet.
 - The seller manual-review resolution for a USDT payment (W5), and the USDT refund address and hash (W4).

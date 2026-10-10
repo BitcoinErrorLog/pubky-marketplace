@@ -61,6 +61,11 @@ const fixtures = vi.hoisted(async () => {
       marketplaceItem('payment_confirmed', 1, false, '/marketplace/orders', BUYER_ACTOR),
       marketplaceItem('review_received', 3, false, '/marketplace/orders', SELLER_ACTOR),
     ],
+    // S6: the buyer confirmed a USDT refund address; only the seller gets it.
+    usdtRefundAddressItems: [
+      marketplaceItem('refund_destination_confirmed', 1, false, '/marketplace/orders', BUYER_ACTOR),
+      marketplaceItem('payment_confirmed', 3, false, '/marketplace/orders', BUYER_ACTOR),
+    ],
     // `order_delivered` on digital orders, as the normalizer marks them.
     digitalDeliveredItems: [
       {
@@ -191,6 +196,16 @@ describe('General notifications with marketplace rows — visual regression', ()
     const screen = await renderForVRT(<NotificationsContainer />, { viewport: VRT_VIEWPORT_DESKTOP });
     await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot(
       'general-notifications-digital-delivered-desktop',
+    );
+  });
+
+  it('shows the buyer confirming a USDT refund address as a known event at desktop viewport', async () => {
+    const { usdtRefundAddressItems } = await fixtures;
+    await setView({ marketplaceItems: usdtRefundAddressItems });
+
+    const screen = await renderForVRT(<NotificationsContainer />, { viewport: VRT_VIEWPORT_DESKTOP });
+    await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot(
+      'general-notifications-usdt-refund-address-desktop',
     );
   });
 
