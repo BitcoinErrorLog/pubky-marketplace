@@ -34,6 +34,7 @@ import {
   useMarketplaceSellerPaymentReviewForm,
 } from '@/hooks/useMarketplaceSellerPaymentReview/useMarketplaceSellerPaymentReviewForm';
 import { useNowMs } from '@/hooks/useNowMs/useNowMs';
+import { Tether } from '@/icons';
 import {
   BITCOIN_WALLET_SENT_COPY,
   BITCOIN_WALLET_WAITING_COPY,
@@ -74,6 +75,12 @@ import {
   bitcoinWalletUnverifiedBody,
 } from '@/libs/commerce/paykit-wallet';
 import { buildMarketplaceOrderAggregateId } from '@/libs/commerce/transaction-commands';
+import {
+  USDT_BUYER_PHASE_COPY,
+  USDT_FUNDS_HINT,
+  USDT_WALLET_HINT,
+  usdtPhaseCopy,
+} from '@/libs/commerce/usdt-buyer-status';
 import { getDeployEnv } from '@/libs/runtime-config/runtime-config';
 import { cn } from '@/libs/utils/utils';
 import { MarketplacePaymentStatusBadge } from '@/molecules/Marketplace/MarketplacePaymentStatusBadge';
@@ -81,6 +88,7 @@ import { SETTINGS_SECTION_CONTENT_CLASSNAME } from '@/molecules/Settings/Setting
 import type { MarketplaceOrder, MarketplacePayment } from '@/services/marketplace/marketplace';
 import { useAuthStore } from '@/stores/auth/auth.store';
 import { MarketplaceBitcoinAmountBreakdown } from './MarketplaceBitcoinAmountBreakdown';
+import { MarketplaceUsdtPaymentSummary } from './MarketplaceUsdtPaymentSummary';
 
 const PAYKIT_DELIVERY_FAILED_COPY =
   "Your wallet didn't receive the request. In Bitkit, add the seller as a contact, then try again.";
@@ -226,6 +234,7 @@ export function MarketplacePaymentStatusCard({
   if (!payment || visibleStatus === null) return null;
 
   const paidBitcoin = bitcoinPaidConfirmation(order, payment);
+  const isPaykitRail = order.paymentMethod === 'bitcoin' || order.paymentMethod === 'usdt';
 
   return (
     <div className={cn(SETTINGS_SECTION_CONTENT_CLASSNAME, 'gap-4')} data-surface="marketplace-payment-status-card">
@@ -238,6 +247,7 @@ export function MarketplacePaymentStatusCard({
         )}
         {payment.adapter === 'locks' && <Badge variant="secondary">Locks/Paykit</Badge>}
         {order.paymentMethod === 'bitcoin' && <Badge variant="secondary">₿ Bitcoin</Badge>}
+        {order.paymentMethod === 'usdt' && <Badge variant="secondary">USDT</Badge>}
         {isBuyer && isAwaiting && order.state === 'pending_payment' && order.paymentMethod === 'paypal' && (
           <Badge variant="outline">Item reserved</Badge>
         )}
@@ -261,6 +271,7 @@ export function MarketplacePaymentStatusCard({
         showExact={isBuyer && isAwaiting && buyerBitcoinWalletCopy(order, payment).kind === 'pay'}
         explainCode={isBuyer}
       />
+      <MarketplaceUsdtPaymentSummary order={order} payment={payment} isBuyer={isBuyer} />
       {showStagingNotice && !isSandbox && isBuyer && isAwaiting && isStaging && (
         <Typography
           as="p"
@@ -319,24 +330,23 @@ export function MarketplacePaymentStatusCard({
             : 'The marketplace payment window elapsed before a verified payment arrived, so this checkout was not completed. A payment verified after expiry is reconciled manually — never silently applied or discarded.'}
         </Typography>
       )}
-      {visibleStatus === 'expired' && expiredNoLateMoney && isBuyer && order.paymentMethod === 'bitcoin' && (
+      {visibleStatus === 'expired' && expiredNoLateMoney && isBuyer && isPaykitRail && (
         <Typography as="p" className="text-sm text-muted-foreground" data-testid="bitcoin-pending-payment-note">
           {CHECKOUT_HOLD_COPY.pendingBitcoinPaymentBuyer}
         </Typography>
       )}
-      {visibleStatus === 'expired' &&
-        isBuyer &&
-        order.paymentMethod === 'bitcoin' &&
-        order.paykitDeliveryState !== 'delivered' && (
-          <Typography as="p" role="alert" className="text-sm text-amber-300" data-testid="paykit-delivery-failed">
-            {PAYKIT_DELIVERY_FAILED_COPY}
-          </Typography>
-        )}
+      {visibleStatus === 'expired' && isBuyer && isPaykitRail && order.paykitDeliveryState !== 'delivered' && (
+        <Typography as="p" role="alert" className="text-sm text-amber-300" data-testid="paykit-delivery-failed">
+          {PAYKIT_DELIVERY_FAILED_COPY}
+        </Typography>
+      )}
       {visibleStatus === 'manual_review' && !refundRequired && (
         <Typography as="p" className="text-sm text-muted-foreground" data-testid="payment-manual-review-copy">
           {isBuyer && order.paymentMethod === 'bitcoin'
             ? buyerBitcoinReviewCopy(order, payment)
-            : 'A verified event arrived outside the normal flow (for example after the payment window expired), so the seller must resolve this order manually. No funds are held by this marketplace.'}
+            : isBuyer && order.paymentMethod === 'usdt'
+              ? usdtPhaseCopy(order, payment, true)
+              : 'A verified event arrived outside the normal flow (for example after the payment window expired), so the seller must resolve this order manually. No funds are held by this marketplace.'}
         </Typography>
       )}
 
@@ -455,6 +465,19 @@ export function MarketplacePaymentStatusCard({
                     Continue with Bitcoin
                   </Button>
                 )}
+                {methodPayment.availableMethods.includes('usdt') && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="rounded-full"
+                    disabled={methodPayment.pendingAction !== null}
+                    data-testid="order-payment-method-usdt"
+                    onClick={() => void methodPayment.bind('usdt')}
+                  >
+                    <Tether className="size-4" aria-hidden="true" />
+                    Continue with USDT
+                  </Button>
+                )}
                 {methodPayment.availableMethods.includes('paypal') && (
                   <Button
                     size="sm"
@@ -540,6 +563,9 @@ export function MarketplacePaymentStatusCard({
       {usesMethodFlow && isBuyer && order.paymentMethod === 'bitcoin' && (
         <BuyerBitcoinPaymentProgress order={order} payment={payment} />
       )}
+
+      {/* Bound USDT: the request waits in the buyer's Paykit wallet until it is paid. */}
+      {usesMethodFlow && isBuyer && order.paymentMethod === 'usdt' && <BuyerUsdtPaymentProgress order={order} />}
 
       {/* Bound paypal: hosted checkout; PayPal's verified notification pays
           the order automatically. The buyer report + seller confirmation
@@ -843,6 +869,29 @@ function BuyerBitcoinPaymentProgress({ order, payment }: { order: MarketplaceOrd
           {progress.text === BITCOIN_WALLET_SENT_COPY ? BITCOIN_WALLET_SENT_COPY : BITCOIN_WALLET_WAITING_COPY}
         </div>
       )}
+    </div>
+  );
+}
+
+function BuyerUsdtPaymentProgress({ order }: { order: MarketplaceOrder }) {
+  return (
+    <div className="grid gap-2" data-testid="usdt-payment-awaiting">
+      <Typography as="p" className="text-sm text-muted-foreground">
+        {holderBoundCopy(order.holdExpiresAt)}
+      </Typography>
+      {order.paykitDeliveryState === 'failed' ? (
+        <Typography as="p" role="alert" className="text-sm text-amber-300" data-testid="paykit-delivery-failed">
+          {PAYKIT_DELIVERY_FAILED_COPY}
+        </Typography>
+      ) : (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground" data-testid="usdt-awaiting-status">
+          <LoaderCircle className="size-4 animate-spin" />
+          {USDT_BUYER_PHASE_COPY.awaiting}
+        </div>
+      )}
+      <Typography as="p" className="text-xs text-muted-foreground" data-testid="usdt-wallet-hint">
+        {USDT_WALLET_HINT} {USDT_FUNDS_HINT}
+      </Typography>
     </div>
   );
 }

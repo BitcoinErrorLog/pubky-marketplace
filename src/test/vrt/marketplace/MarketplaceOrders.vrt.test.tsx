@@ -6,6 +6,13 @@ import { expectVrtSurface, parkVrtHover, renderForVRT, VRT_DENSE_CHROME_SCREENSH
 import { VRT_VIEWPORT_DESKTOP, VRT_VIEWPORT_MOBILE } from '@/test-utils/vrt.viewports';
 import { MarketplaceOrders } from '@/templates/Marketplace/MarketplaceOrders';
 import { CommerceController } from '@/controllers/commerce/commerce';
+import {
+  createOrderFixture as createUsdtSceneOrder,
+  createPaymentFixture as createUsdtScenePayment,
+  createReceiptFixture as createUsdtSceneReceipt,
+  ORDER_FIXTURE_BUYER as USDT_SCENE_ME,
+} from '@/test/fixtures/commerce/orders';
+import { USDT_ORDER_FIELDS } from '@/test/fixtures/commerce/usdt-orders';
 
 // Deterministic BTC/USD rate for the capture (1 BTC = $100,000): the "≈"
 // estimates render from this fixed value, never from the network.
@@ -869,5 +876,79 @@ describe('Marketplace orders — visual regression', () => {
     await expect(await expectVrtSurface('marketplace-order-message-cta')).toMatchScreenshot(
       'orders-message-cta-mobile',
     );
+  });
+});
+
+describe('Marketplace orders — USDT orders', () => {
+  function usdtView(
+    id: string,
+    title: string,
+    role: 'buyer' | 'seller',
+    finality: 'pending' | 'final' | 'reverted',
+    withReceipt = false,
+  ) {
+    const order = createUsdtSceneOrder('paid', {
+      id,
+      paymentId: `${id}-payment`,
+      buyerPubky: role === 'buyer' ? USDT_SCENE_ME : 'n'.repeat(52),
+      sellerPubky: role === 'seller' ? USDT_SCENE_ME : 's'.repeat(52),
+      nextActor: role === 'seller' ? 'seller' : 'none',
+      lines: [
+        {
+          listingAggregateId: `listing:${'s'.repeat(52)}_${id}`,
+          listingRevision: 1,
+          contentHash: 'd'.repeat(64),
+          title,
+          quantity: 1,
+          unitPrice: { amountMinor: 12_500, currency: 'USD', exponent: 2 },
+          subtotal: { amountMinor: 12_500, currency: 'USD', exponent: 2 },
+        },
+      ],
+      ...USDT_ORDER_FIELDS,
+      paymentFinality: finality,
+    });
+    return {
+      order,
+      payment: createUsdtScenePayment('confirmed', { id: order.paymentId, orderId: order.id, adapter: 'paykit' }),
+      receipt: withReceipt ? createUsdtSceneReceipt({ orderId: order.id }) : null,
+    };
+  }
+
+  it('renders USDT sales held until Arbitrum finalizes, and a re-checked payment, at desktop viewport', async () => {
+    ordersState.orders = [
+      usdtView('018f47d2-6a27-7c23-a49d-000000000811', 'USDT sale waiting for finality', 'seller', 'pending'),
+      usdtView('018f47d2-6a27-7c23-a49d-000000000812', 'USDT sale ready to ship', 'seller', 'final'),
+      usdtView('018f47d2-6a27-7c23-a49d-000000000813', 'USDT sale being re-checked', 'seller', 'reverted'),
+    ];
+    ordersState.adapterMode = 'transaction-service';
+    ordersState.isLoading = false;
+    ordersState.error = null;
+
+    const screen = await renderForVRT(<MarketplaceOrders />, { viewport: VRT_VIEWPORT_DESKTOP });
+    await expect.element(screen.getByText('USDT sale waiting for finality × 1')).toBeVisible();
+    await expect(await expectVrtSurface('marketplace-orders')).toMatchScreenshot('orders-usdt-seller-finality-desktop');
+  });
+
+  it('renders a final USDT purchase with its receipt and paid-as line at desktop viewport', async () => {
+    ordersState.orders = [usdtView('018f47d2-6a27-7c23-a49d-000000000821', 'USDT purchase', 'buyer', 'final', true)];
+    ordersState.adapterMode = 'transaction-service';
+    ordersState.isLoading = false;
+    ordersState.error = null;
+
+    const screen = await renderForVRT(<MarketplaceOrders />, { viewport: VRT_VIEWPORT_DESKTOP });
+    await screen.getByText('Receipt', { exact: true }).click();
+    await expect.element(screen.getByTestId('order-receipt-usdt-paid-as')).toBeVisible();
+    await expect(await expectVrtSurface('marketplace-orders')).toMatchScreenshot('orders-usdt-buyer-receipt-desktop');
+  });
+
+  it('renders a USDT purchase received but not yet final at mobile viewport', async () => {
+    ordersState.orders = [usdtView('018f47d2-6a27-7c23-a49d-000000000831', 'USDT purchase', 'buyer', 'pending')];
+    ordersState.adapterMode = 'transaction-service';
+    ordersState.isLoading = false;
+    ordersState.error = null;
+
+    const screen = await renderForVRT(<MarketplaceOrders />, { viewport: VRT_VIEWPORT_MOBILE });
+    await expect.element(screen.getByTestId('usdt-phase-copy')).toBeVisible();
+    await expect(await expectVrtSurface('marketplace-orders')).toMatchScreenshot('orders-usdt-buyer-received-mobile');
   });
 });

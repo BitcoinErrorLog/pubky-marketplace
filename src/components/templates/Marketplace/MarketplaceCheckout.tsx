@@ -38,6 +38,8 @@ import { useMarketplaceFirstMediaUrls } from '@/hooks/useMarketplaceMediaUrl/use
 import { useMarketplaceOfferCheckout } from '@/hooks/useMarketplaceOfferCheckout/useMarketplaceOfferCheckout';
 import { useMarketplaceOffers } from '@/hooks/useMarketplaceOffers/useMarketplaceOffers';
 import { useMarketplaceOrders } from '@/hooks/useMarketplaceOrders/useMarketplaceOrders';
+import { useUsdtPaymentsAvailable } from '@/hooks/useUsdtPaymentsAvailable/useUsdtPaymentsAvailable';
+import { Tether } from '@/icons';
 import { buyerCheckoutProgressCopy } from '@/libs/commerce/bitcoin-buyer-status';
 import { BITCOIN_PAYMENT_CODE_CHECKOUT_NOTE } from '@/libs/commerce/bitcoin-payment-code';
 import {
@@ -58,6 +60,13 @@ import {
   bitcoinWalletUnverifiedPayReason,
 } from '@/libs/commerce/paykit-wallet';
 import { availablePaymentMethods, type PaymentMethodKind } from '@/libs/commerce/payment-methods';
+import { formatUsdt } from '@/libs/commerce/payment-options';
+import {
+  isUsdPricedTotals,
+  USDT_NETWORK_LABEL,
+  USDT_WALLET_HINT,
+  usdtParityMillionths,
+} from '@/libs/commerce/usdt-buyer-status';
 import { getDeployEnv } from '@/libs/runtime-config/runtime-config';
 import type { CommerceListingModelSchema } from '@/models/commerce/commerce.schema';
 import { ControlledInputField } from '@/molecules/ControlledInputField/ControlledInputField';
@@ -82,11 +91,15 @@ type AwardPayOutcome = 'expired' | 'converted' | 'error' | 'success' | 'unavaila
 
 const EMPTY_CHECKOUT_ITEMS: MarketplaceCartItem[] = [];
 
-const CHECKOUT_RAILS = ['bitcoin', 'paypal'] as const;
+const CHECKOUT_RAILS = ['bitcoin', 'usdt', 'paypal'] as const;
 type CheckoutRail = (typeof CHECKOUT_RAILS)[number];
+
+// The sandbox simulates payments and can bind no real rail, so it never offers USDT.
+const SANDBOX_CHECKOUT_RAILS = ['bitcoin', 'paypal'] as const;
 
 const METHOD_COPY: Record<CheckoutRail, string> = {
   bitcoin: 'Bitcoin',
+  usdt: 'USDT',
   paypal: 'PayPal',
 };
 
@@ -189,6 +202,7 @@ function MarketplaceCartCheckout() {
   const orders = useMarketplaceOrders();
   const adapterMode = getCommerceAdapterMode();
   const isSandbox = adapterMode === 'sandbox';
+  const usdtPaymentsAvailable = useUsdtPaymentsAvailable(!isSandbox);
   const isStaging = getDeployEnv() === 'staging';
   const formValues = useWatch({ control: checkout.form.control });
   const formValid = marketplaceCheckoutSchema.safeParse(formValues).success;
@@ -263,7 +277,12 @@ function MarketplaceCartCheckout() {
     : loadedForCart === null
       ? null
       : (loadedForCart.methods ?? []);
-  const availableCheckoutMethods = checkoutRails(isSandbox ? CHECKOUT_RAILS : (sharedMethods ?? []));
+  // USDT is quoted at parity against a USD total, so it is offered only when every total is USD.
+  // An accepted offer without a merchandise total is withheld, so it prices nothing here.
+  const usdtOffered = totalSubtotals.every((money) => money !== undefined) && isUsdPricedTotals(totalSubtotals);
+  const availableCheckoutMethods = checkoutRails(
+    isSandbox ? SANDBOX_CHECKOUT_RAILS : (sharedMethods ?? []).filter((method) => method !== 'usdt' || usdtOffered),
+  );
   const selectedMethod =
     preferredMethod && availableCheckoutMethods.includes(preferredMethod)
       ? preferredMethod
@@ -289,7 +308,9 @@ function MarketplaceCartCheckout() {
     void Promise.all(
       sellers.map(async (sellerPubky) => {
         try {
-          return availablePaymentMethods(await CommerceController.getSellerPaymentConfig(sellerPubky));
+          return availablePaymentMethods(await CommerceController.getSellerPaymentConfig(sellerPubky), {
+            usdtPaymentsAvailable,
+          });
         } catch {
           return null;
         }
@@ -307,7 +328,7 @@ function MarketplaceCartCheckout() {
     return () => {
       active = false;
     };
-  }, [sellerKey, railAttempt]);
+  }, [sellerKey, railAttempt, usdtPaymentsAvailable]);
 
   const targetPayingIds = [...new Set([...payingOrderIds, ...(hashOrderId ? [hashOrderId] : [])])];
   const focusedPaying = orders.orders.filter((view) => targetPayingIds.includes(view.order.id));
@@ -329,6 +350,8 @@ function MarketplaceCartCheckout() {
   // A Bitcoin payment request is delivered to the buyer's Paykit wallet;
   // without one, Pay cannot succeed, so it is gated before the attempt.
   const bitcoinSelected = !isSandbox && isDurableCommerceMode(adapterMode) && selectedMethod === 'bitcoin';
+  const usdtSelected = !isSandbox && selectedMethod === 'usdt';
+  const usdtMillionths = usdtSelected ? usdtParityMillionths(totalSubtotals) : null;
   const buyerWallet = useBuyerPaykitWallet(currentUserPubky ?? null, bitcoinSelected);
   const buyerWalletMissing = bitcoinSelected && buyerWallet.state === 'not_payable';
   const buyerWalletUnsupported = bitcoinSelected && buyerWallet.state === 'unsupported';
@@ -540,7 +563,7 @@ function MarketplaceCartCheckout() {
                       order={order}
                       isBuyer
                       status={
-                        payment?.state === 'confirmed' ? (
+                        payment?.state === 'confirmed' && order.paymentMethod !== 'usdt' ? (
                           <MarketplacePaymentStatusBadge order={order} payment={payment} />
                         ) : undefined
                       }
@@ -551,7 +574,7 @@ function MarketplaceCartCheckout() {
                         line={line}
                       />
                     ))}
-                    {payment?.state !== 'confirmed' && (
+                    {(payment?.state !== 'confirmed' || order.paymentMethod === 'usdt') && (
                       <MarketplacePaymentStatusCard
                         order={order}
                         payment={payment}
@@ -742,7 +765,9 @@ function MarketplaceCartCheckout() {
                               {price && (
                                 <Typography as="p" className="mt-1 font-bold text-brand">
                                   {formatCommerceMoney(price)}{' '}
-                                  <MarketplaceIndicativePrice money={price} className="font-normal" />
+                                  {!usdtSelected && (
+                                    <MarketplaceIndicativePrice money={price} className="font-normal" />
+                                  )}
                                 </Typography>
                               )}
                               {checkout.fulfillmentForItem(item.id) === 'digital' && (
@@ -898,7 +923,9 @@ function MarketplaceCartCheckout() {
                                 className="flex flex-col items-end font-bold"
                               >
                                 {formatCommerceMoney(subtotal)}
-                                <MarketplaceIndicativePrice money={subtotal} className="font-normal" />
+                                {!usdtSelected && (
+                                  <MarketplaceIndicativePrice money={subtotal} className="font-normal" />
+                                )}
                               </Typography>
                             ))}
                           </div>
@@ -918,7 +945,9 @@ function MarketplaceCartCheckout() {
                                     className="flex flex-col items-end font-bold"
                                   >
                                     {formatCommerceMoney(subtotal)}
-                                    <MarketplaceIndicativePrice money={subtotal} className="font-normal" />
+                                    {!usdtSelected && (
+                                      <MarketplaceIndicativePrice money={subtotal} className="font-normal" />
+                                    )}
                                   </Typography>
                                 ))}
                               </div>
@@ -952,7 +981,9 @@ function MarketplaceCartCheckout() {
                                 className="flex flex-col items-end font-bold"
                               >
                                 {formatCommerceMoney(subtotal)}
-                                <MarketplaceIndicativePrice money={subtotal} className="font-normal" />
+                                {!usdtSelected && (
+                                  <MarketplaceIndicativePrice money={subtotal} className="font-normal" />
+                                )}
                               </Typography>
                             ))}
                           </div>
@@ -1006,6 +1037,7 @@ function MarketplaceCartCheckout() {
                               onClick={() => setSelectedMethod(method)}
                             >
                               {method === 'bitcoin' && <Bitcoin className="size-6" aria-hidden="true" />}
+                              {method === 'usdt' && <Tether className="size-6" aria-hidden="true" />}
                               {method === 'paypal' && <HandCoins className="size-6" aria-hidden="true" />}
                               {METHOD_COPY[method]}
                             </Button>
@@ -1020,6 +1052,20 @@ function MarketplaceCartCheckout() {
                         >
                           {BITCOIN_PAYMENT_CODE_CHECKOUT_NOTE}
                         </Typography>
+                      )}
+                      {usdtMillionths !== null && (
+                        <div className="grid gap-1" data-testid="marketplace-checkout-usdt-amount-note">
+                          <Typography
+                            as="p"
+                            className="text-sm font-medium"
+                            data-testid="marketplace-checkout-usdt-amount"
+                          >
+                            {formatUsdt(usdtMillionths)} · {USDT_NETWORK_LABEL} · pay with Bitkit
+                          </Typography>
+                          <Typography as="p" className="text-xs text-muted-foreground">
+                            {USDT_WALLET_HINT}
+                          </Typography>
+                        </div>
                       )}
                       {buyerWalletChecking && (
                         <Typography as="p" aria-live="polite" className="text-xs text-muted-foreground">

@@ -341,6 +341,8 @@ export const BITCOIN_BUYER_STATUS_TABLE: readonly BitcoinBuyerStatusRow[] = [
 ];
 
 function isBitcoinOrder(order: BitcoinStatusOrder): boolean {
+  // A USDT attempt also rides Paykit and may carry a request state; it is never a Bitcoin order.
+  if (order.paymentMethod === 'usdt') return false;
   return order.paymentMethod === 'bitcoin' || order.paykitRequestState != null;
 }
 

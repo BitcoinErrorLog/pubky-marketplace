@@ -26,16 +26,21 @@ import { Typography } from '@/atoms/Typography/Typography';
 import { getLocksUrl } from '@/config/commerce';
 import { CommerceController } from '@/controllers/commerce/commerce';
 import { useMarketplaceSellerPaymentConfig } from '@/hooks/useMarketplaceSellerPaymentConfig/useMarketplaceSellerPaymentConfig';
+import { useUsdtPaymentsAvailable } from '@/hooks/useUsdtPaymentsAvailable/useUsdtPaymentsAvailable';
+import { Tether } from '@/icons';
 import { type SellerPaymentConfigOwnView } from '@/libs/commerce/payment-methods';
+import { deriveUsdtSellerReadiness } from '@/libs/commerce/usdt-seller-setup';
 import { SettingsSectionContent } from '@/molecules/Settings/SettingsSectionContent/SettingsSectionContent';
 import { toast } from '@/molecules/Toaster/use-toast';
 import { MarketplaceSessionConnectDialog } from '@/organisms/Marketplace/MarketplaceSessionConnectDialog';
+import { MarketplaceUsdtSellerSetup } from '@/organisms/Marketplace/MarketplaceUsdtSellerSetup';
 import { locksCreatorMatchesShopPubky } from '@/services/locks/locks-frontend-session';
 import { useAuthStore } from '@/stores/auth/auth.store';
 import { useCommerceStore } from '@/stores/commerce/commerce.store';
 import {
   deriveBitcoinStatus,
   derivePaypalStatus,
+  deriveUsdtStatus,
   PAYMENT_METHOD_STATUS_LABELS,
   type PaymentMethodStatus,
 } from './MarketplaceGetPaidSettings.utils';
@@ -58,7 +63,10 @@ type MarketplaceGetPaidSettingsProps = {
   onSaved?: (config: SellerPaymentConfigOwnView) => void;
 };
 
-type PaykitSetupStatus = 'idle' | 'error' | 'mismatch' | 'verifying' | 'timeout';
+type PaykitSetupStatus = 'idle' | 'error' | 'mismatch' | 'verifying' | 'timeout' | 'usdt-missing';
+
+/** `setup` opens `/setup` (Bitcoin account, optional USDT address); `reconnect` adds a USDT address to an existing account. */
+type PaykitSetupMode = 'setup' | 'reconnect';
 
 const PAYKIT_SETUP_TIMEOUT_MS = 6 * 60 * 1_000;
 
@@ -76,6 +84,8 @@ const UNSAVED_SELLER_PAYMENT_CONFIG: SellerPaymentConfigOwnView = {
   updatedAt: '',
 };
 const PAYKIT_SETUP_EXPLANATION = 'Scan the code with Bitkit, or open this page on your phone and tap Open in Bitkit.';
+const PAYKIT_RECONNECT_EXPLANATION =
+  'Scan the code with Bitkit, or open this page on your phone and tap Open in Bitkit, to share a USDT address. Your Bitkit account and Bitcoin setup stay the same.';
 
 function createPaykitSetupState(): string {
   const bytes = new Uint8Array(16);
@@ -156,6 +166,8 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
   const payments = useMarketplaceSellerPaymentConfig();
   const refreshPaymentConfig = payments.refresh;
   const commitAccountClaimed = payments.commitAccountClaimed;
+  const refreshOwnConfig = payments.refreshOwnConfig;
+  const usdtPaymentsAvailable = useUsdtPaymentsAvailable();
   const paykitIframeRef = useRef<HTMLIFrameElement>(null);
   const paykitSetupGenerationRef = useRef<string | null>(null);
   const [paykitSetupOpen, setPaykitSetupOpen] = useState(false);
@@ -163,11 +175,14 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
   const [paykitSetupState, setPaykitSetupState] = useState<string | null>(null);
   const [paykitSetupCreator, setPaykitSetupCreator] = useState<string | null>(null);
   const [paykitSetupStatus, setPaykitSetupStatus] = useState<PaykitSetupStatus>('idle');
+  const [paykitSetupMode, setPaykitSetupMode] = useState<PaykitSetupMode>('setup');
+  const [isRetryingUsdt, setIsRetryingUsdt] = useState(false);
 
   const [railDraft, setRailDraft] = useState<{
     bitcoin: boolean | null;
     paypal: string | null;
-  }>({ bitcoin: null, paypal: null });
+    usdt: boolean | null;
+  }>({ bitcoin: null, paypal: null, usdt: null });
   const [draftBaseline, setDraftBaseline] = useState<string | null>(null);
 
   function closePaykitSetup() {
@@ -177,16 +192,17 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
     setPaykitSetupState(null);
     setPaykitSetupCreator(null);
     setPaykitSetupStatus('idle');
+    setPaykitSetupMode('setup');
   }
 
   const serverConfig =
     payments.config ?? (!payments.isLoading && !payments.loadError ? UNSAVED_SELLER_PAYMENT_CONFIG : null);
   const serverBaseline = serverConfig
-    ? `${serverConfig.updatedAt}\0${serverConfig.bitcoinEnabled}\0${serverConfig.paypalMerchantEmail ?? ''}\0${serverConfig.stripePaymentLink ?? ''}`
+    ? `${serverConfig.updatedAt}\0${serverConfig.bitcoinEnabled}\0${serverConfig.paypalMerchantEmail ?? ''}\0${serverConfig.stripePaymentLink ?? ''}\0${serverConfig.usdtEnabled ?? ''}`
     : null;
   if (serverBaseline !== draftBaseline) {
     setDraftBaseline(serverBaseline);
-    setRailDraft({ bitcoin: null, paypal: null });
+    setRailDraft({ bitcoin: null, paypal: null, usdt: null });
   }
 
   useEffect(() => {
@@ -210,6 +226,18 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
         return;
       }
       setPaykitSetupStatus('verifying');
+      if (paykitSetupMode === 'reconnect') {
+        void refreshOwnConfig().then((next) => {
+          if (paykitSetupGenerationRef.current !== event.data.state) return;
+          if (next && deriveUsdtSellerReadiness(next) === 'ready') {
+            closePaykitSetup();
+            toast({ title: 'USDT is ready' });
+            return;
+          }
+          setPaykitSetupStatus('usdt-missing');
+        });
+        return;
+      }
       void refreshPaymentConfig().then((claimed) => {
         if (paykitSetupGenerationRef.current !== event.data.state) return;
         if (claimed === true) {
@@ -223,7 +251,15 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [commitAccountClaimed, paykitSetupOpen, paykitSetupState, paykitSetupUrl, refreshPaymentConfig]);
+  }, [
+    commitAccountClaimed,
+    paykitSetupMode,
+    paykitSetupOpen,
+    paykitSetupState,
+    paykitSetupUrl,
+    refreshOwnConfig,
+    refreshPaymentConfig,
+  ]);
 
   useEffect(() => {
     if (!paykitSetupOpen || !paykitSetupUrl || !paykitSetupState || paykitSetupStatus !== 'idle') return;
@@ -237,11 +273,15 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
     }
   }, [currentUserPubky, marketplaceSession, paykitSetupCreator, paykitSetupOpen]);
 
-  const openPaykitSetup = () => {
+  const openPaykitSetup = (mode: PaykitSetupMode) => {
     if (!marketplaceSession || !currentUserPubky) return;
     const state = createPaykitSetupState();
-    const url = CommerceController.getPaykitSetupUrl(window.location.href, state, currentUserPubky);
+    const url =
+      mode === 'reconnect'
+        ? CommerceController.getPaykitReconnectUrl(window.location.href, state, currentUserPubky)
+        : CommerceController.getPaykitSetupUrl(window.location.href, state, currentUserPubky);
     paykitSetupGenerationRef.current = state;
+    setPaykitSetupMode(mode);
     setPaykitSetupState(state);
     setPaykitSetupUrl(url);
     setPaykitSetupCreator(currentUserPubky);
@@ -256,6 +296,11 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
       stripePaymentLink: serverConfig.stripePaymentLink ?? '',
       stripeRestrictedKey: '',
       paypalMerchantEmail: railDraft.paypal ?? serverConfig.paypalMerchantEmail ?? '',
+      // The service accepts the field only while its USDT flag is on; sending the
+      // stored value keeps a PayPal or Bitcoin save from resetting the consent.
+      ...(usdtPaymentsAvailable || serverConfig.usdtEnabled !== undefined
+        ? { usdtEnabled: railDraft.usdt ?? serverConfig.usdtEnabled ?? false }
+        : {}),
     });
     if (saved) onSaved?.(saved);
   };
@@ -279,6 +324,9 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
     locksError,
     claimError: null,
   });
+  const usdtReadiness = deriveUsdtSellerReadiness(serverConfig ?? {});
+  const usdtStatus = deriveUsdtStatus(usdtReadiness);
+  const usdtValue = railDraft.usdt ?? serverConfig?.usdtEnabled ?? false;
   const serverBitcoin = serverConfig?.bitcoinEnabled ?? false;
   const bitcoinValue = railDraft.bitcoin ?? serverBitcoin;
   const step1Connected = locksCreatorMatchesShopPubky(connectedCreator, currentUserPubky);
@@ -412,7 +460,7 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
             variant="secondary"
             className="w-fit"
             disabled={!marketplaceSession || !currentUserPubky}
-            onClick={openPaykitSetup}
+            onClick={() => openPaykitSetup('setup')}
           >
             Connect Bitkit
             <ExternalLink className="size-4" />
@@ -474,6 +522,38 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
         )}
       </MethodCard>
 
+      {usdtPaymentsAvailable && (
+        <MethodCard
+          icon={Tether}
+          title="USDT"
+          promise="Get paid in USDT, directly to your Bitkit wallet."
+          status={usdtStatus}
+          statusTestId="payment-method-status-usdt"
+        >
+          {renderStoredRailBody(
+            <>
+              <MarketplaceUsdtSellerSetup
+                readiness={usdtReadiness}
+                enabled={usdtValue}
+                onEnabledChange={(enabled) => {
+                  if (enabled && usdtReadiness !== 'ready') return;
+                  setRailDraft((draft) => ({ ...draft, usdt: enabled }));
+                }}
+                onSetup={() => openPaykitSetup('setup')}
+                onReconnect={() => openPaykitSetup('reconnect')}
+                onRetry={() => {
+                  setIsRetryingUsdt(true);
+                  void refreshOwnConfig().finally(() => setIsRetryingUsdt(false));
+                }}
+                isRetrying={isRetryingUsdt}
+                canOpenBitkit={Boolean(marketplaceSession && currentUserPubky)}
+              />
+              {saveButton}
+            </>,
+          )}
+        </MethodCard>
+      )}
+
       <Dialog
         open={Boolean(connectOpen)}
         onOpenChange={(open) => {
@@ -525,7 +605,7 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
       <Dialog open={paykitSetupOpen} onOpenChange={(open) => (open ? setPaykitSetupOpen(true) : closePaykitSetup())}>
         <DialogContent className="w-full max-w-lg" centered>
           <DialogHeader>
-            <DialogTitle>Connect Bitkit</DialogTitle>
+            <DialogTitle>{paykitSetupMode === 'reconnect' ? 'Add USDT in Bitkit' : 'Connect Bitkit'}</DialogTitle>
           </DialogHeader>
           {paykitSetupStatus !== 'idle' && (
             <div role="alert" className="grid gap-3 rounded-md border border-amber-500/40 p-3 text-sm">
@@ -535,17 +615,25 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
                   : paykitSetupStatus === 'mismatch'
                     ? 'Bitkit approved a different account. In Bitkit, sign in with the same Pubky identity you use here, then try again.'
                     : paykitSetupStatus === 'verifying'
-                      ? 'Confirming your Bitkit account…'
-                      : 'No approval received. Try again.'}
+                      ? paykitSetupMode === 'reconnect'
+                        ? 'Confirming your USDT address…'
+                        : 'Confirming your Bitkit account…'
+                      : paykitSetupStatus === 'usdt-missing'
+                        ? 'Bitkit did not confirm a USDT address. Try again.'
+                        : 'No approval received. Try again.'}
               </Typography>
-              <Button variant="secondary" className="w-fit rounded-full" onClick={openPaykitSetup}>
+              <Button
+                variant="secondary"
+                className="w-fit rounded-full"
+                onClick={() => openPaykitSetup(paykitSetupMode)}
+              >
                 <RefreshCw className="size-4" />
                 Retry
               </Button>
             </div>
           )}
           <Typography as="p" className="text-sm text-muted-foreground">
-            {PAYKIT_SETUP_EXPLANATION}
+            {paykitSetupMode === 'reconnect' ? PAYKIT_RECONNECT_EXPLANATION : PAYKIT_SETUP_EXPLANATION}
           </Typography>
           {paykitSetupUrl && paykitCodeExpired ? (
             <div
@@ -560,7 +648,7 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
                 ref={paykitIframeRef}
                 key={paykitSetupUrl}
                 src={`${paykitSetupUrl}#embed`}
-                title="Connect Bitkit"
+                title={paykitSetupMode === 'reconnect' ? 'Add USDT in Bitkit' : 'Connect Bitkit'}
                 sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation-to-custom-protocols"
                 referrerPolicy="no-referrer"
                 scrolling="no"

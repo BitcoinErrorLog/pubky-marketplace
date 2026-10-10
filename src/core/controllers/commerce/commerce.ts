@@ -597,6 +597,7 @@ export class CommerceController {
     stripePaymentLink: string | null;
     stripeRestrictedKey?: string;
     paypalMerchantEmail: string | null;
+    usdtEnabled?: boolean;
   }) {
     return await CommerceApplication.putMyPaymentConfig(this.getCurrentUserPubky(), input);
   }
@@ -1314,18 +1315,37 @@ export class CommerceController {
   }
 
   static getPaykitSetupUrl(returnTo: unknown, state: unknown, creator: unknown): string {
+    return CommerceApplication.getPaykitSetupUrl(
+      ...this.paykitSetupArguments('getPaykitSetupUrl', 'setup', returnTo, state, creator),
+    );
+  }
+
+  /** Bitkit reconnect URL: adds a USDT address to an existing Paykit account. */
+  static getPaykitReconnectUrl(returnTo: unknown, state: unknown, creator: unknown): string {
+    return CommerceApplication.getPaykitReconnectUrl(
+      ...this.paykitSetupArguments('getPaykitReconnectUrl', 'reconnect', returnTo, state, creator),
+    );
+  }
+
+  private static paykitSetupArguments(
+    operation: string,
+    flow: 'setup' | 'reconnect',
+    returnTo: unknown,
+    state: unknown,
+    creator: unknown,
+  ): [returnTo: string, state: string, creator: string] {
     const parsedReturnTo = typeof returnTo === 'string' ? URL.parse(returnTo) : null;
     if (!parsedReturnTo || !['http:', 'https:'].includes(parsedReturnTo.protocol)) {
-      throw Err.validation(ValidationErrorCode.INVALID_INPUT, 'Paykit setup return URL is invalid.', {
+      throw Err.validation(ValidationErrorCode.INVALID_INPUT, `Paykit ${flow} return URL is invalid.`, {
         service: ErrorService.Local,
-        operation: 'getPaykitSetupUrl',
+        operation,
       });
     }
-    return CommerceApplication.getPaykitSetupUrl(
+    return [
       parsedReturnTo.toString(),
       CommerceRecordNormalizer.entityId(state),
       CommerceRecordNormalizer.pubky(creator),
-    );
+    ];
   }
 
   static async getIndicativeBtcRate() {

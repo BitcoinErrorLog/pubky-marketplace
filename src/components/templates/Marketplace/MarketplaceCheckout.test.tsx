@@ -246,6 +246,7 @@ vi.mock('@/controllers/commerce/commerce', () => ({
       bitcoinOfferAvailable: true,
       paypalAvailable: true,
     })),
+    fetchUsdtPaymentsAvailable: vi.fn(async () => false),
     getIndicativeBtcRate: vi.fn(async () => null),
     getOrFetchListing: vi.fn(async () => listing.record),
     getListing: vi.fn(async () => listing),
@@ -1165,6 +1166,181 @@ describe('MarketplaceCheckout with no usable payment method', () => {
       'id',
       'checkout-pay-reason',
     );
+  });
+});
+
+describe('MarketplaceCheckout USDT option', () => {
+  const RAILS_WITH_USDT = {
+    bitcoinAvailable: true,
+    bitcoinOfferAvailable: true,
+    paypalAvailable: true,
+    usdtAvailable: true,
+  };
+
+  beforeEach(() => {
+    resetCheckoutView();
+    view.adapterMode = 'transaction-service';
+    view.hasMarketplaceSession = true;
+    vi.mocked(CommerceController.fetchUsdtPaymentsAvailable).mockResolvedValue(true);
+    vi.mocked(CommerceController.getSellerPaymentConfig).mockImplementation(async () => RAILS_WITH_USDT);
+  });
+
+  afterEach(() => {
+    vi.mocked(CommerceController.fetchUsdtPaymentsAvailable).mockResolvedValue(false);
+    vi.mocked(CommerceController.getSellerPaymentConfig).mockImplementation(async () => ({
+      bitcoinAvailable: true,
+      bitcoinOfferAvailable: true,
+      paypalAvailable: true,
+    }));
+  });
+
+  it('offers USDT as its own option beside Bitcoin and PayPal, never a merged entry', async () => {
+    seededCart();
+
+    render(<MarketplaceCheckout />);
+
+    const usdt = await screen.findByTestId('marketplace-checkout-method-usdt');
+    expect(usdt).toHaveTextContent('USDT');
+    expect(screen.getByTestId('marketplace-checkout-method-bitcoin')).toHaveTextContent(/^Bitcoin$/);
+    expect(screen.getByTestId('marketplace-checkout-method-paypal')).toBeInTheDocument();
+    expect(screen.queryByText(/Bitcoin or USDT/)).not.toBeInTheDocument();
+    expect(screen.getByTestId('marketplace-checkout-method-bitcoin')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('hides USDT while the gate is off, even when the seller says it is available', async () => {
+    seededCart();
+    vi.mocked(CommerceController.fetchUsdtPaymentsAvailable).mockResolvedValue(false);
+
+    render(<MarketplaceCheckout />);
+
+    expect(await screen.findByTestId('marketplace-checkout-method-bitcoin')).toBeInTheDocument();
+    expect(screen.queryByTestId('marketplace-checkout-method-usdt')).not.toBeInTheDocument();
+    expect(screen.queryByText(/USDT/)).not.toBeInTheDocument();
+  });
+
+  it('hides USDT when the seller public config does not say usdt_available', async () => {
+    seededCart();
+    vi.mocked(CommerceController.getSellerPaymentConfig).mockImplementation(async () => ({
+      ...RAILS_WITH_USDT,
+      usdtAvailable: false,
+    }));
+
+    render(<MarketplaceCheckout />);
+
+    expect(await screen.findByTestId('marketplace-checkout-method-bitcoin')).toBeInTheDocument();
+    expect(screen.queryByTestId('marketplace-checkout-method-usdt')).not.toBeInTheDocument();
+  });
+
+  it('hides USDT on a Bitcoin-priced cart', async () => {
+    view.items = [
+      {
+        id: 'other:camera:variant_01',
+        listingId: secondSellerListing.id,
+        variantId: 'variant_01',
+        quantity: 1,
+        listing: secondSellerListing,
+      },
+    ];
+
+    render(<MarketplaceCheckout />);
+
+    expect(await screen.findByTestId('marketplace-checkout-method-bitcoin')).toBeInTheDocument();
+    expect(screen.queryByTestId('marketplace-checkout-method-usdt')).not.toBeInTheDocument();
+  });
+
+  it('offers USDT on a multi-seller cart only when every seller offers it', async () => {
+    const secondSellerUsd = {
+      ...secondSellerListing,
+      record: {
+        ...secondSellerListing.record,
+        sale: { format: 'fixed_price', unitPrice: { amountMinor: 4500, currency: 'USD', exponent: 2 } },
+      },
+    };
+    view.items = [
+      { id: 'seller:boots:variant_42', listingId: listing.id, variantId: 'variant_42', quantity: 1, listing },
+      {
+        id: 'other:camera:variant_01',
+        listingId: secondSellerUsd.id,
+        variantId: 'variant_01',
+        quantity: 1,
+        listing: secondSellerUsd,
+      },
+    ];
+    vi.mocked(CommerceController.getSellerPaymentConfig).mockImplementation(async (sellerPubky: unknown) =>
+      sellerPubky === listing.record.ownerPubky ? RAILS_WITH_USDT : { ...RAILS_WITH_USDT, usdtAvailable: false },
+    );
+
+    render(<MarketplaceCheckout />);
+
+    expect(await screen.findByTestId('marketplace-checkout-method-bitcoin')).toBeInTheDocument();
+    expect(screen.queryByTestId('marketplace-checkout-method-usdt')).not.toBeInTheDocument();
+  });
+
+  it('never offers USDT in the sandbox, which binds no real rail', async () => {
+    seededCart();
+    view.adapterMode = 'sandbox';
+
+    render(<MarketplaceCheckout />);
+
+    expect(await screen.findByTestId('marketplace-checkout-method-bitcoin')).toBeInTheDocument();
+    expect(screen.queryByTestId('marketplace-checkout-method-usdt')).not.toBeInTheDocument();
+    expect(CommerceController.fetchUsdtPaymentsAvailable).not.toHaveBeenCalled();
+  });
+
+  it('shows the exact USDT amount, the network and the Bitkit hint once USDT is chosen', async () => {
+    const user = userEvent.setup();
+    seededCart();
+
+    render(<MarketplaceCheckout />);
+    await user.click(await screen.findByTestId('marketplace-checkout-method-usdt'));
+
+    expect(screen.getByTestId('marketplace-checkout-usdt-amount')).toHaveTextContent(
+      '12.000000 USDT · USDT0 on Arbitrum One · pay with Bitkit',
+    );
+    expect(screen.getByTestId('marketplace-checkout-usdt-amount-note')).toHaveTextContent(
+      'Pay with a Bitkit version that supports USDT.',
+    );
+    expect(screen.queryByTestId('marketplace-checkout-bitcoin-amount-note')).not.toBeInTheDocument();
+  });
+
+  it('shows no accept-by line for USDT', async () => {
+    const user = userEvent.setup();
+    seededCart();
+
+    render(<MarketplaceCheckout />);
+    await user.click(await screen.findByTestId('marketplace-checkout-method-usdt'));
+
+    expect(screen.queryByText(/accept-by|accept by/i)).not.toBeInTheDocument();
+  });
+
+  it('hides the indicative bitcoin estimate once USDT is chosen and brings it back for Bitcoin', async () => {
+    const user = userEvent.setup();
+    seededCart();
+
+    render(<MarketplaceCheckout />);
+    await screen.findByTestId('marketplace-checkout-method-usdt');
+    expect(screen.getAllByText('≈ ₿137,000').length).toBeGreaterThan(0);
+
+    await user.click(screen.getByTestId('marketplace-checkout-method-usdt'));
+    expect(screen.queryByText('≈ ₿137,000')).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId('marketplace-checkout-method-bitcoin'));
+    expect(screen.getAllByText('≈ ₿137,000').length).toBeGreaterThan(0);
+  });
+
+  it('binds usdt for real checkout', async () => {
+    const user = userEvent.setup();
+    seededCart();
+
+    render(<MarketplaceCheckout />);
+    await user.click(await screen.findByTestId('marketplace-checkout-method-usdt'));
+    await fillValidDelivery(user);
+    await user.click(screen.getByRole('checkbox', { name: /I accept guarantee policy v1/ }));
+    const pay = screen.getByTestId('marketplace-checkout-pay');
+    await waitFor(() => expect(pay).toBeEnabled());
+    await user.click(pay);
+
+    expect(checkoutActions.pay).toHaveBeenCalledWith('usdt', expect.any(Function));
   });
 });
 

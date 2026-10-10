@@ -17,6 +17,7 @@ import {
   marketplaceFailureMessage,
 } from '@/libs/commerce/failure-messages';
 import type { ShippingLabel, ShippoRate } from '@/libs/commerce/shipping';
+import { isUsdtFulfilmentBlocked, PAYMENT_NOT_FINAL_COPY } from '@/libs/commerce/usdt-buyer-status';
 import { Logger } from '@/libs/logger/logger';
 import { toast } from '@/molecules/Toaster/use-toast';
 import type { MarketplaceOrder } from '@/services/marketplace/marketplace';
@@ -127,6 +128,7 @@ export function MarketplaceShippingLabelDialog({
   };
 
   const canShip = ['paid', 'processing'].includes(order.state);
+  const fulfilmentBlocked = isUsdtFulfilmentBlocked(order);
 
   return (
     <>
@@ -170,7 +172,7 @@ export function MarketplaceShippingLabelDialog({
                     size="sm"
                     variant="secondary"
                     className="rounded-full"
-                    disabled={pending !== null}
+                    disabled={pending !== null || fulfilmentBlocked}
                     onClick={() => void shipWithLabel()}
                   >
                     {pending === 'ship' ? <LoaderCircle className="size-4 animate-spin" /> : null}
@@ -178,6 +180,11 @@ export function MarketplaceShippingLabelDialog({
                   </Button>
                 )}
               </div>
+              {canShip && fulfilmentBlocked && (
+                <Typography as="p" className="text-xs text-muted-foreground" data-testid="usdt-payment-not-final">
+                  {PAYMENT_NOT_FINAL_COPY}
+                </Typography>
+              )}
             </div>
           ) : (
             <div className="grid gap-3">

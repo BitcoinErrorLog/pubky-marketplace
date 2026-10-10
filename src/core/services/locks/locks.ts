@@ -383,6 +383,23 @@ export class LocksGatewayService {
     return url.toString();
   }
 
+  /**
+   * Upstream paykit-server reconnect URL (`GET /setup/reconnect`), the flow
+   * that adds a previously omitted USDT address to an existing Bitkit account
+   * without changing the account or the approved Bitcoin binding. Unlike
+   * `/setup` (which rejects `creator`), reconnect requires it, so it is always
+   * sent regardless of `paykitSetupCreatorParam`. The configured
+   * `paykitSetupUrl` is the full setup URL (it already ends in `/setup`), so
+   * the route is built from its origin as exactly `/setup/reconnect`.
+   */
+  static buildPaykitReconnectUrl(returnTo: string, state: string, creator: string): string {
+    const url = new URL('/setup/reconnect', new URL(getPaykitSetupUrl()).origin);
+    url.searchParams.set('creator', creator);
+    url.searchParams.set('return_to', returnTo);
+    url.searchParams.set('state', state);
+    return url.toString();
+  }
+
   private static async postLifecycle(url: string, body: Record<string, unknown>): Promise<LocksVerificationLifecycle>;
   private static async postLifecycle(
     url: string,

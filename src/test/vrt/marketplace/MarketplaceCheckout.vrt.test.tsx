@@ -139,6 +139,7 @@ const view = vi.hoisted(() => ({
   requiresDeliveryEmail: false,
   hasInstantDigitalLine: false,
   hasManualDigitalLine: false,
+  usdtAvailable: false,
 }));
 
 const savedAddresses = vi.hoisted(() => {
@@ -323,7 +324,9 @@ vi.mock('@/controllers/commerce/commerce', () => ({
       bitcoinAvailable: true,
       bitcoinOfferAvailable: true,
       paypalAvailable: true,
+      usdtAvailable: view.usdtAvailable,
     })),
+    fetchUsdtPaymentsAvailable: vi.fn(async () => view.usdtAvailable),
     getIndicativeBtcRate: vi.fn(async () => null),
   },
 }));
@@ -360,6 +363,7 @@ beforeEach(async () => {
   view.requiresDeliveryEmail = false;
   view.hasInstantDigitalLine = false;
   view.hasManualDigitalLine = false;
+  view.usdtAvailable = false;
   window.history.replaceState(null, '', '/marketplace/checkout');
 });
 
@@ -559,6 +563,67 @@ describe('Marketplace checkout — visual regression', () => {
 
     await renderForVRT(<MarketplaceCheckout />, { viewport: VRT_VIEWPORT_DESKTOP });
     await captureCheckout('checkout-durable-desktop');
+  });
+
+  it('renders USDT beside Bitcoin and PayPal, unselected, at desktop viewport', async () => {
+    const { singleSeller } = await fixtures;
+    view.items = singleSeller;
+    view.adapterMode = 'transaction-service';
+    view.deployEnv = 'production';
+    view.hasMarketplaceSession = true;
+    view.usdtAvailable = true;
+
+    await renderForVRT(<MarketplaceCheckout />, { viewport: VRT_VIEWPORT_DESKTOP });
+    await vi.waitFor(() => {
+      if (!document.querySelector('[data-testid="marketplace-checkout-method-usdt"]')) {
+        throw new Error('USDT has not loaded yet.');
+      }
+    });
+    await captureCheckout('checkout-usdt-offered-desktop');
+  });
+
+  it('renders the USDT amount, network and Bitkit hint once USDT is chosen at desktop viewport', async () => {
+    const { singleSeller } = await fixtures;
+    view.items = singleSeller;
+    view.adapterMode = 'transaction-service';
+    view.deployEnv = 'production';
+    view.hasMarketplaceSession = true;
+    view.usdtAvailable = true;
+
+    await renderForVRT(<MarketplaceCheckout />, { viewport: VRT_VIEWPORT_DESKTOP });
+    await vi.waitFor(() => {
+      const button = document.querySelector('[data-testid="marketplace-checkout-method-usdt"]');
+      if (!(button instanceof HTMLElement)) throw new Error('USDT has not loaded yet.');
+      button.click();
+    });
+    await vi.waitFor(() => {
+      if (!document.querySelector('[data-testid="marketplace-checkout-usdt-amount"]')) {
+        throw new Error('The USDT amount has not rendered yet.');
+      }
+    });
+    await captureCheckout('checkout-usdt-selected-desktop');
+  });
+
+  it('renders the USDT amount, network and Bitkit hint once USDT is chosen at mobile viewport', async () => {
+    const { singleSeller } = await fixtures;
+    view.items = singleSeller;
+    view.adapterMode = 'transaction-service';
+    view.deployEnv = 'production';
+    view.hasMarketplaceSession = true;
+    view.usdtAvailable = true;
+
+    await renderForVRT(<MarketplaceCheckout />, { viewport: VRT_VIEWPORT_MOBILE });
+    await vi.waitFor(() => {
+      const button = document.querySelector('[data-testid="marketplace-checkout-method-usdt"]');
+      if (!(button instanceof HTMLElement)) throw new Error('USDT has not loaded yet.');
+      button.click();
+    });
+    await vi.waitFor(() => {
+      if (!document.querySelector('[data-testid="marketplace-checkout-usdt-amount"]')) {
+        throw new Error('The USDT amount has not rendered yet.');
+      }
+    });
+    await captureCheckout('checkout-usdt-selected-mobile');
   });
 
   it('renders the locks-paykit checkout labels at desktop viewport', async () => {

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { PAYMENT_METHOD_KINDS } from '@/libs/commerce/payment-options';
+import { usdtSetupActionSchema, usdtSetupStatusSchema } from '@/libs/commerce/usdt-seller-setup';
 
 /**
  * Seller-configurable payment methods (docs/ecommerce/fiat-rails-phase1.md,
@@ -101,6 +102,9 @@ export const sellerPaymentConfigOwnViewSchema = z.object({
   bitcoinEnabled: z.boolean(),
   // Present only when the service's USDT flag is on (the seller's Shop-level consent).
   usdtEnabled: z.boolean().optional().catch(undefined),
+  // Readiness from the service's signed Paykit lookup (see usdt-seller-setup.ts).
+  usdtSetup: usdtSetupStatusSchema,
+  usdtSetupAction: usdtSetupActionSchema,
   stripePaymentLink: z.url().nullable(),
   paypalMerchantEmail: z.email().nullable(),
   stripeRestrictedKeySet: z.boolean(),

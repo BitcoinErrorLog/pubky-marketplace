@@ -57,6 +57,7 @@ import {
   refundStateLabel,
 } from '@/libs/commerce/refund-copy';
 import { buildMarketplaceConversationAggregateId } from '@/libs/commerce/transaction-commands';
+import { usdtPaidAsLine } from '@/libs/commerce/usdt-buyer-status';
 import { MarketplaceEmptyState } from '@/molecules/Marketplace/MarketplaceEmptyState';
 import { ContentLayout } from '@/organisms/ContentLayout/ContentLayout';
 import { DropEditionBadge, DropEditionReceiptLine } from '@/organisms/Marketplace/DropEditionBadge';
@@ -72,6 +73,7 @@ import { MarketplacePaymentStatusCard } from '@/organisms/Marketplace/Marketplac
 import { MarketplaceReauthDialog } from '@/organisms/Marketplace/MarketplaceReauthDialog';
 import { MarketplaceSectionNav } from '@/organisms/Marketplace/MarketplaceSectionNav';
 import { MarketplaceSellerDigitalPanel } from '@/organisms/Marketplace/MarketplaceSellerDigitalPanel';
+import { MarketplaceUsdtPaymentSummary } from '@/organisms/Marketplace/MarketplaceUsdtPaymentSummary';
 import type { MarketplaceOrder, MarketplacePayment } from '@/services/marketplace/marketplace';
 import { useAuthStore } from '@/stores/auth/auth.store';
 import { useCommerceStore } from '@/stores/commerce/commerce.store';
@@ -313,6 +315,7 @@ export function MarketplaceOrders() {
                         <Typography as="p" className="text-sm text-muted-foreground">
                           {decision ? PAYMENT_SEEN_LABEL : sellerReservationCopy(order.holdExpiresAt)}
                         </Typography>
+                        <MarketplaceUsdtPaymentSummary order={order} payment={payment} isBuyer={false} />
                         <MarketplaceOrderReference order={order} isBuyer={false} showPlacedAt />
                         {decision && (
                           <MarketplacePaymentStatusCard
@@ -448,6 +451,11 @@ export function MarketplaceOrders() {
                               >
                                 <summary className="cursor-pointer text-sm text-muted-foreground">Receipt</summary>
                                 <MarketplaceBitcoinAmountBreakdown order={order} className="mt-2" />
+                                {usdtPaidAsLine(order) && (
+                                  <Typography as="p" className="mt-2 text-sm" data-testid="order-receipt-usdt-paid-as">
+                                    {usdtPaidAsLine(order)}
+                                  </Typography>
+                                )}
                                 <div
                                   className="mt-1 flex items-center gap-2 text-sm break-all text-muted-foreground"
                                   data-testid="order-receipt-hash"
@@ -673,6 +681,8 @@ function MarketplaceOrderMessageCta({
 
 function MarketplaceOrderBitcoinAmount({ order }: { order: MarketplaceOrder }): ReactNode {
   if (bitcoinPaymentBreakdown(order)) return null;
+  // A USDT order settles at parity with its USD price; a bitcoin estimate would mislead.
+  if (order.paymentMethod === 'usdt') return null;
   const quote = order.paymentMethod === 'bitcoin' ? order.bitcoinQuote : null;
   if (quote?.quotedSats !== null && quote?.quotedSats !== undefined) {
     return (

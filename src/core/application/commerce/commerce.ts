@@ -1448,6 +1448,7 @@ export class CommerceApplication {
       stripePaymentLink: string | null;
       stripeRestrictedKey?: string;
       paypalMerchantEmail: string | null;
+      usdtEnabled?: boolean;
     },
   ) {
     return await MarketplaceGatewayService.putMyPaymentConfig(actorPubky, input);
@@ -1787,6 +1788,10 @@ export class CommerceApplication {
 
   static getPaykitSetupUrl(returnTo: string, state: string, creator: string) {
     return LocksGatewayService.buildPaykitSetupUrl(returnTo, state, creator);
+  }
+
+  static getPaykitReconnectUrl(returnTo: string, state: string, creator: string) {
+    return LocksGatewayService.buildPaykitReconnectUrl(returnTo, state, creator);
   }
 
   /**

@@ -236,6 +236,9 @@ export const READER_WALLET_SETUP_COPY = {
   retry: 'Try again',
 } as const;
 
+const USDT_SELLER_NOT_READY_COPY =
+  "This seller can't take USDT right now. Choose another payment method, or contact the seller.";
+
 /**
  * Static copy for durable payment-method refusals. Keys are service
  * `error.reason` values and, for families that ship `code` with no `reason`
@@ -244,6 +247,10 @@ export const READER_WALLET_SETUP_COPY = {
  */
 export const MARKETPLACE_PAYMENT_METHOD_REASON_MESSAGES: ReadonlyMap<string, string> = new Map([
   ['bitcoin_unavailable', 'Bitcoin payments are not available for this seller.'],
+  [
+    'buyer_usdt_wallet_required',
+    "Your wallet doesn't support USDT yet. Pay with a Bitkit version that supports USDT, or choose another payment method.",
+  ],
   [BUYER_PAYKIT_WALLET_SETUP_NEEDED, `${READER_WALLET_SETUP_COPY.title}. ${READER_WALLET_SETUP_COPY.description}`],
   [
     'buyer_paykit_wallet_required',
@@ -298,6 +305,35 @@ export const MARKETPLACE_PAYMENT_METHOD_REASON_MESSAGES: ReadonlyMap<string, str
   ['stripe_unavailable', 'Payment verification could not be reached. Try again shortly.'],
   ['unavailable', 'The payment method request was refused.'],
   ['UPSTREAM_UNAVAILABLE', MARKETPLACE_FAILURE_MESSAGES.unavailable],
+  ['usdt_seller_not_ready', USDT_SELLER_NOT_READY_COPY],
+  ['usdt_unavailable', "USDT payments aren't available right now. Choose another payment method."],
+]);
+
+/**
+ * The same service reasons read differently when the buyer chose USDT: the
+ * Bitcoin strings above name Bitcoin, so a USDT bind never shows them. Only
+ * reasons that exist for both rails need an entry; USDT-only reasons live in
+ * the main table.
+ */
+export const USDT_PAYMENT_METHOD_REASON_MESSAGES: ReadonlyMap<string, string> = new Map([
+  [
+    'buyer_paykit_wallet_required',
+    'Connect Bitkit to pay with USDT: this account has no Paykit wallet that can receive a payment request.',
+  ],
+  [
+    'paykit_expiry_inconsistent',
+    'The USDT payment window didn’t match this checkout, so USDT wasn’t started. Try again, or choose another payment method.',
+  ],
+  ['paykit_rejected', 'The USDT payment request was refused. Try again, or choose another payment method.'],
+  [
+    'paykit_total_inconsistent',
+    'The USDT amount didn’t match this checkout, so USDT wasn’t started. Try again, or choose another payment method.',
+  ],
+  [
+    'paykit_unavailable',
+    'USDT payment requests are unavailable right now. If you haven’t set up Bitkit for this Pubky account yet, do that first. Then try again shortly.',
+  ],
+  ['seller_account_unclaimed', USDT_SELLER_NOT_READY_COPY],
 ]);
 
 function paymentMethodRefusalLookupKeys(error: unknown): string[] {
@@ -311,11 +347,15 @@ function paymentMethodRefusalLookupKeys(error: unknown): string[] {
   return keys;
 }
 
-export function marketplacePaymentMethodReasonMessage(reason: string | null | undefined): string {
+export function marketplacePaymentMethodReasonMessage(
+  reason: string | null | undefined,
+  method?: string | null,
+): string {
   if (typeof reason !== 'string' || reason.length === 0) {
     return MARKETPLACE_PAYMENT_METHOD_REASON_MESSAGES.get('unavailable') ?? 'The payment method request was refused.';
   }
   return (
+    (method === 'usdt' ? USDT_PAYMENT_METHOD_REASON_MESSAGES.get(reason) : undefined) ??
     MARKETPLACE_PAYMENT_METHOD_REASON_MESSAGES.get(reason) ??
     MARKETPLACE_PAYMENT_METHOD_REASON_MESSAGES.get('unavailable') ??
     'The payment method request was refused.'
@@ -329,8 +369,11 @@ export function isReaderWalletSetupNeeded(error: unknown): boolean {
 
 /** Buyer/seller payment-action toast: map reason or family code, never a wire message. */
 export function marketplacePaymentMethodFailureMessage(error: unknown, fallback: string): string {
+  const usdtBind = isAppError(error) && error.context?.paymentMethod === 'usdt';
   for (const key of paymentMethodRefusalLookupKeys(error)) {
-    const mapped = MARKETPLACE_PAYMENT_METHOD_REASON_MESSAGES.get(key);
+    const mapped =
+      (usdtBind ? USDT_PAYMENT_METHOD_REASON_MESSAGES.get(key) : undefined) ??
+      MARKETPLACE_PAYMENT_METHOD_REASON_MESSAGES.get(key);
     if (mapped) return mapped;
   }
   return marketplaceFailureMessage(marketplaceErrorCode(error), fallback, error);

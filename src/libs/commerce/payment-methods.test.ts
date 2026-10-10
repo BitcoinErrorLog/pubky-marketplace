@@ -235,5 +235,16 @@ describe('payment-methods', () => {
       expect(sellerPaymentConfigOwnViewSchema.parse({ ...ownView, usdtEnabled: true }).usdtEnabled).toBe(true);
       expect(sellerPaymentConfigOwnViewSchema.parse({ ...ownView, usdtEnabled: 'on' }).usdtEnabled).toBeUndefined();
     });
+
+    it('reads the USDT readiness fields and ignores them when absent', () => {
+      const ready = sellerPaymentConfigOwnViewSchema.parse({
+        ...ownView,
+        usdtEnabled: true,
+        usdtSetup: 'ready',
+        usdtSetupAction: null,
+      });
+      expect(ready).toMatchObject({ usdtEnabled: true, usdtSetup: 'ready', usdtSetupAction: null });
+      expect(sellerPaymentConfigOwnViewSchema.parse(ownView)).not.toHaveProperty('usdtSetup');
+    });
   });
 });
