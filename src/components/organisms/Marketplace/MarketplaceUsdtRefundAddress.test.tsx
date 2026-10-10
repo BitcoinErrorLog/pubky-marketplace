@@ -186,6 +186,20 @@ describe('MarketplaceUsdtRefundAddress — seller', () => {
     expect(screen.getByRole('button', { name: 'Copy address' })).toBeInTheDocument();
   });
 
+  it('points a seller whose payment is in manual review at the resolve panel, not at Record refund', () => {
+    renderPanel(createUsdtOrderFixture('pending_payment', { refundDestination: destination }), {
+      isBuyer: false,
+      paymentInReview: true,
+    });
+
+    const panel = screen.getByTestId('usdt-refund-seller');
+    expect(panel).toHaveTextContent(REFUND_FIXTURE_ADDRESS);
+    expect(panel).toHaveTextContent(
+      'Send this refund from Bitkit, then record the Arbitrum transaction hash when you resolve this payment as refunded.',
+    );
+    expect(panel).not.toHaveTextContent('Record refund');
+  });
+
   it('asks for the requested return amount instead of the whole order', () => {
     renderPanel(
       createUsdtOrderFixture('return_approved', {
