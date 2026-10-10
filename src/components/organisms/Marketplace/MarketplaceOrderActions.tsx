@@ -20,6 +20,7 @@ import { OTHER_CARRIER_ID, SHIPPING_CARRIERS } from '@/libs/commerce/carriers';
 import { DIGITAL_ORDER_COPY, DIGITAL_SELLER_COPY, isInstantDigitalDeliveryKind } from '@/libs/commerce/digital';
 import { formatCommerceMoney } from '@/libs/commerce/format';
 import { formatBitcoinAmount } from '@/libs/commerce/pricing';
+import { isUsdtFulfilmentBlocked, PAYMENT_NOT_FINAL_COPY } from '@/libs/commerce/usdt-buyer-status';
 import type { CommerceReviewModelSchema } from '@/models/commerce/commerce.schema';
 import { ControlledInputField } from '@/molecules/ControlledInputField/ControlledInputField';
 import { ControlledTextareaField } from '@/molecules/ControlledTextareaField/ControlledTextareaField';
@@ -128,6 +129,9 @@ export function MarketplaceOrderActions({
   // Local pickup (Wave 7, §A6): the pickup path has its own commands and its
   // own exits; shipped orders behave exactly as before.
   const isPickup = order.fulfillment === 'pickup';
+  // A USDT payment is paid at verified inclusion but only final once Arbitrum
+  // finalizes it; ship, mark ready and the pickup handover wait for that.
+  const fulfilmentBlocked = isUsdtFulfilmentBlocked(order);
   // Digital orders are never shipped or returned (digital delivery design §6 E1–E4).
   const isDigital = order.fulfillment === 'digital';
   const pickup = usePickupOrderActions(order, reloadOrders);
@@ -224,7 +228,7 @@ export function MarketplaceOrderActions({
           <Button
             size="sm"
             className="rounded-full"
-            disabled={pickup.isActing}
+            disabled={pickup.isActing || fulfilmentBlocked}
             onClick={() => {
               setTermsBlocked(false);
               setHandoverOpen(true);
@@ -238,7 +242,7 @@ export function MarketplaceOrderActions({
             size="sm"
             variant="secondary"
             className="rounded-full"
-            disabled={pickup.isActing}
+            disabled={pickup.isActing || fulfilmentBlocked}
             onClick={() => void pickup.markReady()}
           >
             Mark ready for pickup
@@ -247,7 +251,7 @@ export function MarketplaceOrderActions({
         {/* Pickup orders never ship: no tracking, no label (§A6). */}
         {!isBuyer && !isPickup && !isDigital && ['paid', 'processing'].includes(order.state) && (
           <>
-            <Button size="sm" className="rounded-full" onClick={() => begin('ship')}>
+            <Button size="sm" className="rounded-full" disabled={fulfilmentBlocked} onClick={() => begin('ship')}>
               Add tracking
             </Button>
             <MarketplaceShippingLabelDialog order={order} actOnOrder={actOnOrder} />
@@ -316,6 +320,14 @@ export function MarketplaceOrderActions({
           </Button>
         )}
       </div>
+      {!isBuyer &&
+        fulfilmentBlocked &&
+        !isDigital &&
+        (isPickup ? ['paid', 'ready_for_pickup'] : ['paid', 'processing']).includes(order.state) && (
+          <p className="mt-2 text-xs text-muted-foreground" data-testid="usdt-payment-not-final">
+            {PAYMENT_NOT_FINAL_COPY}
+          </p>
+        )}
       {!isBuyer &&
         isDigital &&
         order.state === 'cancel_requested' &&

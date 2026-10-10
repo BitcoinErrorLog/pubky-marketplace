@@ -76,6 +76,8 @@ describe('checkout-hold copy', () => {
     expect(refundRequiredSellerCopy('paypal')).toBe(CHECKOUT_HOLD_COPY.refundRequiredPaypalSeller);
     expect(refundRequiredSellerCopy('stripe')).toBe(CHECKOUT_HOLD_COPY.refundRequiredStripeSeller);
     expect(refundRequiredSellerCopy('bitcoin')).toBe(CHECKOUT_HOLD_COPY.refundRequiredBitcoinSeller);
+    expect(refundRequiredSellerCopy('usdt')).toBe(CHECKOUT_HOLD_COPY.refundRequiredUsdtSeller);
+    expect(CHECKOUT_HOLD_COPY.refundRequiredUsdtSeller).not.toMatch(/bitcoin/i);
     expect(UNBOUND_BACK_CANCEL_REASON.length).toBeGreaterThanOrEqual(1);
     expect(UNBOUND_BACK_CANCEL_REASON.length).toBeLessThanOrEqual(500);
   });

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { CommerceController } from '@/controllers/commerce/commerce';
+import { useUsdtPaymentsAvailable } from '@/hooks/useUsdtPaymentsAvailable/useUsdtPaymentsAvailable';
 import {
   MARKETPLACE_FAILURE_MESSAGES,
   marketplaceErrorCode,
@@ -12,6 +13,7 @@ import {
   type PaymentMethodKind,
   type SellerPaymentConfig,
 } from '@/libs/commerce/payment-methods';
+import { isUsdPricedTotals } from '@/libs/commerce/usdt-buyer-status';
 import { Logger } from '@/libs/logger/logger';
 import { showPaymentMethodRefusalToast } from '@/molecules/Toaster/payment-method-refusal-toast';
 import { toast } from '@/molecules/Toaster/use-toast';
@@ -39,6 +41,7 @@ export function useMarketplaceOrderPayment({
   const [pendingAction, setPendingAction] = useState<'bind' | 'verify' | 'mark-paid' | 'confirm' | null>(null);
 
   const needsConfig = enabled && !order.paymentMethod;
+  const usdtPaymentsAvailable = useUsdtPaymentsAvailable(needsConfig);
 
   useEffect(() => {
     if (!needsConfig) return;
@@ -125,7 +128,11 @@ export function useMarketplaceOrderPayment({
   }, [order.id, runAction]);
 
   return {
-    availableMethods: sellerConfig ? availablePaymentMethods(sellerConfig) : null,
+    availableMethods: sellerConfig
+      ? availablePaymentMethods(sellerConfig, {
+          usdtPaymentsAvailable: usdtPaymentsAvailable && isUsdPricedTotals([order.total]),
+        })
+      : null,
     bitcoinOfferUnavailable: sellerConfig?.bitcoinAvailable === true && sellerConfig.bitcoinOfferAvailable === false,
     configError,
     pendingAction,

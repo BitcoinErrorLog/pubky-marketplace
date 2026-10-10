@@ -41,4 +41,12 @@ describe('useUsdtPaymentsAvailable', () => {
     });
     expect(result.current).toBe(false);
   });
+
+  it('never reads the capability when the surface has no use for it', () => {
+    vi.mocked(CommerceController.fetchUsdtPaymentsAvailable).mockResolvedValue(true);
+    const { result } = renderHook(() => useUsdtPaymentsAvailable(false));
+
+    expect(result.current).toBe(false);
+    expect(CommerceController.fetchUsdtPaymentsAvailable).not.toHaveBeenCalled();
+  });
 });

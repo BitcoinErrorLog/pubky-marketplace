@@ -152,6 +152,13 @@ describe('checkout-phase', () => {
     expect(intersectPaymentMethods([['bitcoin'], ['stripe']])).toEqual([]);
     expect(
       intersectPaymentMethods([
+        ['paypal', 'usdt', 'bitcoin'],
+        ['bitcoin', 'usdt'],
+      ]),
+    ).toEqual(['bitcoin', 'usdt']);
+    expect(intersectPaymentMethods([['bitcoin', 'usdt'], ['bitcoin']])).toEqual(['bitcoin']);
+    expect(
+      intersectPaymentMethods([
         ['bitcoin', 'stripe', 'paypal'],
         ['bitcoin', 'stripe', 'paypal'],
       ]),

@@ -66,3 +66,62 @@ The toggle stays disabled until `ready` (it can always be switched off), and the
 ## Deploy order
 
 The Shop that accepts `usdt` in its order projection must be deployed before the service's USDT flag is ever turned on: an older Shop rejects an unknown `payment_method` and breaks the order page.
+
+## Checkout, status and refusals (W3)
+
+### Checkout
+
+USDT is its own picker option, never a merged "Bitcoin or USDT" entry. It appears at cart, drop and offer checkout only when all of these hold:
+
+- the gate is on (`useUsdtPaymentsAvailable`), and a sandbox checkout never reads it;
+- every seller's public config says `usdtAvailable: true` (a multi-seller cart offers only options all sellers offer);
+- every total is `USD/2`. USDT is quoted at exact parity, so one cent is 10,000 millionths and nothing rounds. A Bitcoin-priced cart never offers it.
+
+The bind sends `{ method: 'usdt' }`. Once USDT is chosen the summary shows "25.000000 USDT · USDT0 on Arbitrum One · pay with Bitkit" and "Pay with a Bitkit version that supports USDT.", and the indicative bitcoin estimate is hidden. There is no accept-by line and no pre-check of the buyer's wallet: a missing Paykit wallet is the existing refusal, read in USDT copy.
+
+An unbound order's method picker (the status card) offers "Continue with USDT" under the same rules.
+
+### Order status
+
+Everything below renders whenever an order carries `payment_method: "usdt"`, whatever the flag says. It lives in `usdt-buyer-status.ts` as its own rail-keyed table; the Bitcoin tables are untouched and a USDT order that carries a Paykit request state is never read as a Bitcoin order.
+
+| Phase                                                      | Buyer                                                                            | Seller                                                                                       |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| awaiting                                                   | Waiting for your USDT payment                                                    | Waiting for the buyer's USDT payment                                                         |
+| received (paid at inclusion, finality `pending` or absent) | USDT payment received. The seller ships once Arbitrum finalizes it.              | Payment received. Don't ship yet: Arbitrum hasn't finalized it. Shipping unlocks on its own. |
+| final                                                      | USDT payment confirmed                                                           | Payment final. You can ship.                                                                 |
+| re-checking (finality `reverted`)                          | Your payment is being re-checked on Arbitrum. You don't need to do anything yet. | The buyer's payment is being re-checked on Arbitrum. Don't ship.                             |
+
+A paid order shows "$137.00, paid as 137.000000 USDT" and the network on the status card and in the receipt. A manual-review USDT payment reuses the existing review copy; an amount mismatch reads "The USDT amount does not match. The seller is reviewing it."
+
+A Locks-verified (`locked`) receipt carries no payment method, so it is never labelled Bitcoin; after locks#75 the rail that paid it may be USDT and the Shop does not know which.
+
+### The pinned service contract
+
+`src/libs/commerce/usdt-settlement-contract.ts` holds everything the Shop assumes about the upcoming service status work (S3), so the real fields swap in at one file:
+
+- `payment_finality` on the order projection: `pending | final | reverted`, tolerant (an unknown value reads as absent). Absent on a paid USDT order fails closed to "received, not final".
+- The command refusal `error.reason === "payment_not_final"` on `fulfillment.ship`, `fulfillment.mark_ready` and `fulfillment.confirm_pickup`.
+
+`src/test/fixtures/commerce/usdt-orders.ts` pins the wire shapes. They are hand-written from the plan until a real service build produces captured responses.
+
+### Fulfilment gate
+
+Until a USDT payment is `final`, Add tracking, the shipping label's "Mark shipped", Mark ready for pickup and the pickup handover are disabled, and the seller sees "Wait to ship: this USDT payment isn't final on Arbitrum yet. This usually takes a few minutes." A refusal from the service shows the same copy. Service-sealed digital orders release at inclusion and are never gated.
+
+### Refusals
+
+| Reason                                                                                | Copy                                                                                                                  |
+| ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `usdt_unavailable`                                                                    | USDT payments aren't available right now. Choose another payment method.                                              |
+| `usdt_seller_not_ready`                                                               | This seller can't take USDT right now. Choose another payment method, or contact the seller.                          |
+| `buyer_usdt_wallet_required` (reserved)                                               | Your wallet doesn't support USDT yet. Pay with a Bitkit version that supports USDT, or choose another payment method. |
+| `buyer_paykit_wallet_required`, `paykit_*`, `seller_account_unclaimed` on a USDT bind | The existing Bitcoin string with "USDT" for "Bitcoin" (`USDT_PAYMENT_METHOD_REASON_MESSAGES`)                         |
+
+A bind for `usdt` tags its refusal with `context.paymentMethod: "usdt"` so the toast picks the USDT string; a Bitcoin or PayPal refusal is unchanged. `buyer_usdt_wallet_required` is reserved until Paykit types it.
+
+### Not in W3
+
+- Notification copy: the closed notification types carry no asset, and the service has not named USDT types.
+- A Locks pay-step hint "Bitcoin or USDT": it needs locks#75 deployed, and nothing signals that to the Shop yet.
+- The seller manual-review resolution for a USDT payment, and the USDT refund address and hash (W4).
