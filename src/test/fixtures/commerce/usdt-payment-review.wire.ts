@@ -1,7 +1,7 @@
 import { toSnakeCaseWire } from '@/libs/commerce/wire-casing';
 import { createOrderFixture } from './orders';
-import { REFUND_FIXTURE_ADDRESS } from './usdt-refund.wire';
 import { USDT_ORDER_FIELDS } from './usdt-orders';
+import { REFUND_FIXTURE_ADDRESS } from './usdt-refund.wire';
 
 /**
  * The service S6 wire contract for resolving a USDT payment held for manual

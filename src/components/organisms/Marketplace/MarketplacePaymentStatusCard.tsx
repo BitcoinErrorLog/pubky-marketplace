@@ -75,13 +75,13 @@ import {
   bitcoinWalletUnverifiedBody,
 } from '@/libs/commerce/paykit-wallet';
 import { buildMarketplaceOrderAggregateId } from '@/libs/commerce/transaction-commands';
-import { paymentReviewRail } from '@/libs/commerce/usdt-payment-review';
 import {
   USDT_BUYER_PHASE_COPY,
   USDT_FUNDS_HINT,
   USDT_WALLET_HINT,
   usdtPhaseCopy,
 } from '@/libs/commerce/usdt-buyer-status';
+import { paymentReviewRail } from '@/libs/commerce/usdt-payment-review';
 import { getDeployEnv } from '@/libs/runtime-config/runtime-config';
 import { cn } from '@/libs/utils/utils';
 import { MarketplacePaymentStatusBadge } from '@/molecules/Marketplace/MarketplacePaymentStatusBadge';

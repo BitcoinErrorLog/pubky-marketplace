@@ -6,8 +6,8 @@ import { ClientErrorCode } from '@/libs/error/error.codes';
 import { Err } from '@/libs/error/error.factories';
 import { ErrorService } from '@/libs/error/error.types';
 import { createOrderFixture, createPaymentFixture } from '@/test/fixtures/commerce/orders';
-import { USDT_RESOLVE_TX_HASH } from '@/test/fixtures/commerce/usdt-payment-review.wire';
 import { createUsdtOrderFixture } from '@/test/fixtures/commerce/usdt-orders';
+import { USDT_RESOLVE_TX_HASH } from '@/test/fixtures/commerce/usdt-payment-review.wire';
 import { REFUND_FIXTURE_ADDRESS } from '@/test/fixtures/commerce/usdt-refund.wire';
 import { MarketplacePaymentStatusCard } from './MarketplacePaymentStatusCard';
 
