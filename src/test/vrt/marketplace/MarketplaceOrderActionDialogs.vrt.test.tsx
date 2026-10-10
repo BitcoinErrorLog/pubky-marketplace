@@ -10,8 +10,19 @@ import { MarketplaceOrderActions } from '@/organisms/Marketplace/MarketplaceOrde
 // seller journeys submit, so each one needs a rendered baseline of its open
 // state — the order timelines only baseline the resulting card states.
 const fixtures = vi.hoisted(async () => {
-  const { createOrderFixture } = await import('@/test/fixtures/commerce/orders');
+  const { createOrderFixture, createUsdtOrderFixture } = await import('@/test/fixtures/commerce/orders');
+  const { REFUND_FIXTURE_ADDRESS } = await import('@/test/fixtures/commerce/usdt-refund.wire');
   return {
+    usdtRefundOrder: createUsdtOrderFixture('return_received', {
+      refundDestination: {
+        address: REFUND_FIXTURE_ADDRESS,
+        network: 'arbitrum-one',
+        asset: 'USDT',
+        source: 'buyer_entered',
+        confirmedAt: '2026-10-09T16:00:00.000Z',
+      },
+    }),
+    usdtRefundWaitingOrder: createUsdtOrderFixture('return_received'),
     deliveredOrder: createOrderFixture('delivered'),
     paidOrder: createOrderFixture('paid'),
     pickupOrder: createOrderFixture('paid', { fulfillment: 'pickup' }),
@@ -133,6 +144,43 @@ describe('Marketplace order action dialogs — visual regression', () => {
     await openDialog(screen.getByRole('button', { name: 'Record refund' }));
     await expect.element(screen.getByLabelText('Amount (₿)')).toBeInTheDocument();
     await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot('dialog-order-refund-bitcoin-desktop');
+  });
+
+  it('renders the open USDT refund dialog with the buyer address and Arbitrum hash field', async () => {
+    const { usdtRefundOrder } = await fixtures;
+
+    const screen = await renderForVRT(
+      <ActionsHarness>
+        <MarketplaceOrderActions
+          order={usdtRefundOrder}
+          isBuyer={false}
+          canEditReview={false}
+          actOnOrder={async () => false}
+        />
+      </ActionsHarness>,
+      { viewport: VRT_VIEWPORT_DESKTOP },
+    );
+    await openDialog(screen.getByRole('button', { name: 'Record refund' }));
+    await expect.element(screen.getByLabelText('Arbitrum transaction hash')).toBeInTheDocument();
+    await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot('dialog-order-refund-usdt-desktop');
+  });
+
+  it('renders Record refund held until the buyer confirms a USDT refund address', async () => {
+    const { usdtRefundWaitingOrder } = await fixtures;
+
+    const screen = await renderForVRT(
+      <ActionsHarness>
+        <MarketplaceOrderActions
+          order={usdtRefundWaitingOrder}
+          isBuyer={false}
+          canEditReview={false}
+          actOnOrder={async () => false}
+        />
+      </ActionsHarness>,
+      { viewport: VRT_VIEWPORT_DESKTOP },
+    );
+    await expect.element(screen.getByTestId('usdt-refund-address-hint')).toBeVisible();
+    await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot('order-actions-refund-usdt-held-desktop');
   });
 
   it('renders the open pickup cancellation dialog', async () => {

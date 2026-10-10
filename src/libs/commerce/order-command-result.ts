@@ -14,6 +14,7 @@ export type CommandOrderSnapshot = {
   shipment?: { carrier: string; trackingNumber: string; state: string } | null;
   returnRequest?: { state: string; reason: string; requestedAmountMinor: number } | null;
   externalRefund?: { amountMinor: number; transactionId: string } | null;
+  refundDestination?: { address: string } | null;
   reviews?: { rating: number; text: string }[] | null;
 };
 
@@ -84,6 +85,12 @@ export function orderShowsCommandResult(
         order.externalRefund != null &&
         order.externalRefund.amountMinor === minor(payload.amountMinor) &&
         order.externalRefund.transactionId === text(payload.transactionId)
+      );
+    case 'refund.confirm_destination':
+      return (
+        order.refundDestination != null &&
+        text(payload.address) !== null &&
+        order.refundDestination.address.toLowerCase() === text(payload.address)?.toLowerCase()
       );
     case 'review.create':
     case 'review.update': {

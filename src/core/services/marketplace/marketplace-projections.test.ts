@@ -4,13 +4,18 @@ import { orderStateSchema } from '@/libs/commerce/transaction-contracts';
 import { toCamelCaseWire } from '@/libs/commerce/wire-casing';
 import sellerOffersCapture from '@/test/fixtures/commerce/live/seller-offers-v062.json';
 import { ACCEPTED_OFFER_AWARD_WIRE_FIXTURE, createOfferFixture } from '@/test/fixtures/commerce/offers';
-import { createBitcoinQuotedOrderFixture, createOrderFixture } from '@/test/fixtures/commerce/orders';
+import {
+  createBitcoinQuotedOrderFixture,
+  createOrderFixture,
+  createUsdtOrderFixture,
+} from '@/test/fixtures/commerce/orders';
 import { LIVE_OFFER_ORDER_WIRE_FIXTURE } from '@/test/fixtures/commerce/orders-award.wire';
 import {
   createAuctionProjectionFixture,
   createViewerBidAuctionProjectionFixture,
 } from '@/test/fixtures/commerce/projections';
 import sellerPaidShippingAddress from '@/test/fixtures/commerce/seller-paid-shipping-address.json';
+import { REFUND_FIXTURE_ADDRESS, USDT_ORDER_REFUND_DESTINATION_WIRE } from '@/test/fixtures/commerce/usdt-refund.wire';
 import {
   isMarketplaceAwardCheckoutEligible,
   marketplaceBidHistorySchema,
@@ -679,5 +684,54 @@ describe('marketplace order projection — USDT payment method (default-off plum
     expect(parsed.paymentAsset).toBeUndefined();
     expect(parsed.paymentNetwork).toBeUndefined();
     expect(parsed.paymentAmountMinor).toBeUndefined();
+  });
+});
+
+describe('marketplace order projection — USDT refund destination (S6 wire contract)', () => {
+  const wire = (values: Record<string, unknown>) => ({
+    ...createUsdtOrderFixture('paid'),
+    ...(toCamelCaseWire(values) as Record<string, unknown>),
+  });
+
+  it('reads the pinned participant fields through wire casing in both projections', () => {
+    for (const schema of [marketplaceOrderSchema, marketplaceParticipantOrderSchema]) {
+      const parsed = schema.parse(wire(USDT_ORDER_REFUND_DESTINATION_WIRE));
+      expect(parsed.refundDestination).toEqual({
+        address: REFUND_FIXTURE_ADDRESS,
+        network: 'arbitrum-one',
+        asset: 'USDT',
+        source: 'buyer_entered',
+        confirmedAt: '2026-10-09T16:00:00.000Z',
+      });
+      expect(parsed.paymentAsset).toBe('USDT');
+    }
+  });
+
+  it('reads a null or absent destination as unconfirmed', () => {
+    expect(marketplaceOrderSchema.parse(wire({ refund_destination: null })).refundDestination).toBeNull();
+    expect(marketplaceOrderSchema.parse(createUsdtOrderFixture('paid')).refundDestination).toBeUndefined();
+  });
+
+  it('keeps the order and drops only a destination it cannot read', () => {
+    const parsed = marketplaceOrderSchema.parse(
+      wire({ refund_destination: { address: 'nope', network: 'base', asset: 'DAI', source: '', confirmed_at: 7 } }),
+    );
+    expect(parsed.paymentMethod).toBe('usdt');
+    expect(parsed.refundDestination).toBeUndefined();
+  });
+
+  it('reads the buyer paying address only when it is a valid address', () => {
+    expect(marketplaceOrderSchema.parse(wire({ payment_address: REFUND_FIXTURE_ADDRESS })).paymentAddress).toBe(
+      REFUND_FIXTURE_ADDRESS,
+    );
+    expect(marketplaceOrderSchema.parse(wire({ payment_address: 'bc1q' })).paymentAddress).toBeUndefined();
+  });
+
+  it('leaves every Bitcoin, PayPal and Stripe order without refund fields', () => {
+    for (const method of ['bitcoin', 'paypal', 'stripe', null] as const) {
+      const parsed = marketplaceOrderSchema.parse(createOrderFixture('paid', { paymentMethod: method }));
+      expect(parsed.refundDestination).toBeUndefined();
+      expect(parsed.paymentAddress).toBeUndefined();
+    }
   });
 });

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import { buildMarketplaceListingAggregateId } from '@/libs/commerce/transaction-commands';
+import { buildMarketplaceListingAggregateId, marketplaceCommandSchema } from '@/libs/commerce/transaction-commands';
+import { toCamelCaseWire } from '@/libs/commerce/wire-casing';
 import type { AppError } from '@/libs/error/error';
 import { ErrorService } from '@/libs/error/error.types';
 import { PARSE_JSON_WITH_BODY_EXCERPT, parseResponseOrThrow } from '@/libs/http/response.utils';
@@ -9,6 +10,7 @@ import { scrubSensitiveData } from '@/libs/observability/sentry.utils';
 import { MarketplaceNotificationNormalizer } from '@/pipes/marketplaceNotification/marketplaceNotification.normalizer';
 import sellerDropCapture from '@/test/fixtures/commerce/live/seller-drop-v0621.json';
 import { LIVE_ORDERS_WIRE_FIXTURE } from '@/test/fixtures/commerce/orders.wire';
+import { CONFIRM_REFUND_DESTINATION_WIRE_COMMAND } from '@/test/fixtures/commerce/usdt-refund.wire';
 import { asOpaque } from '@/test-utils/type-assertions';
 import { MARKETPLACE_NOTIFICATION_TYPE_MAX_LENGTH, marketplaceNotificationSchema } from './marketplace-projections';
 import { MARKETPLACE_SESSION_STORAGE_KEY, MarketplaceSessionService } from './marketplace-session';
@@ -344,6 +346,7 @@ describe('MarketplaceTransactionService.execute', () => {
     'return.approve',
     'return.receive',
     'refund.record_external',
+    'refund.confirm_destination',
     'review.create',
     'review.update',
   ] as const)('sends the ported post-purchase command kind %s to the service', async (kind) => {
@@ -365,6 +368,27 @@ describe('MarketplaceTransactionService.execute', () => {
     expect(response).toMatchObject({ ok: true, result: { kind: 'order' } });
     const [, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit];
     expect(JSON.parse(init.body as string)).toMatchObject({ kind });
+  });
+
+  it('sends refund.confirm_destination in the pinned snake_case wire shape', async () => {
+    await establishSession();
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse(200, {
+        ok: true,
+        version: 1,
+        command_id: CONFIRM_REFUND_DESTINATION_WIRE_COMMAND.command_id,
+        aggregate_id: CONFIRM_REFUND_DESTINATION_WIRE_COMMAND.aggregate_id,
+        revision: 5,
+        event_ids: ['00000000-0000-4000-8000-000000000721'],
+        result: { kind: 'order' },
+      }),
+    );
+    const command = marketplaceCommandSchema.parse(toCamelCaseWire(CONFIRM_REFUND_DESTINATION_WIRE_COMMAND));
+
+    await MarketplaceTransactionService.execute(ACTOR, command);
+
+    const [, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toEqual(CONFIRM_REFUND_DESTINATION_WIRE_COMMAND);
   });
 
   it('fails closed outside transaction-service mode', async () => {

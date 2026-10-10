@@ -31,9 +31,11 @@ const fixtures = vi.hoisted(async () => {
     createOrderViewsForEveryPaymentState,
     createPaymentFixture,
     createReceiptFixture,
+    createUsdtOrderFixture,
     ORDER_FIXTURE_BUYER,
     ORDER_FIXTURE_SELLER,
   } = await import('@/test/fixtures/commerce/orders');
+  const { REFUND_FIXTURE_ADDRESS, REFUND_FIXTURE_TX_HASH } = await import('@/test/fixtures/commerce/usdt-refund.wire');
   const { VRT_FROZEN_NOW_MS, HOUR_MS } = await import('@/test-utils/vrt.clock');
   const sellerNeedsAttention = [
     createOrderFixture('pending_payment', {
@@ -165,6 +167,41 @@ const fixtures = vi.hoisted(async () => {
       ],
     });
     return { order, payment: createPaymentFixture('confirmed', { adapter: 'paykit' }), receipt: null };
+  };
+
+  // USDT refund address (W4): the buyer's and the seller's views of one
+  // return, then the buyer's view once the seller recorded the refund.
+  const usdtDestination = {
+    address: REFUND_FIXTURE_ADDRESS,
+    network: 'arbitrum-one' as const,
+    asset: 'USDT' as const,
+    source: 'buyer_entered',
+    confirmedAt: '2026-10-09T16:00:00.000Z',
+  };
+  const usdtRefundView = (
+    state: 'return_approved' | 'return_received' | 'refunded_external',
+    role: 'buyer' | 'seller',
+    withDestination: boolean,
+  ) => {
+    const order = createUsdtOrderFixture(state, {
+      id: '018f47d2-6a27-7c23-a49d-000000000750',
+      ...(role === 'seller' ? { buyerPubky: 'u'.repeat(52), sellerPubky: ORDER_FIXTURE_BUYER } : {}),
+      ...(withDestination ? { refundDestination: usdtDestination } : {}),
+      ...(state === 'refunded_external'
+        ? {
+            externalRefund: {
+              amountMinor: 13_700,
+              transactionId: REFUND_FIXTURE_TX_HASH,
+              recordedAt: '2026-10-10T10:00:00.000Z',
+            },
+          }
+        : {}),
+    });
+    return {
+      order,
+      payment: createPaymentFixture('confirmed', { id: order.paymentId, orderId: order.id }),
+      receipt: null,
+    };
   };
 
   const deliveryAssumedView = () => ({
@@ -365,6 +402,11 @@ const fixtures = vi.hoisted(async () => {
     trackableShipped: [trackableShippedView()],
     bitcoinRefunded: [bitcoinRefundedView()],
     deliveryAssumed: [deliveryAssumedView()],
+    usdtRefundBuyerNeeded: [usdtRefundView('return_approved', 'buyer', false)],
+    usdtRefundBuyerConfirmed: [usdtRefundView('return_approved', 'buyer', true)],
+    usdtRefundSellerConfirmed: [usdtRefundView('return_received', 'seller', true)],
+    usdtRefundSellerWaiting: [usdtRefundView('return_received', 'seller', false)],
+    usdtRefundBuyerRecorded: [usdtRefundView('refunded_external', 'buyer', true)],
     digitalDelivered: [digitalDeliveredView()],
     digitalToDeliver: [digitalToDeliverView()],
     sellerAwaitingPayment: sellerAwaitingPaymentViews,
@@ -561,6 +603,88 @@ describe('Marketplace orders — visual regression', () => {
     const screen = await renderForVRT(<MarketplaceOrders />, { viewport: VRT_VIEWPORT_DESKTOP });
     await expect.element(screen.getByTestId('order-refund-record')).toBeVisible();
     await expect(await expectVrtSurface('marketplace-orders')).toMatchScreenshot('orders-bitcoin-refund-desktop');
+  });
+
+  it('renders the buyer asking for a USDT refund address at desktop viewport', async () => {
+    const { usdtRefundBuyerNeeded } = await fixtures;
+    ordersState.orders = usdtRefundBuyerNeeded;
+    ordersState.isLoading = false;
+    ordersState.error = null;
+    ordersState.adapterMode = 'transaction-service';
+
+    const screen = await renderForVRT(<MarketplaceOrders />, { viewport: VRT_VIEWPORT_DESKTOP });
+    await expect.element(screen.getByTestId('usdt-refund-buyer')).toBeVisible();
+    await expect(await expectVrtSurface('marketplace-orders')).toMatchScreenshot(
+      'orders-usdt-refund-buyer-needed-desktop',
+    );
+  });
+
+  it('renders the buyer asking for a USDT refund address at mobile viewport', async () => {
+    const { usdtRefundBuyerNeeded } = await fixtures;
+    ordersState.orders = usdtRefundBuyerNeeded;
+    ordersState.isLoading = false;
+    ordersState.error = null;
+    ordersState.adapterMode = 'transaction-service';
+
+    const screen = await renderForVRT(<MarketplaceOrders />, { viewport: VRT_VIEWPORT_MOBILE });
+    await expect.element(screen.getByTestId('usdt-refund-buyer')).toBeVisible();
+    await expect(await expectVrtSurface('marketplace-orders')).toMatchScreenshot(
+      'orders-usdt-refund-buyer-needed-mobile',
+    );
+  });
+
+  it('renders the buyer with a confirmed USDT refund address at desktop viewport', async () => {
+    const { usdtRefundBuyerConfirmed } = await fixtures;
+    ordersState.orders = usdtRefundBuyerConfirmed;
+    ordersState.isLoading = false;
+    ordersState.error = null;
+    ordersState.adapterMode = 'transaction-service';
+
+    const screen = await renderForVRT(<MarketplaceOrders />, { viewport: VRT_VIEWPORT_DESKTOP });
+    await expect.element(screen.getByTestId('usdt-refund-destination')).toBeVisible();
+    await expect(await expectVrtSurface('marketplace-orders')).toMatchScreenshot(
+      'orders-usdt-refund-buyer-confirmed-desktop',
+    );
+  });
+
+  it('renders the seller waiting for the buyer USDT refund address at desktop viewport', async () => {
+    const { usdtRefundSellerWaiting } = await fixtures;
+    ordersState.orders = usdtRefundSellerWaiting;
+    ordersState.isLoading = false;
+    ordersState.error = null;
+    ordersState.adapterMode = 'transaction-service';
+
+    const screen = await renderForVRT(<MarketplaceOrders />, { viewport: VRT_VIEWPORT_DESKTOP });
+    await expect.element(screen.getByTestId('usdt-refund-seller')).toBeVisible();
+    await expect(await expectVrtSurface('marketplace-orders')).toMatchScreenshot(
+      'orders-usdt-refund-seller-waiting-desktop',
+    );
+  });
+
+  it('renders the seller with the buyer USDT refund address and amount at desktop viewport', async () => {
+    const { usdtRefundSellerConfirmed } = await fixtures;
+    ordersState.orders = usdtRefundSellerConfirmed;
+    ordersState.isLoading = false;
+    ordersState.error = null;
+    ordersState.adapterMode = 'transaction-service';
+
+    const screen = await renderForVRT(<MarketplaceOrders />, { viewport: VRT_VIEWPORT_DESKTOP });
+    await expect.element(screen.getByTestId('usdt-refund-amount')).toBeVisible();
+    await expect(await expectVrtSurface('marketplace-orders')).toMatchScreenshot(
+      'orders-usdt-refund-seller-confirmed-desktop',
+    );
+  });
+
+  it('renders a recorded USDT refund as recorded by the seller at desktop viewport', async () => {
+    const { usdtRefundBuyerRecorded } = await fixtures;
+    ordersState.orders = usdtRefundBuyerRecorded;
+    ordersState.isLoading = false;
+    ordersState.error = null;
+    ordersState.adapterMode = 'transaction-service';
+
+    const screen = await renderForVRT(<MarketplaceOrders />, { viewport: VRT_VIEWPORT_DESKTOP });
+    await expect.element(screen.getByTestId('order-refund-record')).toHaveTextContent('The seller recorded a refund');
+    await expect(await expectVrtSurface('marketplace-orders')).toMatchScreenshot('orders-usdt-refund-recorded-desktop');
   });
 
   it('renders an assumed-delivery order at desktop viewport', async () => {

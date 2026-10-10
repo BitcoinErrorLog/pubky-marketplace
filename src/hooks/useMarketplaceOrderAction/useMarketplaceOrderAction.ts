@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { orderAmountEntry } from '@/libs/commerce/bitcoin-payment-code';
 import { getCarrierById, OTHER_CARRIER_ID } from '@/libs/commerce/carriers';
+import { isUsdtRefundOrder, normalizeArbitrumTxHash } from '@/libs/commerce/usdt-refund';
 import type { MarketplaceOrder } from '@/services/marketplace/marketplace';
 import {
   formatOrderMajor,
@@ -20,10 +21,10 @@ export function useMarketplaceOrderAction(
 ) {
   const refundedMinor = paypalRefundedMinor(order);
   const entry = orderAmountEntry(order);
+  const isUsdt = isUsdtRefundOrder(order);
+  const rail = isUsdt ? 'usdt' : order.paymentMethod === 'paypal' ? 'paypal' : 'other';
   const form = useForm<MarketplaceOrderActionData>({
-    resolver: zodResolver(
-      marketplaceOrderActionSchemaFor(entry, refundedMinor, order.paymentMethod === 'paypal' ? 'paypal' : 'other'),
-    ),
+    resolver: zodResolver(marketplaceOrderActionSchemaFor(entry, refundedMinor, rail)),
     defaultValues: marketplaceOrderActionDefaults,
     mode: 'onChange',
   });
@@ -77,7 +78,7 @@ export function useMarketplaceOrderAction(
           // recorded total, never below what PayPal already refunded.
           succeeded = await actOnOrder(order, 'refund.record_external', {
             amountMinor: refundedMinor + majorToMinor(data.amount, entry.exponent),
-            transactionId: data.transactionId,
+            transactionId: isUsdt ? normalizeArbitrumTxHash(data.transactionId) : data.transactionId,
           });
           break;
         case 'review':

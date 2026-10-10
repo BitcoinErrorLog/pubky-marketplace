@@ -1216,6 +1216,10 @@ export class MarketplaceTransactionService {
         return this.receiveReturn(actorPubky, command);
       case 'refund.record_external':
         return this.recordExternalRefund(actorPubky, command);
+      case 'refund.confirm_destination':
+        // USDT orders exist only on the durable service, so the sandbox has
+        // no refund address to confirm.
+        return failure('INVALID_COMMAND', 'The sandbox marketplace does not take USDT payments.');
       case 'review.create':
         return this.createReview(actorPubky, command);
       case 'review.update':

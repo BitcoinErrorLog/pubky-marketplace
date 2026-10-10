@@ -74,6 +74,7 @@ import { MarketplaceReauthDialog } from '@/organisms/Marketplace/MarketplaceReau
 import { MarketplaceSectionNav } from '@/organisms/Marketplace/MarketplaceSectionNav';
 import { MarketplaceSellerDigitalPanel } from '@/organisms/Marketplace/MarketplaceSellerDigitalPanel';
 import { MarketplaceUsdtPaymentSummary } from '@/organisms/Marketplace/MarketplaceUsdtPaymentSummary';
+import { MarketplaceUsdtRefundAddress } from '@/organisms/Marketplace/MarketplaceUsdtRefundAddress';
 import type { MarketplaceOrder, MarketplacePayment } from '@/services/marketplace/marketplace';
 import { useAuthStore } from '@/stores/auth/auth.store';
 import { useCommerceStore } from '@/stores/commerce/commerce.store';
@@ -563,6 +564,12 @@ export function MarketplaceOrders() {
                                 {REFUND_ORDER_NOTICES[notice]}
                               </Typography>
                             ))}
+                            <MarketplaceUsdtRefundAddress
+                              order={order}
+                              isBuyer={isBuyer}
+                              paymentInReview={payment?.state === 'manual_review'}
+                              actOnOrder={actOnOrder}
+                            />
                             {isBuyer && order.fulfillment === 'digital' && (
                               <MarketplaceOrderDigitalPanel order={order} onChanged={refresh} />
                             )}

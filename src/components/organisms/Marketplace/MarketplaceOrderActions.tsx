@@ -13,7 +13,7 @@ import { FORM_LABEL_CLASSES } from '@/config/forms';
 import { CommerceController } from '@/controllers/commerce/commerce';
 import { useMarketplaceOrderAction } from '@/hooks/useMarketplaceOrderAction/useMarketplaceOrderAction';
 import type { MarketplaceOrderActionData } from '@/hooks/useMarketplaceOrderAction/useMarketplaceOrderAction.types';
-import { paypalRefundedMinor } from '@/hooks/useMarketplaceOrderAction/useMarketplaceOrderAction.types';
+import { majorToMinor, paypalRefundedMinor } from '@/hooks/useMarketplaceOrderAction/useMarketplaceOrderAction.types';
 import { usePickupOrderActions } from '@/hooks/usePickupOrderActions/usePickupOrderActions';
 import { orderAmountEntry } from '@/libs/commerce/bitcoin-payment-code';
 import { OTHER_CARRIER_ID, SHIPPING_CARRIERS } from '@/libs/commerce/carriers';
@@ -21,6 +21,7 @@ import { DIGITAL_ORDER_COPY, DIGITAL_SELLER_COPY, isInstantDigitalDeliveryKind }
 import { formatCommerceMoney } from '@/libs/commerce/format';
 import { formatBitcoinAmount } from '@/libs/commerce/pricing';
 import { isUsdtFulfilmentBlocked, PAYMENT_NOT_FINAL_COPY } from '@/libs/commerce/usdt-buyer-status';
+import { formatUsdtParity, isUsdtRefundOrder, USDT_REFUND_COPY } from '@/libs/commerce/usdt-refund';
 import type { CommerceReviewModelSchema } from '@/models/commerce/commerce.schema';
 import { ControlledInputField } from '@/molecules/ControlledInputField/ControlledInputField';
 import { ControlledTextareaField } from '@/molecules/ControlledTextareaField/ControlledTextareaField';
@@ -147,6 +148,16 @@ export function MarketplaceOrderActions({
   const refundedMinor = paypalRefundedMinor(order);
   const amountEntry = orderAmountEntry(order);
   const isPaypal = order.paymentMethod === 'paypal';
+  const isUsdt = isUsdtRefundOrder(order);
+  // A USDT refund goes to the address the buyer confirmed; the service refuses
+  // a record without one, so the seller is asked to wait rather than to fail.
+  const usdtRefundAddress = isUsdt ? (order.refundDestination?.address ?? null) : null;
+  const awaitingUsdtRefundAddress = isUsdt && canRecordRefund && usdtRefundAddress === null;
+  const refundAmountValue = useWatch({ control: action.form.control, name: 'amount' });
+  const usdtRefundAmount =
+    isUsdt && actionType === 'refund' && /^\d+(?:\.\d{1,2})?$/.test(refundAmountValue)
+      ? formatUsdtParity({ ...order.total, amountMinor: majorToMinor(refundAmountValue, order.total.exponent) })
+      : null;
   const amountLabel = amountEntry.unitLabel === 'USD' ? 'Amount (USD)' : `Amount (${amountEntry.unitLabel})`;
   const refundedMoney =
     amountEntry.unitLabel === '₿'
@@ -297,7 +308,12 @@ export function MarketplaceOrderActions({
           </Button>
         )}
         {canRecordRefund && (
-          <Button size="sm" className="rounded-full" onClick={() => begin('refund')}>
+          <Button
+            size="sm"
+            className="rounded-full"
+            disabled={awaitingUsdtRefundAddress}
+            onClick={() => begin('refund')}
+          >
             Record refund
           </Button>
         )}
@@ -346,6 +362,11 @@ export function MarketplaceOrderActions({
       {!isBuyer && order.state === 'return_approved' && order.fulfillment === 'pickup' && (
         <p className="mt-2 text-xs text-muted-foreground" data-testid="mark-return-received-hint">
           Press when the buyer has brought it back
+        </p>
+      )}
+      {awaitingUsdtRefundAddress && (
+        <p className="mt-2 text-xs text-muted-foreground" data-testid="usdt-refund-address-hint">
+          {USDT_REFUND_COPY.sellerWaiting}
         </p>
       )}
       {canRecordRefund && isPaypal && refundedMinor === 0 && (
@@ -437,11 +458,27 @@ export function MarketplaceOrderActions({
               label={`Refunded outside PayPal (${order.total.currency})`}
             />
           )}
+          {actionType === 'refund' && usdtRefundAddress && (
+            <div className="grid gap-1" data-testid="refund-usdt-destination">
+              <Typography as="p" className="text-sm text-muted-foreground">
+                {USDT_REFUND_COPY.recordHint}
+              </Typography>
+              <Typography as="p" className="font-mono text-sm break-all" data-sentry-mask>
+                {usdtRefundAddress}
+              </Typography>
+              {usdtRefundAmount && (
+                <Typography as="p" className="text-sm text-muted-foreground">
+                  Amount to send: {usdtRefundAmount}
+                </Typography>
+              )}
+            </div>
+          )}
           {actionType === 'refund' && (
             <ControlledInputField
               name="transactionId"
               control={action.form.control}
               label={externalRefundReferenceLabel(order.paymentMethod)}
+              placeholder={isUsdt ? '0x…' : undefined}
             />
           )}
           {['review', 'review_edit'].includes(actionType) && (
@@ -584,6 +621,8 @@ function externalRefundReferenceLabel(paymentMethod: MarketplaceOrder['paymentMe
       return 'External Bitcoin transaction reference';
     case 'paypal':
       return 'PayPal refund transaction id';
+    case 'usdt':
+      return USDT_REFUND_COPY.referenceLabel;
     case 'stripe':
       return 'External payment reference';
     default:

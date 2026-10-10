@@ -1442,3 +1442,32 @@ describe('MarketplaceOrders USDT orders', () => {
     expect(container).not.toHaveTextContent(/USDT|Arbitrum/);
   });
 });
+
+describe('MarketplaceOrders USDT refund address', () => {
+  beforeEach(() => {
+    ordersState.currentUserPubky = CURRENT_USER;
+    ordersState.adapterMode = 'transaction-service';
+    ordersState.needsSession = false;
+    ordersState.error = null;
+    useMarketplaceDisplayStore.setState({ showFxEstimate: false, measurementSystem: null });
+    window.history.replaceState(null, '', '/marketplace/orders');
+  });
+
+  it('shows the refund address only on a USDT order, to the buyer and the seller', async () => {
+    ordersState.orders = [
+      orderView('return_approved', 'Bought USDT boots', 'buyer', { paymentMethod: 'usdt', paymentAsset: 'USDT' }),
+      orderView('return_approved', 'Sold USDT boots', 'seller', { paymentMethod: 'usdt', paymentAsset: 'USDT' }),
+      orderView('return_approved', 'Bought Bitcoin boots', 'buyer', { paymentMethod: 'bitcoin' }),
+      orderView('return_approved', 'Bought PayPal boots', 'buyer', { paymentMethod: 'paypal' }),
+    ];
+
+    render(<MarketplaceOrders />);
+    await userEvent.setup().click(await screen.findByRole('tab', { name: /^All/ }));
+
+    await waitFor(() => expect(screen.getByText('Bought USDT boots × 1')).toBeInTheDocument());
+    expect(screen.getAllByTestId('usdt-refund-buyer')).toHaveLength(1);
+    expect(screen.getAllByTestId('usdt-refund-seller')).toHaveLength(1);
+    expect(screen.getByText('Bought Bitcoin boots × 1')).toBeInTheDocument();
+    expect(screen.getByText('Bought PayPal boots × 1')).toBeInTheDocument();
+  });
+});

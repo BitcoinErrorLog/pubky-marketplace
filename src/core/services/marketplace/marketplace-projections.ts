@@ -14,6 +14,7 @@ import {
   orderStateSchema,
   PARTIAL_REFUND_ORDER_STATE,
 } from '@/libs/commerce/transaction-contracts';
+import { refundDestinationFieldsShape } from '@/libs/commerce/usdt-refund';
 import { usdtSettlementFieldsShape } from '@/libs/commerce/usdt-settlement-contract';
 import { ServerErrorCode } from '@/libs/error/error.codes';
 import { Err } from '@/libs/error/error.factories';
@@ -638,6 +639,9 @@ export const marketplaceOrderProjectionSchema = z
     // Finality of a USDT payment (`pending | final | reverted`): gates physical
     // fulfilment only. One pinned contract in `usdt-settlement-contract.ts`.
     ...usdtSettlementFieldsShape,
+    // Participant-only USDT refund address (S6) and the buyer's paying
+    // address when the service knows it. Tolerant and display-only.
+    ...refundDestinationFieldsShape,
     fiatCheckoutUrl: z.string().nullable().optional(),
     // How the bound fiat rail is verified: Stripe is `processor` (the
     // service checks with the seller's restricted key), PayPal is

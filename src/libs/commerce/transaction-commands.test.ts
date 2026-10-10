@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CONFIRM_REFUND_DESTINATION_WIRE_COMMAND,
+  REFUND_FIXTURE_ADDRESS,
+} from '@/test/fixtures/commerce/usdt-refund.wire';
+import {
   asDigitalDeliveryCommandResult,
   asPickupDetailsCommandResult,
   clearDigitalDeliveryCommandSchema,
   clearPickupDetailsCommandSchema,
   confirmPickupCommandSchema,
+  confirmRefundDestinationCommandSchema,
   createMarketplaceCheckoutCommandSchema,
   createReviewCommandSchema,
   deliverDigitalCommandSchema,
@@ -22,7 +27,7 @@ import {
   setPickupDetailsCommandSchema,
   updateReviewCommandSchema,
 } from './transaction-commands';
-import { toSnakeCaseWire } from './wire-casing';
+import { toCamelCaseWire, toSnakeCaseWire } from './wire-casing';
 
 const ORDER_ID = '018f47d2-6a27-7c23-a62f-000000000720';
 
@@ -824,6 +829,42 @@ describe('offer.checkout fulfillment and address rules (mirrors the service vali
   it('rejects a pickup award that presents an address', () => {
     expect(
       offerCheckoutCommandSchema.safeParse(offerCheckout({ fulfillment: 'pickup', deliveryAddress: address })).success,
+    ).toBe(false);
+  });
+});
+
+describe('confirmRefundDestinationCommandSchema (S6 wire contract)', () => {
+  const command = (address: unknown, extra: Record<string, unknown> = {}) => ({
+    ...(toCamelCaseWire(CONFIRM_REFUND_DESTINATION_WIRE_COMMAND) as Record<string, unknown>),
+    payload: { orderId: ORDER_ID, address, ...extra },
+  });
+
+  it('round-trips the pinned snake_case body and is part of the command union', () => {
+    const parsed = confirmRefundDestinationCommandSchema.parse(
+      toCamelCaseWire(CONFIRM_REFUND_DESTINATION_WIRE_COMMAND),
+    );
+    expect(toSnakeCaseWire(parsed)).toEqual(CONFIRM_REFUND_DESTINATION_WIRE_COMMAND);
+    expect(marketplaceCommandSchema.parse(parsed).kind).toBe('refund.confirm_destination');
+  });
+
+  it('trims the address and accepts a lowercase one', () => {
+    expect(confirmRefundDestinationCommandSchema.parse(command(`  ${REFUND_FIXTURE_ADDRESS} `)).payload.address).toBe(
+      REFUND_FIXTURE_ADDRESS,
+    );
+    expect(confirmRefundDestinationCommandSchema.safeParse(command(REFUND_FIXTURE_ADDRESS.toLowerCase())).success).toBe(
+      true,
+    );
+  });
+
+  it('refuses a bad checksum, a wrong length, a non-string and extra payload keys', () => {
+    expect(
+      confirmRefundDestinationCommandSchema.safeParse(command(`0x${REFUND_FIXTURE_ADDRESS.slice(2).replace('a', 'A')}`))
+        .success,
+    ).toBe(false);
+    expect(confirmRefundDestinationCommandSchema.safeParse(command('0x1234')).success).toBe(false);
+    expect(confirmRefundDestinationCommandSchema.safeParse(command(42)).success).toBe(false);
+    expect(
+      confirmRefundDestinationCommandSchema.safeParse(command(REFUND_FIXTURE_ADDRESS, { network: 'base' })).success,
     ).toBe(false);
   });
 });

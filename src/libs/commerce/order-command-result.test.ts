@@ -140,6 +140,22 @@ describe('orderShowsCommandResult', () => {
     ).toBe(true);
   });
 
+  it('matches a refund address the buyer just confirmed, ignoring address case', () => {
+    const address = '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed';
+    const landed = order({ state: 'paid', refundDestination: { address } });
+    expect(orderShowsCommandResult(landed, 'refund.confirm_destination', { address })).toBe(true);
+    expect(orderShowsCommandResult(landed, 'refund.confirm_destination', { address: address.toLowerCase() })).toBe(
+      true,
+    );
+    expect(
+      orderShowsCommandResult(landed, 'refund.confirm_destination', {
+        address: '0xfB6916095ca1df60bB79Ce92cE3Ea74c37c5d359',
+      }),
+    ).toBe(false);
+    expect(orderShowsCommandResult(order({ state: 'paid' }), 'refund.confirm_destination', { address })).toBe(false);
+    expect(orderShowsCommandResult(landed, 'refund.confirm_destination', {})).toBe(false);
+  });
+
   it('does not treat an unrecognized command as applied', () => {
     expect(orderShowsCommandResult(order({ state: 'delivered' }), 'fulfillment.confirm_pickup', {})).toBe(false);
   });
