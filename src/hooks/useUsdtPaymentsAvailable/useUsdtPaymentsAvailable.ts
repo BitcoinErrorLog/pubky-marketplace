@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { CommerceController } from '@/controllers/commerce/commerce';
+import { useUsdtPaymentsCapability } from '@/hooks/useUsdtPaymentsCapability/useUsdtPaymentsCapability';
 
 /**
  * The single gate for every new USDT offer (docs/ecommerce/usdt-payments.md):
@@ -13,20 +12,5 @@ import { CommerceController } from '@/controllers/commerce/commerce';
  * `enabled = false` and the capability is never read.
  */
 export function useUsdtPaymentsAvailable(enabled = true): boolean {
-  const [available, setAvailable] = useState(false);
-  useEffect(() => {
-    if (!enabled) return;
-    let active = true;
-    CommerceController.fetchUsdtPaymentsAvailable()
-      .then((next) => {
-        if (active) setAvailable(next);
-      })
-      .catch(() => {
-        if (active) setAvailable(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [enabled]);
-  return enabled && available;
+  return useUsdtPaymentsCapability(enabled).status === 'available';
 }

@@ -31,7 +31,7 @@ Listings stay priced in `USD/2` or `BTC/8`; USDT is a payment method, never a pr
 
 ## Gated surfaces
 
-- The seller's "How you get paid" settings render a USDT card (below) only when `useUsdtPaymentsAvailable()` is true.
+- The seller's "How you get paid" settings render a USDT card (below) when `useUsdtPaymentsCapability()` reports `available`, or `unreadable` (the Shop flag is on but `/health` could not be read), in which case the card says USDT can't be checked right now instead of disappearing. With the Shop flag off, or `/health` answering without the key, there is no card.
 - `availablePaymentMethods(config, { usdtPaymentsAvailable })` offers `usdt` only when the gate is on AND the seller's public config carries `usdtAvailable: true`. Callers that omit the option get today's result.
 - `getUsdtPaymentsEnabled()` (`@/config/commerce`) reads the runtime flag.
 - The `/health` capability read sits beside `getDigitalDeliveryCapability` in `MarketplaceGatewayService`.
@@ -52,14 +52,14 @@ Listings stay priced in `USD/2` or `BTC/8`; USDT is a payment method, never a pr
 
 **States and copy.**
 
-| State         | Shown                                                              | Action                                                  |
-| ------------- | ------------------------------------------------------------------ | ------------------------------------------------------- |
-| `ready`       | "USDT ready"; the Accept USDT toggle is usable                     | none                                                    |
-| `reconnect`   | "USDT needs Bitkit. Pubky Ring can't share a USDT address."        | "Add USDT in Bitkit" (reconnect iframe)                 |
-| `setup`       | the same line                                                      | "Set up Bitkit payments" (setup iframe, as for Bitcoin) |
-| `unavailable` | the same line, "USDT can't be checked right now. Try again later." | "Check again" (re-reads the own configuration only)     |
+| State         | Shown                                                              | Action                                                       |
+| ------------- | ------------------------------------------------------------------ | ------------------------------------------------------------ |
+| `ready`       | "USDT ready"; the Accept USDT toggle is usable                     | none                                                         |
+| `reconnect`   | "USDT needs Bitkit. Pubky Ring can't share a USDT address."        | "Add USDT in Bitkit" (reconnect iframe)                      |
+| `setup`       | the same line                                                      | "Set up Bitkit payments" (setup iframe, as for Bitcoin)      |
+| `unavailable` | the same line, "USDT can't be checked right now. Try again later." | "Check again" (re-reads the own configuration and `/health`) |
 
-The toggle stays disabled until `ready` (it can always be switched off), and the seller's consent saves with the rest of the form. A save sends `usdt_enabled` whenever the service reported it or the gate is on, so saving PayPal or Bitcoin never resets the consent; with the service flag off the key is never sent (the service refuses unknown fields).
+The toggle stays disabled until `ready` (it can always be switched off), and the seller's consent saves with the rest of the form. The own configuration is the single source of USDT readiness. A save sends `usdt_enabled` only when the own configuration reported it (the service reports `usdt_enabled`, `usdt_setup` and `usdt_setup_action` together, only while its flag is on), so saving PayPal or Bitcoin never resets the consent. A service without those keys (flag off, or S1 deployed without S2) never receives the field, which it would refuse as unknown and fail the whole save.
 
 **Reconnect.** `CommerceController.getPaykitReconnectUrl` builds `GET <setup origin>/setup/reconnect?creator&return_to&state` beside the setup URL builder. Reconnect requires `creator` and upstream `/setup` rejects it, so reconnect always sends it. It runs in the same embedded iframe and `paykit-setup-callback` listener as setup. On completion the Shop re-reads the own configuration and closes the dialog only when the service now reports `ready`; otherwise it says Bitkit did not confirm a USDT address and offers Retry. The Shop never receives or displays the USDT address: it lives in Bitkit and paykit-server.
 
