@@ -26,7 +26,7 @@ import { Typography } from '@/atoms/Typography/Typography';
 import { getLocksUrl } from '@/config/commerce';
 import { CommerceController } from '@/controllers/commerce/commerce';
 import { useMarketplaceSellerPaymentConfig } from '@/hooks/useMarketplaceSellerPaymentConfig/useMarketplaceSellerPaymentConfig';
-import { useUsdtPaymentsAvailable } from '@/hooks/useUsdtPaymentsAvailable/useUsdtPaymentsAvailable';
+import { useUsdtPaymentsCapability } from '@/hooks/useUsdtPaymentsCapability/useUsdtPaymentsCapability';
 import { Tether } from '@/icons';
 import { type SellerPaymentConfigOwnView } from '@/libs/commerce/payment-methods';
 import { deriveUsdtSellerReadiness } from '@/libs/commerce/usdt-seller-setup';
@@ -167,7 +167,10 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
   const refreshPaymentConfig = payments.refresh;
   const commitAccountClaimed = payments.commitAccountClaimed;
   const refreshOwnConfig = payments.refreshOwnConfig;
-  const usdtPaymentsAvailable = useUsdtPaymentsAvailable();
+  const { status: usdtCapability, recheck: recheckUsdtCapability } = useUsdtPaymentsCapability();
+  // An unreadable `/health` keeps the card, in its "can't be checked right now"
+  // state, instead of hiding USDT from a seller who may have it.
+  const showUsdtCard = usdtCapability === 'available' || usdtCapability === 'unreadable';
   const paykitIframeRef = useRef<HTMLIFrameElement>(null);
   const paykitSetupGenerationRef = useRef<string | null>(null);
   const [paykitSetupOpen, setPaykitSetupOpen] = useState(false);
@@ -296,11 +299,12 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
       stripePaymentLink: serverConfig.stripePaymentLink ?? '',
       stripeRestrictedKey: '',
       paypalMerchantEmail: railDraft.paypal ?? serverConfig.paypalMerchantEmail ?? '',
-      // The service accepts the field only while its USDT flag is on; sending the
-      // stored value keeps a PayPal or Bitcoin save from resetting the consent.
-      ...(usdtPaymentsAvailable || serverConfig.usdtEnabled !== undefined
-        ? { usdtEnabled: railDraft.usdt ?? serverConfig.usdtEnabled ?? false }
-        : {}),
+      // The service accepts the field only while its USDT flag is on, and it
+      // reports `usdt_enabled` on the own config exactly then. Sending it on
+      // any other signal would make a service without it refuse the whole save,
+      // PayPal and Bitcoin included. Sending the stored value keeps those saves
+      // from resetting the consent.
+      ...(serverConfig.usdtEnabled !== undefined ? { usdtEnabled: railDraft.usdt ?? serverConfig.usdtEnabled } : {}),
     });
     if (saved) onSaved?.(saved);
   };
@@ -522,7 +526,7 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
         )}
       </MethodCard>
 
-      {usdtPaymentsAvailable && (
+      {showUsdtCard && (
         <MethodCard
           icon={Tether}
           title="USDT"
@@ -543,7 +547,9 @@ export function MarketplaceGetPaidSettings({ locksConnect, onSaved }: Marketplac
                 onReconnect={() => openPaykitSetup('reconnect')}
                 onRetry={() => {
                   setIsRetryingUsdt(true);
-                  void refreshOwnConfig().finally(() => setIsRetryingUsdt(false));
+                  void Promise.all([refreshOwnConfig(), recheckUsdtCapability()]).finally(() =>
+                    setIsRetryingUsdt(false),
+                  );
                 }}
                 isRetrying={isRetryingUsdt}
                 canOpenBitkit={Boolean(marketplaceSession && currentUserPubky)}

@@ -10,6 +10,7 @@ import { setSocialHost } from '@/test-utils/social-host';
 import { toCamelCaseWire } from '@/libs/commerce/wire-casing';
 import { sellerPaymentConfigOwnViewSchema } from '@/libs/commerce/payment-methods';
 import {
+  USDT_SELLER_CONFIG_FLAG_OFF_WIRE,
   USDT_SELLER_CONFIG_READY_WIRE,
   USDT_SELLER_CONFIG_RECONNECT_WIRE,
   USDT_SELLER_CONFIG_SETUP_WIRE,
@@ -26,7 +27,7 @@ const view = vi.hoisted(() => ({
     connectUrl: null as string | null,
   },
   // USDT stays off (and the seller's own view carries no USDT keys) unless a scene opts in.
-  usdt: { available: false, ownView: null as Record<string, unknown> | null },
+  usdt: { available: false, unreadable: false, ownView: null as Record<string, unknown> | null },
 }));
 
 function setLocksConnect(partial: Partial<(typeof view)['locksConnect']> = {}) {
@@ -57,7 +58,10 @@ vi.mock('@/controllers/commerce/commerce', () => ({
     }),
     getPaykitSetupUrl: () => 'about:blank',
     getPaykitReconnectUrl: () => 'about:blank#reconnect',
-    fetchUsdtPaymentsAvailable: async () => view.usdt.available,
+    fetchUsdtPaymentsAvailable: async () => {
+      if (view.usdt.unreadable) throw new TypeError('health unreachable');
+      return view.usdt.available;
+    },
     getMyPaymentConfig: vi.fn(async () => ({
       bitcoinEnabled: true,
       stripePaymentLink: 'https://buy.stripe.com/test_fixture',
@@ -97,9 +101,10 @@ vi.mock('@/organisms/ContentLayout/ContentLayout', () => ({
 const USDT_VIEWPORT_DESKTOP = { width: 1440, height: 2300 };
 const USDT_VIEWPORT_MOBILE = { width: 390, height: 3400 };
 
-function setUsdt(wire: { payment_config: object } | null) {
+function setUsdt(wire: { payment_config: object } | null, { unreadable = false } = {}) {
   view.usdt = {
     available: wire !== null,
+    unreadable,
     ownView: wire
       ? (({ usdtEnabled, usdtSetup, usdtSetupAction }) => ({ usdtEnabled, usdtSetup, usdtSetupAction }))(
           sellerPaymentConfigOwnViewSchema.parse(toCamelCaseWire(wire.payment_config)),
@@ -241,6 +246,18 @@ describe('Marketplace payment settings — visual regression', () => {
     const screen = await renderForVRT(<MarketplacePaymentSettings />, { viewport: USDT_VIEWPORT_DESKTOP });
     await expect.element(screen.getByTestId('usdt-seller-setup')).toBeVisible();
     await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot(baseline);
+    setLocksConnect();
+  });
+
+  it('keeps the USDT card, as "can\'t be checked right now", when the service capability cannot be read', async () => {
+    setLocksConnect({ connectedCreator: 'gy1wnkhfwezwdnawnur1bc3kw1x3jf5ggjj3cm37e31i5ntq3pco' });
+    setUsdt(USDT_SELLER_CONFIG_FLAG_OFF_WIRE, { unreadable: true });
+
+    const screen = await renderForVRT(<MarketplacePaymentSettings />, { viewport: USDT_VIEWPORT_DESKTOP });
+    await expect.element(screen.getByTestId('usdt-readiness-unavailable')).toBeVisible();
+    await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot(
+      'payment-settings-usdt-health-unreadable-desktop',
+    );
     setLocksConnect();
   });
 

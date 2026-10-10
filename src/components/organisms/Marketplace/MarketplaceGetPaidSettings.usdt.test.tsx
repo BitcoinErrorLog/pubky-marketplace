@@ -136,11 +136,45 @@ describe('MarketplaceGetPaidSettings USDT', () => {
       });
     });
 
-    it('stays hidden when the capability read fails', async () => {
-      mocked.fetchUsdtPaymentsAvailable.mockRejectedValue(new Error('health unreachable'));
+    it('stays hidden when the Shop flag is on but the service reports no USDT', async () => {
+      mocked.fetchUsdtPaymentsAvailable.mockResolvedValue(false);
+      mocked.getMyPaymentConfig.mockResolvedValue(fromWire(USDT_SELLER_CONFIG_FLAG_OFF_WIRE));
       await renderSettings();
       expect(methodTitles()).toEqual(['PayPal', 'Bitcoin wallet']);
       expect(screen.queryByText(/USDT/)).not.toBeInTheDocument();
+    });
+
+    it('says USDT cannot be checked right now, instead of hiding it, when the capability read fails', async () => {
+      mocked.fetchUsdtPaymentsAvailable.mockRejectedValue(new Error('health unreachable'));
+      mocked.getMyPaymentConfig.mockResolvedValue(fromWire(USDT_SELLER_CONFIG_FLAG_OFF_WIRE));
+      await renderSettings();
+
+      const panel = await screen.findByTestId('usdt-readiness-unavailable');
+      expect(methodTitles()).toEqual(['PayPal', 'Bitcoin wallet', 'USDT']);
+      expect(panel).toHaveTextContent("USDT can't be checked right now");
+      expect(screen.getByRole('switch', { name: 'Accept USDT' })).toBeDisabled();
+      expect(screen.queryByRole('button', { name: /Add USDT in Bitkit/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Set up Bitkit payments/ })).not.toBeInTheDocument();
+      expect(screen.getByTestId('payment-method-status-usdt')).toHaveTextContent('Needs attention');
+    });
+
+    it('re-reads the capability and the configuration on Check again, and recovers when /health answers', async () => {
+      mocked.fetchUsdtPaymentsAvailable.mockRejectedValueOnce(new Error('health unreachable')).mockResolvedValue(true);
+      mocked.getMyPaymentConfig
+        .mockResolvedValueOnce(fromWire(USDT_SELLER_CONFIG_FLAG_OFF_WIRE))
+        .mockResolvedValue(fromWire(USDT_SELLER_CONFIG_READY_WIRE));
+      await renderSettings();
+      await userEvent.click(await screen.findByRole('button', { name: /Check again/ }));
+
+      expect(await screen.findByTestId('usdt-readiness-ready')).toBeInTheDocument();
+      expect(mocked.fetchUsdtPaymentsAvailable).toHaveBeenCalledTimes(2);
+      expect(mocked.getMyPaymentConfig).toHaveBeenCalledTimes(2);
+    });
+
+    it('shows what the service reports when /health is unreadable but the own configuration answered', async () => {
+      mocked.fetchUsdtPaymentsAvailable.mockRejectedValue(new Error('health unreachable'));
+      await renderSettings();
+      expect(await screen.findByTestId('usdt-readiness-ready')).toHaveTextContent('USDT ready');
     });
 
     it('adds a USDT card after Bitcoin when the gate is on', async () => {
@@ -208,7 +242,7 @@ describe('MarketplaceGetPaidSettings USDT', () => {
       expect(screen.getByTestId('payment-method-status-usdt')).toHaveTextContent('Needs attention');
     });
 
-    it('re-reads only the stored configuration when the seller checks again', async () => {
+    it('re-reads the stored configuration, never the Paykit claim, when the seller checks again', async () => {
       mocked.getMyPaymentConfig
         .mockResolvedValueOnce(fromWire(USDT_SELLER_CONFIG_UNAVAILABLE_WIRE))
         .mockResolvedValue(fromWire(USDT_SELLER_CONFIG_READY_WIRE));
@@ -272,6 +306,63 @@ describe('MarketplaceGetPaidSettings USDT', () => {
       await renderSettings();
       await userEvent.click(await screen.findByRole('switch', { name: 'Accept USDT' }));
       await userEvent.click(screen.getAllByRole('button', { name: 'Save changes' }).at(-1)!);
+
+      await waitFor(() => expect(mocked.putMyPaymentConfig).toHaveBeenCalledTimes(1));
+      expect(mocked.putMyPaymentConfig.mock.calls[0]?.[0]).toStrictEqual({
+        bitcoinEnabled: true,
+        stripePaymentLink: null,
+        paypalMerchantEmail: 'seller@example.com',
+        usdtEnabled: true,
+      });
+    });
+
+    describe('the service has not reported the USDT keys', () => {
+      const bitcoinAndPaypalOnly = {
+        bitcoinEnabled: true,
+        stripePaymentLink: null,
+        paypalMerchantEmail: 'seller@example.com',
+      };
+
+      async function savePaypal() {
+        await renderSettings();
+        await screen.findByTestId('usdt-seller-setup');
+        await userEvent.click(screen.getAllByRole('button', { name: 'Save changes' })[0]);
+        await waitFor(() => expect(mocked.putMyPaymentConfig).toHaveBeenCalledTimes(1));
+      }
+
+      it('sends no usdtEnabled to a service with /health but without the own-config keys (S1 only)', async () => {
+        mocked.fetchUsdtPaymentsAvailable.mockResolvedValue(true);
+        mocked.getMyPaymentConfig.mockResolvedValue(fromWire(USDT_SELLER_CONFIG_FLAG_OFF_WIRE));
+        await savePaypal();
+
+        expect(screen.getByTestId('usdt-readiness-unavailable')).toBeInTheDocument();
+        expect(mocked.putMyPaymentConfig.mock.calls[0]?.[0]).toStrictEqual(bitcoinAndPaypalOnly);
+      });
+
+      it('sends no usdtEnabled while /health is unreadable and the own configuration has no USDT keys', async () => {
+        mocked.fetchUsdtPaymentsAvailable.mockRejectedValue(new Error('health unreachable'));
+        mocked.getMyPaymentConfig.mockResolvedValue(fromWire(USDT_SELLER_CONFIG_FLAG_OFF_WIRE));
+        await savePaypal();
+
+        expect(mocked.putMyPaymentConfig.mock.calls[0]?.[0]).toStrictEqual(bitcoinAndPaypalOnly);
+      });
+
+      it('sends no usdtEnabled when the Shop flag is on and the service has USDT off', async () => {
+        mocked.fetchUsdtPaymentsAvailable.mockResolvedValue(false);
+        mocked.getMyPaymentConfig.mockResolvedValue(fromWire(USDT_SELLER_CONFIG_FLAG_OFF_WIRE));
+        await renderSettings();
+        await userEvent.click(screen.getAllByRole('button', { name: 'Save changes' })[0]);
+        await waitFor(() => expect(mocked.putMyPaymentConfig).toHaveBeenCalledTimes(1));
+
+        expect(mocked.putMyPaymentConfig.mock.calls[0]?.[0]).toStrictEqual(bitcoinAndPaypalOnly);
+      });
+    });
+
+    it('sends the stored consent when the service reported the USDT keys, even if /health is unreadable', async () => {
+      mocked.fetchUsdtPaymentsAvailable.mockRejectedValue(new Error('health unreachable'));
+      await renderSettings();
+      await screen.findByTestId('usdt-seller-setup');
+      await userEvent.click(screen.getAllByRole('button', { name: 'Save changes' })[0]);
 
       await waitFor(() => expect(mocked.putMyPaymentConfig).toHaveBeenCalledTimes(1));
       expect(mocked.putMyPaymentConfig.mock.calls[0]?.[0]).toStrictEqual({
