@@ -19,7 +19,8 @@ import { useCommerceStore } from '@/stores/commerce/commerce.store';
 /**
  * The seller's "Get paid" configuration: stored rails (loaded from the
  * durable service) and the save action. Watch-only registration is the
- * Bitkit setup grant; `accountClaimed` is read from paykit-server.
+ * Bitkit setup grant; `accountClaimed` is read from the fork paykit-server,
+ * or from the Lock Server with `paykitServerApi=upstream`.
  */
 export function useMarketplaceSellerPaymentConfig() {
   const marketplaceSession = useCommerceStore((state) => state.marketplaceSession);

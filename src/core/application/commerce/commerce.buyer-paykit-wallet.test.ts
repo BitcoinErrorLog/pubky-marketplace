@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
+import * as commerceConfig from '@/config/commerce';
 import { PaykitMessagingService } from '@/services/paykit/paykit-messaging';
 import { CommerceApplication } from './commerce';
 
@@ -133,6 +134,36 @@ describe('CommerceApplication.fetchBuyerPaykitWallet', () => {
       receiverMarker.mockResolvedValue(true);
       await expect(CommerceApplication.fetchBuyerPaykitWallet(BUYER)).resolves.toBe('unverified');
       await expect(CommerceApplication.fetchBuyerPaykitWallet(BUYER)).resolves.toBe('payable');
+    });
+  });
+  describe('upstream Paykit Server: only the App Registry decides', () => {
+    beforeEach(() => {
+      vi.spyOn(commerceConfig, 'getPaykitServerApi').mockReturnValue('upstream');
+      receiverMarker.mockResolvedValue(true);
+    });
+
+    it('reports a Bitkit 2.6 buyer as payable', async () => {
+      sdk.publicStorageGet.mockResolvedValue(json(registry(true)));
+      await expect(CommerceApplication.fetchBuyerPaykitWallet(BUYER)).resolves.toBe('payable');
+      expect(receiverMarker).not.toHaveBeenCalled();
+    });
+
+    it('reports a buyer with only receiver markers as not payable', async () => {
+      sdk.publicStorageGet.mockResolvedValue(new Response('Not Found', { status: 404 }));
+      await expect(CommerceApplication.fetchBuyerPaykitWallet(BUYER)).resolves.toBe('not_payable');
+      expect(receiverMarker).not.toHaveBeenCalled();
+    });
+
+    it('reports a registry with no app taking payment requests, or of another version, as not payable', async () => {
+      sdk.publicStorageGet.mockResolvedValueOnce(json(registry(false)));
+      await expect(CommerceApplication.fetchBuyerPaykitWallet(BUYER)).resolves.toBe('not_payable');
+      sdk.publicStorageGet.mockResolvedValueOnce(json({ ...registry(true), version: 2 }));
+      await expect(CommerceApplication.fetchBuyerPaykitWallet(BUYER)).resolves.toBe('not_payable');
+    });
+
+    it('keeps a failed registry read unverified', async () => {
+      sdk.publicStorageGet.mockResolvedValue(new Response('Unavailable', { status: 503 }));
+      await expect(CommerceApplication.fetchBuyerPaykitWallet(BUYER)).resolves.toBe('unverified');
     });
   });
 });

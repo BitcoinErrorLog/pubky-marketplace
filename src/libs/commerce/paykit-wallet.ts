@@ -10,10 +10,11 @@ export const PAYKIT_APP_REGISTRY_PATH = '/pub/paykit/v0/app-registry.json';
 
 /**
  * Whether a buyer can receive a Bitcoin payment request from the Shop:
- * - `payable`: a Paykit receiver marker takes payment requests (Bitkit 2.5);
+ * - `payable`: a Paykit receiver marker takes payment requests (Bitkit 2.5),
+ *   or, with the upstream Paykit Server, the App Registry does (Bitkit 2.6+);
  * - `not_payable`: nothing published takes them;
  * - `unsupported`: the wallet takes them only on Paykit rc59+ (Bitkit 2.6+),
- *   which the Shop's Paykit server cannot reach yet;
+ *   which the fork Paykit server cannot reach (fork mode only);
  * - `unverified`: the registry could not be read, so a Bitkit 2.6 wallet
  *   cannot be ruled out; Bitcoin waits for a successful recheck.
  */
@@ -47,6 +48,23 @@ export function foundAppRegistryShowsNewWallet(json: unknown): boolean {
   if (!parsed.success) return true;
   return Object.values(parsed.data.apps).some(
     ({ capabilities }) => capabilities.private_payments && capabilities.payment_requests,
+  );
+}
+
+/**
+ * Upstream Paykit Server (rc11, `paykitServerApi=upstream`) delivers payment
+ * requests only to a wallet whose App Registry it can read: a v1 registry
+ * listing an app that takes payment requests over a private link. Receiver
+ * markers are not read, so a Bitkit 2.5 wallet is not payable, and a
+ * registry of another version or kind is not either.
+ */
+export function appRegistryTakesPaymentRequests(json: unknown): boolean {
+  const parsed = appRegistrySchema.safeParse(json);
+  return (
+    parsed.success &&
+    Object.values(parsed.data.apps).some(
+      ({ capabilities }) => capabilities.private_payments && capabilities.payment_requests,
+    )
   );
 }
 

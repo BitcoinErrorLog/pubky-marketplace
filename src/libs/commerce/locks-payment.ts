@@ -13,14 +13,21 @@ import type { MarketplacePayment } from '@/services/marketplace/marketplace-proj
  * the client) moves a payment forward.
  */
 
+/**
+ * A public Locks policy lives under `/pub/locks.app/` (the fork Lock Server)
+ * or `/pub/app.locks/` (pubky/locks rc10 and later, renamed in pubky/locks#50).
+ * Both are accepted in every mode: the path is the lock the seller published,
+ * so it is passed on unchanged and never rewritten to the other prefix.
+ */
 const POLICY_URI_PATTERN =
-  /^pubky:\/\/([ybndrfg8ejkmcpqxot1uwisza345h769]{52})\/(pub\/locks\.app\/[A-Za-z0-9_./-]+\.json)$/;
+  /^pubky:\/\/([ybndrfg8ejkmcpqxot1uwisza345h769]{52})\/(pub\/(?:locks\.app|app\.locks)\/[A-Za-z0-9_./-]+\.json)$/;
 
 /**
- * Converts a public Locks policy URI (`pubky://<creator>/pub/locks.app/<lock>.json`)
+ * Converts a public Locks policy URI (`pubky://<creator>/pub/<locks.app|app.locks>/<lock>.json`)
  * into the bare addressed form the transaction service's
- * `payment.register_locks` contract expects: `<creator>/pub/locks.app/<lock>.json`.
- * Returns null when the URI is not a well-formed Locks policy URI.
+ * `payment.register_locks` contract expects: `<creator>/pub/<locks.app|app.locks>/<lock>.json`,
+ * keeping the policy's own prefix. Returns null when the URI is not a
+ * well-formed Locks policy URI.
  */
 export function toBareLockResource(policyUri: string): string | null {
   const match = POLICY_URI_PATTERN.exec(policyUri);

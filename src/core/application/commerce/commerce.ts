@@ -11,6 +11,7 @@ import {
   COMMERCE_WATCH_ENDING_SOON_THRESHOLD_MS,
   getCommerceAdapterMode,
   getMarketplaceUrl,
+  getPaykitServerApi,
   getUsdtPaymentsEnabled,
   isDurableCommerceMode,
   isTransactionalCommerceMode,
@@ -64,6 +65,7 @@ import {
   stripForbiddenPublicReserveKeys,
 } from '@/libs/commerce/marketplace-records';
 import {
+  appRegistryTakesPaymentRequests,
   type BuyerPaykitWallet,
   foundAppRegistryShowsNewWallet,
   PAYKIT_APP_REGISTRY_PATH,
@@ -1400,9 +1402,11 @@ export class CommerceApplication {
    * longer answers on them. So a registry read that fails (anything but a
    * 404, already logged by the homeserver service) is `unverified`, never a
    * marker verdict. Rejects only when the marker read fails after the
-   * registry was ruled out.
+   * registry was ruled out. With `paykitServerApi=upstream` the registry
+   * alone decides (see {@link appRegistryTakesPaymentRequests}).
    */
   static async fetchBuyerPaykitWallet(buyerPubky: string): Promise<BuyerPaykitWallet> {
+    const upstream = getPaykitServerApi() === 'upstream';
     let registry: { found: false } | { found: true; json: unknown };
     try {
       registry = await HomeserverService.getJsonIfFound<unknown>({
@@ -1412,6 +1416,8 @@ export class CommerceApplication {
     } catch {
       return 'unverified';
     }
+    // Upstream Paykit delivers only to an App Registry wallet: markers never decide.
+    if (upstream) return registry.found && appRegistryTakesPaymentRequests(registry.json) ? 'payable' : 'not_payable';
     if (registry.found && foundAppRegistryShowsNewWallet(registry.json)) return 'unsupported';
     return (await PaykitMessagingService.hasPaymentRequestReceiver(buyerPubky)) ? 'payable' : 'not_payable';
   }
@@ -1471,8 +1477,31 @@ export class CommerceApplication {
     return await MarketplaceGatewayService.confirmFiatReceived(actorPubky, orderId);
   }
 
+  /**
+   * Whether Paykit holds the seller's watch-only setup. The fork answers on
+   * its public `GET /v0/accounts/{creator}`. Upstream Paykit has no such
+   * route, so `paykitServerApi=upstream` asks the Lock Server with the
+   * seller's own Locks frontend session; with no session, or when the Lock
+   * Server cannot reach Paykit, the state is unknown and this rejects rather
+   * than report a setup it has not seen.
+   */
   static async isPaykitAccountClaimed(pubky: string) {
-    return await MarketplacePaykitClaimService.isAccountClaimed(pubky);
+    if (getPaykitServerApi() !== 'upstream') return await MarketplacePaykitClaimService.isAccountClaimed(pubky);
+    const session = LocksFrontendSessionStore.restore(pubky);
+    if (!session) {
+      throw Err.auth(AuthErrorCode.UNAUTHORIZED, 'Connect the Lock Server to read the Paykit setup state.', {
+        service: ErrorService.Locks,
+        operation: 'isPaykitAccountClaimed',
+      });
+    }
+    const status = await LocksGatewayService.getCreatorPaykitSetupStatus(session.token);
+    if (status === 'unavailable') {
+      throw Err.server(ServerErrorCode.SERVICE_UNAVAILABLE, 'The Lock Server could not read the Paykit setup state.', {
+        service: ErrorService.Locks,
+        operation: 'isPaykitAccountClaimed',
+      });
+    }
+    return status === 'ready';
   }
 
   static async getMarketplaceReceipt(actorPubky: string, receiptId: string) {

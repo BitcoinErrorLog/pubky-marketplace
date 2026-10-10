@@ -622,7 +622,7 @@ export interface CommerceLocksCorrelationModelSchema {
   order_id: string;
   seller_pubky: string;
   bundle_id: string;
-  /** Public Locks policy URI (`pubky://<creator>/pub/locks.app/<lock>.json`). */
+  /** Public Locks policy URI (`pubky://<creator>/pub/<locks.app|app.locks>/<lock>.json`). */
   policy_uri: string;
   criterion_id: string;
   /** Guarded content path for the Lock Server proxy read, from the listing record. */

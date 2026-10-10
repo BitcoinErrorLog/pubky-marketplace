@@ -72,6 +72,10 @@ const creatorAuthorityStatusSchema = z.object({
   authorized: z.boolean(),
 });
 
+const creatorPaykitSetupStatusSchema = z
+  .object({ status: z.enum(['ready', 'setup_required', 'unavailable']) })
+  .strict();
+
 export type LocksVerificationLifecycle = z.infer<typeof lifecycleSchema>;
 export type LocksAccessCredential = z.infer<typeof accessCredentialSchema>;
 
@@ -82,6 +86,7 @@ export type LocksAccessCredential = z.infer<typeof accessCredentialSchema>;
  */
 export type LocksFrontendSession = z.infer<typeof frontendSessionSchema>;
 export type LocksCreatorAuthorityStatus = z.infer<typeof creatorAuthorityStatusSchema>;
+export type LocksCreatorPaykitSetupStatus = z.infer<typeof creatorPaykitSetupStatusSchema>['status'];
 
 let sdkModulePromise: Promise<LocksSdkModule> | null = null;
 
@@ -294,6 +299,34 @@ export class LocksGatewayService {
       });
     }
     return parsed.data;
+  }
+
+  /**
+   * Whether upstream Paykit Server holds the creator's watch-only setup
+   * (`GET /creator/paykit/setup-status`), asked by the Lock Server for the
+   * creator its frontend session names. `unavailable` means the Lock Server
+   * could not ask Paykit; it is not a setup verdict. The token is bearer
+   * material — callers must not log it.
+   */
+  static async getCreatorPaykitSetupStatus(sessionToken: string): Promise<LocksCreatorPaykitSetupStatus> {
+    const url = `${getLocksUrl()}/creator/paykit/setup-status`;
+    const response = await safeFetch(
+      url,
+      { method: 'GET', headers: { authorization: `Bearer ${sessionToken}` } },
+      ErrorService.Locks,
+      'getCreatorPaykitSetupStatus',
+    );
+    if (!response.ok) throw httpResponseToError(response, ErrorService.Locks, 'getCreatorPaykitSetupStatus', url);
+    const raw = await parseResponseOrThrow<unknown>(response, ErrorService.Locks, 'getCreatorPaykitSetupStatus', url);
+    const parsed = creatorPaykitSetupStatusSchema.safeParse(raw);
+    if (!parsed.success) {
+      throw Err.server(ServerErrorCode.INVALID_RESPONSE, 'Locks returned an invalid Paykit setup-status response.', {
+        service: ErrorService.Locks,
+        operation: 'getCreatorPaykitSetupStatus',
+        context: { statusCode: response.status },
+      });
+    }
+    return parsed.data.status;
   }
 
   /**

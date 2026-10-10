@@ -381,14 +381,15 @@ export const locksBundleIdSchema = z
 
 /**
  * The addressed public lock resource in the transaction service's bare form:
- * `<z-base-32 creator>/pub/locks.app/<52-char Crockford lock id>.json` — no
- * `pubky://` scheme and no `pubky` prefix.
+ * `<z-base-32 creator>/pub/<locks.app|app.locks>/<52-char Crockford lock id>.json`
+ * — no `pubky://` scheme and no `pubky` prefix. `locks.app` is the fork Lock
+ * Server's prefix, `app.locks` that of pubky/locks rc10 and later.
  */
 export const locksBareLockResourceSchema = z
   .string()
   .regex(
-    /^[ybndrfg8ejkmcpqxot1uwisza345h769]{52}\/pub\/locks\.app\/[0-9A-HJKMNP-TV-Z]{52}\.json$/,
-    'Expected <creator>/pub/locks.app/<lock-id>.json',
+    /^[ybndrfg8ejkmcpqxot1uwisza345h769]{52}\/pub\/(?:locks\.app|app\.locks)\/[0-9A-HJKMNP-TV-Z]{52}\.json$/,
+    'Expected <creator>/pub/locks.app/<lock-id>.json or <creator>/pub/app.locks/<lock-id>.json',
   );
 
 /**

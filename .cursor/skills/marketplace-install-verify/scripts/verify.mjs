@@ -750,6 +750,8 @@ async function sectionWiring() {
   if (state.shopRuntime && state.paykitFlavor) {
     const wanted = state.paykitFlavor === 'fork';
     check('wiring.shop-setup-creator-param', state.shopRuntime.paykitSetupCreatorParam === wanted, `Shop sends creator to Paykit /setup: ${wanted}`, `paykitSetupCreatorParam=${state.shopRuntime.paykitSetupCreatorParam}`, `set PUBKY_RUNTIME_PAYKIT_SETUP_CREATOR_PARAM=${wanted} on the Shop: the ${state.paykitFlavor} server ${wanted ? 'requires' : 'rejects'} it`);
+    const api = state.shopRuntime.paykitServerApi ?? 'fork';
+    check('wiring.shop-paykit-server-api', api === state.paykitFlavor, `Shop Paykit Server API: ${state.paykitFlavor}`, `paykitServerApi=${api}`, `set PUBKY_RUNTIME_PAYKIT_SERVER_API=${state.paykitFlavor} on the Shop to match the ${state.paykitFlavor} Paykit server`);
   }
 }
 

@@ -12,10 +12,19 @@ describe('toBareLockResource', () => {
     expect(locksBareLockResourceSchema.safeParse(bare).success).toBe(true);
   });
 
+  it('keeps the Locks rc10 /pub/app.locks/ prefix unchanged', () => {
+    const bare = toBareLockResource(`pubky://${CREATOR}/pub/app.locks/${LOCK_ID}.json`);
+    expect(bare).toBe(`${CREATOR}/pub/app.locks/${LOCK_ID}.json`);
+    expect(locksBareLockResourceSchema.safeParse(bare).success).toBe(true);
+    expect(lockPolicyCreator(`pubky://${CREATOR}/pub/app.locks/${LOCK_ID}.json`)).toBe(CREATOR);
+  });
+
   it('rejects URIs outside the Locks namespace', () => {
     expect(toBareLockResource(`pubky://${CREATOR}/pub/pubky.app/marketplace/v1/listings/x`)).toBeNull();
     expect(toBareLockResource(`https://${CREATOR}/pub/locks.app/${LOCK_ID}.json`)).toBeNull();
+    expect(toBareLockResource(`pubky://${CREATOR}/pub/locks.apps/${LOCK_ID}.json`)).toBeNull();
     expect(toBareLockResource('')).toBeNull();
+    expect(locksBareLockResourceSchema.safeParse(`${CREATOR}/pub/locks/${LOCK_ID}.json`).success).toBe(false);
   });
 });
 

@@ -366,6 +366,24 @@ describe('LocksGatewayService', () => {
     loggerError.mockRestore();
   });
 
+  it('reads the creator Paykit setup status with the frontend session bearer', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ status: 'setup_required' }));
+
+    await expect(LocksGatewayService.getCreatorPaykitSetupStatus('session-token')).resolves.toBe('setup_required');
+    expect(fetch).toHaveBeenCalledWith(
+      'https://locks.example.com/creator/paykit/setup-status',
+      expect.objectContaining({ method: 'GET', headers: { authorization: 'Bearer session-token' } }),
+    );
+  });
+
+  it('rejects a Paykit setup status outside the closed set', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ status: 'claimed' }));
+
+    await expect(LocksGatewayService.getCreatorPaykitSetupStatus('session-token')).rejects.toMatchObject({
+      code: 'INVALID_RESPONSE',
+    });
+  });
+
   it('reads the creator-keyed authority status without a bearer', async () => {
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ creator: `pubky${CREATOR}`, authorized: true }));
 
