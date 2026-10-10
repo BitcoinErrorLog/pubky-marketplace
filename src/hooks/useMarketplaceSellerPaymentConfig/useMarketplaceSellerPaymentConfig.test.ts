@@ -109,4 +109,115 @@ describe('useMarketplaceSellerPaymentConfig', () => {
     expect(vi.mocked(toast).mock.calls.at(-1)?.[0]?.description).not.toContain('SENTINEL_SELLER_PAYMENT_remove');
     expect(result.current).not.toHaveProperty('startClaim');
   });
+
+  describe('USDT consent and readiness', () => {
+    const usdtConfig = {
+      ...config,
+      usdtEnabled: true,
+      usdtSetup: 'ready' as const,
+      usdtSetupAction: null,
+    };
+
+    it('sends usdtEnabled only when the caller supplies it', async () => {
+      vi.mocked(CommerceController.getMyPaymentConfig).mockResolvedValue(config);
+      vi.mocked(CommerceController.isOwnPaykitAccountClaimed).mockResolvedValue(true);
+      vi.mocked(CommerceController.putMyPaymentConfig).mockReset().mockResolvedValue(config);
+      const { result } = renderHook(() => useMarketplaceSellerPaymentConfig());
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      const base = { bitcoinEnabled: true, stripePaymentLink: '', stripeRestrictedKey: '', paypalMerchantEmail: '' };
+
+      await act(async () => {
+        await result.current.save(base);
+      });
+      expect(vi.mocked(CommerceController.putMyPaymentConfig).mock.calls[0]?.[0]).not.toHaveProperty('usdtEnabled');
+
+      await act(async () => {
+        await result.current.save({ ...base, usdtEnabled: false });
+      });
+      expect(vi.mocked(CommerceController.putMyPaymentConfig).mock.calls[1]?.[0]).toMatchObject({ usdtEnabled: false });
+    });
+
+    it('keeps the stored consent when the Stripe key is removed, and omits it when the service sent none', async () => {
+      vi.mocked(CommerceController.isOwnPaykitAccountClaimed).mockResolvedValue(true);
+      vi.mocked(CommerceController.putMyPaymentConfig).mockReset().mockResolvedValue(usdtConfig);
+      vi.mocked(CommerceController.getMyPaymentConfig).mockResolvedValue(usdtConfig);
+      const withUsdt = renderHook(() => useMarketplaceSellerPaymentConfig());
+      await waitFor(() => expect(withUsdt.result.current.config).not.toBeNull());
+      await act(async () => {
+        await withUsdt.result.current.clearStripeKey();
+      });
+      expect(vi.mocked(CommerceController.putMyPaymentConfig).mock.calls[0]?.[0]).toMatchObject({ usdtEnabled: true });
+      withUsdt.unmount();
+
+      vi.mocked(CommerceController.getMyPaymentConfig).mockResolvedValue(config);
+      const without = renderHook(() => useMarketplaceSellerPaymentConfig());
+      await waitFor(() => expect(without.result.current.config).not.toBeNull());
+      await act(async () => {
+        await without.result.current.clearStripeKey();
+      });
+      expect(vi.mocked(CommerceController.putMyPaymentConfig).mock.calls[1]?.[0]).not.toHaveProperty('usdtEnabled');
+    });
+
+    it('refreshOwnConfig re-reads only the stored configuration, without a loading state or a claim lookup', async () => {
+      vi.mocked(CommerceController.isOwnPaykitAccountClaimed).mockReset().mockResolvedValue(true);
+      vi.mocked(CommerceController.getMyPaymentConfig)
+        .mockReset()
+        .mockResolvedValueOnce(config)
+        .mockResolvedValue(usdtConfig);
+      const { result } = renderHook(() => useMarketplaceSellerPaymentConfig());
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      let refreshed: unknown;
+      await act(async () => {
+        refreshed = await result.current.refreshOwnConfig();
+      });
+      expect(refreshed).toEqual(usdtConfig);
+      expect(result.current.config).toEqual(usdtConfig);
+      expect(result.current.isLoading).toBe(false);
+      expect(CommerceController.isOwnPaykitAccountClaimed).toHaveBeenCalledTimes(1);
+    });
+
+    it('refreshOwnConfig resolves null and keeps the last configuration when the read fails', async () => {
+      vi.mocked(CommerceController.isOwnPaykitAccountClaimed).mockReset().mockResolvedValue(true);
+      vi.mocked(CommerceController.getMyPaymentConfig)
+        .mockReset()
+        .mockResolvedValueOnce(usdtConfig)
+        .mockRejectedValueOnce(error('refresh'));
+      const { result } = renderHook(() => useMarketplaceSellerPaymentConfig());
+      await waitFor(() => expect(result.current.config).toEqual(usdtConfig));
+
+      let refreshed: unknown = 'unset';
+      await act(async () => {
+        refreshed = await result.current.refreshOwnConfig();
+      });
+      expect(refreshed).toBeNull();
+      expect(result.current.config).toEqual(usdtConfig);
+      expect(result.current.loadError).toBeNull();
+    });
+
+    it('lets only the latest overlapping refreshOwnConfig update the configuration', async () => {
+      vi.mocked(CommerceController.isOwnPaykitAccountClaimed).mockReset().mockResolvedValue(true);
+      let releaseStale: (value: typeof config) => void = () => {};
+      vi.mocked(CommerceController.getMyPaymentConfig)
+        .mockReset()
+        .mockResolvedValueOnce(config)
+        .mockImplementationOnce(() => new Promise((resolve) => (releaseStale = resolve)))
+        .mockResolvedValueOnce(usdtConfig);
+      const { result } = renderHook(() => useMarketplaceSellerPaymentConfig());
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      let stale: Promise<unknown> = Promise.resolve();
+      act(() => {
+        stale = result.current.refreshOwnConfig();
+      });
+      await act(async () => {
+        await result.current.refreshOwnConfig();
+      });
+      await act(async () => {
+        releaseStale({ ...config, bitcoinEnabled: false });
+        await stale;
+      });
+      expect(result.current.config).toEqual(usdtConfig);
+    });
+  });
 });

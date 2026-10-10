@@ -67,6 +67,35 @@ describe('CommerceController', () => {
     ).toThrow();
   });
 
+  it('binds a valid creator to the Paykit reconnect URL and rejects invalid input', () => {
+    const getPaykitReconnectUrl = vi
+      .spyOn(CommerceApplication, 'getPaykitReconnectUrl')
+      .mockReturnValue('https://paykit.example/setup/reconnect?creator=valid');
+
+    expect(
+      CommerceController.getPaykitReconnectUrl(
+        'https://app.example/marketplace/settings',
+        'opaque-state',
+        COMMERCE_FIXTURE_SELLER,
+      ),
+    ).toBe('https://paykit.example/setup/reconnect?creator=valid');
+    expect(getPaykitReconnectUrl).toHaveBeenCalledWith(
+      'https://app.example/marketplace/settings',
+      'opaque-state',
+      COMMERCE_FIXTURE_SELLER,
+    );
+    expect(() =>
+      CommerceController.getPaykitReconnectUrl(
+        'https://app.example/marketplace/settings',
+        'opaque-state',
+        'not-a-pubky',
+      ),
+    ).toThrow();
+    expect(() =>
+      CommerceController.getPaykitReconnectUrl('javascript:alert(1)', 'opaque-state', COMMERCE_FIXTURE_SELLER),
+    ).toThrow();
+  });
+
   it('maps catalog filters onto the server-side filters Nexus supports', async () => {
     const fetchCatalog = vi.spyOn(CommerceApplication, 'fetchCatalogListings').mockResolvedValue(undefined);
 

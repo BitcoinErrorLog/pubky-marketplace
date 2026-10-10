@@ -586,6 +586,7 @@ export class MarketplaceGatewayService {
       stripePaymentLink: string | null;
       stripeRestrictedKey?: string;
       paypalMerchantEmail: string | null;
+      usdtEnabled?: boolean;
     },
   ): Promise<SellerPaymentConfigOwnView> {
     this.assertDurableServiceOnly('putMyPaymentConfig');

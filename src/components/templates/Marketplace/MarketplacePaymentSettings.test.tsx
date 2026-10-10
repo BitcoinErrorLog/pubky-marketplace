@@ -47,6 +47,14 @@ vi.mock('@/controllers/commerce/commerce', () => ({
       url.searchParams.set('creator', creator);
       return url.toString();
     }),
+    getPaykitReconnectUrl: vi.fn((returnTo: string, state: string, creator: string) => {
+      const url = new URL('https://paykit.example/setup/reconnect');
+      url.searchParams.set('creator', creator);
+      url.searchParams.set('return_to', returnTo);
+      url.searchParams.set('state', state);
+      return url.toString();
+    }),
+    fetchUsdtPaymentsAvailable: vi.fn(),
     getMyPaymentConfig: vi.fn(),
     isOwnPaykitAccountClaimed: vi.fn(),
     putMyPaymentConfig: vi.fn(),
@@ -110,6 +118,7 @@ beforeEach(() => {
     bitcoinOfferAvailable: true,
     paypalAvailable: false,
   });
+  mockedController.fetchUsdtPaymentsAvailable.mockReset().mockResolvedValue(false);
   mockedController.getMyPaymentConfig.mockReset().mockResolvedValue(EMPTY_CONFIG);
   mockedController.isOwnPaykitAccountClaimed.mockReset().mockResolvedValue(false);
   mockedController.putMyPaymentConfig.mockReset().mockImplementation(async (input) => ({

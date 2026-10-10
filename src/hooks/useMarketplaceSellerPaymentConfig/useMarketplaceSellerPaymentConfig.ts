@@ -31,6 +31,7 @@ export function useMarketplaceSellerPaymentConfig() {
   // Reads overlap: a session refresh can still be in flight when Step 2's
   // claim read returns. The older read must not put the claim back.
   const loadGeneration = useRef(0);
+  const ownConfigGeneration = useRef(0);
 
   const load = useCallback(async (): Promise<boolean | null> => {
     const generation = ++loadGeneration.current;
@@ -59,6 +60,25 @@ export function useMarketplaceSellerPaymentConfig() {
     return claimed;
   }, []);
 
+  /**
+   * Re-reads only the stored configuration (no Paykit claim lookup, no loading
+   * state), so a USDT reconnect or a "can't be checked" retry can see the
+   * service's fresh readiness without blanking the page. Resolves null when
+   * the read fails or a newer config-only read superseded it.
+   */
+  const refreshOwnConfig = useCallback(async (): Promise<SellerPaymentConfigOwnView | null> => {
+    const generation = ++ownConfigGeneration.current;
+    try {
+      const next = await CommerceController.getMyPaymentConfig();
+      if (generation !== ownConfigGeneration.current) return null;
+      setConfig(next);
+      return next;
+    } catch (error) {
+      Logger.error('Failed to refresh the payment configuration', { error });
+      return null;
+    }
+  }, []);
+
   const commitAccountClaimed = useCallback((claimed: boolean) => {
     loadGeneration.current += 1;
     setAccountClaimed(claimed);
@@ -80,6 +100,8 @@ export function useMarketplaceSellerPaymentConfig() {
       stripePaymentLink: string;
       stripeRestrictedKey: string;
       paypalMerchantEmail: string;
+      /** Sent only when the service reports USDT; omitted keeps the request unchanged. */
+      usdtEnabled?: boolean;
     }): Promise<SellerPaymentConfigOwnView | false> => {
       const stripePaymentLink = input.stripePaymentLink.trim();
       const paypalMerchantEmail = input.paypalMerchantEmail.trim();
@@ -107,6 +129,7 @@ export function useMarketplaceSellerPaymentConfig() {
           // when a key exists to clear (an explicit user action in the form).
           ...(stripeRestrictedKey ? { stripeRestrictedKey } : {}),
           paypalMerchantEmail: paypalMerchantEmail || null,
+          ...(input.usdtEnabled === undefined ? {} : { usdtEnabled: input.usdtEnabled }),
         });
         setConfig(saved);
         toast({ title: 'Payment settings saved' });
@@ -137,6 +160,7 @@ export function useMarketplaceSellerPaymentConfig() {
         stripePaymentLink: config.stripePaymentLink,
         stripeRestrictedKey: '',
         paypalMerchantEmail: config.paypalMerchantEmail,
+        ...(config.usdtEnabled === undefined ? {} : { usdtEnabled: config.usdtEnabled }),
       });
       setConfig(saved);
       toast({ title: 'Payment key removed' });
@@ -166,6 +190,7 @@ export function useMarketplaceSellerPaymentConfig() {
     save,
     clearStripeKey,
     refresh: load,
+    refreshOwnConfig,
     commitAccountClaimed,
   };
 }
