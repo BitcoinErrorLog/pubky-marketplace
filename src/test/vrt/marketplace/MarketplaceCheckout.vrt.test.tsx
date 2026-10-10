@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { expectVrtSurface, parkVrtHover, renderForVRT, VRT_DENSE_CHROME_SCREENSHOT } from '@/test-utils/vrt';
 import { VRT_VIEWPORT_DESKTOP, VRT_VIEWPORT_MOBILE } from '@/test-utils/vrt.viewports';
 import { MarketplaceCheckout } from '@/templates/Marketplace/MarketplaceCheckout';
+import { useCommerceStore } from '@/stores/commerce/commerce.store';
 
 const VRT_VIEWPORT_LAPTOP = { width: 1280, height: 800 };
 
@@ -140,6 +141,7 @@ const view = vi.hoisted(() => ({
   hasInstantDigitalLine: false,
   hasManualDigitalLine: false,
   usdtAvailable: false,
+  usdtOnly: false,
 }));
 
 const savedAddresses = vi.hoisted(() => {
@@ -321,9 +323,9 @@ vi.mock('@/hooks/useMarketplaceSessionConnect/useMarketplaceSessionConnect', () 
 vi.mock('@/controllers/commerce/commerce', () => ({
   CommerceController: {
     getSellerPaymentConfig: vi.fn(async () => ({
-      bitcoinAvailable: true,
+      bitcoinAvailable: !view.usdtOnly,
       bitcoinOfferAvailable: true,
-      paypalAvailable: true,
+      paypalAvailable: !view.usdtOnly,
       usdtAvailable: view.usdtAvailable,
     })),
     fetchUsdtPaymentsAvailable: vi.fn(async () => view.usdtAvailable),
@@ -364,6 +366,8 @@ beforeEach(async () => {
   view.hasInstantDigitalLine = false;
   view.hasManualDigitalLine = false;
   view.usdtAvailable = false;
+  view.usdtOnly = false;
+  useCommerceStore.getState().reset();
   window.history.replaceState(null, '', '/marketplace/checkout');
 });
 
@@ -580,6 +584,47 @@ describe('Marketplace checkout — visual regression', () => {
       }
     });
     await captureCheckout('checkout-usdt-offered-desktop');
+  });
+
+  it('stops offering USDT after the service refused it for this seller at desktop viewport', async () => {
+    const { singleSeller } = await fixtures;
+    view.items = singleSeller;
+    view.adapterMode = 'transaction-service';
+    view.deployEnv = 'production';
+    view.hasMarketplaceSession = true;
+    view.usdtAvailable = true;
+    useCommerceStore.getState().setUsdtRefusal(singleSeller[0].listing.record.ownerPubky, 'usdt_unavailable');
+
+    await renderForVRT(<MarketplaceCheckout />, { viewport: VRT_VIEWPORT_DESKTOP });
+    await vi.waitFor(() => {
+      if (!document.querySelector('[data-testid="marketplace-checkout-method-bitcoin"]')) {
+        throw new Error('The payment methods have not loaded yet.');
+      }
+    });
+    expect(document.querySelector('[data-testid="marketplace-checkout-method-usdt"]')).toBeNull();
+    await captureCheckout('checkout-usdt-refused-desktop');
+  });
+
+  it('says why Pay is disabled when USDT was the only method and the service refused it at desktop viewport', async () => {
+    const { singleSeller } = await fixtures;
+    view.items = singleSeller;
+    view.adapterMode = 'transaction-service';
+    view.deployEnv = 'production';
+    view.hasMarketplaceSession = true;
+    view.usdtAvailable = true;
+    view.usdtOnly = true;
+    useCommerceStore.getState().setUsdtRefusal(singleSeller[0].listing.record.ownerPubky, 'usdt_seller_not_ready');
+
+    await renderForVRT(<MarketplaceCheckout />, { viewport: VRT_VIEWPORT_DESKTOP });
+    await vi.waitFor(() => {
+      if (!document.querySelector('[data-testid="marketplace-checkout-pay"]')) {
+        throw new Error('The checkout has not loaded yet.');
+      }
+      if (!document.body.textContent?.includes("This seller can't take USDT right now")) {
+        throw new Error('The refusal copy has not rendered yet.');
+      }
+    });
+    await captureCheckout('checkout-usdt-refused-only-desktop', false);
   });
 
   it('renders the USDT amount, network and Bitkit hint once USDT is chosen at desktop viewport', async () => {

@@ -50,6 +50,12 @@ export const useCommerceStore = create<CommerceStore>()(
         set({ watchlistSyncStatus }, false, CommerceActionTypes.SET_WATCHLIST_SYNC_STATUS),
       setReceiptsPublicationStatus: (receiptsPublicationStatus) =>
         set({ receiptsPublicationStatus }, false, CommerceActionTypes.SET_RECEIPTS_PUBLICATION_STATUS),
+      setUsdtRefusal: (sellerKey, reason) =>
+        set(
+          (state) => ({ usdtRefusals: { ...state.usdtRefusals, [sellerKey]: reason } }),
+          false,
+          CommerceActionTypes.SET_USDT_REFUSAL,
+        ),
       resetFilters: () =>
         set(
           {

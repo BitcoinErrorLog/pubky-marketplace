@@ -49,7 +49,10 @@ import {
   readCheckoutHashOrderId,
 } from '@/libs/commerce/checkout-phase';
 import { DELIVERY_EMAIL_MAX_CHARS, DIGITAL_CHECKOUT_COPY, digitalCheckoutLineLabel } from '@/libs/commerce/digital';
-import { marketplaceOfferCheckoutFailureMessage } from '@/libs/commerce/failure-messages';
+import {
+  marketplaceOfferCheckoutFailureMessage,
+  marketplacePaymentMethodReasonMessage,
+} from '@/libs/commerce/failure-messages';
 import { formatCommerceMoney } from '@/libs/commerce/format';
 import { LOCKS_MIXED_CHECKOUT_COPY, locksCheckoutRoute } from '@/libs/commerce/locks-payment';
 import {
@@ -87,6 +90,7 @@ import { MarketplaceSectionNav } from '@/organisms/Marketplace/MarketplaceSectio
 import { MarketplaceSessionRequiredCard } from '@/organisms/Marketplace/MarketplaceSessionRequiredCard';
 import type { MarketplaceOfferAward } from '@/services/marketplace/marketplace';
 import { useAuthStore } from '@/stores/auth/auth.store';
+import { useCommerceStore } from '@/stores/commerce/commerce.store';
 import { MarketplaceCartSkeleton } from './MarketplaceCart.skeleton';
 
 type AwardPayOutcome = 'expired' | 'converted' | 'error' | 'success' | 'unavailable' | 'session';
@@ -274,11 +278,24 @@ function MarketplaceCartCheckout() {
   const isLocksCheckout = locksRoute === 'locks';
   // A failed config read says nothing about the seller's rails; sandbox offers every rail regardless.
   const railsFailed = loadedForCart !== null && loadedForCart.methods === null && !isSandbox && !isLocksCheckout;
-  const sharedMethods = isLocksCheckout
+  // After the service refuses a USDT bind for these sellers, USDT is no longer
+  // offered for this browser session: Pay would only be refused again. The
+  // toast already told the buyer why; the picker just stops offering it.
+  const usdtRefusal = useCommerceStore((state) => state.usdtRefusals[sellerKey] ?? null);
+  const loadedMethodsForCart = isLocksCheckout
     ? (['bitcoin'] satisfies PaymentMethodKind[])
     : loadedForCart === null
       ? null
       : (loadedForCart.methods ?? []);
+  const sharedMethods =
+    usdtRefusal && loadedMethodsForCart
+      ? loadedMethodsForCart.filter((method) => method !== 'usdt')
+      : loadedMethodsForCart;
+  const usdtRefusedOnly =
+    usdtRefusal !== null &&
+    !isSandbox &&
+    sharedMethods?.length === 0 &&
+    loadedMethodsForCart?.includes('usdt') === true;
   // USDT is quoted at parity against a USD total, so it is offered only when every total is USD.
   // An accepted offer without a merchandise total is withheld, so it prices nothing here.
   const usdtOffered = totalSubtotals.every((money) => money !== undefined) && isUsdPricedTotals(totalSubtotals);
@@ -391,11 +408,13 @@ function MarketplaceCartCheckout() {
               ? 'Pay unlocks once your Bitcoin wallet is checked.'
               : railsFailed
                 ? 'Pay unlocks once payment options load.'
-                : sharedMethods && sharedMethods.length === 0 && !isSandbox
-                  ? isMultiSeller
-                    ? 'Choose sellers that share a payment method.'
-                    : 'Pay unlocks once this seller sets up a payment method.'
-                  : 'Fill in delivery details, accept the guarantee, and choose a payment method to pay.';
+                : usdtRefusedOnly
+                  ? 'Pay unlocks once a payment method is available.'
+                  : sharedMethods && sharedMethods.length === 0 && !isSandbox
+                    ? isMultiSeller
+                      ? 'Choose sellers that share a payment method.'
+                      : 'Pay unlocks once this seller sets up a payment method.'
+                    : 'Fill in delivery details, accept the guarantee, and choose a payment method to pay.';
   const payDisabledReason = locksRoute === 'mixed' ? LOCKS_MIXED_CHECKOUT_COPY : checkoutPayDisabledReason;
 
   const removeAwardLine = async () => {
@@ -1022,9 +1041,11 @@ function MarketplaceCartCheckout() {
                         <Skeleton className="h-11 w-full" aria-label="Loading payment methods" />
                       ) : sharedMethods.length === 0 && !isSandbox ? (
                         <Typography as="p" role="alert" className="text-sm text-muted-foreground">
-                          {isMultiSeller
-                            ? 'These sellers do not share a payment method, so Pay stays disabled. Remove a seller in the cart or ask them to add a shared rail.'
-                            : "This seller hasn't set up a payment method this cart can use, so Pay stays disabled. Message the seller to ask them to add one."}
+                          {usdtRefusedOnly && usdtRefusal
+                            ? marketplacePaymentMethodReasonMessage(usdtRefusal, 'usdt')
+                            : isMultiSeller
+                              ? 'These sellers do not share a payment method, so Pay stays disabled. Remove a seller in the cart or ask them to add a shared rail.'
+                              : "This seller hasn't set up a payment method this cart can use, so Pay stays disabled. Message the seller to ask them to add one."}
                         </Typography>
                       ) : (
                         <div className="grid grid-cols-2 gap-3" role="group" aria-label="Payment method">

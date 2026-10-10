@@ -23,6 +23,8 @@ import {
   marketplaceCheckoutRefusalMessage,
   marketplaceErrorCode,
   marketplaceFailureMessage,
+  usdtOfferRefusalReason,
+  usdtRefusalKey,
 } from '@/libs/commerce/failure-messages';
 import { LOCKS_MIXED_CHECKOUT_COPY, locksCheckoutRoute } from '@/libs/commerce/locks-payment';
 import { commerceListingFulfillmentMethods } from '@/libs/commerce/marketplace-records';
@@ -740,6 +742,13 @@ export function useMarketplaceCheckout(
           }
         } catch (bindError) {
           await cancelCreatedCheckouts(createdIds);
+          const usdtRefusal = usdtOfferRefusalReason(bindError);
+          if (usdtRefusal) {
+            CommerceController.rememberUsdtRefusal(
+              usdtRefusalKey(items.map((item) => item.listing.record.ownerPubky)),
+              usdtRefusal,
+            );
+          }
           showPaymentMethodRefusalToast({ error: bindError, fallback: MARKETPLACE_FAILURE_MESSAGES.checkout, onRetry });
           return;
         }

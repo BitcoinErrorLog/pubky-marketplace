@@ -32,6 +32,22 @@ describe('useCommerceStore', () => {
     });
   });
 
+  it('remembers a USDT refusal per seller set and forgets it on reset', () => {
+    const store = useCommerceStore.getState();
+
+    store.setUsdtRefusal('seller-a', 'usdt_unavailable');
+    store.setUsdtRefusal('seller-b|seller-c', 'usdt_seller_not_ready');
+    store.setUsdtRefusal('seller-a', 'usdt_seller_not_ready');
+
+    expect(useCommerceStore.getState().usdtRefusals).toEqual({
+      'seller-a': 'usdt_seller_not_ready',
+      'seller-b|seller-c': 'usdt_seller_not_ready',
+    });
+
+    useCommerceStore.getState().reset();
+    expect(useCommerceStore.getState().usdtRefusals).toEqual({});
+  });
+
   it('tracks pending entities idempotently', () => {
     const store = useCommerceStore.getState();
 

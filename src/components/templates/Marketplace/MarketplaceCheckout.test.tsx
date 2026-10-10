@@ -1,8 +1,9 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MARKETPLACE_DELIVERY_ADDRESS_DISCLOSURE } from '@/config/commerce-copy';
 import { CommerceController } from '@/controllers/commerce/commerce';
+import { useCommerceStore } from '@/stores/commerce/commerce.store';
 import { createOrderFixture, createPaymentFixture } from '@/test/fixtures/commerce/orders';
 import { setHeavySuiteBudgets } from '@/test-utils/load-budget';
 import { MarketplaceCheckout } from './MarketplaceCheckout';
@@ -1248,6 +1249,7 @@ describe('MarketplaceCheckout USDT option', () => {
   });
 
   afterEach(() => {
+    useCommerceStore.getState().reset();
     vi.mocked(CommerceController.fetchUsdtPaymentsAvailable).mockResolvedValue(false);
     vi.mocked(CommerceController.getSellerPaymentConfig).mockImplementation(async () => ({
       bitcoinAvailable: true,
@@ -1388,6 +1390,71 @@ describe('MarketplaceCheckout USDT option', () => {
 
     await user.click(screen.getByTestId('marketplace-checkout-method-bitcoin'));
     expect(screen.getAllByText('≈ ₿137,000').length).toBeGreaterThan(0);
+  });
+
+  describe('after the service refused a USDT bind', () => {
+    const SELLER = listing.record.ownerPubky;
+
+    it('stops offering USDT and moves to the next rail, keeping Bitcoin and PayPal as before', async () => {
+      const user = userEvent.setup();
+      seededCart();
+      render(<MarketplaceCheckout />);
+      await user.click(await screen.findByTestId('marketplace-checkout-method-usdt'));
+      expect(screen.getByTestId('marketplace-checkout-method-usdt')).toHaveAttribute('aria-pressed', 'true');
+
+      act(() => useCommerceStore.getState().setUsdtRefusal(SELLER, 'usdt_unavailable'));
+
+      await waitFor(() => expect(screen.queryByTestId('marketplace-checkout-method-usdt')).not.toBeInTheDocument());
+      expect(screen.queryByTestId('marketplace-checkout-usdt-amount-note')).not.toBeInTheDocument();
+      expect(screen.getByTestId('marketplace-checkout-method-bitcoin')).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByTestId('marketplace-checkout-method-paypal')).toBeInTheDocument();
+    });
+
+    it('never offers USDT on a fresh render of the same sellers, and pays with the remaining rail', async () => {
+      const user = userEvent.setup();
+      seededCart();
+      useCommerceStore.getState().setUsdtRefusal(SELLER, 'usdt_seller_not_ready');
+      render(<MarketplaceCheckout />);
+
+      await screen.findByTestId('marketplace-checkout-method-bitcoin');
+      expect(screen.queryByTestId('marketplace-checkout-method-usdt')).not.toBeInTheDocument();
+      await fillValidDelivery(user);
+      await user.click(screen.getByRole('checkbox', { name: /I accept guarantee policy v1/ }));
+      const pay = screen.getByTestId('marketplace-checkout-pay');
+      await waitFor(() => expect(pay).toBeEnabled());
+      await user.click(pay);
+
+      expect(checkoutActions.pay).toHaveBeenCalledWith('bitcoin', expect.any(Function));
+    });
+
+    it('offers USDT again for a different seller set', async () => {
+      seededCart();
+      useCommerceStore.getState().setUsdtRefusal('o'.repeat(52), 'usdt_unavailable');
+      render(<MarketplaceCheckout />);
+
+      expect(await screen.findByTestId('marketplace-checkout-method-usdt')).toBeInTheDocument();
+    });
+
+    it('explains itself instead of blaming the seller when USDT was the only shared method', async () => {
+      seededCart();
+      vi.mocked(CommerceController.getSellerPaymentConfig).mockImplementation(async () => ({
+        bitcoinAvailable: false,
+        bitcoinOfferAvailable: false,
+        paypalAvailable: false,
+        usdtAvailable: true,
+      }));
+      useCommerceStore.getState().setUsdtRefusal(SELLER, 'usdt_seller_not_ready');
+      render(<MarketplaceCheckout />);
+
+      await waitFor(() =>
+        expect(screen.getByRole('alert')).toHaveTextContent(
+          "This seller can't take USDT right now. Choose another payment method, or contact the seller.",
+        ),
+      );
+      expect(screen.queryByText(/hasn't set up a payment method/)).not.toBeInTheDocument();
+      expect(screen.getByTestId('marketplace-checkout-pay')).toBeDisabled();
+      expect(screen.getAllByText(/This seller can't take USDT right now/)).toHaveLength(1);
+    });
   });
 
   it('binds usdt for real checkout', async () => {

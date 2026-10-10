@@ -362,6 +362,29 @@ export function marketplacePaymentMethodReasonMessage(
   );
 }
 
+/**
+ * The refusals after which the same USDT bind would be refused again: the
+ * deployment cannot take USDT (`usdt_unavailable`) or this seller cannot
+ * (`usdt_seller_not_ready`). The picker stops offering USDT after either.
+ */
+export const USDT_OFFER_REFUSAL_REASONS = ['usdt_unavailable', 'usdt_seller_not_ready'] as const;
+export type UsdtOfferRefusalReason = (typeof USDT_OFFER_REFUSAL_REASONS)[number];
+
+/** The key a USDT refusal is remembered under: the seller pubky, or the distinct pubkys joined with `|`. */
+export function usdtRefusalKey(sellerPubkys: readonly string[]): string {
+  return [...new Set(sellerPubkys)].join('|');
+}
+
+/** The USDT offer refusal a failed bind carries, or null for any other failure or rail. */
+export function usdtOfferRefusalReason(error: unknown): UsdtOfferRefusalReason | null {
+  if (!isAppError(error) || error.context?.paymentMethod !== 'usdt') return null;
+  for (const key of paymentMethodRefusalLookupKeys(error)) {
+    const refusal = USDT_OFFER_REFUSAL_REASONS.find((reason) => reason === key);
+    if (refusal) return refusal;
+  }
+  return null;
+}
+
 /** True for the bind refusal that asks the buyer to finish Paykit wallet setup. */
 export function isReaderWalletSetupNeeded(error: unknown): boolean {
   return isAppError(error) && error.context?.reason === BUYER_PAYKIT_WALLET_SETUP_NEEDED;
