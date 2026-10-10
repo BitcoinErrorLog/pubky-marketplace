@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { CommerceAdapterMode } from '@/config/commerce';
 import { CommerceController } from '@/controllers/commerce/commerce';
 import { ClientErrorCode } from '@/libs/error/error.codes';
 import { Err } from '@/libs/error/error.factories';
@@ -79,7 +80,7 @@ const CONFIRMED_DESTINATION = {
 function reviewFixtures(
   options: {
     destination?: boolean;
-    reviewReason?: string;
+    reviewReason?: 'late_settlement' | 'refund_required' | 'amount_mismatch' | 'unpinned_legacy' | null;
     orderOverrides?: Partial<ReturnType<typeof createOrderFixture>>;
   } = {},
 ) {
@@ -97,7 +98,7 @@ function reviewFixtures(
 
 function renderCard(
   { order, payment }: ReturnType<typeof reviewFixtures>,
-  { isBuyer = false, onPaymentChanged = vi.fn(), adapterMode = 'transaction-service' as const } = {},
+  { isBuyer = false, onPaymentChanged = vi.fn(), adapterMode = 'transaction-service' as CommerceAdapterMode } = {},
 ) {
   auth.currentUserPubky = isBuyer ? order.buyerPubky : order.sellerPubky;
   return render(
