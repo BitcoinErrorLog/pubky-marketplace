@@ -2,6 +2,7 @@ import type { NextConfig } from 'next';
 import withSerwistInit from '@serwist/next';
 import { withSentryConfig } from '@sentry/nextjs';
 import packageJson from './package.json';
+import { buildInfoToEnv, resolveBuildInfo } from './src/libs/build-info/build-info';
 import { buildDenyFramingRouteHeaders } from './src/libs/security/headers';
 import { buildSocialLinkOutRedirects, parseSocialHost, resolveShopOrigins } from './src/libs/social-host/social-host';
 
@@ -32,6 +33,10 @@ export const redirects = async () => [
 const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION ?? packageJson.version,
+    // Served at /version.json and as <meta name="build"> (see docs/ecommerce/release.md).
+    ...buildInfoToEnv(
+      resolveBuildInfo({ env: process.env, packageName: 'pubky-marketplace', packageVersion: packageJson.version }),
+    ),
   },
   reactCompiler: true,
   transpilePackages: ['@bitcoinerrorlog/pubky-shop'],
