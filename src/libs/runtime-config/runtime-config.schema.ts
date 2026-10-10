@@ -58,6 +58,18 @@ const nonEmptyStringValue = z.string().min(1);
  */
 const commerceAdapterModeValue = z.enum(['unavailable', 'sandbox', 'transaction-service', 'locks-paykit']);
 export type CommerceAdapterMode = z.infer<typeof commerceAdapterModeValue>;
+/**
+ * Which Paykit Server API the Shop talks to, mirroring the marketplace
+ * service's `PAYKIT_SERVER_API`:
+ *  - `fork`: the BitcoinErrorLog paykit-server fork (rc55). Buyers pay on
+ *    receiver markers and seller readiness is the fork's `GET /v0/accounts/{creator}`.
+ *  - `upstream`: pubky/paykit-server (rc11) with pubky/locks (rc10). Buyers pay
+ *    only through a Paykit App Registry, and seller readiness is the Lock
+ *    Server's `GET /creator/paykit/setup-status`. Requires
+ *    `paykitSetupCreatorParam=false` (see `validatePaykitServerApiEnvInput`).
+ */
+const paykitServerApiValue = z.enum(['fork', 'upstream']);
+export type PaykitServerApi = z.infer<typeof paykitServerApiValue>;
 const pubkyValue = z
   .string()
   .trim()
@@ -221,6 +233,23 @@ function validateLocksPaykitEnvInput(
 }
 
 /**
+ * Upstream pubky/paykit-server rejects every `/setup` query parameter except
+ * `return_to` and `state`, so `paykitServerApi=upstream` needs the creator
+ * parameter explicitly off. Unset counts as on (the fork default) and fails.
+ */
+function validatePaykitServerApiEnvInput(
+  input: { paykitServerApi?: PaykitServerApi; paykitSetupCreatorParam?: boolean },
+  ctx: z.RefinementCtx,
+): void {
+  if (input.paykitServerApi !== 'upstream' || input.paykitSetupCreatorParam === false) return;
+  ctx.addIssue({
+    code: 'custom',
+    path: ['paykitSetupCreatorParam'],
+    message: `paykitServerApi=upstream requires ${PUBKY_RUNTIME_ENV_NAMES.paykitSetupCreatorParam}=false; upstream Paykit rejects the creator parameter.`,
+  });
+}
+
+/**
  * Defaults for the optional Sentry sample rates (applied by `runtimeConfigValueSchema`, which
  * every parse path runs through, so the resolved config always carries concrete numbers even
  * when the env leaves them unset).
@@ -254,6 +283,7 @@ export const APP_RUNTIME_DEFAULTS = {
   locksUrl: 'http://localhost:3101',
   paykitSetupUrl: 'http://localhost:3102/setup',
   paykitSetupCreatorParam: true,
+  paykitServerApi: 'fork' as PaykitServerApi,
   commerceAdapterMode: 'unavailable' as CommerceAdapterMode,
   commercePollIntervalMs: 2_000,
   singleApprovalSignIn: true,
@@ -354,6 +384,8 @@ export const runtimeConfigValueSchema = networkConfigValueSchema.extend({
    * and `state`. Switch it together with `paykitSetupUrl`.
    */
   paykitSetupCreatorParam: z.boolean().default(APP_RUNTIME_DEFAULTS.paykitSetupCreatorParam),
+  /** Fork or upstream Paykit Server API; see {@link PaykitServerApi}. */
+  paykitServerApi: paykitServerApiValue.default(APP_RUNTIME_DEFAULTS.paykitServerApi),
   commerceAdapterMode: commerceAdapterModeValue.default(APP_RUNTIME_DEFAULTS.commerceAdapterMode),
   commercePollIntervalMs: positiveIntValue.default(APP_RUNTIME_DEFAULTS.commercePollIntervalMs),
   /**
@@ -465,6 +497,7 @@ export const runtimeEnvInputSchema = z
     locksUrl: optionalUrlFromString,
     paykitSetupUrl: optionalUrlFromString,
     paykitSetupCreatorParam: optionalBooleanFromString,
+    paykitServerApi: paykitServerApiValue.optional(),
     commerceAdapterMode: commerceAdapterModeValue.optional(),
     commercePollIntervalMs: optionalPositiveIntFromString,
     singleApprovalSignIn: optionalBooleanFromString,
@@ -497,6 +530,7 @@ export const runtimeEnvInputSchema = z
     playStoreUrl: optionalUrlFromString,
   })
   .superRefine(validateLocksPaykitEnvInput)
+  .superRefine(validatePaykitServerApiEnvInput)
   .pipe(runtimeConfigValueSchema);
 
 /**
@@ -557,6 +591,7 @@ export const runtimeEnvInputSchemaWithDefaults = z
     locksUrl: optionalUrlFromString,
     paykitSetupUrl: optionalUrlFromString,
     paykitSetupCreatorParam: optionalBooleanFromString,
+    paykitServerApi: paykitServerApiValue.optional(),
     commerceAdapterMode: commerceAdapterModeValue.optional(),
     commercePollIntervalMs: optionalPositiveIntFromString,
     singleApprovalSignIn: optionalBooleanFromString,
@@ -589,6 +624,7 @@ export const runtimeEnvInputSchemaWithDefaults = z
     playStoreUrl: optionalUrlFromString,
   })
   .superRefine(validateLocksPaykitEnvInput)
+  .superRefine(validatePaykitServerApiEnvInput)
   .pipe(lenientRuntimeConfigValueSchema);
 
 // ---------------------------------------------------------------------------
@@ -641,6 +677,7 @@ export const PUBKY_RUNTIME_ENV_NAMES: Record<keyof RuntimeConfig, string> = {
   locksUrl: 'PUBKY_RUNTIME_LOCKS_URL',
   paykitSetupUrl: 'PUBKY_RUNTIME_PAYKIT_SETUP_URL',
   paykitSetupCreatorParam: 'PUBKY_RUNTIME_PAYKIT_SETUP_CREATOR_PARAM',
+  paykitServerApi: 'PUBKY_RUNTIME_PAYKIT_SERVER_API',
   commerceAdapterMode: 'PUBKY_RUNTIME_COMMERCE_ADAPTER_MODE',
   commercePollIntervalMs: 'PUBKY_RUNTIME_COMMERCE_POLL_INTERVAL_MS',
   singleApprovalSignIn: 'PUBKY_RUNTIME_SINGLE_APPROVAL_SIGN_IN',

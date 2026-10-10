@@ -11,6 +11,7 @@ import {
   COMMERCE_WATCH_ENDING_SOON_THRESHOLD_MS,
   getCommerceAdapterMode,
   getMarketplaceUrl,
+  getPaykitServerApi,
   getUsdtPaymentsEnabled,
   isDurableCommerceMode,
   isTransactionalCommerceMode,
@@ -64,10 +65,13 @@ import {
   stripForbiddenPublicReserveKeys,
 } from '@/libs/commerce/marketplace-records';
 import {
+  appRegistryTakesPaymentRequests,
   type BuyerPaykitWallet,
   foundAppRegistryShowsNewWallet,
   PAYKIT_APP_REGISTRY_PATH,
+  PAYKIT_READER_AUTHORIZATION_PATH,
   paykitAppRegistryUrl,
+  paykitReaderAuthorizationUrl,
 } from '@/libs/commerce/paykit-wallet';
 import type { PaymentMethodKind } from '@/libs/commerce/payment-methods';
 import {
@@ -1400,9 +1404,11 @@ export class CommerceApplication {
    * longer answers on them. So a registry read that fails (anything but a
    * 404, already logged by the homeserver service) is `unverified`, never a
    * marker verdict. Rejects only when the marker read fails after the
-   * registry was ruled out.
+   * registry was ruled out. With `paykitServerApi=upstream` the registry
+   * alone decides (see {@link appRegistryTakesPaymentRequests}).
    */
   static async fetchBuyerPaykitWallet(buyerPubky: string): Promise<BuyerPaykitWallet> {
+    const upstream = getPaykitServerApi() === 'upstream';
     let registry: { found: false } | { found: true; json: unknown };
     try {
       registry = await HomeserverService.getJsonIfFound<unknown>({
@@ -1411,6 +1417,21 @@ export class CommerceApplication {
       });
     } catch {
       return 'unverified';
+    }
+    // Upstream Paykit delivers only to an App Registry wallet that also
+    // published its signed key authorization: markers never decide. The
+    // Shop checks the authorization is there; Paykit verifies its signature.
+    if (upstream) {
+      if (!registry.found || !appRegistryTakesPaymentRequests(registry.json)) return 'not_payable';
+      try {
+        const authorization = await HomeserverService.getJsonIfFound<unknown>({
+          url: paykitReaderAuthorizationUrl(buyerPubky),
+          logUrl: PAYKIT_READER_AUTHORIZATION_PATH,
+        });
+        return authorization.found ? 'payable' : 'not_payable';
+      } catch {
+        return 'unverified';
+      }
     }
     if (registry.found && foundAppRegistryShowsNewWallet(registry.json)) return 'unsupported';
     return (await PaykitMessagingService.hasPaymentRequestReceiver(buyerPubky)) ? 'payable' : 'not_payable';
@@ -1472,8 +1493,37 @@ export class CommerceApplication {
     return await MarketplaceGatewayService.confirmFiatReceived(actorPubky, orderId);
   }
 
+  /**
+   * Whether Paykit holds the seller's watch-only setup. The fork answers on
+   * its public `GET /v0/accounts/{creator}`. Upstream Paykit has no such
+   * route, so `paykitServerApi=upstream` first takes the service's
+   * `bitcoinAvailable` (Bitcoin on and Paykit's signed setup status ready),
+   * then asks the Lock Server with the seller's own Locks frontend session.
+   * With neither, or when the Lock Server cannot reach Paykit, the state is
+   * unknown and this rejects rather than report a setup it has not seen.
+   */
   static async isPaykitAccountClaimed(pubky: string) {
-    return await MarketplacePaykitClaimService.isAccountClaimed(pubky);
+    if (getPaykitServerApi() !== 'upstream') return await MarketplacePaykitClaimService.isAccountClaimed(pubky);
+    try {
+      if ((await MarketplaceGatewayService.getSellerPaymentConfig(pubky)).bitcoinAvailable) return true;
+    } catch {
+      // The Lock Server read below still decides.
+    }
+    const session = LocksFrontendSessionStore.restore(pubky);
+    if (!session) {
+      throw Err.auth(AuthErrorCode.UNAUTHORIZED, 'Connect the Lock Server to read the Paykit setup state.', {
+        service: ErrorService.Locks,
+        operation: 'isPaykitAccountClaimed',
+      });
+    }
+    const status = await LocksGatewayService.getCreatorPaykitSetupStatus(session.token);
+    if (status === 'unavailable') {
+      throw Err.server(ServerErrorCode.SERVICE_UNAVAILABLE, 'The Lock Server could not read the Paykit setup state.', {
+        service: ErrorService.Locks,
+        operation: 'isPaykitAccountClaimed',
+      });
+    }
+    return status === 'ready';
   }
 
   static async getMarketplaceReceipt(actorPubky: string, receiptId: string) {
@@ -1505,13 +1555,15 @@ export class CommerceApplication {
   /**
    * The buyer's side of a real Locks/Paykit payment (`locks-paykit` mode):
    *
+   * 0. Prepare the payment with `payment.prepare_locks` (replayed when it
+   *    already is), which the service requires before registration.
    * 1. Generate (or reuse a persisted, not-yet-registered) bundle id and
    *    submit the proof bundle to the Lock Server, which requests the real
    *    Paykit invoice and delivers the private Payment Request to the buyer's
    *    wallet.
    * 2. Register the correlation with the transaction service via
-   *    `payment.register_locks`, sourcing `expected_revision` from the fresh
-   *    payment projection the caller just read.
+   *    `payment.register_locks` with only the payment and bundle ids, at the
+   *    revision the preparation left.
    *
    * This NEVER advances the payment: registration flips the payment to the
    * `locks` adapter and the service's worker independently verifies the Locks
@@ -1556,6 +1608,26 @@ export class CommerceApplication {
     }
 
     const existing = await LocalCommerceService.getLocksCorrelation(buyerPubky, payment.id);
+    // Prepare first: the service checks the seller's lock against the
+    // checkout snapshot, takes the hold and pins the `locks` adapter, so a
+    // refused payment never gets a Lock Server invoice. A repeat replays a
+    // live preparation, so a bundle submitted earlier (or before the service
+    // required this step) still registers after it. Locks takes no client
+    // reference yet (pubky/locks#52), so the minted one is not sent.
+    let expectedRevision = payment.revision;
+    if (!existing?.registered) {
+      const prepared = await MarketplaceGatewayService.execute(buyerPubky, {
+        version: 1,
+        commandId: crypto.randomUUID(),
+        aggregateId: buildMarketplacePaymentAggregateId(payment.id),
+        expectedRevision,
+        issuedAt: new Date().toISOString(),
+        kind: 'payment.prepare_locks',
+        payload: { paymentId: payment.id },
+      });
+      if (!prepared.ok) return prepared;
+      expectedRevision = prepared.revision;
+    }
     let bundleId = existing?.bundle_id;
     const submit = async (id: string) => {
       await LocksGatewayService.submitPaykitProof({
@@ -1601,10 +1673,10 @@ export class CommerceApplication {
       version: 1,
       commandId: crypto.randomUUID(),
       aggregateId: buildMarketplacePaymentAggregateId(payment.id),
-      expectedRevision: payment.revision,
+      expectedRevision,
       issuedAt: new Date().toISOString(),
       kind: 'payment.register_locks',
-      payload: { paymentId: payment.id, bundleId: bundleId!, pubkyLockResource: bareLockResource },
+      payload: { paymentId: payment.id, bundleId: bundleId! },
     });
     if (response.ok) {
       const verification = (response.result as { verification?: { windowExpiresAt?: string } }).verification;

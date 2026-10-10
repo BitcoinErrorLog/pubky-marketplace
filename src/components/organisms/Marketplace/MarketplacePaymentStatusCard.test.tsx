@@ -414,6 +414,27 @@ describe('MarketplacePaymentStatusCard', () => {
     expect(screen.getByText('Payment confirmed')).toBeInTheDocument();
   });
 
+  it('offers the Locks payment request on an unbound Locks order, with no method bind', async () => {
+    vi.mocked(CommerceController.getOrFetchListing).mockResolvedValueOnce({
+      digitalLock: { policyUri: 'pubky://lock', criterionId: 'c', contentPath: 'p', resourceHash: 'h' },
+    } as never);
+    const payment = createPaymentFixture('awaiting_entitlement', { adapter: 'sandbox' });
+
+    render(
+      <MarketplacePaymentStatusCard
+        order={createOrderFixture('pending_payment', { paymentId: payment.id, paymentMethod: null })}
+        payment={payment}
+        isBuyer
+        adapterMode="locks-paykit"
+        advancePayment={async () => false}
+        onPaymentChanged={() => {}}
+      />,
+    );
+
+    expect(await screen.findByRole('button', { name: /Request payment in your wallet/ })).toBeInTheDocument();
+    expect(vi.mocked(useMarketplaceOrderPayment).mock.calls.at(-1)?.[0]).toMatchObject({ enabled: false });
+  });
+
   describe('Locks invoice admission (pubky/locks#72)', () => {
     const registered = { id: 'c', registered: true, window_expires_at: null };
     const renderAwaiting = () => {

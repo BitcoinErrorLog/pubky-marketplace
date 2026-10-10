@@ -2,6 +2,7 @@ import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 import {
   type CommerceAdapterMode,
   type DeployEnv,
+  type PaykitServerApi,
   PUBKY_RUNTIME_ENV_NAMES,
   type RuntimeConfig,
   runtimeConfigValueSchema,
@@ -218,6 +219,7 @@ export const getMarketplaceNexusUrl = (): string =>
 export const getLocksUrl = (): string => getRuntimeConfig().locksUrl;
 export const getPaykitSetupUrl = (): string => getRuntimeConfig().paykitSetupUrl;
 export const getPaykitSetupCreatorParam = (): boolean => getRuntimeConfig().paykitSetupCreatorParam;
+export const getPaykitServerApi = (): PaykitServerApi => getRuntimeConfig().paykitServerApi;
 export const getCommerceAdapterMode = (): CommerceAdapterMode => getRuntimeConfig().commerceAdapterMode;
 export const getCommercePollIntervalMs = (): number => getRuntimeConfig().commercePollIntervalMs;
 export const getSingleApprovalSignIn = (): boolean => getRuntimeConfig().singleApprovalSignIn;

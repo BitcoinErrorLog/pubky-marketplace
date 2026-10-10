@@ -382,15 +382,28 @@ export const locksBundleIdSchema = z
 
 /**
  * The addressed public lock resource in the transaction service's bare form:
- * `<z-base-32 creator>/pub/locks.app/<52-char Crockford lock id>.json` — no
- * `pubky://` scheme and no `pubky` prefix.
+ * `<z-base-32 creator>/pub/<locks.app|app.locks>/<52-char Crockford lock id>.json`
+ * — no `pubky://` scheme and no `pubky` prefix. `locks.app` is the fork Lock
+ * Server's prefix, `app.locks` that of pubky/locks rc10 and later.
  */
 export const locksBareLockResourceSchema = z
   .string()
   .regex(
-    /^[ybndrfg8ejkmcpqxot1uwisza345h769]{52}\/pub\/locks\.app\/[0-9A-HJKMNP-TV-Z]{52}\.json$/,
-    'Expected <creator>/pub/locks.app/<lock-id>.json',
+    /^[ybndrfg8ejkmcpqxot1uwisza345h769]{52}\/pub\/(?:locks\.app|app\.locks)\/[0-9A-HJKMNP-TV-Z]{52}\.json$/,
+    'Expected <creator>/pub/locks.app/<lock-id>.json or <creator>/pub/app.locks/<lock-id>.json',
   );
+
+/**
+ * `payment.prepare_locks` (buyer only, payment `awaiting_entitlement`): the
+ * service validates the seller's lock against the checkout-time snapshot,
+ * takes the payment hold and pins the payment to the `locks` adapter. It must
+ * succeed before `payment.register_locks`. A repeat for a live preparation
+ * replays it. Its opaque `client_reference` is not needed by the Shop.
+ */
+export const prepareLocksPaymentCommandSchema = createCommerceCommandSchema(
+  'payment.prepare_locks',
+  z.object({ paymentId: z.uuid() }).strict(),
+);
 
 /**
  * `payment.register_locks` (buyer only, payment `awaiting_entitlement`):
@@ -408,7 +421,6 @@ export const registerLocksPaymentCommandSchema = createCommerceCommandSchema(
     .object({
       paymentId: z.uuid(),
       bundleId: locksBundleIdSchema,
-      pubkyLockResource: locksBareLockResourceSchema,
     })
     .strict(),
 );
@@ -660,6 +672,7 @@ export const marketplaceCommandSchema = z.union([
   updateMarketplaceNotificationPreferencesCommandSchema,
   createMarketplaceCheckoutCommandSchema,
   advanceSandboxPaymentCommandSchema,
+  prepareLocksPaymentCommandSchema,
   registerLocksPaymentCommandSchema,
   requestOrderCancellationCommandSchema,
   approveOrderCancellationCommandSchema,
@@ -754,6 +767,7 @@ export type UpdateMarketplaceNotificationPreferencesCommand = z.infer<
 >;
 export type CreateMarketplaceCheckoutCommand = z.infer<typeof createMarketplaceCheckoutCommandSchema>;
 export type AdvanceSandboxPaymentCommand = z.infer<typeof advanceSandboxPaymentCommandSchema>;
+export type PrepareLocksPaymentCommand = z.infer<typeof prepareLocksPaymentCommandSchema>;
 export type RegisterLocksPaymentCommand = z.infer<typeof registerLocksPaymentCommandSchema>;
 export type RequestOrderCancellationCommand = z.infer<typeof requestOrderCancellationCommandSchema>;
 export type ApproveOrderCancellationCommand = z.infer<typeof approveOrderCancellationCommandSchema>;

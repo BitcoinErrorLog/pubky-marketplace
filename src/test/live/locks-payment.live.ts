@@ -460,8 +460,9 @@ describe('locks-paykit live purchase (composed environment)', () => {
     expect(order!.payment).toMatchObject({ adapter: 'sandbox', state: 'awaiting_entitlement' });
 
     // --- 9. Buyer purchase flow through the client application ---------------
-    // Proof bundle to the Lock Server (which signs and sends the real Paykit
-    // invoice request), then `payment.register_locks` with the fresh revision.
+    // `payment.prepare_locks`, the proof bundle to the Lock Server (which
+    // signs and sends the real Paykit invoice request), then
+    // `payment.register_locks` with the payment and bundle ids.
     const begun = await CommerceApplication.beginMarketplaceLocksPayment({
       buyerPubky: buyer,
       order: order!,
