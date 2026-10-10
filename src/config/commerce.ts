@@ -3,11 +3,12 @@ import {
   getCommercePollIntervalMs,
   getLocksUrl,
   getMarketplaceUrl,
+  getPaykitServerApi,
   getPaykitSetupCreatorParam,
   getPaykitSetupUrl,
   getUsdtPaymentsEnabled,
 } from '@/libs/runtime-config/runtime-config';
-import type { CommerceAdapterMode } from '@/libs/runtime-config/runtime-config.schema';
+import type { CommerceAdapterMode, PaykitServerApi } from '@/libs/runtime-config/runtime-config.schema';
 
 export {
   type CommerceAdapterMode,
@@ -15,9 +16,11 @@ export {
   getCommercePollIntervalMs,
   getLocksUrl,
   getMarketplaceUrl,
+  getPaykitServerApi,
   getPaykitSetupCreatorParam,
   getPaykitSetupUrl,
   getUsdtPaymentsEnabled,
+  type PaykitServerApi,
 };
 
 /**

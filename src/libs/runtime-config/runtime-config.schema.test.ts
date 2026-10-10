@@ -205,6 +205,25 @@ describe('runtimeEnvInputSchema', () => {
     expect(() => runtimeEnvInputSchema.parse({ ...VALID_ENV_INPUT, paykitSetupCreatorParam: 'no' })).toThrow();
   });
 
+  it('defaults to the fork Paykit Server API and takes upstream only with the creator parameter off', () => {
+    expect(runtimeEnvInputSchema.parse(VALID_ENV_INPUT).paykitServerApi).toBe('fork');
+    expect(runtimeEnvInputSchemaWithDefaults.parse({}).paykitServerApi).toBe('fork');
+    const upstream = runtimeEnvInputSchema.parse({
+      ...VALID_ENV_INPUT,
+      paykitServerApi: 'upstream',
+      paykitSetupCreatorParam: 'false',
+    });
+    expect(upstream.paykitServerApi).toBe('upstream');
+    expect(upstream.paykitSetupCreatorParam).toBe(false);
+    expect(() => runtimeEnvInputSchema.parse({ ...VALID_ENV_INPUT, paykitServerApi: 'upstream' })).toThrow(
+      /PUBKY_RUNTIME_PAYKIT_SETUP_CREATOR_PARAM=false/,
+    );
+    expect(() =>
+      runtimeEnvInputSchemaWithDefaults.parse({ paykitServerApi: 'upstream', paykitSetupCreatorParam: 'true' }),
+    ).toThrow(/PUBKY_RUNTIME_PAYKIT_SETUP_CREATOR_PARAM=false/);
+    expect(() => runtimeEnvInputSchema.parse({ ...VALID_ENV_INPUT, paykitServerApi: 'rc11' })).toThrow();
+  });
+
   it('throws on invalid optional boolean values', () => {
     expect(() => runtimeEnvInputSchema.parse({ ...VALID_ENV_INPUT, notificationPollOnStart: 'tru' })).toThrow();
     expect(() => runtimeEnvInputSchemaWithDefaults.parse({ streamPollOnStart: 'yes' })).toThrow();
