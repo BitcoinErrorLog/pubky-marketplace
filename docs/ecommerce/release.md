@@ -258,6 +258,38 @@ The staging Shop signs out accounts that live on the production homeserver, so a
 and `PROOF_SERVICE=https://staging-api.pubky.app`. Step 4 also needs `PROOF_PAYPAL_LISTING_URL` pointing at a
 "do not buy" listing whose seller has a PayPal sandbox rail; without it step 4 fails. Production is the release gate.
 
+### Paid digital delivery proof (opt-in, spends real money)
+
+`scripts/release/production-digital-fixture.mjs` proves digital delivery with real paid Bitcoin orders on the same two
+test seats: one `TEST, do not buy <run> <kind>` listing per delivery kind (file, link, text, "I'll email it", "I'll
+send it in messages"), a buyer checkout paid in Bitcoin, the delivery checks on both sides, then teardown and
+verification. It is not part of the release gate. It refuses to start without `PROOF_DIGITAL_GO=GO-<UTC date>`, which
+the product owner authorizes per run, and it needs both `PROOF_*_PREFIX` seat guards and `EXPECTED_DPL`.
+
+```bash
+# touches nothing: prints the plan and what the environment still lacks
+PROOF_EVIDENCE=$HOME/shop-evidence/digital node scripts/release/production-digital-fixture.mjs plan
+```
+
+What it automates, and what stays with a person:
+
+| Step                                                                                                                  | Who                                                                                                           |
+| --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Publish the listing, set the delivery, check out, choose Bitcoin, click Pay                                           | the script (seller and buyer seats)                                                                           |
+| Pay the Bitkit Payment Request                                                                                        | an operator: the buyer wallet is a real Bitkit holding real funds, and the seller must be one of its contacts |
+| File: two downloads whose SHA-256 equals the fixture; link and text: the revealed value equals the one set            | the script                                                                                                    |
+| Seller evidence line after the buyer's access                                                                         | the script                                                                                                    |
+| Email: the mailbox of a tester (`PROOF_DIGITAL_BUYER_EMAIL`) receives a real email from the seller, then Mark emailed | an operator sends the email; the script marks it and checks "Emailed to"                                      |
+| Messages: the seller sends the delivery in chat, then Mark delivered                                                  | an operator (chat needs Ring today); the script marks it and checks the buyer line                            |
+| Delete the listings and their ciphertext, revoke the run's sessions, verify                                           | the script; paid orders cannot be deleted and stay as evidence                                                |
+
+Price defaults to $2.00 so the Bitcoin quote clears the service's 1,000-satoshi floor with a margin
+(`PROOF_DIGITAL_PRICE_USD`, 1.00 to 25.00). The payment wait stops before the 30-minute Bitcoin hold
+(`PROOF_DIGITAL_PAY_TIMEOUT_MIN`, default 25). A run that stops early leaves `digital-fixture-state.json` in the
+evidence folder; clean up with `... production-digital-fixture.mjs teardown` until it prints `DIGITAL_FIXTURE
+teardown OK`. The selectors come from the Shop source at the commit the script was written against; the first run
+should be a staging rehearsal with staging-homeserver seats and a regtest wallet.
+
 ## Tag and release notes
 
 There is no `CHANGELOG.md`. Each user-visible change adds a fragment `changelog.d/next/<issue>.<kind>.md`. Fragments
