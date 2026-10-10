@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as commerceConfig from '@/config/commerce';
 import { LocksGatewayService } from '@/services/locks/locks';
 import { LocksFrontendSessionStore } from '@/services/locks/locks-frontend-session';
+import { MarketplaceGatewayService } from '@/services/marketplace/marketplace';
 import { MarketplacePaykitClaimService } from '@/services/marketplace/marketplace-paykit-claim';
 import { CommerceApplication } from './commerce';
 
@@ -23,9 +24,33 @@ describe('CommerceApplication.isPaykitAccountClaimed', () => {
   });
 
   describe('upstream Paykit Server: the Lock Server setup status decides', () => {
+    const sellerConfig = (bitcoinAvailable: boolean) => ({
+      bitcoinAvailable,
+      bitcoinOfferAvailable: true,
+      paypalAvailable: false,
+    });
+
     beforeEach(() => {
       vi.spyOn(commerceConfig, 'getPaykitServerApi').mockReturnValue('upstream');
       vi.spyOn(MarketplacePaykitClaimService, 'isAccountClaimed').mockRejectedValue(new Error('fork route called'));
+      vi.spyOn(MarketplaceGatewayService, 'getSellerPaymentConfig').mockResolvedValue(sellerConfig(false));
+    });
+
+    it('takes the service bitcoinAvailable first, with no Locks session needed', async () => {
+      vi.mocked(MarketplaceGatewayService.getSellerPaymentConfig).mockResolvedValue(sellerConfig(true));
+      const restore = vi.spyOn(LocksFrontendSessionStore, 'restore');
+
+      await expect(CommerceApplication.isPaykitAccountClaimed(SELLER)).resolves.toBe(true);
+      expect(MarketplaceGatewayService.getSellerPaymentConfig).toHaveBeenCalledWith(SELLER);
+      expect(restore).not.toHaveBeenCalled();
+    });
+
+    it('falls back to the Lock Server when the service config cannot be read', async () => {
+      vi.mocked(MarketplaceGatewayService.getSellerPaymentConfig).mockRejectedValue(new Error('down'));
+      vi.spyOn(LocksFrontendSessionStore, 'restore').mockReturnValue(SESSION);
+      vi.spyOn(LocksGatewayService, 'getCreatorPaykitSetupStatus').mockResolvedValue('ready');
+
+      await expect(CommerceApplication.isPaykitAccountClaimed(SELLER)).resolves.toBe(true);
     });
 
     it('reports ready as set up and setup_required as not, with the seller session', async () => {

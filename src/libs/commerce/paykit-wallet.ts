@@ -9,6 +9,16 @@ import { z } from 'zod';
 export const PAYKIT_APP_REGISTRY_PATH = '/pub/paykit/v0/app-registry.json';
 
 /**
+ * The identity-signed Paykit Noise key authorization. Upstream Paykit Server
+ * refuses a payment request to a reader without it (`reader_setup_pending`).
+ */
+export const PAYKIT_READER_AUTHORIZATION_PATH = '/pub/paykit-authority/v0/current-key.json';
+
+export function paykitReaderAuthorizationUrl(ownerPubky: string): string {
+  return `pubky://${ownerPubky}${PAYKIT_READER_AUTHORIZATION_PATH}`;
+}
+
+/**
  * Whether a buyer can receive a Bitcoin payment request from the Shop:
  * - `payable`: a Paykit receiver marker takes payment requests (Bitkit 2.5),
  *   or, with the upstream Paykit Server, the App Registry does (Bitkit 2.6+);

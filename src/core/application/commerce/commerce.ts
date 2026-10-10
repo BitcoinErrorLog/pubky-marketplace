@@ -69,7 +69,9 @@ import {
   type BuyerPaykitWallet,
   foundAppRegistryShowsNewWallet,
   PAYKIT_APP_REGISTRY_PATH,
+  PAYKIT_READER_AUTHORIZATION_PATH,
   paykitAppRegistryUrl,
+  paykitReaderAuthorizationUrl,
 } from '@/libs/commerce/paykit-wallet';
 import type { PaymentMethodKind } from '@/libs/commerce/payment-methods';
 import {
@@ -1416,8 +1418,21 @@ export class CommerceApplication {
     } catch {
       return 'unverified';
     }
-    // Upstream Paykit delivers only to an App Registry wallet: markers never decide.
-    if (upstream) return registry.found && appRegistryTakesPaymentRequests(registry.json) ? 'payable' : 'not_payable';
+    // Upstream Paykit delivers only to an App Registry wallet that also
+    // published its signed key authorization: markers never decide. The
+    // Shop checks the authorization is there; Paykit verifies its signature.
+    if (upstream) {
+      if (!registry.found || !appRegistryTakesPaymentRequests(registry.json)) return 'not_payable';
+      try {
+        const authorization = await HomeserverService.getJsonIfFound<unknown>({
+          url: paykitReaderAuthorizationUrl(buyerPubky),
+          logUrl: PAYKIT_READER_AUTHORIZATION_PATH,
+        });
+        return authorization.found ? 'payable' : 'not_payable';
+      } catch {
+        return 'unverified';
+      }
+    }
     if (registry.found && foundAppRegistryShowsNewWallet(registry.json)) return 'unsupported';
     return (await PaykitMessagingService.hasPaymentRequestReceiver(buyerPubky)) ? 'payable' : 'not_payable';
   }
@@ -1480,13 +1495,19 @@ export class CommerceApplication {
   /**
    * Whether Paykit holds the seller's watch-only setup. The fork answers on
    * its public `GET /v0/accounts/{creator}`. Upstream Paykit has no such
-   * route, so `paykitServerApi=upstream` asks the Lock Server with the
-   * seller's own Locks frontend session; with no session, or when the Lock
-   * Server cannot reach Paykit, the state is unknown and this rejects rather
-   * than report a setup it has not seen.
+   * route, so `paykitServerApi=upstream` first takes the service's
+   * `bitcoinAvailable` (Bitcoin on and Paykit's signed setup status ready),
+   * then asks the Lock Server with the seller's own Locks frontend session.
+   * With neither, or when the Lock Server cannot reach Paykit, the state is
+   * unknown and this rejects rather than report a setup it has not seen.
    */
   static async isPaykitAccountClaimed(pubky: string) {
     if (getPaykitServerApi() !== 'upstream') return await MarketplacePaykitClaimService.isAccountClaimed(pubky);
+    try {
+      if ((await MarketplaceGatewayService.getSellerPaymentConfig(pubky)).bitcoinAvailable) return true;
+    } catch {
+      // The Lock Server read below still decides.
+    }
     const session = LocksFrontendSessionStore.restore(pubky);
     if (!session) {
       throw Err.auth(AuthErrorCode.UNAUTHORIZED, 'Connect the Lock Server to read the Paykit setup state.', {

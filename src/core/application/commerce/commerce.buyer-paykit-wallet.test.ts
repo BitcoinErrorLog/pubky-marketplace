@@ -142,10 +142,24 @@ describe('CommerceApplication.fetchBuyerPaykitWallet', () => {
       receiverMarker.mockResolvedValue(true);
     });
 
-    it('reports a Bitkit 2.6 buyer as payable', async () => {
-      sdk.publicStorageGet.mockResolvedValue(json(registry(true)));
+    const AUTHORIZATION_URL = `pubky://${BUYER}/pub/paykit-authority/v0/current-key.json`;
+
+    it('reports a Bitkit 2.6 buyer with a key authorization as payable', async () => {
+      sdk.publicStorageGet.mockResolvedValueOnce(json(registry(true))).mockResolvedValueOnce(json({ signed: true }));
       await expect(CommerceApplication.fetchBuyerPaykitWallet(BUYER)).resolves.toBe('payable');
+      expect(sdk.publicStorageGet).toHaveBeenLastCalledWith(AUTHORIZATION_URL);
       expect(receiverMarker).not.toHaveBeenCalled();
+    });
+
+    it('reports a registry without the key authorization as not payable, and a failed read as unverified', async () => {
+      sdk.publicStorageGet
+        .mockResolvedValueOnce(json(registry(true)))
+        .mockResolvedValueOnce(new Response('Not Found', { status: 404 }));
+      await expect(CommerceApplication.fetchBuyerPaykitWallet(BUYER)).resolves.toBe('not_payable');
+      sdk.publicStorageGet
+        .mockResolvedValueOnce(json(registry(true)))
+        .mockResolvedValueOnce(new Response('Unavailable', { status: 503 }));
+      await expect(CommerceApplication.fetchBuyerPaykitWallet(BUYER)).resolves.toBe('unverified');
     });
 
     it('reports a buyer with only receiver markers as not payable', async () => {
