@@ -31,6 +31,23 @@ A pubky-app **fork** deployed as a vibe (`<slug>.vibes.pubky.app` or same-site `
 
 Canonical `pubky.app` leaves both unset. The first client pass always strips `#s=` from the URL, even when consumer mode is off. See [ADR 0029](adr/0029-vibe-session-consumer.md).
 
+### Build version (`/version.json`)
+
+Every build reports what it is at `GET /version.json` (no authentication, static) and as `<meta name="build" content="<commit>">`:
+
+```json
+{ "name": "pubky-marketplace", "version": "shop-v0.6.49", "commit": "<git sha>", "built_at": "<RFC 3339>" }
+```
+
+`next.config.ts` resolves the values at build time (`src/libs/build-info/resolve-build-info.ts`); nothing is edited by hand.
+
+| Field     | Source, first match wins                                                                                                                     |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `commit`  | `VERCEL_GIT_COMMIT_SHA`, the `GIT_SHA` build arg (Docker), `git rev-parse HEAD` (suffixed `-dirty` with uncommitted changes), else `unknown` |
+| `version` | `SHOP_VERSION` (the release tag; Docker build arg too), the nearest `shop-v*` tag from `git describe`, else `package.json`                   |
+
+A Vercel build has no `.git`, so a deploy without `SHOP_VERSION` reports the `package.json` version. The Docker builder stage (`node:lts-alpine`) has no `git` either, so an image built from source must pass `--build-arg GIT_SHA=<sha>` and `--build-arg SHOP_VERSION=<tag>`; without them it reports `commit: "unknown"` and the `package.json` version. The release procedure passes it (see [release.md](ecommerce/release.md#deploy)).
+
 ### Social link-out (optional)
 
 `NEXT_PUBLIC_SOCIAL_HOST` hands the Shop's social surfaces to the canonical social app. It is baked into the artifact, so changing it needs a rebuild.
