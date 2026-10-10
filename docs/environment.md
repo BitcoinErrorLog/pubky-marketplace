@@ -41,10 +41,10 @@ Every build reports what it is at `GET /version.json` (no authentication, static
 
 `next.config.ts` resolves the values at build time (`src/libs/build-info/build-info.ts`); nothing is edited by hand.
 
-| Field     | Source, first match wins                                                                                                   |
-| --------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `commit`  | `VERCEL_GIT_COMMIT_SHA`, the `GIT_SHA` build arg (Docker), `git rev-parse HEAD`, else `unknown`                            |
-| `version` | `SHOP_VERSION` (the release tag; Docker build arg too), the nearest `shop-v*` tag from `git describe`, else `package.json` |
+| Field     | Source, first match wins                                                                                                                     |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `commit`  | `VERCEL_GIT_COMMIT_SHA`, the `GIT_SHA` build arg (Docker), `git rev-parse HEAD` (suffixed `-dirty` with uncommitted changes), else `unknown` |
+| `version` | `SHOP_VERSION` (the release tag; Docker build arg too), the nearest `shop-v*` tag from `git describe`, else `package.json`                   |
 
 A Vercel build has no `.git`, so a deploy without `SHOP_VERSION` reports the `package.json` version. The release procedure passes it (see [release.md](ecommerce/release.md#deploy)).
 

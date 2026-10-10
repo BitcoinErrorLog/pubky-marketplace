@@ -6,13 +6,19 @@ const base = { packageName: 'pubky-marketplace', packageVersion: '1.5.0', now: N
 
 describe('resolveBuildInfo', () => {
   it('prefers the Vercel commit, then GIT_SHA, then git', () => {
-    const git = vi.fn(() => 'fromgit');
+    const git = vi.fn((args: string[]) => (args[0] === 'status' ? undefined : 'fromgit'));
     expect(resolveBuildInfo({ ...base, env: { VERCEL_GIT_COMMIT_SHA: 'vercel', GIT_SHA: 'docker' }, git }).commit).toBe(
       'vercel',
     );
     expect(resolveBuildInfo({ ...base, env: { GIT_SHA: 'docker' }, git }).commit).toBe('docker');
     expect(resolveBuildInfo({ ...base, env: { GIT_SHA: ' ' }, git }).commit).toBe('fromgit');
     expect(git).toHaveBeenCalledWith(['rev-parse', 'HEAD']);
+  });
+
+  it('marks a git-derived commit with uncommitted changes as dirty, and leaves CI-provided shas alone', () => {
+    const dirtyGit = (args: string[]) => (args[0] === 'status' ? ' M src/app/layout.tsx' : 'fromgit');
+    expect(resolveBuildInfo({ ...base, env: {}, git: dirtyGit }).commit).toBe('fromgit-dirty');
+    expect(resolveBuildInfo({ ...base, env: { GIT_SHA: 'docker' }, git: dirtyGit }).commit).toBe('docker');
   });
 
   it('reports the release tag from SHOP_VERSION, then the git tag, then the package version', () => {

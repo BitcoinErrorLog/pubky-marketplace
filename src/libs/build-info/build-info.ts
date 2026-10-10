@@ -25,7 +25,8 @@ const runGit: GitRunner = (args) => {
 /**
  * Resolves what this build is, at build time (called from `next.config.ts`).
  *
- * - commit: Vercel's `VERCEL_GIT_COMMIT_SHA`, then the `GIT_SHA` build arg (Docker), then `git rev-parse HEAD`.
+ * - commit: Vercel's `VERCEL_GIT_COMMIT_SHA`, then the `GIT_SHA` build arg (Docker), then `git rev-parse HEAD`,
+ *   suffixed `-dirty` when the worktree has uncommitted changes (the artifact is then not reproducible from that commit).
  * - version: `SHOP_VERSION` (the release tag, passed by the deploy), then the nearest `shop-v*` tag from git,
  *   then the package version. A Vercel build has no `.git`, so a deploy that is not given `SHOP_VERSION`
  *   reports the package version.
@@ -44,10 +45,14 @@ export function resolveBuildInfo({
   now?: Date;
 }): BuildInfo {
   const fromEnv = (key: string) => env[key]?.trim() || undefined;
+  const gitCommit = () => {
+    const head = git(['rev-parse', 'HEAD']);
+    return head && git(['status', '--porcelain']) ? `${head}-dirty` : head;
+  };
   return {
     name: packageName,
     version: fromEnv('SHOP_VERSION') ?? git(['describe', '--tags', '--match', SHOP_TAG_PATTERN]) ?? packageVersion,
-    commit: fromEnv('VERCEL_GIT_COMMIT_SHA') ?? fromEnv('GIT_SHA') ?? git(['rev-parse', 'HEAD']) ?? 'unknown',
+    commit: fromEnv('VERCEL_GIT_COMMIT_SHA') ?? fromEnv('GIT_SHA') ?? gitCommit() ?? 'unknown',
     built_at: now.toISOString(),
   };
 }
