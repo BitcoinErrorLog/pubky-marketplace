@@ -176,7 +176,7 @@ Ship the namespaced build to `shop.pubky.app` first and let users load it before
 
 ## Mounted-path details
 
-Prefixed with the mount path: same-origin API calls, public images (through `BasePathImage`), `<video>` and CSS-referenced artwork, share links, `history.replaceState` for the checkout URL, canonical and Open Graph URLs (`metadataBase` stays the origin; root-relative values are prefixed), structured data, and the OG fallback redirect. Next.js handles the router, `next/link`, redirects and `/_next` assets itself. The web manifest link is omitted under a base path.
+Prefixed with the mount path: same-origin API calls, public images (through `BasePathImage`), `<video>` and CSS-referenced artwork, share links, `history.replaceState` for the checkout URL, canonical and Open Graph URLs (`metadataBase` stays the origin; root-relative values are prefixed), structured data, and the OG fallback redirect. Next.js handles the router, `next/link`, redirects and `/_next` assets itself. The web manifest link is omitted under a base path. The build-version route is an app route, so Next.js serves it at `<base path>/version.json` (for example `/shop/version.json`) and nothing at the origin root; probe that URL when verifying a mounted deployment.
 
 ## Out of scope and open items
 

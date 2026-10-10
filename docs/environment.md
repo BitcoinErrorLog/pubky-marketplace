@@ -39,7 +39,7 @@ Every build reports what it is at `GET /version.json` (no authentication, static
 { "name": "pubky-marketplace", "version": "shop-v0.6.49", "commit": "<git sha>", "built_at": "<RFC 3339>" }
 ```
 
-`next.config.ts` resolves the values at build time (`src/libs/build-info/resolve-build-info.ts`); nothing is edited by hand.
+Under `NEXT_PUBLIC_BASE_PATH` the route is served at `<base path>/version.json`. `next.config.ts` resolves the values at build time (`src/libs/build-info/resolve-build-info.ts`); nothing is edited by hand.
 
 | Field     | Source, first match wins                                                                                                                     |
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
