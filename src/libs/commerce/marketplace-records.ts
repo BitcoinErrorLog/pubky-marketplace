@@ -122,10 +122,11 @@ export const marketplacePublicUriSchema = z
     'Expected a Pubky marketplace v1 URI',
   );
 
+/** `/pub/locks.app/` (fork Lock Server) or `/pub/app.locks/` (pubky/locks rc10 and later). */
 export const locksPublicUriSchema = z
   .string()
   .regex(
-    /^pubky:\/\/[ybndrfg8ejkmcpqxot1uwisza345h769]{52}\/pub\/locks\.app\/[A-Za-z0-9_./-]+\.json$/,
+    /^pubky:\/\/[ybndrfg8ejkmcpqxot1uwisza345h769]{52}\/pub\/(?:locks\.app|app\.locks)\/[A-Za-z0-9_./-]+\.json$/,
     'Expected a public Locks policy URI',
   );
 

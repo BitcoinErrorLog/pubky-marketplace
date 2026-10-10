@@ -700,6 +700,8 @@ describe('marketplace URI contracts', () => {
   it('accepts only marketplace and Locks Pubky paths', () => {
     expect(marketplacePublicUriSchema.safeParse(IMAGE_URL).success).toBe(true);
     expect(locksPublicUriSchema.safeParse(LOCK_URL).success).toBe(true);
+    expect(locksPublicUriSchema.safeParse(LOCK_URL.replace('/pub/locks.app/', '/pub/app.locks/')).success).toBe(true);
+    expect(locksPublicUriSchema.safeParse(LOCK_URL.replace('/pub/locks.app/', '/pub/locks/')).success).toBe(false);
     expect(marketplacePublicUriSchema.safeParse('https://example.com/image.jpg').success).toBe(false);
     expect(locksPublicUriSchema.safeParse(`${IMAGE_URL}.json`).success).toBe(false);
   });
