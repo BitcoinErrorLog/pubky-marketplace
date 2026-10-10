@@ -82,6 +82,24 @@ The address check is `0x` + 40 hex; a mixed-case address must carry a valid EIP-
 
 The "send it back to the address I paid from" choice appears only when the order projection carries an optional `payment_address`. The service does not send it today (paykit-server's status exposes no payer address), so the buyer enters an address.
 
+## Resolving a USDT payment in manual review (W5)
+
+A USDT payment can land in manual review (late, or an amount that does not match). The seller resolves it from the order's payment status card with the same three outcomes and the same endpoint as Bitcoin: `POST /v0/orders/{id}/bitcoin/resolve` with an `Idempotency-Key`, which the service's S6 slice widens from Bitcoin to USDT orders. The seller-confirmation step (`confirm-bitcoin-payment`) stays Bitcoin-only: USDT is paid at inclusion and has no such step.
+
+The panel renders for any order whose projection carries `paymentAsset: "USDT"` (or the `usdt` method), seller only, Paykit payment in `manual_review`, whatever the new-offer flag says: an existing USDT order is never stranded. The Bitcoin panel and its schema are unchanged; the rail picks which one a hook and a card use (`paymentReviewRail`).
+
+| What                                         | Shape                                                                                                                                                                  |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Outcomes                                     | `paid`, `refunded`, `abandoned`, unchanged; `paid` is hidden while the payment review reason is `refund_required`                                                      |
+| `external_refund_reference` of a USDT refund | The Arbitrum transaction hash, `0x` + 64 hex (lowercase on the wire; the Shop lowercases what the seller pastes). Bitcoin keeps its 1 to 64 printable ASCII characters |
+| A USDT refund also needs                     | The refund address the buyer confirmed (W4). Without one the panel asks the seller to wait, and the service refuses with `refund_destination_required`                 |
+| What a refund records                        | The whole quoted USDT amount in order units; the buyer's address is copied into `external_refund.destination_address`                                                  |
+| Refusal `reason` values read in USDT terms   | `invalid_refund_reference` ("Enter the Arbitrum transaction hash (0x followed by 64 characters)."), `refund_destination_required`; every other reason keeps its copy   |
+
+The panel shows the order total beside its parity USDT amount ("$137.00 · 137.000000 USDT"), the buyer's refund address and the amount to send, and says the refund is recorded by the seller and not checked on Arbitrum. Like the refund-address flow it never says "verified" or "confirmed on Arbitrum"; the Paykit `resolved: refunded` outcome the service sends afterwards is an annotation only.
+
+The contract is pinned in `src/libs/commerce/usdt-payment-review.ts`, with wire fixtures in `src/test/fixtures/commerce/usdt-payment-review.wire.ts`. Until S6 merges they are hand-written from its PR; replace them with captures then.
+
 ## Deploy order
 
 The Shop that accepts `usdt` in its order projection must be deployed before the service's USDT flag is ever turned on: an older Shop rejects an unknown `payment_method` and breaks the order page.
@@ -143,4 +161,4 @@ A bind for `usdt` tags its refusal with `context.paymentMethod: "usdt"` so the t
 
 - Notification copy: the closed notification types carry no asset, and the service has not named USDT types.
 - A Locks pay-step hint "Bitcoin or USDT": it needs locks#75 deployed, and nothing signals that to the Shop yet.
-- The seller manual-review resolution for a USDT payment, and the USDT refund address and hash (W4).
+- The seller manual-review resolution for a USDT payment (W5), and the USDT refund address and hash (W4).
