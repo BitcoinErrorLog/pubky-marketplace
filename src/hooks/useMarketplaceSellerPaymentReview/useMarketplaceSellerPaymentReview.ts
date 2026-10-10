@@ -9,13 +9,28 @@ import {
   sellerPaymentReviewReasonCopy,
   sellerPaymentReviewReasonSchema,
 } from '@/libs/commerce/marketplace-payment-review';
+import {
+  type PaymentReviewRail,
+  usdtPaymentResolutionInputSchema,
+  usdtPaymentReviewReasonMessage,
+} from '@/libs/commerce/usdt-payment-review';
+import { USDT_REFUND_COPY } from '@/libs/commerce/usdt-refund';
 import { isAppError } from '@/libs/error/error';
 import { isMarketplaceSessionRequiredError } from '@/libs/error/error.utils';
 import { toast } from '@/molecules/Toaster/use-toast';
 
 type ResolutionOutcome = 'paid' | 'refunded' | 'abandoned';
 
-export function useMarketplaceSellerPaymentReview(onChanged: () => void | Promise<void>) {
+/**
+ * `rail` picks the resolution rules of the order's payment: Bitcoin takes the
+ * 1 to 64 character reference it always did, USDT an Arbitrum transaction hash
+ * (usdt-payment-review.ts). It defaults to Bitcoin, so every existing caller
+ * is unchanged.
+ */
+export function useMarketplaceSellerPaymentReview(
+  onChanged: () => void | Promise<void>,
+  rail: PaymentReviewRail = 'bitcoin',
+) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const intent = useRef<{ orderId: string; body: string; key: string } | null>(null);
@@ -36,7 +51,7 @@ export function useMarketplaceSellerPaymentReview(onChanged: () => void | Promis
       await onChanged();
       return true;
     } catch (actionError) {
-      const message = getReviewErrorMessage(actionError);
+      const message = getReviewErrorMessage(actionError, 'bitcoin');
       setError(message);
       if (isAppError(actionError) && actionError.code === 'CONFLICT') {
         await onChanged();
@@ -56,11 +71,15 @@ export function useMarketplaceSellerPaymentReview(onChanged: () => void | Promis
     externalRefundReference?: string,
   ): Promise<boolean> => {
     if (isSubmitting) return false;
-    const parsedInput = sellerPaymentResolutionInputSchema.safeParse({ outcome, reason, externalRefundReference });
+    const parsedInput = (
+      rail === 'usdt' ? usdtPaymentResolutionInputSchema : sellerPaymentResolutionInputSchema
+    ).safeParse({ outcome, reason, externalRefundReference });
     if (!parsedInput.success) {
       const message =
         parsedInput.error.issues[0]?.path[0] === 'externalRefundReference'
-          ? 'Enter a printable ASCII refund reference from 1 to 64 characters.'
+          ? rail === 'usdt'
+            ? USDT_REFUND_COPY.referenceRequired
+            : 'Enter a printable ASCII refund reference from 1 to 64 characters.'
           : 'The payment review reason must be 500 characters or fewer.';
       setError(message);
       toast({ variant: 'error', description: message });
@@ -79,7 +98,7 @@ export function useMarketplaceSellerPaymentReview(onChanged: () => void | Promis
       await onChanged();
       return true;
     } catch (actionError) {
-      const message = getReviewErrorMessage(actionError);
+      const message = getReviewErrorMessage(actionError, rail);
       setError(message);
       if (isAppError(actionError) && actionError.code === 'CONFLICT') {
         intent.current = null;
@@ -100,11 +119,16 @@ export function useMarketplaceSellerPaymentReview(onChanged: () => void | Promis
   return { confirm, resolve, reset, isSubmitting, error };
 }
 
-function getReviewErrorMessage(error: unknown): string {
+function getReviewErrorMessage(error: unknown, rail: PaymentReviewRail): string {
   if (isMarketplaceSessionRequiredError(error)) return MARKETPLACE_FAILURE_MESSAGES.session;
   if (isAppError(error)) {
     const reason = sellerPaymentReviewReasonSchema.safeParse(error.context?.reason);
-    if (reason.success) return sellerPaymentReviewReasonCopy[reason.data];
+    if (reason.success) {
+      return (
+        (rail === 'usdt' ? usdtPaymentReviewReasonMessage(reason.data) : null) ??
+        sellerPaymentReviewReasonCopy[reason.data]
+      );
+    }
     if (error.code === 'CONFLICT') return MARKETPLACE_FAILURE_MESSAGES.paymentChanged;
     if (error.code === 'FORBIDDEN') return 'Only the seller can review this payment.';
     if (error.code === 'NOT_FOUND') return 'The order was not found.';

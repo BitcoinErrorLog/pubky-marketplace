@@ -35,6 +35,7 @@ import {
   isPendingPaymentState,
   isSellerReservation,
   isSellerSalesOrder,
+  isSellerUsdtReviewOrder,
   readCheckoutHashOrderId,
   sellerReservationCopy,
   unlistedOrderStateLabel,
@@ -106,10 +107,13 @@ export function MarketplaceOrders() {
   const [anchorOrderId, setAnchorOrderId] = useState<string | null>(null);
   const nowMs = useNowMs(orders.some(({ order }) => order.state === 'pending_payment' && Boolean(order.holdExpiresAt)));
   const buyerCheckouts = orders.filter(({ order }) => isBuyerCheckoutInProgress(order, currentUserPubky));
-  const sellerReservations = orders.filter(({ order }) => isSellerReservation(order, currentUserPubky));
+  const sellerReservations = orders.filter(({ order, payment }) =>
+    isSellerReservation(order, currentUserPubky, payment),
+  );
   const abandonedCheckouts = orders.filter(({ order }) => isAbandonedCheckout(order, currentUserPubky));
   const historyOrders = orders.filter(
-    ({ order }) => isBuyerOrderHistory(order, currentUserPubky) || isSellerSalesOrder(order, currentUserPubky),
+    ({ order, payment }) =>
+      isBuyerOrderHistory(order, currentUserPubky) || isSellerSalesOrder(order, currentUserPubky, payment),
   );
   const orderCounts = getOrderTabCounts(historyOrders, currentUserPubky);
   const visibleOrders = historyOrders.filter((view) => isOrderInTab(view, activeTab, currentUserPubky));
@@ -425,7 +429,10 @@ export function MarketplaceOrders() {
                             <MarketplaceOrderReference order={order} isBuyer={isBuyer} showPlacedAt />
                             {order.state === 'pending_payment' &&
                               order.holdExpiresAt &&
-                              (isBuyer || !sellerBitcoinDecision(order, payment)) && (
+                              (isBuyer ||
+                                !(
+                                  sellerBitcoinDecision(order, payment) || isSellerUsdtReviewOrder(order, payment)
+                                )) && (
                                 <Typography as="p" className="mt-2 text-sm text-muted-foreground">
                                   {isBuyer
                                     ? buyerCheckoutProgressCopy(order, payment, nowMs)

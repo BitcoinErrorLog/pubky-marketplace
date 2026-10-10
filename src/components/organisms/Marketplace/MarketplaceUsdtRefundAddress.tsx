@@ -51,7 +51,7 @@ export function MarketplaceUsdtRefundAddress({
   return surface.kind === 'buyer' ? (
     <BuyerRefundAddress order={order} phase={surface.phase} refundDue={surface.refundDue} actOnOrder={actOnOrder} />
   ) : (
-    <SellerRefundAddress order={order} phase={surface.phase} />
+    <SellerRefundAddress order={order} phase={surface.phase} paymentInReview={paymentInReview} />
   );
 }
 
@@ -202,9 +202,11 @@ function BuyerRefundAddress({
 function SellerRefundAddress({
   order,
   phase,
+  paymentInReview,
 }: {
   order: MarketplaceOrder;
   phase: 'waiting' | 'confirmed' | 'recorded';
+  paymentInReview: boolean;
 }) {
   const [copied, setCopied] = useState(false);
   const { copyToClipboard } = useCopyToClipboard({
@@ -218,7 +220,9 @@ function SellerRefundAddress({
     phase === 'recorded'
       ? USDT_REFUND_COPY.sellerRecorded
       : phase === 'confirmed'
-        ? USDT_REFUND_COPY.sellerConfirmed
+        ? paymentInReview
+          ? USDT_REFUND_COPY.sellerConfirmedInReview
+          : USDT_REFUND_COPY.sellerConfirmed
         : USDT_REFUND_COPY.sellerAwaitingBuyer;
 
   return (

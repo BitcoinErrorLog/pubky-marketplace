@@ -1,6 +1,7 @@
 import { MARKETPLACE_ROUTES } from '@/app/routes';
 import { formatOrderInstant, UNBOUND_BACK_CANCEL_REASON } from '@/libs/commerce/checkout-hold';
 import type { PaymentMethodKind } from '@/libs/commerce/payment-methods';
+import { isUsdtPaymentReviewOrder } from '@/libs/commerce/usdt-payment-review';
 
 export const CHECKOUT_IN_PROGRESS_LABEL = 'Checkout in progress';
 export const RESERVED_WHILE_YOU_PAY_LABEL = 'Awaiting payment · Item reserved';
@@ -82,6 +83,7 @@ type SellerOrderRole = {
   sellerPubky: string;
   buyerPubky: string;
   paymentMethod?: PaymentMethodKind | null;
+  paymentAsset?: string | null;
 };
 
 function isSellerParty(order: SellerOrderRole, currentUserPubky: string | null): boolean {
@@ -96,10 +98,33 @@ export function isSellerBoundBitcoinOrder(order: SellerOrderRole): boolean {
   return isPendingPaymentState(order.state) && order.paymentMethod === 'bitcoin';
 }
 
-/** Seller unpaid hold — Shop has no `stock_held` field, so pending_payment is the reservation. */
-export function isSellerReservation(order: SellerOrderRole, currentUserPubky: string | null): boolean {
+/**
+ * A USDT payment held for manual review is a sale the seller must resolve, not
+ * a stock hold, the same as a bound Bitcoin payment. Other pending USDT
+ * orders stay reservations. Keyed on the order's own asset, never the flag.
+ */
+export function isSellerUsdtReviewOrder(
+  order: SellerOrderRole,
+  payment: { state?: string | null } | null | undefined,
+): boolean {
+  return isPendingPaymentState(order.state) && isUsdtPaymentReviewOrder(order) && payment?.state === 'manual_review';
+}
+
+/**
+ * Seller unpaid hold — Shop has no `stock_held` field, so pending_payment is
+ * the reservation. `payment` is optional: without it only the bound-Bitcoin
+ * exception applies.
+ */
+export function isSellerReservation(
+  order: SellerOrderRole,
+  currentUserPubky: string | null,
+  payment?: { state?: string | null } | null,
+): boolean {
   return (
-    isSellerParty(order, currentUserPubky) && isPendingPaymentState(order.state) && !isSellerBoundBitcoinOrder(order)
+    isSellerParty(order, currentUserPubky) &&
+    isPendingPaymentState(order.state) &&
+    !isSellerBoundBitcoinOrder(order) &&
+    !isSellerUsdtReviewOrder(order, payment)
   );
 }
 
@@ -115,13 +140,17 @@ export function isSellerPaidOrder(
   );
 }
 
-/** Paid sales, plus a seller's bound Bitcoin payment that is still pending. */
+/**
+ * Paid sales, plus a seller's bound Bitcoin payment that is still pending and
+ * a USDT payment held for manual review.
+ */
 export function isSellerSalesOrder(
   order: SellerOrderRole & { receiptId?: string | null },
   currentUserPubky: string | null,
+  payment?: { state?: string | null } | null,
 ): boolean {
   if (!isSellerParty(order, currentUserPubky)) return false;
-  return isPaidOrReceiptedState(order) || isSellerBoundBitcoinOrder(order);
+  return isPaidOrReceiptedState(order) || isSellerBoundBitcoinOrder(order) || isSellerUsdtReviewOrder(order, payment);
 }
 
 /** State pill for an order an Activity link opens but no Orders section lists (a seller's unpaid cancel). */

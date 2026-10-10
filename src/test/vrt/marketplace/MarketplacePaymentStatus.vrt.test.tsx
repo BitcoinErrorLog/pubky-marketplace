@@ -10,6 +10,9 @@ import { marketplaceOrderSchema } from '@/core/services/marketplace/marketplace-
 import { toCamelCaseWire } from '@/libs/commerce/wire-casing';
 import { MarketplacePaymentStatusCard } from '@/organisms/Marketplace/MarketplacePaymentStatusCard';
 import { USDT_ORDER_FIELDS } from '@/test/fixtures/commerce/usdt-orders';
+import { USDT_RESOLVE_TX_HASH } from '@/test/fixtures/commerce/usdt-payment-review.wire';
+import { REFUND_FIXTURE_ADDRESS } from '@/test/fixtures/commerce/usdt-refund.wire';
+import { userEvent } from 'vitest/browser';
 
 /**
  * Every buyer-visible payment state of the truthful status card (plan task
@@ -762,5 +765,78 @@ describe('Marketplace payment status card — USDT orders', () => {
       .element(screen.getByText('The USDT amount does not match. The seller is reviewing it.'))
       .toBeInTheDocument();
     await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot('payment-status-usdt-review-desktop');
+  });
+
+  describe('seller resolution of a payment in manual review', () => {
+    const REVIEW_ENTERED_AT = '2026-10-09T15:00:00.000Z';
+    const confirmedDestination = {
+      address: REFUND_FIXTURE_ADDRESS,
+      network: 'arbitrum-one' as const,
+      asset: 'USDT' as const,
+      source: 'buyer_entered',
+      confirmedAt: '2026-10-09T16:00:00.000Z',
+    };
+
+    async function renderSellerReview(
+      options: { destination?: boolean; viewport?: object; refundRequired?: boolean } = {},
+    ) {
+      view.locks = { ...view.locks, enabled: false, correlation: null, delivery: null, error: null };
+      const screen = await renderCard('manual_review', 'transaction-service', {
+        adapter: 'paykit',
+        deployEnv: 'production',
+        isBuyer: false,
+        viewport: options.viewport,
+        ...(options.refundRequired ? { orderState: 'cancelled' as const } : {}),
+        orderOverrides: usdt({
+          ...(options.destination === false ? {} : { refundDestination: confirmedDestination }),
+          ...(options.refundRequired ? { cancellationReason: 'payment window elapsed' } : {}),
+        }),
+        paymentOverrides: {
+          reviewReason: options.refundRequired ? 'refund_required' : 'amount_mismatch',
+          manualReviewEnteredAt: REVIEW_ENTERED_AT,
+        },
+      });
+      await expect.element(screen.getByText('Resolve USDT payment review')).toBeInTheDocument();
+      return screen;
+    }
+
+    it('renders the seller resolution of a USDT payment at desktop viewport', async () => {
+      const screen = await renderSellerReview();
+      await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot('payment-status-usdt-resolve-seller-desktop');
+      view.locks.enabled = true;
+    });
+
+    it('renders a USDT refund with the buyer address and its transaction hash at desktop viewport', async () => {
+      const screen = await renderSellerReview();
+      await userEvent.selectOptions(screen.getByLabelText('Outcome'), 'refunded');
+      await userEvent.type(screen.getByLabelText(/Arbitrum transaction hash/), USDT_RESOLVE_TX_HASH);
+      await expect.element(screen.getByText(REFUND_FIXTURE_ADDRESS)).toBeInTheDocument();
+      await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot('payment-status-usdt-resolve-refund-desktop');
+      view.locks.enabled = true;
+    });
+
+    it('renders a USDT refund while the buyer has not confirmed an address at desktop viewport', async () => {
+      const screen = await renderSellerReview({ destination: false });
+      await userEvent.selectOptions(screen.getByLabelText('Outcome'), 'refunded');
+      await expect.element(screen.getByTestId('usdt-resolution-no-address')).toBeInTheDocument();
+      await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot(
+        'payment-status-usdt-resolve-no-address-desktop',
+      );
+      view.locks.enabled = true;
+    });
+
+    it('renders a USDT refund that must be returned, without Paid or an address, at mobile viewport', async () => {
+      const screen = await renderSellerReview({
+        refundRequired: true,
+        destination: false,
+        viewport: VRT_VIEWPORT_MOBILE,
+      });
+      await userEvent.selectOptions(screen.getByLabelText('Outcome'), 'refunded');
+      await expect.element(screen.getByTestId('usdt-resolution-reference-error')).toBeInTheDocument();
+      await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot(
+        'payment-status-usdt-resolve-refund-required-mobile',
+      );
+      view.locks.enabled = true;
+    });
   });
 });

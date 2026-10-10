@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { commercePubkySchema } from './transaction-contracts';
+import { USDT_REFUND_COPY } from './usdt-refund';
 
 export const sellerPaymentReviewReasonSchema = z.enum([
   'confirmation_observation_mismatch',
@@ -15,6 +16,7 @@ export const sellerPaymentReviewReasonSchema = z.enum([
   'invalid_refund_reference',
   'missing_pin',
   'not_in_manual_review',
+  'refund_destination_required',
   'resolution_not_applicable',
   'stock_unavailable',
 ]);
@@ -109,6 +111,7 @@ export const sellerPaymentReviewReasonCopy: Readonly<Record<SellerPaymentReviewR
   invalid_refund_reference: 'The external refund reference is not valid.',
   missing_pin: 'This payment resolution requires the seller confirmation step first.',
   not_in_manual_review: 'This payment is no longer awaiting manual resolution.',
+  refund_destination_required: USDT_REFUND_COPY.sellerWaiting,
   resolution_not_applicable: 'This payment cannot be resolved from its current state.',
   stock_unavailable: 'Stock is no longer available. Choose refunded or abandoned.',
 };

@@ -649,6 +649,44 @@ describe('MarketplaceOrders tabs', () => {
     expect(screen.queryByText(/Pay by/)).not.toBeInTheDocument();
   });
 
+  describe('a USDT payment held for manual review', () => {
+    const usdtOrder = { paymentMethod: 'usdt' as const, paymentAsset: 'USDT' as const, nextActor: 'seller' as const };
+
+    it('lists the seller a sale with the payment card to resolve, not a reservation', () => {
+      ordersState.adapterMode = 'transaction-service';
+      ordersState.orders = [
+        orderView(
+          'pending_payment',
+          'Sold review boots',
+          'seller',
+          { ...usdtOrder, holdExpiresAt: '2026-09-29T10:56:41.980Z' },
+          'manual_review',
+          createPaymentFixture('manual_review', { adapter: 'paykit' }),
+        ),
+      ];
+      render(<MarketplaceOrders />);
+
+      expect(screen.queryByRole('heading', { name: 'Reservations' })).not.toBeInTheDocument();
+      expect(screen.getByText(/Sold review boots/)).toBeInTheDocument();
+      expect(screen.getByText('You sold')).toBeInTheDocument();
+      expect(screen.getByTestId('payment-status')).toBeInTheDocument();
+      expect(screen.queryByText(/restocks/)).not.toBeInTheDocument();
+    });
+
+    it('keeps an unpaid USDT order, and a method-less order in review, as reservations', () => {
+      ordersState.orders = [
+        orderView('pending_payment', 'Sold unpaid usdt bag', 'seller', usdtOrder, 'awaiting_entitlement'),
+        orderView('pending_payment', 'Sold plain review bag', 'seller', { nextActor: 'buyer' }, 'manual_review'),
+      ];
+      render(<MarketplaceOrders />);
+
+      expect(screen.getByRole('heading', { name: 'Reservations' })).toBeInTheDocument();
+      expect(screen.getByText(/Sold unpaid usdt bag/)).toBeInTheDocument();
+      expect(screen.getByText(/Sold plain review bag/)).toBeInTheDocument();
+      expect(screen.queryByText('You sold')).not.toBeInTheDocument();
+    });
+  });
+
   it('keeps a cancelled paid order in buyer and seller history, never Abandoned', async () => {
     const user = userEvent.setup();
     ordersState.currentUserPubky = CURRENT_USER;

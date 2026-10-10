@@ -223,6 +223,8 @@ export const USDT_REFUND_COPY = {
   sellerWaiting: "Ask the buyer to confirm a refund address first. It's on their order page.",
   sellerAwaitingBuyer: "The buyer hasn't confirmed a refund address yet.",
   sellerConfirmed: 'Send this refund from Bitkit, then record the Arbitrum transaction hash with Record refund.',
+  sellerConfirmedInReview:
+    'Send this refund from Bitkit, then record the Arbitrum transaction hash when you resolve this payment as refunded.',
   sellerRecorded: 'You recorded a refund to this address. The Shop has not checked it on Arbitrum.',
   networkWarning:
     'If this is an exchange deposit address, check that the exchange accepts USDT on Arbitrum One. Funds sent on the wrong network can be lost.',
