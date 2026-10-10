@@ -75,6 +75,7 @@ import {
   bitcoinWalletUnverifiedBody,
 } from '@/libs/commerce/paykit-wallet';
 import { buildMarketplaceOrderAggregateId } from '@/libs/commerce/transaction-commands';
+import { paymentReviewRail } from '@/libs/commerce/usdt-payment-review';
 import {
   USDT_BUYER_PHASE_COPY,
   USDT_FUNDS_HINT,
@@ -88,6 +89,7 @@ import { SETTINGS_SECTION_CONTENT_CLASSNAME } from '@/molecules/Settings/Setting
 import type { MarketplaceOrder, MarketplacePayment } from '@/services/marketplace/marketplace';
 import { useAuthStore } from '@/stores/auth/auth.store';
 import { MarketplaceBitcoinAmountBreakdown } from './MarketplaceBitcoinAmountBreakdown';
+import { SellerUsdtResolutionReview } from './MarketplaceUsdtPaymentReview';
 import { MarketplaceUsdtPaymentSummary } from './MarketplaceUsdtPaymentSummary';
 
 const PAYKIT_DELIVERY_FAILED_COPY =
@@ -194,7 +196,8 @@ export function MarketplacePaymentStatusCard({
   const bitcoinWalletUnsupported = bitcoinBindOffered && buyerWallet.state === 'unsupported';
   const bitcoinWalletUnverified = bitcoinBindOffered && buyerWallet.state === 'unverified';
   const bitcoinWalletChecking = bitcoinBindOffered && buyerWallet.state === 'checking';
-  const sellerReview = useMarketplaceSellerPaymentReviewForm(order.id, onPaymentChanged);
+  const reviewRail = paymentReviewRail(order);
+  const sellerReview = useMarketplaceSellerPaymentReviewForm(order.id, onPaymentChanged, reviewRail);
   const [paypalTransactionRef, setPaypalTransactionRef] = useState('');
   const [isReleasingHold, setIsReleasingHold] = useState(false);
   const [releaseHoldError, setReleaseHoldError] = useState<string | null>(null);
@@ -372,6 +375,22 @@ export function MarketplacePaymentStatusCard({
         payment.adapter === 'paykit' &&
         payment.state === 'manual_review' && (
           <SellerBitcoinResolutionReview
+            enteredAt={payment.manualReviewEnteredAt}
+            form={sellerReview.resolveForm}
+            isSubmitting={sellerReview.isSubmitting}
+            error={sellerReview.error}
+            allowPaid={!refundRequired}
+            onResolve={() => void sellerReview.submitResolve()}
+          />
+        )}
+
+      {isDurable &&
+        isSeller &&
+        reviewRail === 'usdt' &&
+        payment.adapter === 'paykit' &&
+        payment.state === 'manual_review' && (
+          <SellerUsdtResolutionReview
+            order={order}
             enteredAt={payment.manualReviewEnteredAt}
             form={sellerReview.resolveForm}
             isSubmitting={sellerReview.isSubmitting}
