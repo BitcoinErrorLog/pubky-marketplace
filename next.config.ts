@@ -2,7 +2,8 @@ import type { NextConfig } from 'next';
 import withSerwistInit from '@serwist/next';
 import { withSentryConfig } from '@sentry/nextjs';
 import packageJson from './package.json';
-import { buildInfoToEnv, resolveBuildInfo } from './src/libs/build-info/build-info';
+import { buildInfoToEnv } from './src/libs/build-info/build-info';
+import { resolveBuildInfo } from './src/libs/build-info/resolve-build-info';
 import { buildDenyFramingRouteHeaders } from './src/libs/security/headers';
 import { buildSocialLinkOutRedirects, parseSocialHost, resolveShopOrigins } from './src/libs/social-host/social-host';
 

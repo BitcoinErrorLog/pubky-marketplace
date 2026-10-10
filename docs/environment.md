@@ -39,14 +39,14 @@ Every build reports what it is at `GET /version.json` (no authentication, static
 { "name": "pubky-marketplace", "version": "shop-v0.6.49", "commit": "<git sha>", "built_at": "<RFC 3339>" }
 ```
 
-`next.config.ts` resolves the values at build time (`src/libs/build-info/build-info.ts`); nothing is edited by hand.
+`next.config.ts` resolves the values at build time (`src/libs/build-info/resolve-build-info.ts`); nothing is edited by hand.
 
 | Field     | Source, first match wins                                                                                                                     |
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | `commit`  | `VERCEL_GIT_COMMIT_SHA`, the `GIT_SHA` build arg (Docker), `git rev-parse HEAD` (suffixed `-dirty` with uncommitted changes), else `unknown` |
 | `version` | `SHOP_VERSION` (the release tag; Docker build arg too), the nearest `shop-v*` tag from `git describe`, else `package.json`                   |
 
-A Vercel build has no `.git`, so a deploy without `SHOP_VERSION` reports the `package.json` version. The release procedure passes it (see [release.md](ecommerce/release.md#deploy)).
+A Vercel build has no `.git`, so a deploy without `SHOP_VERSION` reports the `package.json` version. The Docker builder stage (`node:lts-alpine`) has no `git` either, so an image built from source must pass `--build-arg GIT_SHA=<sha>` and `--build-arg SHOP_VERSION=<tag>`; without them it reports `commit: "unknown"` and the `package.json` version. The release procedure passes it (see [release.md](ecommerce/release.md#deploy)).
 
 ### Social link-out (optional)
 

@@ -27,7 +27,8 @@ ARG NEXT_PUBLIC_DB_NAME
 ARG NEXT_PUBLIC_DEBUG_MODE
 ARG NEXT_PUBLIC_APP_VERSION
 ARG NEXT_PUBLIC_SOCIAL_HOST
-# Reported at /version.json: the commit (else `git rev-parse` in the build) and the release tag.
+# Reported at /version.json. The builder image has no git, so pass both; without them the
+# build reports commit "unknown" and the package.json version.
 ARG GIT_SHA
 ARG SHOP_VERSION
 # NOTE: NEXUS_URL, CDN_URL, HOMESERVER, HOMESERVER_URL, HOMEGATE_URL, DEFAULT_HTTP_RELAY,
