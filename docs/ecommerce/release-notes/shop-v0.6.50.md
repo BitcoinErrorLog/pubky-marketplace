@@ -2,7 +2,7 @@
 
 Notes for the GitHub release `shop-v0.6.50`. The release lane adds the header (date, exact commit, Vercel deployment id and URL, rollback target) and the proof result when it tags, per [`release.md`](../release.md#tag-and-release-notes). The user-facing bullets are the changelog fragments added or changed since `shop-v0.6.49` (`changelog.d/next/digital-paypal-reversal.fixed.md`, `paykit-refusals.changed.md`, `locks-invoice-admission.fixed.md`, `152.added.md`, `154.added.md`), reworded for readers.
 
-Range: `shop-v0.6.49..master`. Pull requests: #142, #143, #144, #145, #153, #154 and the USDT foundations #146, #149, #150 and #151. #141 already shipped in v0.6.49: it merged into #135's branch before that tag.
+Range: `shop-v0.6.49..master`. Pull requests: #142, #143, #144, #145, #153, #154 and the USDT foundations #146, #149, #150, #151 and #157. #141 already shipped in v0.6.49: it merged into #135's branch before that tag.
 
 ## Buying and selling
 
@@ -17,7 +17,7 @@ Range: `shop-v0.6.49..master`. Pull requests: #142, #143, #144, #145, #153, #154
 
 ## Behind a flag, off, and invisible
 
-- **USDT payments (#146, #150, #151, #149).** The Shop can carry USDT (USDT0 on Arbitrum One) as a payment method: seller settings, checkout, status and finality, refusals and refund addresses. All of it is off. The switch is `PUBKY_RUNTIME_USDT_PAYMENTS_ENABLED`, default `false`, and a new offer also needs the marketplace service to report `usdt_payments.available` on `/health`, which today's service does not. With the switch off the Shop does not call `/health` for it, and Bitcoin, PayPal and Locks pages render exactly as before. An order that already carries a USDT payment is always displayed, but none exists. See [`usdt-payments.md`](../usdt-payments.md).
+- **USDT payments (#146, #150, #151, #149, #157).** The Shop can carry USDT (USDT0 on Arbitrum One) as a payment method: seller settings, checkout, status and finality, refusals, refund addresses, and the seller's resolution of a USDT payment held for manual review (#157). All of it is off. The switch is `PUBKY_RUNTIME_USDT_PAYMENTS_ENABLED`, default `false`, and a new offer also needs the marketplace service to report `usdt_payments.available` on `/health`, which today's service does not. With the switch off the Shop does not call `/health` for it, and Bitcoin, PayPal and Locks pages render exactly as before. An order that already carries a USDT payment is always displayed, but none exists. The manual-review resolve panel follows the order's own asset, not the switch, and the service refuses a USDT resolve until marketplace-service #94 is deployed. See [`usdt-payments.md`](../usdt-payments.md).
 
 ## Under the hood
 
