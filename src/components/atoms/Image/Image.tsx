@@ -1,5 +1,5 @@
 import * as React from 'react';
-import NextImage from 'next/image';
+import { BasePathImage } from '@/atoms/BasePathImage/BasePathImage';
 import { cn } from '@/libs/utils/utils';
 import type { ImageProps } from './Image.types';
 
@@ -14,7 +14,7 @@ export const Image = React.forwardRef<HTMLImageElement, ImageProps>(
     const defaultHeight = height || (!fill ? 600 : undefined);
 
     return (
-      <NextImage
+      <BasePathImage
         ref={ref}
         src={src}
         alt={alt}

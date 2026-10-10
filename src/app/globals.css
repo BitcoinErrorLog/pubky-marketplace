@@ -782,7 +782,7 @@ body {
     bottom: calc((var(--landing-swirl-size) * -0.5) + var(--landing-swirl-offset-y));
     width: var(--landing-swirl-size);
     aspect-ratio: 960 / 976;
-    background-image: url('/images/bg-home.svg');
+    background-image: var(--landing-swirl-image, url('/images/bg-home.svg'));
     background-repeat: no-repeat;
     background-position: center;
     background-size: contain;
@@ -1085,4 +1085,18 @@ body {
     background: white;
     color: black;
   }
+}
+
+/*
+ * Embedded in a host app (see EmbeddedDocumentFlag): the host owns the page chrome, so nothing sits
+ * above the content to offset sticky elements from. The two header offsets collapse, and the
+ * marketplace sub-navigation's mobile offset (Tailwind `top-24`, a fixed 96px) follows.
+ */
+html[data-shop-embedded] {
+  --header-offset-main: 0px;
+  --header-offset-mobile: 0px;
+}
+
+html[data-shop-embedded] .sticky.top-24 {
+  top: 0;
 }

@@ -39,7 +39,7 @@ Every build reports what it is at `GET /version.json` (no authentication, static
 { "name": "pubky-marketplace", "version": "shop-v0.6.49", "commit": "<git sha>", "built_at": "<RFC 3339>" }
 ```
 
-`next.config.ts` resolves the values at build time (`src/libs/build-info/resolve-build-info.ts`); nothing is edited by hand.
+Under `NEXT_PUBLIC_BASE_PATH` the route is served at `<base path>/version.json`. `next.config.ts` resolves the values at build time (`src/libs/build-info/resolve-build-info.ts`); nothing is edited by hand.
 
 | Field     | Source, first match wins                                                                                                                     |
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -66,6 +66,25 @@ When unset (the default) nothing changes. When set:
 The redirects are unconditional and carry no session. Until single sign-on exists, each site keeps its own sign-in: a user signed in to the Shop (Ring, Bitkit or any other session) arrives on the social host signed out unless they already signed in there, and signs in there separately. This is the accepted beta behaviour, and no Shop copy promises otherwise; keep the "Pubky" and "Profile on Pubky" link labels free of any claim that the user will be signed in.
 
 The build also fails when the value is one of the Shop's own origins (a leading `www.` on either side is ignored), because every social route would redirect to itself. Those origins are `PUBKY_RUNTIME_DEFAULT_URL` (only when set explicitly) and, on Vercel, `VERCEL_PROJECT_PRODUCTION_URL`, `VERCEL_BRANCH_URL` and `VERCEL_URL`.
+
+### Serving under a base path (optional)
+
+`NEXT_PUBLIC_BASE_PATH` and `NEXT_PUBLIC_ASSET_PREFIX` let the Shop run under a sub-path of another origin, for example `https://pubky.app/shop` behind a reverse proxy. Both are baked into the build by Next.js (routes manifest, client bundles), so a change needs a rebuild; in Docker, pass them as build args.
+
+| Variable                   | Required | Meaning                                                                                                                                       |
+| -------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_BASE_PATH`    | No       | Mount path, `/shop`. Leading slash, no trailing slash, unreserved characters only. Unset or empty serves from the origin root (the default).  |
+| `NEXT_PUBLIC_ASSET_PREFIX` | No       | Prefix for `/_next/*` assets: a path (`/shop-static`) or an absolute `http(s)` URL without a trailing slash. Unset keeps the Next.js default. |
+
+Components must not hard-code root-relative URLs for things the Next.js router does not rewrite. Use `withBasePath('/api/...')` from `@/config/base-path` for `fetch`, `<video>`, CSS `url()` and `history.replaceState`; `next/image` goes through `BasePathImage` (`@/atoms/BasePathImage/BasePathImage`), and `next/link`, `router.push` and redirects need nothing. See [docs/launch/shop-embedding.md](launch/shop-embedding.md) for the proxy, framing, storage and navigation contract.
+
+### Browser storage namespace
+
+`NEXT_PUBLIC_DB_NAME` defaults to `shop-franky` (it was `franky`). Persisted store keys, the feature-discovery flags and a few session keys carry a `shop-` prefix (`shopStorageKey` in `@/libs/storage-namespace/storage-namespace`), so the Shop and pubky.app can share an origin. A one-time, idempotent migration moves an existing user's data into the namespace; `PUBKY_RUNTIME_STORAGE_ADOPT_LEGACY` says whether this origin's old names belong to the Shop (default: yes unless `NEXT_PUBLIC_BASE_PATH` is set). New persisted keys must be added to `src/core/stores/persistedKeys.ts` so they are namespaced and migrated.
+
+### Framing and embedded mode (runtime)
+
+`PUBKY_RUNTIME_FRAME_ANCESTORS` lists the origins allowed to frame the Shop (exact origins and `'self'`, space- or comma-separated). Unset keeps `frame-ancestors 'none'` and `X-Frame-Options: DENY`. The headers are set per request by `src/proxy.ts`, so the value is read at run time, not build time. `PUBKY_RUNTIME_EMBEDDED=true` forces the embedded layout and behaviour (no Shop header or footer, top-window navigation, no service worker) without frame detection; a framed page (when `PUBKY_RUNTIME_FRAME_ANCESTORS` is set) and `?embedded=1` are detected without it.
 
 ### Adding or Modifying Variables
 

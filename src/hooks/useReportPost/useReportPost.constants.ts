@@ -1,3 +1,5 @@
+import { withBasePath } from '@/config/base-path';
+
 /**
  * Report post dialog step identifiers
  */
@@ -9,4 +11,4 @@ export const REPORT_POST_STEPS = {
 /**
  * API endpoint for report submission
  */
-export const REPORT_API_ENDPOINT = '/api/report';
+export const REPORT_API_ENDPOINT = withBasePath('/api/report');

@@ -97,15 +97,15 @@ const eslintConfig = [
         'error',
         {
           selector:
-            'MemberExpression[object.name="Env"][property.name=/^NEXT_PUBLIC_(?!(DB_NAME|DB_VERSION|DEBUG_MODE|APP_VERSION|VIBE_SESSION_BRIDGE_ORIGIN|VIBE_ID|SOCIAL_HOST)$)/]',
+            'MemberExpression[object.name="Env"][property.name=/^NEXT_PUBLIC_(?!(DB_NAME|DB_VERSION|DEBUG_MODE|APP_VERSION|VIBE_SESSION_BRIDGE_ORIGIN|VIBE_ID|SOCIAL_HOST|BASE_PATH|ASSET_PREFIX)$)/]',
           message:
-            'Only build-intrinsic NEXT_PUBLIC_* values (DB_NAME, DB_VERSION, DEBUG_MODE, APP_VERSION, VIBE_SESSION_BRIDGE_ORIGIN, VIBE_ID, SOCIAL_HOST) exist on Env. Runtime-configurable values must use the getters from @/libs/runtime-config/runtime-config.',
+            'Only build-intrinsic NEXT_PUBLIC_* values (DB_NAME, DB_VERSION, DEBUG_MODE, APP_VERSION, VIBE_SESSION_BRIDGE_ORIGIN, VIBE_ID, SOCIAL_HOST, BASE_PATH, ASSET_PREFIX) exist on Env. Runtime-configurable values must use the getters from @/libs/runtime-config/runtime-config.',
         },
         {
           selector:
-            'MemberExpression[object.type="MemberExpression"][object.object.name="process"][object.property.name="env"][property.name=/^NEXT_PUBLIC_(?!(DB_NAME|DB_VERSION|DEBUG_MODE|APP_VERSION|VIBE_SESSION_BRIDGE_ORIGIN|VIBE_ID|SOCIAL_HOST)$)/]',
+            'MemberExpression[object.type="MemberExpression"][object.object.name="process"][object.property.name="env"][property.name=/^NEXT_PUBLIC_(?!(DB_NAME|DB_VERSION|DEBUG_MODE|APP_VERSION|VIBE_SESSION_BRIDGE_ORIGIN|VIBE_ID|SOCIAL_HOST|BASE_PATH|ASSET_PREFIX)$)/]',
           message:
-            'Only build-intrinsic NEXT_PUBLIC_* values (DB_NAME, DB_VERSION, DEBUG_MODE, APP_VERSION, VIBE_SESSION_BRIDGE_ORIGIN, VIBE_ID, SOCIAL_HOST) may be read from process.env. Runtime-configurable values must use the getters from @/libs/runtime-config/runtime-config.',
+            'Only build-intrinsic NEXT_PUBLIC_* values (DB_NAME, DB_VERSION, DEBUG_MODE, APP_VERSION, VIBE_SESSION_BRIDGE_ORIGIN, VIBE_ID, SOCIAL_HOST, BASE_PATH, ASSET_PREFIX) may be read from process.env. Runtime-configurable values must use the getters from @/libs/runtime-config/runtime-config.',
         },
         {
           selector:

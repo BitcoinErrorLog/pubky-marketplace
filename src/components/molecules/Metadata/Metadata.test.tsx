@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import { setBasePath } from '@/test-utils/base-path';
 import { Metadata } from './Metadata';
 
 describe('Metadata - Snapshots', () => {
@@ -105,5 +106,59 @@ describe('Metadata - optional description', () => {
     // Title is still emitted so the page doesn't fall back to parent metadata.
     expect(result.title).toBe('T');
     expect(result.openGraph.title).toBe('T');
+  });
+});
+
+describe('Metadata - mounted under a base path', () => {
+  afterEach(() => setBasePath(''));
+
+  it('keeps the manifest and root-relative asset URLs when served from the origin root', () => {
+    const result = Metadata({ title: 'T', description: 'D', url: '/marketplace' });
+
+    expect(result.manifest).toBe('/manifest.json');
+    expect(result.icons.icon).toBe('/pubky-favicon.svg');
+    expect(result.icons.apple[0].url).toBe('/images/manifest/web-app-manifest-180x180.png');
+    expect(result.alternates.canonical).toBe('/marketplace');
+    expect(result.metadataBase.href).toBe('https://pubky.app/');
+  });
+
+  it('prefixes icons, preview image and canonical URLs and drops the manifest', () => {
+    setBasePath('/shop');
+    const result = Metadata({ title: 'T', description: 'D', url: '/marketplace/listing/s/l' });
+
+    expect(result.manifest).toBeUndefined();
+    expect(result.icons.icon).toBe('/shop/pubky-favicon.svg');
+    expect(result.icons.shortcut).toBe('/shop/pubky-favicon.svg');
+    expect(result.icons.apple.map((icon) => icon.url)).toEqual([
+      '/shop/images/manifest/web-app-manifest-180x180.png',
+      '/shop/images/manifest/web-app-manifest-152x152.png',
+      '/shop/images/manifest/web-app-manifest-144x144.png',
+    ]);
+    expect(result.openGraph.images?.[0].url).toBe('/shop/preview.webp');
+    expect(result.twitter.images).toEqual(['/shop/preview.webp']);
+    expect(result.alternates.canonical).toBe('/shop/marketplace/listing/s/l');
+    expect(result.openGraph.url).toBe('/shop/marketplace/listing/s/l');
+  });
+
+  it('points the default canonical URL at the mounted Shop and leaves the base origin-only', () => {
+    setBasePath('/shop');
+    const result = Metadata({ title: 'T', description: 'D' });
+
+    expect(result.alternates.canonical).toBe('https://pubky.app/shop');
+    // Next.js adds the base path to its own OG/Twitter image routes; a base path here would double it.
+    expect(result.metadataBase.href).toBe('https://pubky.app/');
+  });
+
+  it('does not prefix absolute image and canonical URLs', () => {
+    setBasePath('/shop');
+    const result = Metadata({
+      title: 'T',
+      description: 'D',
+      image: 'https://cdn.example.com/a.png',
+      url: 'https://example.com/x',
+    });
+
+    expect(result.openGraph.images?.[0].url).toBe('https://cdn.example.com/a.png');
+    expect(result.alternates.canonical).toBe('https://example.com/x');
   });
 });

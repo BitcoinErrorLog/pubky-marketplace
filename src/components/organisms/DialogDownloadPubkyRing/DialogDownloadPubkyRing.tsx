@@ -1,5 +1,5 @@
-import Image from 'next/image';
 import { QRCodeSVG } from 'qrcode.react';
+import { BasePathImage as Image } from '@/atoms/BasePathImage/BasePathImage';
 import { Container } from '@/atoms/Container/Container';
 import {
   Dialog,

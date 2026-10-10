@@ -31,6 +31,7 @@ import { getSocialHostUrl } from '@/config/social';
 import { FileController } from '@/controllers/file/file';
 import { useCollectionsNavDiscovery } from '@/hooks/useCollectionsNavDiscovery/useCollectionsNavDiscovery';
 import { useCurrentUserProfile } from '@/hooks/useCurrentUserProfile/useCurrentUserProfile';
+import { useIsEmbedded } from '@/hooks/useIsEmbedded/useIsEmbedded';
 import { useKeyboardOffset } from '@/hooks/useKeyboardOffset/useKeyboardOffset';
 import { useMarketplaceCartCount } from '@/hooks/useMarketplaceCartCount/useMarketplaceCartCount';
 import { useMarketplaceNavAttention } from '@/hooks/useMarketplaceNavAttention/useMarketplaceNavAttention';
@@ -80,6 +81,7 @@ export function MobileFooter({ className }: MobileFooterProps) {
   const localAvatarUrl = useLocalFilesStore((state) => state.profile);
   const { isKeyboardVisible, keyboardOffset } = useKeyboardOffset();
   const { markCollectionsNavSeen } = useCollectionsNavDiscovery();
+  const isEmbedded = useIsEmbedded();
 
   // Get avatar URL and fallback initial - same logic as desktop header
   const avatarUrl =
@@ -132,7 +134,7 @@ export function MobileFooter({ className }: MobileFooterProps) {
     : socialNavItems;
   // Hide footer for guests only on non-explore routes. Core explore and dynamic public
   // routes (/home, /post/..., /profile/...) use the public explore footer.
-  if (!isAuthenticated && !isPublicExploreRoute) {
+  if (isEmbedded || (!isAuthenticated && !isPublicExploreRoute)) {
     return null;
   }
 

@@ -1,4 +1,10 @@
 import { z } from 'zod';
+import {
+  isValidAssetPrefix,
+  isValidBasePath,
+  normalizeAssetPrefix,
+  normalizeBasePath,
+} from '@/libs/base-path/base-path';
 import { ValidationErrorCode } from '@/libs/error/error.codes';
 import { Err } from '@/libs/error/error.factories';
 import { ErrorService } from '@/libs/error/error.types';
@@ -44,7 +50,9 @@ export const envSchema = z
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 
     // Build-intrinsic public values. These are intentionally baked into the artifact.
-    NEXT_PUBLIC_DB_NAME: z.string().default('franky'),
+    // Shop-namespaced so the Shop and pubky.app can share one origin without
+    // sharing a database (see `@/libs/storage-namespace/storage-namespace`).
+    NEXT_PUBLIC_DB_NAME: z.string().default('shop-franky'),
     NEXT_PUBLIC_DB_VERSION: z
       .string()
       .default('7')
@@ -68,6 +76,20 @@ export const envSchema = z
     // self-origin check runs in next.config.ts (see @/libs/social-host/social-host).
     NEXT_PUBLIC_SOCIAL_HOST: z.preprocess(emptyToUndefined, z.string().optional()),
 
+    // Mount path when the Shop is served under a sub-path of another origin
+    // (for example `/shop` behind pubky.app's reverse proxy). Baked per artifact:
+    // Next.js inlines it into the routes manifest and the client bundles.
+    // Unset or empty = served from the origin root.
+    NEXT_PUBLIC_BASE_PATH: z.preprocess(
+      (value) => normalizeBasePath(typeof value === 'string' ? value : undefined),
+      z.string(),
+    ),
+    // Optional `/_next/*` asset prefix: a path or an absolute http(s) CDN URL.
+    NEXT_PUBLIC_ASSET_PREFIX: z.preprocess(
+      (value) => normalizeAssetPrefix(typeof value === 'string' ? value : undefined),
+      z.string().optional(),
+    ),
+
     // Test environment variable (optional)
     VITEST: z.string().optional(),
 
@@ -90,6 +112,21 @@ export const envSchema = z
         code: 'custom',
         path: ['NEXT_PUBLIC_VIBE_SESSION_BRIDGE_ORIGIN'],
         message: 'Must be an exact https:// origin, or http://localhost:<port> when NODE_ENV is not production',
+      });
+    }
+    if (!isValidBasePath(data.NEXT_PUBLIC_BASE_PATH)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['NEXT_PUBLIC_BASE_PATH'],
+        message: 'Must be empty or a path like /shop: leading slash, no trailing slash, unreserved characters only',
+      });
+    }
+    const assetPrefix = data.NEXT_PUBLIC_ASSET_PREFIX;
+    if (assetPrefix !== undefined && !isValidAssetPrefix(assetPrefix)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['NEXT_PUBLIC_ASSET_PREFIX'],
+        message: 'Must be a path like /shop-static, or an absolute http(s) URL without a trailing slash',
       });
     }
     const socialHost = data.NEXT_PUBLIC_SOCIAL_HOST;
@@ -188,6 +225,8 @@ function parseEnv(): z.infer<typeof envSchema> {
     NEXT_PUBLIC_VIBE_SESSION_BRIDGE_ORIGIN: process.env.NEXT_PUBLIC_VIBE_SESSION_BRIDGE_ORIGIN,
     NEXT_PUBLIC_VIBE_ID: process.env.NEXT_PUBLIC_VIBE_ID,
     NEXT_PUBLIC_SOCIAL_HOST: process.env.NEXT_PUBLIC_SOCIAL_HOST,
+    NEXT_PUBLIC_BASE_PATH: process.env.NEXT_PUBLIC_BASE_PATH,
+    NEXT_PUBLIC_ASSET_PREFIX: process.env.NEXT_PUBLIC_ASSET_PREFIX,
     VITEST: process.env.VITEST,
     HOMESERVER_ADMIN_URL: process.env.HOMESERVER_ADMIN_URL,
     HOMESERVER_ADMIN_PASSWORD: process.env.HOMESERVER_ADMIN_PASSWORD,

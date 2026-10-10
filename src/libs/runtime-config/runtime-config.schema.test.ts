@@ -395,3 +395,71 @@ describe('runtimeEnvInputSchemaWithDefaults', () => {
     );
   });
 });
+
+describe('embedding runtime values', () => {
+  it('defaults to denying framing, a non-forced embedded mode and an unset legacy-storage choice', () => {
+    const strict = runtimeEnvInputSchema.parse(VALID_ENV_INPUT);
+    expect(strict.frameAncestors).toEqual([]);
+    expect(strict.embedded).toBe(false);
+    expect(strict.storageAdoptLegacy).toBeUndefined();
+
+    const lenient = runtimeEnvInputSchemaWithDefaults.parse({});
+    expect(lenient.frameAncestors).toEqual([]);
+    expect(lenient.embedded).toBe(false);
+    expect(lenient.storageAdoptLegacy).toBeUndefined();
+  });
+
+  it('treats blank frame ancestors as unset', () => {
+    expect(runtimeEnvInputSchema.parse({ ...VALID_ENV_INPUT, frameAncestors: '  ' }).frameAncestors).toEqual([]);
+  });
+
+  it('parses a space- or comma-separated frame-ancestor list into exact sources', () => {
+    const parsed = runtimeEnvInputSchema.parse({
+      ...VALID_ENV_INPUT,
+      frameAncestors: "self, https://pubky.app  https://staging.pubky.app,'self'",
+    });
+    expect(parsed.frameAncestors).toEqual(["'self'", 'https://pubky.app', 'https://staging.pubky.app']);
+  });
+
+  it.each([
+    ['a wildcard', 'https://*.pubky.app'],
+    ['a bare star', '*'],
+    ['a path', 'https://pubky.app/shop'],
+    ['a trailing slash', 'https://pubky.app/'],
+    ['a bare host', 'pubky.app'],
+    ['plain http', 'http://pubky.app'],
+    ['the none keyword', "'none'"],
+    ['a scheme source', 'https:'],
+  ])('rejects %s as a frame ancestor', (_label, value) => {
+    expect(() => runtimeEnvInputSchema.parse({ ...VALID_ENV_INPUT, frameAncestors: value })).toThrow();
+    expect(() => runtimeEnvInputSchemaWithDefaults.parse({ frameAncestors: value })).toThrow();
+  });
+
+  it('accepts a localhost http ancestor only in the lenient dev parse', () => {
+    expect(runtimeEnvInputSchemaWithDefaults.parse({ frameAncestors: 'http://localhost:3000' }).frameAncestors).toEqual(
+      ['http://localhost:3000'],
+    );
+    expect(() =>
+      runtimeEnvInputSchema.parse({ ...VALID_ENV_INPUT, frameAncestors: 'http://localhost:3000' }),
+    ).toThrow();
+  });
+
+  it('parses the embedded and storage-adoption booleans', () => {
+    const parsed = runtimeEnvInputSchema.parse({
+      ...VALID_ENV_INPUT,
+      embedded: 'true',
+      storageAdoptLegacy: 'false',
+    });
+    expect(parsed.embedded).toBe(true);
+    expect(parsed.storageAdoptLegacy).toBe(false);
+    expect(() => runtimeEnvInputSchema.parse({ ...VALID_ENV_INPUT, embedded: 'yes' })).toThrow();
+  });
+
+  it('validates frame ancestors in the parsed value schema too', () => {
+    const base = runtimeEnvInputSchema.parse(VALID_ENV_INPUT);
+    expect(runtimeConfigValueSchema.parse({ ...base, frameAncestors: ['https://pubky.app'] }).frameAncestors).toEqual([
+      'https://pubky.app',
+    ]);
+    expect(() => runtimeConfigValueSchema.parse({ ...base, frameAncestors: ['https://*.pubky.app'] })).toThrow();
+  });
+});

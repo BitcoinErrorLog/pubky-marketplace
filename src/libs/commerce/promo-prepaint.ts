@@ -3,6 +3,7 @@ import {
   buildFeatureDiscoveryStorageKey,
   MARKETPLACE_PROMO_STORAGE_ID,
 } from '@/config/featureDiscovery';
+import { AUTH_PERSIST_KEY } from '@/stores/persistedKeys';
 
 /**
  * The marketplace promo is server-rendered so it never pushes the catalog down
@@ -14,7 +15,6 @@ import {
 const MARKETPLACE_PROMO_ATTRIBUTE = 'data-marketplace-promo';
 export const MARKETPLACE_PROMO_PREPAINT_STYLE_ID = 'marketplace-promo-prepaint';
 
-const AUTH_STORE_STORAGE_KEY = 'auth-store';
 const PUBKY_PLACEHOLDER = '\u0000';
 
 export function buildMarketplacePromoPrepaintScript(): string {
@@ -27,7 +27,7 @@ export function buildMarketplacePromoPrepaintScript(): string {
   return (
     '(function(){try{var s=window.localStorage;' +
     `var hide=s.getItem(${json(deviceKey)})==='dismissed';` +
-    `if(!hide){var a=JSON.parse(s.getItem(${json(AUTH_STORE_STORAGE_KEY)})||'null');` +
+    `if(!hide){var a=JSON.parse(s.getItem(${json(AUTH_PERSIST_KEY)})||'null');` +
     'var p=a&&a.state&&a.state.currentUserPubky;' +
     `if(typeof p==='string'&&p&&s.getItem(${json(accountKeyPrefix)}+p+${json(accountKeySuffix)})==='dismissed')hide=true;}` +
     `if(hide){var e=document.createElement('style');e.id=${json(MARKETPLACE_PROMO_PREPAINT_STYLE_ID)};` +

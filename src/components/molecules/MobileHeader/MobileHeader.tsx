@@ -3,6 +3,7 @@ import { Activity, SlidersHorizontal } from 'lucide-react';
 import type React from 'react';
 import { Button } from '@/atoms/Button/Button';
 import { Container } from '@/atoms/Container/Container';
+import { useIsEmbedded } from '@/hooks/useIsEmbedded/useIsEmbedded';
 import { usePublicRoute } from '@/hooks/usePublicRoute/usePublicRoute';
 import { cn } from '@/libs/utils/utils';
 import { EnvironmentLabel } from '@/molecules/EnvironmentLabel/EnvironmentLabel';
@@ -36,8 +37,10 @@ export function MobileHeader({
   const isAuthenticated = useAuthStore((state) => Boolean(state.currentUserPubky));
   const setShowSignInDialog = useAuthStore((state) => state.setShowSignInDialog);
   const { isPublicExploreRoute } = usePublicRoute();
+  const isEmbedded = useIsEmbedded();
   // Layout filters drawer: signed-in users and guests on explore/public routes (/home, /post/..., etc.)
   const showLeftIcon = showLeftButton && (isAuthenticated || isPublicExploreRoute);
+  if (isEmbedded) return null;
   return (
     <Container
       overrideDefaults

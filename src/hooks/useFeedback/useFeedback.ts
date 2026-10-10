@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
+import { withBasePath } from '@/config/base-path';
 import { useCurrentUserProfile } from '@/hooks/useCurrentUserProfile/useCurrentUserProfile';
 import { postJson } from '@/libs/api/client-request';
 import { Logger } from '@/libs/logger/logger';
@@ -43,7 +44,7 @@ export function useFeedback() {
 
     setIsSubmitting(true);
     try {
-      await postJson('/api/feedback', {
+      await postJson(withBasePath('/api/feedback'), {
         pubky: currentUserPubky,
         comment: currentFeedback,
         name: userDetails.name,

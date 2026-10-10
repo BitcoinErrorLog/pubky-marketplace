@@ -3,6 +3,7 @@ import * as vibeSessionAutoRestore from '@/libs/vibe-session/auto-restore';
 import * as vibeSessionConfig from '@/libs/vibe-session/config';
 import type { THomeserverSessionResult } from '@/services/homeserver/homeserver.types';
 import { asOpaque } from '@/test-utils/type-assertions';
+import { AUTH_PERSIST_KEY } from '../persistedKeys';
 import { useAuthStore } from './auth.store';
 
 // Mock the logger
@@ -100,7 +101,7 @@ describe('AuthStore', () => {
       expect(exportSpy).not.toHaveBeenCalled();
       expect(state.sessionExport).toBeNull();
       expect(state.grantSessionRecordId).toBe('rec-1');
-      const persisted = JSON.parse(localStorage.getItem('auth-store') ?? '{}') as {
+      const persisted = JSON.parse(localStorage.getItem(AUTH_PERSIST_KEY) ?? '{}') as {
         state?: { sessionExport?: unknown; grantSessionRecordId?: unknown };
       };
       expect(persisted.state?.sessionExport).toBeNull();
@@ -116,7 +117,9 @@ describe('AuthStore', () => {
         grantSigner: 'passport',
       });
       expect(useAuthStore.getState().grantSigner).toBe('passport');
-      const persisted = JSON.parse(localStorage.getItem('auth-store') ?? '{}') as { state?: { grantSigner?: unknown } };
+      const persisted = JSON.parse(localStorage.getItem(AUTH_PERSIST_KEY) ?? '{}') as {
+        state?: { grantSigner?: unknown };
+      };
       expect(persisted.state?.grantSigner).toBe('passport');
 
       useAuthStore.getState().init({

@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 import type { MouseEvent } from 'react';
 import { AUTH_ROUTES } from '@/app/routes';
+import { useIsEmbedded } from '@/hooks/useIsEmbedded/useIsEmbedded';
 import { usePublicRoute } from '@/hooks/usePublicRoute/usePublicRoute';
 import { cn } from '@/libs/utils/utils';
 import { EnvironmentLabel } from '@/molecules/EnvironmentLabel/EnvironmentLabel';
@@ -22,6 +23,7 @@ export function Header() {
   const pathname = usePathname();
   const isAuthenticated = useAuthStore((state) => Boolean(state.currentUserPubky));
   const { isCoreExploreRoute, isDynamicPublicRoute } = usePublicRoute();
+  const isEmbedded = useIsEmbedded();
 
   const isOnboarding = pathname?.startsWith('/onboarding') ?? false;
   const isAuthFlowLayout = isOnboarding || pathname === AUTH_ROUTES.SIGN_IN || pathname === AUTH_ROUTES.LOGOUT;
@@ -64,6 +66,9 @@ export function Header() {
     }
     return <HeaderHome />;
   };
+
+  // The host app owns the page chrome when the Shop is embedded in it.
+  if (isEmbedded) return null;
 
   // Copyright page shows only logo (minimal header).
   // Pass the same classNameNav as other routes so the logo doesn't shift

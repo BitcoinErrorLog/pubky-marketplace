@@ -24,6 +24,7 @@ import {
   UserRoundPlus,
 } from 'lucide-react';
 import { POST_ROUTES } from '@/app/routes';
+import { withBasePath } from '@/config/base-path';
 import { useCopyToClipboard } from '@/hooks/useCopyToClipboard/useCopyToClipboard';
 import { useCurrentUserProfile } from '@/hooks/useCurrentUserProfile/useCurrentUserProfile';
 import { useFollowUser } from '@/hooks/useFollowUser/useFollowUser';
@@ -76,7 +77,7 @@ export function usePostMenuActions(postId: string, options: UsePostMenuActionsOp
   // be useless to the user, so we hide "Copy text" for them just like articles.
   const isCollection = postDetails?.kind === 'collection';
   const isLoading = isPostLoading || isAuthorLoading || isFollowingLoading || isMutedUsersLoading;
-  const postUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}${POST_ROUTES.POST}/${parsedId.pubky}/${parsedId.id}`;
+  const postUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}${withBasePath(POST_ROUTES.POST)}/${parsedId.pubky}/${parsedId.id}`;
   const menuItems: PostMenuActionItem[] = [];
   if (!isOwnPost) {
     menuItems.push({

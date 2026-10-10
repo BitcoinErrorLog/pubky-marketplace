@@ -266,7 +266,7 @@ async function waitForAuthStore(page, timeout = 90_000) {
   await page.waitForFunction(
     () => {
       try {
-        const raw = localStorage.getItem('auth-store');
+        const raw = localStorage.getItem('shop-auth-store');
         if (!raw) return false;
         const state = JSON.parse(raw)?.state ?? {};
         // A reload without sessionExport is unauthenticated and the inventory
@@ -307,11 +307,11 @@ async function signInSeller(page, secretHex) {
       await waitForAuthStore(page, 30_000);
     } catch {
       const retryUrl = await waitForAuthUrl(page).catch(() => null);
-      if (!retryUrl || retryUrl === authorizationUrl) throw new Error('auth-store was not set after approve');
+      if (!retryUrl || retryUrl === authorizationUrl) throw new Error('shop-auth-store was not set after approve');
       await approveAuthRequest(secretHex, retryUrl);
       await waitForAuthStore(page, 45_000);
     }
-    record('inventory:seller-signin', true, `headless approve /sign-in, auth-store set (${page.url()})`);
+    record('inventory:seller-signin', true, `headless approve /sign-in, shop-auth-store set (${page.url()})`);
     return true;
   } catch (error) {
     const snippet = (
@@ -797,7 +797,7 @@ function shopCacheRow(shop) {
 
 async function seedCanonicalListingCache(page, canonicalListing, shop) {
   await page.waitForFunction(
-    () => indexedDB.databases().then((dbs) => dbs.some((entry) => entry.name === 'franky')),
+    () => indexedDB.databases().then((dbs) => dbs.some((entry) => entry.name === 'shop-franky')),
     undefined,
     {
       timeout: 15_000,
@@ -807,7 +807,7 @@ async function seedCanonicalListingCache(page, canonicalListing, shop) {
     async ({ listing, shopRecord }) => {
       const put = (storeName, value) =>
         new Promise((resolve, reject) => {
-          const open = indexedDB.open('franky');
+          const open = indexedDB.open('shop-franky');
           open.onerror = () => reject(open.error);
           open.onsuccess = () => {
             const db = open.result;
@@ -831,7 +831,7 @@ async function seedCanonicalListingCache(page, canonicalListing, shop) {
     },
     { listing: listingCacheRow(canonicalListing), shopRecord: shopCacheRow(shop) },
   );
-  assert('listing:fixture-cache', seeded === true, 'canonical listing+shop in Dexie franky');
+  assert('listing:fixture-cache', seeded === true, 'canonical listing+shop in Dexie shop-franky');
 }
 
 async function main() {

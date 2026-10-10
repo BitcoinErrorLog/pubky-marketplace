@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AuthController } from '@/controllers/auth/auth';
 import { getErrorMessage } from '@/libs/error/error.utils';
 import { Logger } from '@/libs/logger/logger';
+import { navigateTop } from '@/libs/navigation/navigate-top';
 import { copyToClipboard } from '@/libs/utils/utils';
 import { AUTH_FLOW_CANCELED_ERROR_NAME } from '@/services/homeserver/error.utils';
 import type { TGenerateAuthUrlResult } from '@/services/homeserver/homeserver.types';
@@ -172,7 +173,7 @@ export function useStepUpReauth(options: UseStepUpReauthOptions = {}): UseStepUp
     };
     visibilityHandlerRef.current = onVisibilityChange;
     document.addEventListener('visibilitychange', onVisibilityChange, { once: true });
-    window.location.href = authorizationUrl;
+    navigateTop(authorizationUrl);
   }, [authorizationUrl, removeVisibilityHandler]);
 
   useEffect(() => {

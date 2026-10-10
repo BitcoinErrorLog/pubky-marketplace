@@ -11,6 +11,7 @@ import { Heading } from '@/atoms/Heading/Heading';
 import { Link } from '@/atoms/Link/Link';
 import { Skeleton } from '@/atoms/Skeleton/Skeleton';
 import { Typography } from '@/atoms/Typography/Typography';
+import { withBasePath } from '@/config/base-path';
 import { CommerceController } from '@/controllers/commerce/commerce';
 import { useCommerceShopFollow } from '@/hooks/useCommerceShopFollow/useCommerceShopFollow';
 import {
@@ -113,7 +114,8 @@ export function MarketplaceDrop({ sellerPubky, dropId }: MarketplaceDropProps) {
   const stateBadge = DISPLAY_STATE_BADGES[state];
   const isEnded = state === 'ended_sold_out' || state === 'ended_closed' || state === 'ended_cancelled';
   const dropUrl =
-    (typeof window !== 'undefined' ? window.location.origin : '') + getMarketplaceDropRoute(sellerPubky, dropId);
+    (typeof window !== 'undefined' ? window.location.origin : '') +
+    withBasePath(getMarketplaceDropRoute(sellerPubky, dropId));
 
   return (
     <DropPageShell>

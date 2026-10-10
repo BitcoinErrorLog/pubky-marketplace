@@ -1,4 +1,5 @@
 import { Container } from '@/atoms/Container/Container';
+import { getBasePath, withBasePath } from '@/config/base-path';
 import { HomeActions, HomeFooter, HomePageHeading, HomeSectionTitle } from '@/molecules/Home/Home';
 import { PageContainer } from '@/molecules/Page/Page';
 import { LANDING_HERO_SECTION_ID } from './Landing.constants';
@@ -10,10 +11,20 @@ import { LandingScrollCue } from './LandingScrollCue';
 import { LandingSwirlState } from './LandingSwirlState';
 import { LandingVideo } from './LandingVideo';
 
+/** The swirl artwork lives in CSS, which cannot see the mount path; hand it over as a variable. */
+function swirlImageStyle() {
+  if (getBasePath() === '') return undefined;
+  return { ['--landing-swirl-image' as string]: `url(${withBasePath('/images/bg-home.svg')})` };
+}
+
 export function Landing() {
   return (
     <>
-      <div aria-hidden className="landing-swirl-background">
+      <div
+        aria-hidden
+        className="landing-swirl-background"
+        style={swirlImageStyle()}
+      >
         <div className="landing-swirl-background__graphic" />
         <div className="landing-swirl-background__graphic landing-swirl-background__graphic--secondary" />
       </div>

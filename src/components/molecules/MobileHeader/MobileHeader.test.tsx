@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setEmbedded } from '@/test-utils/embedded';
 import { MobileHeader } from './MobileHeader';
 
 let mockCurrentUserPubky: string | null = 'pk:test-user-pubky';
@@ -44,6 +45,16 @@ describe('MobileHeader', () => {
     mockCurrentUserPubky = 'pk:test-user-pubky';
     mockIsCoreExploreRoute = false;
     mockIsPublicExploreRoute = false;
+  });
+
+  describe('embedded in another app', () => {
+    afterEach(() => setEmbedded(false));
+
+    it('renders no mobile header so the host app owns the page navigation', () => {
+      setEmbedded(true);
+      const { container } = render(<MobileHeader />);
+      expect(container).toBeEmptyDOMElement();
+    });
   });
 
   it('renders with default props', () => {

@@ -1,6 +1,6 @@
 import { usePathname } from 'next/navigation';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as commerceConfig from '@/config/commerce';
 import { FORCE_FEED_SCROLL_TOP_KEY } from '@/config/feed';
 import { FileController } from '@/controllers/file/file';
@@ -9,6 +9,7 @@ import { useKeyboardOffset } from '@/hooks/useKeyboardOffset/useKeyboardOffset';
 import { useMarketplaceCartCount } from '@/hooks/useMarketplaceCartCount/useMarketplaceCartCount';
 import { useMarketplaceNavAttention } from '@/hooks/useMarketplaceNavAttention/useMarketplaceNavAttention';
 import { useMessagesUnread } from '@/hooks/useMessagesUnread/useMessagesUnread';
+import { setEmbedded } from '@/test-utils/embedded';
 import { setSocialHost } from '@/test-utils/social-host';
 import { MobileFooter } from './MobileFooter';
 
@@ -184,6 +185,16 @@ describe('MobileFooter', () => {
 
     // Reset keyboard offset mock
     vi.mocked(useKeyboardOffset).mockReturnValue({ isKeyboardVisible: false, keyboardOffset: 0 });
+  });
+
+  describe('embedded in another app', () => {
+    afterEach(() => setEmbedded(false));
+
+    it('renders no footer navigation so the host app owns the page navigation', () => {
+      setEmbedded(true);
+      const { container } = render(<MobileFooter />);
+      expect(container).toBeEmptyDOMElement();
+    });
   });
 
   it('renders with default props', () => {

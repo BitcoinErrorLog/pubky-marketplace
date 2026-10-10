@@ -1,5 +1,6 @@
 import { UserApplication } from '@/application/user/user';
 import type { TUserCountsOrFetchResult } from '@/application/user/user.types';
+import { withoutBasePath } from '@/config/base-path';
 import type { TReadProfileParams } from '@/controllers/profile/profile.types';
 import type { TFollowParams, TPubkyListParams } from '@/controllers/user/user.type';
 import { HttpMethod } from '@/libs/http/http.types';
@@ -197,7 +198,7 @@ export class UserController {
    * @returns The active stream ID, or null if not on /home route or if retrieval fails
    */
   private static getActiveStreamId(): PostStreamId | null {
-    if (typeof window === 'undefined' || window.location.pathname !== '/home') {
+    if (typeof window === 'undefined' || withoutBasePath(window.location.pathname) !== '/home') {
       return null;
     }
 

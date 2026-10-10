@@ -123,7 +123,7 @@ async function ringSignIn(page, seat) {
   await new Pubky().signer(seat).approveAuthRequest(await copyAuthUrl(page, 'Copy authentication link'));
   await page.waitForFunction(
     (expected) => {
-      const raw = localStorage.getItem('auth-store');
+      const raw = localStorage.getItem('shop-auth-store') ?? localStorage.getItem('auth-store');
       const state = raw ? (JSON.parse(raw).state ?? {}) : {};
       return state.currentUserPubky === expected && typeof state.sessionExport === 'string';
     },
@@ -159,7 +159,7 @@ async function signOut(page) {
   await button.waitFor({ state: 'visible', timeout: 30_000 });
   await button.click();
   await page.waitForURL(/\/sign-in/, { timeout: 60_000 }).catch(() => {});
-  const raw = await page.evaluate(() => localStorage.getItem('auth-store'));
+  const raw = await page.evaluate(() => localStorage.getItem('shop-auth-store') ?? localStorage.getItem('auth-store'));
   return raw === null || !JSON.parse(raw)?.state?.currentUserPubky;
 }
 

@@ -16,6 +16,7 @@ import { Link } from '@/atoms/Link/Link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/atoms/Select/Select';
 import { Skeleton } from '@/atoms/Skeleton/Skeleton';
 import { Typography } from '@/atoms/Typography/Typography';
+import { withBasePath } from '@/config/base-path';
 import {
   getCommerceAdapterMode,
   getPaykitServerApi,
@@ -67,6 +68,7 @@ import {
   USDT_WALLET_HINT,
   usdtParityMillionths,
 } from '@/libs/commerce/usdt-buyer-status';
+import { navigateTop } from '@/libs/navigation/navigate-top';
 import { getDeployEnv } from '@/libs/runtime-config/runtime-config';
 import type { CommerceListingModelSchema } from '@/models/commerce/commerce.schema';
 import { ControlledInputField } from '@/molecules/ControlledInputField/ControlledInputField';
@@ -427,12 +429,12 @@ function MarketplaceCartCheckout() {
       await offers.refresh();
       if (!isPickupAward) await checkout.rememberAddress();
       if (result.boundOrder?.fiatCheckoutUrl) {
-        window.location.assign(result.boundOrder.fiatCheckoutUrl);
+        navigateTop(result.boundOrder.fiatCheckoutUrl);
         return;
       }
       if (result.orderId) {
         setPayingOrderIds([result.orderId]);
-        window.history.replaceState(null, '', getMarketplaceCheckoutRoute(result.orderId));
+        window.history.replaceState(null, '', withBasePath(getMarketplaceCheckoutRoute(result.orderId)));
         setHashOrderId(result.orderId);
         await orders.refresh();
         return;
@@ -472,12 +474,12 @@ function MarketplaceCartCheckout() {
     if (!result.ok) return;
     setPayingOrderIds(result.orderIds);
     if (result.orderIds[0]) {
-      window.history.replaceState(null, '', getMarketplaceCheckoutRoute(result.orderIds[0]));
+      window.history.replaceState(null, '', withBasePath(getMarketplaceCheckoutRoute(result.orderIds[0])));
       setHashOrderId(result.orderIds[0]);
     }
     const fiatBound = result.boundOrders.filter((order) => order.fiatCheckoutUrl);
     if (fiatBound.length === 1 && fiatBound[0].fiatCheckoutUrl) {
-      window.location.assign(fiatBound[0].fiatCheckoutUrl);
+      navigateTop(fiatBound[0].fiatCheckoutUrl);
       return;
     }
     await orders.refresh();

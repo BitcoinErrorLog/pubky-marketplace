@@ -1,3 +1,5 @@
+import { shopStorageKey } from '@/libs/storage-namespace/storage-namespace';
+
 /**
  * Feed-related UI constants shared across hooks, components, and templates.
  */
@@ -72,4 +74,4 @@ export const GRID_FEED_GAP_CLASS = 'gap-3 lg:gap-6';
  * the top on arrival. Browser back never sets it, preserving native history
  * scroll restoration. Centralized here so all call sites cannot drift.
  */
-export const FORCE_FEED_SCROLL_TOP_KEY = 'pubky:force-feed-scroll-top';
+export const FORCE_FEED_SCROLL_TOP_KEY = shopStorageKey('pubky:force-feed-scroll-top');

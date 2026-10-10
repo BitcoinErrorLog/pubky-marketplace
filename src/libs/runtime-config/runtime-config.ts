@@ -241,6 +241,12 @@ const PASSPORT_ORIGIN_BY_DEPLOY_ENV: Record<DeployEnv, string> = {
  */
 export const getPassportOrigin = (): string =>
   new URL(getRuntimeConfig().passportUrl ?? PASSPORT_ORIGIN_BY_DEPLOY_ENV[getRuntimeConfig().deployEnv]).origin;
+/** Origins (and `'self'`) allowed to frame the Shop. Empty denies framing. */
+export const getFrameAncestors = (): string[] => getRuntimeConfig().frameAncestors;
+/** Deployer override that forces the embedded layout and behaviour. */
+export const getEmbeddedFlag = (): boolean => getRuntimeConfig().embedded;
+/** Explicit deployer choice for legacy-storage adoption; `undefined` lets the caller derive it. */
+export const getStorageAdoptLegacyOverride = (): boolean | undefined => getRuntimeConfig().storageAdoptLegacy;
 export const getPreludeSdkKey = (): string | undefined => getRuntimeConfig().preludeSdkKey;
 export const getPreludeSdkTimeoutMs = (): number => getRuntimeConfig().preludeSdkTimeoutMs;
 export const getPlausibleDomain = (): string | undefined => getRuntimeConfig().plausibleDomain;

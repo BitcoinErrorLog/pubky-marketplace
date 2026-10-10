@@ -1,7 +1,7 @@
 'use client';
 
-import Image from 'next/image';
 import { Loader2 } from 'lucide-react';
+import { BasePathImage as Image } from '@/atoms/BasePathImage/BasePathImage';
 import { Button } from '@/atoms/Button/Button';
 import { Typography } from '@/atoms/Typography/Typography';
 import { usePassportSignIn } from '@/hooks/usePassportSignIn/usePassportSignIn';

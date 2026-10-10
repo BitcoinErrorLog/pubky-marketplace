@@ -5,7 +5,12 @@ import { AppError } from '@/libs/error/error';
 import { AuthErrorCode } from '@/libs/error/error.codes';
 import { ErrorCategory, ErrorService } from '@/libs/error/error.types';
 import { useMessagingStore } from '@/stores/messaging/messaging.store';
+import { navigatesWithinGesture } from '@/test-utils/user-gesture';
 import { useMarketplaceMessagingEnable } from './useMarketplaceMessagingEnable';
+
+const navigation = vi.hoisted(() => ({ navigateTop: vi.fn() }));
+
+vi.mock('@/libs/navigation/navigate-top', () => ({ navigateTop: navigation.navigateTop }));
 
 type EnableFlow = Awaited<ReturnType<typeof MessagingController.beginMessagingEnable>>;
 
@@ -42,6 +47,22 @@ describe('useMarketplaceMessagingEnable', () => {
 
     expect(result.current.status).toBe('awaiting');
     expect(beginSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('hands the signer deeplink to the top window inside the tap, with no async boundary before it', async () => {
+    vi.spyOn(MessagingController, 'beginMessagingEnable').mockResolvedValue({
+      authorizationUrl: 'pubkyauth://messaging-enable',
+      awaitEnabled: () => new Promise(() => {}),
+      cancel: vi.fn(),
+    });
+    const { result } = renderHook(() => useMarketplaceMessagingEnable());
+    act(() => result.current.start());
+    await act(async () => {});
+
+    expect(
+      navigatesWithinGesture(navigation.navigateTop, 'pubkyauth://messaging-enable', () => result.current.openInRing()),
+    ).toBe(true);
+    expect(result.current.isOpeningRing).toBe(true);
   });
 
   it('maps thrown sentinel failures to static copy and keeps the error message static', async () => {

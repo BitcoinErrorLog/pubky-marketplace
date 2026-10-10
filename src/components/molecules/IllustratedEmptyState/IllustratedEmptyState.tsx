@@ -1,7 +1,7 @@
 'use client';
 
-import Image from 'next/image';
 import { LucideIcon } from 'lucide-react';
+import { BasePathImage as Image } from '@/atoms/BasePathImage/BasePathImage';
 import { Container } from '@/atoms/Container/Container';
 import { Typography } from '@/atoms/Typography/Typography';
 

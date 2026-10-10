@@ -1,7 +1,7 @@
 'use client';
 
-import Image from 'next/image';
 import { QRCodeSVG } from 'qrcode.react';
+import { BasePathImage as Image } from '@/atoms/BasePathImage/BasePathImage';
 import { Button } from '@/atoms/Button/Button';
 import { Container } from '@/atoms/Container/Container';
 import {

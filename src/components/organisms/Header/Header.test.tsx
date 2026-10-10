@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AUTH_ROUTES, HOME_ROUTES, ONBOARDING_ROUTES, ROOT_ROUTES } from '@/app/routes';
+import { setEmbedded } from '@/test-utils/embedded';
 import { Header } from './Header';
 
 // Mock Next.js navigation
@@ -212,6 +213,29 @@ describe('Header', () => {
     mockUseRouter.mockReturnValue({ push: vi.fn() });
     mockIsPublicRoute.mockReturnValue(false);
     mockIsCoreExploreRoute.mockReturnValue(false);
+  });
+
+  describe('embedded in another app', () => {
+    afterEach(() => setEmbedded(false));
+
+    it('renders no header chrome so the host app owns the page navigation', () => {
+      setEmbedded(true);
+      mockCurrentUserPubky = 'test-pubky-123';
+      mockUsePathname.mockReturnValue(HOME_ROUTES.HOME);
+
+      const { container } = render(<Header />);
+
+      expect(container).toBeEmptyDOMElement();
+    });
+
+    it('renders no header chrome on the signed-out landing route either', () => {
+      setEmbedded(true);
+      mockUsePathname.mockReturnValue(ROOT_ROUTES);
+
+      const { container } = render(<Header />);
+
+      expect(container).toBeEmptyDOMElement();
+    });
   });
 
   it('renders header container with logo and home header', () => {

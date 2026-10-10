@@ -1,12 +1,17 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/database/franky/franky';
+import { migrateLegacyDatabases } from '@/database/franky/franky.namespace-migration';
 import { DatabaseErrorCode } from '@/libs/error/error.codes';
 import { Err } from '@/libs/error/error.factories';
 import { ErrorService } from '@/libs/error/error.types';
 import { DatabaseProvider } from '@/providers/DatabaseProvider/DatabaseProvider';
 import { useMessagingStore } from '@/stores/messaging/messaging.store';
 import { useMigrationStore } from '@/stores/migration/migration.store';
+
+vi.mock('@/database/franky/franky.namespace-migration', () => ({
+  migrateLegacyDatabases: vi.fn(async () => ({ status: 'nothing', alreadyDone: true, rows: 0 })),
+}));
 
 describe('DatabaseProvider', () => {
   beforeEach(() => {
@@ -35,6 +40,50 @@ describe('DatabaseProvider', () => {
 
     expect(screen.getByText('Test Content')).toBeInTheDocument();
     expect(db.initialize).toHaveBeenCalledTimes(1);
+  });
+
+  it('migrates legacy storage before the namespaced database opens', async () => {
+    const order: string[] = [];
+    vi.mocked(migrateLegacyDatabases).mockImplementationOnce(async () => {
+      order.push('migrate');
+      return { status: 'migrated', alreadyDone: false, rows: 3 };
+    });
+    vi.spyOn(db, 'initialize').mockImplementationOnce(async () => {
+      order.push('initialize');
+      return { wasDbReset: false, messagingAtRestDegraded: false };
+    });
+
+    render(
+      <DatabaseProvider>
+        <div>Test Content</div>
+      </DatabaseProvider>,
+    );
+    await act(async () => {
+      await vi.runAllTimersAsync();
+    });
+
+    expect(order).toEqual(['migrate', 'initialize']);
+  });
+
+  it('shows the recovery screen and never opens the empty namespaced database when the migration fails', async () => {
+    const error = Err.database(DatabaseErrorCode.INIT_FAILED, 'Failed to migrate', {
+      service: ErrorService.Local,
+      operation: 'migrateLegacyDatabases',
+    });
+    vi.mocked(migrateLegacyDatabases).mockRejectedValueOnce(error);
+    const initialize = vi.spyOn(db, 'initialize');
+
+    render(
+      <DatabaseProvider>
+        <div>Test Content</div>
+      </DatabaseProvider>,
+    );
+    await act(async () => {
+      await vi.runAllTimersAsync();
+    });
+
+    expect(screen.queryByText('Test Content')).not.toBeInTheDocument();
+    expect(initialize).not.toHaveBeenCalled();
   });
 
   it('blocks children and renders the recovery screen when initialization fails', async () => {

@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
-import Image, { ImageProps } from 'next/image';
+import type { ImageProps } from 'next/image';
+import { BasePathImage as Image } from '@/atoms/BasePathImage/BasePathImage';
 import { Container } from '@/atoms/Container/Container';
 import { cn } from '@/libs/utils/utils';
 import { IllustratedCard } from '../IllustratedCard/IllustratedCard';

@@ -22,9 +22,11 @@ import { Err } from '@/libs/error/error.factories';
 import { ErrorService } from '@/libs/error/error.types';
 import { Logger } from '@/libs/logger/logger';
 
-const KEYRING_DB_NAME = `${DB_NAME}-messaging-keyring`;
-const KEYRING_DB_VERSION = 1;
-const KEYRING_STORE_NAME = 'wrapping-key';
+/** The keyring database that belongs to the Dexie database named `databaseName`. */
+export const messagingKeyringDbName = (databaseName: string) => `${databaseName}-messaging-keyring`;
+const KEYRING_DB_NAME = messagingKeyringDbName(DB_NAME);
+export const KEYRING_DB_VERSION = 1;
+export const KEYRING_STORE_NAME = 'wrapping-key';
 const WRAPPING_KEY_RECORD_ID = 'wrapping-key';
 /**
  * Random id stored next to the key and replaced in the same transaction

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Image } from '@/atoms/Image/Image';
+import { withBasePath } from '@/config/base-path';
 import { BREAKPOINTS } from '@/config/theme';
 import { cn } from '@/libs/utils/utils';
 
@@ -76,7 +77,7 @@ export function LandingBrokenPoster({ alt, className, image, video }: LandingBro
       <Image src={image} alt={alt} width={1516} height={1516} className="absolute inset-0 size-full object-cover" />
       <video
         ref={videoRef}
-        src={video}
+        src={withBasePath(video)}
         preload="auto"
         muted
         playsInline
