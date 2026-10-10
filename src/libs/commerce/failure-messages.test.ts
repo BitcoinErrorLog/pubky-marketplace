@@ -16,6 +16,8 @@ import {
   marketplacePaymentMethodFailureMessage,
   marketplacePaymentMethodReasonMessage,
   USDT_PAYMENT_METHOD_REASON_MESSAGES,
+  usdtOfferRefusalReason,
+  usdtRefusalKey,
 } from './failure-messages';
 
 describe('marketplaceFailureMessage', () => {
@@ -309,6 +311,39 @@ describe('marketplacePaymentMethodFailureMessage', () => {
       expect(marketplacePaymentMethodFailureMessage(bitcoinBind, 'fallback')).toBe(
         'Connect Bitkit to pay with Bitcoin: this account has no Paykit wallet that can receive a payment request.',
       );
+    });
+
+    it.each(['usdt_unavailable', 'usdt_seller_not_ready'] as const)(
+      'reads %s on a USDT bind as an offer refusal',
+      (reason) => {
+        expect(usdtOfferRefusalReason(usdtRefusal(reason))).toBe(reason);
+      },
+    );
+
+    it.each(['buyer_usdt_wallet_required', 'paykit_rejected', 'paykit_unavailable', 'seller_account_unclaimed'])(
+      'does not read %s as an offer refusal: another try can succeed or the buyer can act',
+      (reason) => {
+        expect(usdtOfferRefusalReason(usdtRefusal(reason))).toBeNull();
+      },
+    );
+
+    it('never reads a refusal on another rail, or a plain error, as a USDT offer refusal', () => {
+      const bitcoinBind = new AppError({
+        category: ErrorCategory.Client,
+        code: ClientErrorCode.BAD_REQUEST,
+        message: 'SENTINEL',
+        service: ErrorService.Marketplace,
+        operation: 'bindPaymentMethod',
+        context: { statusCode: 409, reason: 'usdt_unavailable' },
+      });
+      expect(usdtOfferRefusalReason(bitcoinBind)).toBeNull();
+      expect(usdtOfferRefusalReason(new Error('usdt_unavailable'))).toBeNull();
+      expect(usdtOfferRefusalReason(undefined)).toBeNull();
+    });
+
+    it('keys a refusal by the distinct sellers of the checkout', () => {
+      expect(usdtRefusalKey(['s'])).toBe('s');
+      expect(usdtRefusalKey(['a', 'b', 'a'])).toBe('a|b');
     });
 
     it('reads the rail from the bind when the service error is built', () => {

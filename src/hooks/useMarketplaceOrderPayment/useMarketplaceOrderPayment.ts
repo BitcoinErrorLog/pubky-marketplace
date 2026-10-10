@@ -7,6 +7,8 @@ import {
   MARKETPLACE_FAILURE_MESSAGES,
   marketplaceErrorCode,
   marketplaceFailureMessage,
+  usdtOfferRefusalReason,
+  usdtRefusalKey,
 } from '@/libs/commerce/failure-messages';
 import {
   availablePaymentMethods,
@@ -18,6 +20,7 @@ import { Logger } from '@/libs/logger/logger';
 import { showPaymentMethodRefusalToast } from '@/molecules/Toaster/payment-method-refusal-toast';
 import { toast } from '@/molecules/Toaster/use-toast';
 import type { MarketplaceOrder } from '@/services/marketplace/marketplace';
+import { useCommerceStore } from '@/stores/commerce/commerce.store';
 
 /**
  * Buyer/seller actions for one order's payment method (durable modes only):
@@ -42,6 +45,8 @@ export function useMarketplaceOrderPayment({
 
   const needsConfig = enabled && !order.paymentMethod;
   const usdtPaymentsAvailable = useUsdtPaymentsAvailable(needsConfig);
+  const sellerKey = usdtRefusalKey([order.sellerPubky]);
+  const usdtRefused = useCommerceStore((state) => state.usdtRefusals[sellerKey] !== undefined);
 
   useEffect(() => {
     if (!needsConfig) return;
@@ -73,6 +78,8 @@ export function useMarketplaceOrderPayment({
         await onPaymentChanged();
       } catch (error) {
         Logger.error(`Marketplace payment action '${action}' failed`, { error });
+        const usdtRefusal = usdtOfferRefusalReason(error);
+        if (usdtRefusal) CommerceController.rememberUsdtRefusal(sellerKey, usdtRefusal);
         showPaymentMethodRefusalToast({
           error,
           fallback: 'The payment action could not be completed.',
@@ -83,7 +90,7 @@ export function useMarketplaceOrderPayment({
         setPendingAction(null);
       }
     },
-    [onPaymentChanged],
+    [onPaymentChanged, sellerKey],
   );
 
   const bind = useCallback(
@@ -130,7 +137,7 @@ export function useMarketplaceOrderPayment({
   return {
     availableMethods: sellerConfig
       ? availablePaymentMethods(sellerConfig, {
-          usdtPaymentsAvailable: usdtPaymentsAvailable && isUsdPricedTotals([order.total]),
+          usdtPaymentsAvailable: usdtPaymentsAvailable && !usdtRefused && isUsdPricedTotals([order.total]),
         })
       : null,
     bitcoinOfferUnavailable: sellerConfig?.bitcoinAvailable === true && sellerConfig.bitcoinOfferAvailable === false,

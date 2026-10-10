@@ -55,6 +55,13 @@ export type CommerceReceiptPublicationUiStatus =
   | 'needs_marketplace_approval'
   | 'unavailable';
 
+/**
+ * Why the service refused to bind USDT to an order: `usdt_unavailable` (the
+ * deployment cannot take USDT yet) or `usdt_seller_not_ready` (this seller
+ * cannot). Either way the same USDT bind would be refused again.
+ */
+export type CommerceUsdtRefusalReason = 'usdt_unavailable' | 'usdt_seller_not_ready';
+
 export type CommerceConditionFilter = 'new' | 'like_new' | 'excellent' | 'good' | 'fair' | 'for_parts';
 export type CommerceSort = 'recommended' | 'newest' | 'price_low' | 'price_high' | 'ending_soon';
 export type CommerceLayout = 'grid' | 'list';
@@ -81,6 +88,14 @@ export interface CommerceState {
   inventorySession: CommerceMarketplaceSession | null;
   watchlistSyncStatus: CommerceWatchlistSyncUiStatus;
   receiptsPublicationStatus: CommerceReceiptPublicationUiStatus;
+  /**
+   * USDT refusals this browser session has seen, keyed by the checkout's
+   * seller set (the seller pubky, or the pubkys joined with `|` for a
+   * multi-seller cart). Checkout and the order's payment card stop offering
+   * USDT for that key. Memory only: a reload clears it, and a different
+   * seller set has a different key.
+   */
+  usdtRefusals: Record<string, CommerceUsdtRefusalReason>;
 }
 
 export interface CommerceActions {
@@ -99,6 +114,7 @@ export interface CommerceActions {
   setInventorySession: (session: CommerceMarketplaceSession | null) => void;
   setWatchlistSyncStatus: (watchlistSyncStatus: CommerceWatchlistSyncUiStatus) => void;
   setReceiptsPublicationStatus: (receiptsPublicationStatus: CommerceReceiptPublicationUiStatus) => void;
+  setUsdtRefusal: (sellerKey: string, reason: CommerceUsdtRefusalReason) => void;
   resetFilters: () => void;
   reset: () => void;
 }
@@ -122,6 +138,7 @@ export const commerceInitialState: CommerceState = {
   inventorySession: null,
   watchlistSyncStatus: 'idle',
   receiptsPublicationStatus: 'idle',
+  usdtRefusals: {},
 };
 
 export enum CommerceActionTypes {
@@ -140,6 +157,7 @@ export enum CommerceActionTypes {
   SET_INVENTORY_SESSION = 'SET_INVENTORY_SESSION',
   SET_WATCHLIST_SYNC_STATUS = 'SET_WATCHLIST_SYNC_STATUS',
   SET_RECEIPTS_PUBLICATION_STATUS = 'SET_RECEIPTS_PUBLICATION_STATUS',
+  SET_USDT_REFUSAL = 'SET_USDT_REFUSAL',
   RESET_FILTERS = 'RESET_FILTERS',
   RESET = 'RESET',
 }

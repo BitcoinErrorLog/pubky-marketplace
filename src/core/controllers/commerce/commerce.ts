@@ -32,7 +32,12 @@ import { isRecognizedMarketplaceNotification } from '@/services/marketplace/mark
 import type { MarketplaceSessionEndedEvent, MarketplaceSessionInfo } from '@/services/marketplace/marketplace-session';
 import { useAuthStore } from '@/stores/auth/auth.store';
 import { useCommerceStore } from '@/stores/commerce/commerce.store';
-import type { CommerceConditionFilter, CommerceSaleFormatFilter, CommerceSort } from '@/stores/commerce/commerce.types';
+import type {
+  CommerceConditionFilter,
+  CommerceSaleFormatFilter,
+  CommerceSort,
+  CommerceUsdtRefusalReason,
+} from '@/stores/commerce/commerce.types';
 import { useNotificationStore } from '@/stores/notification/notification.store';
 
 export class CommerceController {
@@ -911,6 +916,15 @@ export class CommerceController {
   /** Whether USDT may be offered: the Shop flag AND the service capability. A failed read rejects. */
   static async fetchUsdtPaymentsAvailable(): Promise<boolean> {
     return await CommerceApplication.fetchUsdtPaymentsAvailable();
+  }
+
+  /**
+   * Remembers, for this browser session, that the service refused a USDT bind
+   * for this seller set, so the checkout picker and the order's payment card
+   * stop offering a method that would be refused again.
+   */
+  static rememberUsdtRefusal(sellerKey: string, reason: CommerceUsdtRefusalReason): void {
+    useCommerceStore.getState().setUsdtRefusal(sellerKey, reason);
   }
 
   /**

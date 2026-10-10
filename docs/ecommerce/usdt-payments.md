@@ -157,6 +157,8 @@ Until a USDT payment is `final`, Add tracking, the shipping label's "Mark shippe
 
 A bind for `usdt` tags its refusal with `context.paymentMethod: "usdt"` so the toast picks the USDT string; a Bitcoin or PayPal refusal is unchanged. `buyer_usdt_wallet_required` is reserved until Paykit types it.
 
+**After a refusal, USDT is no longer offered.** `usdt_unavailable` and `usdt_seller_not_ready` mean the same bind would be refused again (before S4, every USDT bind is). When a bind fails with either one, the Shop remembers it for the seller set of that checkout (`CommerceController.rememberUsdtRefusal`, `usdtRefusals` in the commerce store). The checkout picker and the order page's "Continue with USDT" then stop offering USDT, the next shared rail is selected, and the refusal toast has been shown once. If USDT was the only rail, the checkout says why instead of blaming the seller's setup. The memory is per browser session: a reload clears it, and a different seller set has its own key. Other USDT refusals (`buyer_usdt_wallet_required`, `paykit_*`, `seller_account_unclaimed`) don't count: a retry or the buyer's own action can fix them.
+
 ### Not in W3
 
 - Notification copy for payment and finality events: the closed notification types carry no asset, and the service has not named those USDT types. The one USDT type the service emits today, `refund_destination_confirmed` (S6, seller only), is in the closed set and reads "The buyer confirmed a USDT refund address". Deploy this before S6 so sellers never see "unrecognized marketplace event".

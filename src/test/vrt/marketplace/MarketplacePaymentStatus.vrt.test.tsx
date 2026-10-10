@@ -13,6 +13,7 @@ import { USDT_ORDER_FIELDS } from '@/test/fixtures/commerce/usdt-orders';
 import { USDT_RESOLVE_TX_HASH } from '@/test/fixtures/commerce/usdt-payment-review.wire';
 import { REFUND_FIXTURE_ADDRESS } from '@/test/fixtures/commerce/usdt-refund.wire';
 import { userEvent } from 'vitest/browser';
+import { useCommerceStore } from '@/stores/commerce/commerce.store';
 
 /**
  * Every buyer-visible payment state of the truthful status card (plan task
@@ -687,6 +688,26 @@ describe('Marketplace payment status card — USDT orders', () => {
     });
     await expect.element(screen.getByRole('button', { name: 'Continue with USDT' })).toBeInTheDocument();
     await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot('payment-status-usdt-method-picker-desktop');
+    view.usdtAvailable = false;
+    view.sellerConfig = { bitcoinAvailable: true, bitcoinOfferAvailable: true, paypalAvailable: true };
+    view.locks.enabled = true;
+  });
+
+  it('drops Continue with USDT from the method picker after the service refused USDT for this seller at desktop viewport', async () => {
+    view.locks = { ...view.locks, enabled: false, correlation: null, delivery: null, error: null };
+    view.usdtAvailable = true;
+    view.sellerConfig = { ...view.sellerConfig, usdtAvailable: true };
+    useCommerceStore.getState().setUsdtRefusal('s'.repeat(52), 'usdt_unavailable');
+    const screen = await renderCard('awaiting_entitlement', 'transaction-service', {
+      deployEnv: 'production',
+      orderOverrides: { holdExpiresAt: HOLD_DEADLINE, holdSource: 'checkout' },
+    });
+    await expect.element(screen.getByRole('button', { name: 'Continue with PayPal' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Continue with USDT' }).elements()).toHaveLength(0);
+    await expect(screen.getByTestId(VRT_ROOT_TESTID)).toMatchScreenshot(
+      'payment-status-usdt-method-picker-refused-desktop',
+    );
+    useCommerceStore.getState().reset();
     view.usdtAvailable = false;
     view.sellerConfig = { bitcoinAvailable: true, bitcoinOfferAvailable: true, paypalAvailable: true };
     view.locks.enabled = true;

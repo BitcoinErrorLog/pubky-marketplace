@@ -63,6 +63,7 @@ vi.mock('@/controllers/commerce/commerce', () => ({
     clearMarketplaceSession: vi.fn(),
     clearIdentitySession: vi.fn(),
     bindPaymentMethod: vi.fn(),
+    rememberUsdtRefusal: vi.fn(),
     getMarketplaceOrders: vi.fn(async () => []),
   },
 }));
@@ -753,6 +754,86 @@ describe('useMarketplaceCheckout', () => {
     asOpaque<{ props: { onClick: () => void } }>(setupToast?.action).props.onClick();
     expect(onRetry).toHaveBeenCalledTimes(1);
     expect(vi.mocked(CommerceController.bindPaymentMethod).mock.calls.length).toBe(bindsBefore + 1);
+  });
+
+  describe('after a refused USDT bind', () => {
+    const orderId = '018f47d2-6a27-7c23-a49d-000000001210';
+
+    const usdtBindRefusal = (reason: string) =>
+      new AppError({
+        category: ErrorCategory.Client,
+        code: ClientErrorCode.BAD_REQUEST,
+        message: 'SENTINEL',
+        service: ErrorService.Marketplace,
+        operation: 'bindPaymentMethod',
+        context: { statusCode: 409, reason, paymentMethod: 'usdt' },
+      });
+
+    async function payRefused(method: 'usdt' | 'bitcoin', error: unknown) {
+      config.mode = 'locks-paykit';
+      vi.mocked(CommerceController.commitCreateMarketplaceCheckout).mockResolvedValue({
+        ok: true,
+        version: 1,
+        commandId: '00000000-0000-4000-8000-000000001110',
+        aggregateId: 'checkout:00000000-0000-4000-8000-000000001110',
+        revision: 1,
+        eventIds: [],
+        result: { kind: 'checkout', orders: [{ id: orderId }] },
+      });
+      vi.mocked(CommerceController.bindPaymentMethod).mockRejectedValueOnce(error);
+      const { result } = renderHook(() =>
+        useMarketplaceCheckout(
+          [item],
+          vi.fn(async () => {}),
+        ),
+      );
+      act(() => {
+        result.current.form.setValue('name', 'Alice Buyer');
+        result.current.form.setValue('line1', '1 Market Street');
+        result.current.form.setValue('city', 'New York');
+        result.current.form.setValue('region', 'NY');
+        result.current.form.setValue('postalCode', '10001');
+        result.current.form.setValue('acceptsGuarantee', true);
+      });
+      return await act(async () => result.current.pay(method));
+    }
+
+    it.each(['usdt_unavailable', 'usdt_seller_not_ready'] as const)(
+      'remembers %s for this seller and still cancels the order and shows the refusal once',
+      async (reason) => {
+        vi.mocked(CommerceController.rememberUsdtRefusal).mockClear();
+        vi.mocked(toast).mockClear();
+
+        const paid = await payRefused('usdt', usdtBindRefusal(reason));
+
+        expect(paid.ok).toBe(false);
+        expect(CommerceController.rememberUsdtRefusal).toHaveBeenCalledTimes(1);
+        expect(CommerceController.rememberUsdtRefusal).toHaveBeenCalledWith(item.listing.record.ownerPubky, reason);
+        expect(CommerceController.executeMarketplaceCommand).toHaveBeenCalledWith(
+          expect.objectContaining({ kind: 'order.cancel_request', payload: expect.objectContaining({ orderId }) }),
+        );
+        expect(vi.mocked(toast)).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    it.each(['buyer_usdt_wallet_required', 'paykit_rejected'])(
+      'does not remember %s, which another try or the buyer can fix',
+      async (reason) => {
+        vi.mocked(CommerceController.rememberUsdtRefusal).mockClear();
+
+        await payRefused('usdt', usdtBindRefusal(reason));
+
+        expect(CommerceController.rememberUsdtRefusal).not.toHaveBeenCalled();
+      },
+    );
+
+    it('does not remember a refusal of another rail', async () => {
+      vi.mocked(CommerceController.rememberUsdtRefusal).mockClear();
+
+      await payRefused('bitcoin', new Error('bind failed'));
+
+      expect(CommerceController.rememberUsdtRefusal).not.toHaveBeenCalled();
+    });
   });
 
   it.each([null, 'bitcoin', 'paypal'] as const)('skips durable binding in sandbox with method %s', async (method) => {
