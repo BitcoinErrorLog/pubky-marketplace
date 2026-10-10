@@ -8,6 +8,7 @@ import {
   sellerPaymentConfirmationInputSchema,
   sellerPaymentResolutionInputSchema,
 } from '@/libs/commerce/marketplace-payment-review';
+import { type PaymentReviewRail, usdtPaymentResolutionInputSchema } from '@/libs/commerce/usdt-payment-review';
 import { useMarketplaceSellerPaymentReview } from './useMarketplaceSellerPaymentReview';
 
 export type SellerPaymentConfirmationForm = z.input<typeof sellerPaymentConfirmationInputSchema>;
@@ -18,6 +19,7 @@ export type SellerPaymentResolutionSubmission = z.output<typeof sellerPaymentRes
 export function useMarketplaceSellerPaymentReviewForm(
   orderId: string,
   onChanged: () => void | Promise<void>,
+  rail: PaymentReviewRail = 'bitcoin',
 ): {
   confirmForm: UseFormReturn<SellerPaymentConfirmationForm, unknown, SellerPaymentConfirmationSubmission>;
   resolveForm: UseFormReturn<SellerPaymentResolutionForm, unknown, SellerPaymentResolutionSubmission>;
@@ -26,13 +28,13 @@ export function useMarketplaceSellerPaymentReviewForm(
   isSubmitting: boolean;
   error: string | null;
 } {
-  const mutation = useMarketplaceSellerPaymentReview(onChanged);
+  const mutation = useMarketplaceSellerPaymentReview(onChanged, rail);
   const confirmForm = useForm<SellerPaymentConfirmationForm, unknown, SellerPaymentConfirmationSubmission>({
     resolver: zodResolver(sellerPaymentConfirmationInputSchema),
     defaultValues: { reason: '' },
   });
   const resolveForm = useForm<SellerPaymentResolutionForm, unknown, SellerPaymentResolutionSubmission>({
-    resolver: zodResolver(sellerPaymentResolutionInputSchema),
+    resolver: zodResolver(rail === 'usdt' ? usdtPaymentResolutionInputSchema : sellerPaymentResolutionInputSchema),
     defaultValues: { outcome: 'paid', reason: '', externalRefundReference: '' },
   });
   const { reset } = mutation;
@@ -42,7 +44,7 @@ export function useMarketplaceSellerPaymentReviewForm(
       resolveForm.reset();
       reset();
     };
-  }, [orderId, confirmForm, resolveForm, reset]);
+  }, [orderId, rail, confirmForm, resolveForm, reset]);
 
   const submitConfirm = async (): Promise<boolean> => {
     let submitted = false;
