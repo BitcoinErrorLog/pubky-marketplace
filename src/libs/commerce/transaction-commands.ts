@@ -393,6 +393,18 @@ export const locksBareLockResourceSchema = z
   );
 
 /**
+ * `payment.prepare_locks` (buyer only, payment `awaiting_entitlement`): the
+ * service validates the seller's lock against the checkout-time snapshot,
+ * takes the payment hold and pins the payment to the `locks` adapter. It must
+ * succeed before `payment.register_locks`. A repeat for a live preparation
+ * replays it. Its opaque `client_reference` is not needed by the Shop.
+ */
+export const prepareLocksPaymentCommandSchema = createCommerceCommandSchema(
+  'payment.prepare_locks',
+  z.object({ paymentId: z.uuid() }).strict(),
+);
+
+/**
  * `payment.register_locks` (buyer only, payment `awaiting_entitlement`):
  * registers the encrypted correlation between the payment and the buyer's
  * Locks verification lifecycle `{creator, bundle_id}`. The bundle id is a
@@ -408,7 +420,6 @@ export const registerLocksPaymentCommandSchema = createCommerceCommandSchema(
     .object({
       paymentId: z.uuid(),
       bundleId: locksBundleIdSchema,
-      pubkyLockResource: locksBareLockResourceSchema,
     })
     .strict(),
 );
@@ -644,6 +655,7 @@ export const marketplaceCommandSchema = z.union([
   updateMarketplaceNotificationPreferencesCommandSchema,
   createMarketplaceCheckoutCommandSchema,
   advanceSandboxPaymentCommandSchema,
+  prepareLocksPaymentCommandSchema,
   registerLocksPaymentCommandSchema,
   requestOrderCancellationCommandSchema,
   approveOrderCancellationCommandSchema,
@@ -737,6 +749,7 @@ export type UpdateMarketplaceNotificationPreferencesCommand = z.infer<
 >;
 export type CreateMarketplaceCheckoutCommand = z.infer<typeof createMarketplaceCheckoutCommandSchema>;
 export type AdvanceSandboxPaymentCommand = z.infer<typeof advanceSandboxPaymentCommandSchema>;
+export type PrepareLocksPaymentCommand = z.infer<typeof prepareLocksPaymentCommandSchema>;
 export type RegisterLocksPaymentCommand = z.infer<typeof registerLocksPaymentCommandSchema>;
 export type RequestOrderCancellationCommand = z.infer<typeof requestOrderCancellationCommandSchema>;
 export type ApproveOrderCancellationCommand = z.infer<typeof approveOrderCancellationCommandSchema>;

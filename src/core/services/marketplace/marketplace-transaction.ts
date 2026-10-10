@@ -111,7 +111,7 @@ import { MarketplaceSessionService } from './marketplace-session';
  * - `payment.sandbox_advance` exists on the service (it drives the sandbox
  *   payment adapter end to end in its own tests), but this client refuses to
  *   send it as a matter of policy — simulate buttons are sandbox-only.
- * - `payment.register_locks` IS sent: it registers the buyer's Locks
+ * - `payment.prepare_locks` and `payment.register_locks` ARE sent: they prepare and register the buyer's Locks
  *   lifecycle correlation and never advances the payment — the service's
  *   worker independently verifies the Locks lifecycle and confirms exactly
  *   once (ADR-0019 §7). Deployments without Locks configured refuse it.
@@ -134,6 +134,7 @@ const TRANSACTION_SERVICE_COMMAND_KINDS: ReadonlySet<MarketplaceCommand['kind']>
   'offer.withdraw',
   'auction.place_bid',
   'auction.close',
+  'payment.prepare_locks',
   'payment.register_locks',
   'fulfillment.ship',
   'fulfillment.confirm_delivery',

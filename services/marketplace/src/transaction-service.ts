@@ -1195,6 +1195,7 @@ export class MarketplaceTransactionService {
         return this.createCheckout(actorPubky, command);
       case 'payment.sandbox_advance':
         return this.advanceSandboxPayment(actorPubky, command);
+      case 'payment.prepare_locks':
       case 'payment.register_locks':
         // The sandbox has no Lock Server and no verification worker, so it
         // refuses the registration outright — mirroring the durable service's

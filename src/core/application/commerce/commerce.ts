@@ -1533,13 +1533,15 @@ export class CommerceApplication {
   /**
    * The buyer's side of a real Locks/Paykit payment (`locks-paykit` mode):
    *
+   * 0. Prepare the payment with `payment.prepare_locks` (replayed when it
+   *    already is), which the service requires before registration.
    * 1. Generate (or reuse a persisted, not-yet-registered) bundle id and
    *    submit the proof bundle to the Lock Server, which requests the real
    *    Paykit invoice and delivers the private Payment Request to the buyer's
    *    wallet.
    * 2. Register the correlation with the transaction service via
-   *    `payment.register_locks`, sourcing `expected_revision` from the fresh
-   *    payment projection the caller just read.
+   *    `payment.register_locks` with only the payment and bundle ids, at the
+   *    revision the preparation left.
    *
    * This NEVER advances the payment: registration flips the payment to the
    * `locks` adapter and the service's worker independently verifies the Locks
@@ -1584,6 +1586,26 @@ export class CommerceApplication {
     }
 
     const existing = await LocalCommerceService.getLocksCorrelation(buyerPubky, payment.id);
+    // Prepare first: the service checks the seller's lock against the
+    // checkout snapshot, takes the hold and pins the `locks` adapter, so a
+    // refused payment never gets a Lock Server invoice. A repeat replays a
+    // live preparation, so a bundle submitted earlier (or before the service
+    // required this step) still registers after it. Locks takes no client
+    // reference yet (pubky/locks#52), so the minted one is not sent.
+    let expectedRevision = payment.revision;
+    if (!existing?.registered) {
+      const prepared = await MarketplaceGatewayService.execute(buyerPubky, {
+        version: 1,
+        commandId: crypto.randomUUID(),
+        aggregateId: buildMarketplacePaymentAggregateId(payment.id),
+        expectedRevision,
+        issuedAt: new Date().toISOString(),
+        kind: 'payment.prepare_locks',
+        payload: { paymentId: payment.id },
+      });
+      if (!prepared.ok) return prepared;
+      expectedRevision = prepared.revision;
+    }
     let bundleId = existing?.bundle_id;
     const submit = async (id: string) => {
       await LocksGatewayService.submitPaykitProof({
@@ -1629,10 +1651,10 @@ export class CommerceApplication {
       version: 1,
       commandId: crypto.randomUUID(),
       aggregateId: buildMarketplacePaymentAggregateId(payment.id),
-      expectedRevision: payment.revision,
+      expectedRevision,
       issuedAt: new Date().toISOString(),
       kind: 'payment.register_locks',
-      payload: { paymentId: payment.id, bundleId: bundleId!, pubkyLockResource: bareLockResource },
+      payload: { paymentId: payment.id, bundleId: bundleId! },
     });
     if (response.ok) {
       const verification = (response.result as { verification?: { windowExpiresAt?: string } }).verification;
