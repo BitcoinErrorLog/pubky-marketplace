@@ -371,7 +371,7 @@ describe('LocksGatewayService', () => {
 
     await expect(LocksGatewayService.getCreatorPaykitSetupStatus('session-token')).resolves.toBe('setup_required');
     expect(fetch).toHaveBeenCalledWith(
-      'https://locks.example.com/creator/paykit/setup-status',
+      'https://locks.example.com/creator/paykit/setup-status?asset=BTC',
       expect.objectContaining({ method: 'GET', headers: { authorization: 'Bearer session-token' } }),
     );
   });
