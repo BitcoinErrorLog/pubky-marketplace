@@ -303,13 +303,13 @@ export class LocksGatewayService {
 
   /**
    * Whether upstream Paykit Server holds the creator's watch-only setup
-   * (`GET /creator/paykit/setup-status`), asked by the Lock Server for the
+   * (`GET /creator/paykit/setup-status?asset=BTC`), asked by the Lock Server for the
    * creator its frontend session names. `unavailable` means the Lock Server
    * could not ask Paykit; it is not a setup verdict. The token is bearer
    * material — callers must not log it.
    */
   static async getCreatorPaykitSetupStatus(sessionToken: string): Promise<LocksCreatorPaykitSetupStatus> {
-    const url = `${getLocksUrl()}/creator/paykit/setup-status`;
+    const url = `${getLocksUrl()}/creator/paykit/setup-status?asset=BTC`;
     const response = await safeFetch(
       url,
       { method: 'GET', headers: { authorization: `Bearer ${sessionToken}` } },
